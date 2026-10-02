@@ -314,6 +314,16 @@ No code was copied; Interview OS is independently implemented.
 
 MIT — interview.ps. See [LICENSE](LICENSE).
 
+## Star History
+
+<a href="https://www.star-history.com/?repos=interview-ps%2Finterviewos&amp;type=date&amp;legend=top-left">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="https://api.star-history.com/chart?repos=interview-ps/interviewos&amp;type=date&amp;theme=dark&amp;legend=top-left" />
+    <source media="(prefers-color-scheme: light)" srcset="https://api.star-history.com/chart?repos=interview-ps/interviewos&amp;type=date&amp;legend=top-left" />
+    <img alt="Star History Chart" src="https://api.star-history.com/chart?repos=interview-ps/interviewos&amp;type=date&amp;legend=top-left" />
+  </picture>
+</a>
+
 ---
 
 <p align="center"><sub>Local-first interview preparation, built around evidence and practice.</sub></p>
