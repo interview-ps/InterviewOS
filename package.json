@@ -1,0 +1,32 @@
+{
+  "name": "interview-os",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "packageManager": "pnpm@12.6.0",
+  "scripts": {
+    "dev": "pnpm -r --parallel --if-present dev",
+    "typecheck": "pnpm -r --if-present typecheck",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:codex": "INTERVIEW_OS_LIVE_CODEX=1 vitest run live.test",
+    "test:e2e": "playwright test"
+  },
+  "devDependencies": {
+    "@interview-os/core": "workspace:*",
+    "@interview-os/orchestrator": "workspace:*",
+    "@interview-os/runtime": "workspace:*",
+    "@interview-os/server": "workspace:*",
+    "@interview-os/shared": "workspace:*",
+    "@interview-os/skills": "workspace:*",
+    "@playwright/test": "^1.63.0",
+    "@types/node": "24.13.6",
+    "tsx": "4.23.15",
+    "typescript": "6.0.3",
+    "vitest": "5.0.1",
+    "zod": "4.6.5"
+  },
+  "engines": {
+    "node": ">=22"
+  }
+}

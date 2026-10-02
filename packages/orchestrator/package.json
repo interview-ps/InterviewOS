@@ -1,0 +1,24 @@
+{
+  "name": "@interview-os/orchestrator",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit -p tsconfig.json"
+  },
+  "dependencies": {
+    "@interview-os/core": "workspace:*",
+    "@interview-os/runtime": "workspace:*",
+    "@interview-os/shared": "workspace:*",
+    "@interview-os/skills": "workspace:*",
+    "better-sqlite3": "13.0.3",
+    "drizzle-orm": "0.45.3",
+    "zod": "4.6.5"
+  },
+  "devDependencies": {
+    "@types/better-sqlite3": "9.6.0"
+  }
+}
