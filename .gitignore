@@ -1,0 +1,68 @@
+# OS files
+.DS_Store
+Thumbs.db
+desktop.ini
+.Trash-*
+
+# Editor / IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*.swn
+*~
+.project
+.settings/
+
+# Environment / secrets
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+secrets/
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.egg-info/
+.eggs/
+.venv/
+venv/
+env/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+coverage.xml
+htmlcov/
+.ipynb_checkpoints/
+
+# Node
+node_modules/
+dist/
+build/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnpm-debug.log*
+.next/
+.turbo/
+
+# Archives / generated output
+*.zip
+*.tar
+*.tar.gz
+*.tgz
+out/
+output/
+tmp/
+temp/
+
+# Misc
+*.tmp
+*.bak
+*.orig
+.cache/
