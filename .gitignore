@@ -1,15 +1,23 @@
 # OS files
 .DS_Store
+._*
 Thumbs.db
+ehthumbs.db
 desktop.ini
+$RECYCLE.BIN/
 .Trash-*
+.Directory
+.nfs*
 
 # Editor / IDE
 .vscode/
 .idea/
+*.iml
+.fleet/
 *.swp
 *.swo
 *.swn
+*.kate-swp
 *~
 .project
 .settings/
@@ -18,6 +26,7 @@ desktop.ini
 .env
 .env.*
 !.env.example
+.direnv/
 *.pem
 *.key
 secrets/
@@ -28,9 +37,13 @@ __pycache__/
 *$py.class
 *.egg-info/
 .eggs/
+*.whl
+pip-wheel-metadata/
 .venv/
 venv/
 env/
+.tox/
+.nox/
 .pytest_cache/
 .mypy_cache/
 .ruff_cache/
@@ -39,7 +52,7 @@ coverage.xml
 htmlcov/
 .ipynb_checkpoints/
 
-# Node
+# Node / TypeScript
 node_modules/
 dist/
 build/
@@ -48,8 +61,14 @@ npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 .pnpm-debug.log*
+*.tsbuildinfo
+.eslintcache
+.nyc_output/
+.parcel-cache/
+.vite/
 .next/
 .turbo/
+.svelte-kit/
 
 # Archives / generated output
 *.zip
@@ -66,3 +85,4 @@ temp/
 *.bak
 *.orig
 .cache/
+.local/
