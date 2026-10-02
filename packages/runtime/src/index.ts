@@ -36,9 +36,11 @@ export async function createRuntime(opts: CreateRuntimeOptions = {}): Promise<AI
   const logger = opts.logger ?? createLogger({ level: "warn" });
   await fs.mkdir(workspaceDir, { recursive: true });
 
+  const mockDelayMs = Math.max(0, Number(env.INTERVIEW_OS_MOCK_DELAY_MS ?? 0) || 0);
+
   const kind = env.INTERVIEW_OS_RUNTIME ?? "codex";
   if (kind === "mock") {
-    return new MockRuntime();
+    return new MockRuntime({ chunkDelayMs: mockDelayMs });
   }
 
   const runtime = new CodexRuntime({ env, workspaceDir, logger });
@@ -50,7 +52,7 @@ export async function createRuntime(opts: CreateRuntimeOptions = {}): Promise<AI
         message: status.message,
         fallback: "mock",
       });
-      return new MockRuntime();
+      return new MockRuntime({ chunkDelayMs: mockDelayMs });
     }
     logger.warn("runtime.unavailable", {
       runtime: "codex",

@@ -13,7 +13,16 @@ export const EVIDENCE_TYPE_WEIGHT: Record<EvidenceType, number> = {
   self_report: 0.3,
 };
 
+/** Half-life in days per evidence type (§8.1 time decay). */
+export const EVIDENCE_HALF_LIFE_DAYS: Record<EvidenceType, number> = {
+  interview_answer: 60,
+  practice: 45,
+  self_report: 30,
+  resume_claim: 180,
+};
+
 export const RECENCY_DECAY = 0.85;
+const DAY_MS = 86_400_000;
 const CONFIDENCE_SATURATION = 1.5;
 const CONFIDENCE_CAP = 0.95;
 const UNKNOWN_PRIOR = 0.25;
@@ -45,20 +54,27 @@ function sortNewestFirst(evidence: Evidence[]): Evidence[] {
   );
 }
 
-function evidenceWeight(e: Evidence, rank: number): number {
-  return e.confidence * EVIDENCE_TYPE_WEIGHT[e.type] * Math.pow(RECENCY_DECAY, rank);
+function evidenceWeight(e: Evidence, rank: number, now: Date): number {
+  const ageDays = Math.max(0, (now.getTime() - Date.parse(e.createdAt)) / DAY_MS);
+  const ageDecay = Math.pow(0.5, ageDays / EVIDENCE_HALF_LIFE_DAYS[e.type]);
+  return (
+    e.confidence * EVIDENCE_TYPE_WEIGHT[e.type] * Math.pow(RECENCY_DECAY, rank) * ageDecay
+  );
 }
 
 export function confidenceForWeight(totalWeight: number): number {
   return Math.min(CONFIDENCE_CAP, 1 - Math.exp(-totalWeight / CONFIDENCE_SATURATION));
 }
 
-export function computeSkillReadiness(evidence: Evidence[]): DirectReadiness {
+export function computeSkillReadiness(
+  evidence: Evidence[],
+  now: Date = new Date(),
+): DirectReadiness {
   const sorted = sortNewestFirst(evidence);
   let weight = 0;
   let weightedScore = 0;
   sorted.forEach((e, rank) => {
-    const w = evidenceWeight(e, rank);
+    const w = evidenceWeight(e, rank, now);
     weight += w;
     weightedScore += w * e.score;
   });
@@ -76,10 +92,12 @@ export interface BuildReadinessGraphInput {
   evidence: Evidence[];
   requirements: Requirement[];
   taxonomy?: TaxonomyLike;
+  now?: Date;
 }
 
 export function buildReadinessGraph(input: BuildReadinessGraphInput): ReadinessGraph {
   const taxonomy = input.taxonomy ?? defaultTaxonomy;
+  const now = input.now ?? new Date();
   const evidenceBySkill = new Map<SkillId, Evidence[]>();
   for (const e of input.evidence) {
     const list = evidenceBySkill.get(e.skillId) ?? [];
@@ -116,7 +134,7 @@ export function buildReadinessGraph(input: BuildReadinessGraphInput): ReadinessG
 
   const dimensions: Record<string, SkillReadiness> = {};
   for (const id of ordered) {
-    const direct = computeSkillReadiness(evidenceBySkill.get(id) ?? []);
+    const direct = computeSkillReadiness(evidenceBySkill.get(id) ?? [], now);
     const children = childrenOfNode.get(id) ?? [];
     const scoredChildren = children
       .map((c) => dimensions[c])
@@ -160,6 +178,6 @@ export function buildReadinessGraph(input: BuildReadinessGraphInput): ReadinessG
     dimensions,
     overall: importanceSum === 0 ? 0 : overallNum / importanceSum,
     overallConfidence: importanceSum === 0 ? 0 : overallConfNum / importanceSum,
-    lastUpdated: new Date().toISOString(),
+    lastUpdated: now.toISOString(),
   };
 }

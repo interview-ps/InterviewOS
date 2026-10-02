@@ -39,6 +39,10 @@ export default function History() {
           <button onClick={() => toggle(s.id)} aria-expanded={expanded === s.id} className="w-full text-left">
             <div className="flex flex-wrap items-center gap-3">
               <span className="font-medium">{new Date(s.createdAt).toLocaleString()}</span>
+              {s.mode === "practice" && <Pill tone="amber">Practice</Pill>}
+              {s.target && (
+                <span className="text-sm text-muted">{s.target.role} — {s.target.company}</span>
+              )}
               <Pill tone={s.status === "debrief" ? "green" : "muted"}>{s.status}</Pill>
               <span className="text-sm text-muted">{s.questions} questions</span>
               <span className="ml-auto text-muted" aria-hidden>{expanded === s.id ? "▾" : "▸"}</span>

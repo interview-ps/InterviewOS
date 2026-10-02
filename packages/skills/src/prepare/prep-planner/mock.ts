@@ -76,6 +76,15 @@ const TEMPLATES: Record<string, { action: string; successCriteria: string[] }> =
     action: "Prepare two STAR stories and tell each aloud in under 2 minutes",
     successCriteria: ["One story shows leadership", "One story shows handling conflict"],
   },
+  communication: {
+    action: "Rewrite one story with a quantified Result",
+    successCriteria: [
+      "Situation in one sentence",
+      "Actions in first person",
+      "Result with a number",
+      "Under 2 minutes",
+    ],
+  },
 };
 
 function genericAction(target: PrepTarget): { action: string; successCriteria: string[] } {

@@ -4,6 +4,7 @@ import {
   type RuntimeEvent,
 } from "@interview-os/runtime";
 import { z } from "zod";
+import { extractPartialStringField } from "./partialJson.js";
 import { SkillOutputError, SkillRuntimeError, type SkillContext } from "./skill.js";
 
 const RETRYABLE_CODES = new Set(["MALFORMED_OUTPUT", "MALFORMED_EVENT"]);
@@ -49,6 +50,11 @@ export interface StructuredTaskOptions<O> {
   schema: z.ZodType<O>;
   /** Route through an existing runtime session instead of a one-shot task. */
   session?: { runtimeSessionId: string };
+  /**
+   * Stream partial values of this JSON field via ctx.onProgress({field, text})
+   * while the model is still generating (§8.3).
+   */
+  streamField?: string;
 }
 
 async function runOnce(
@@ -56,6 +62,7 @@ async function runOnce(
   opts: StructuredTaskOptions<unknown>,
   instructions: string,
   outputSchema: JSONSchema,
+  onDelta?: (text: string) => void,
 ): Promise<{ output?: unknown; raw: string }> {
   const sessionId = opts.session?.runtimeSessionId ?? ctx.runtimeSessionId;
   if (sessionId) {
@@ -66,8 +73,11 @@ async function runOnce(
       taskId: opts.taskId,
       input: opts.input,
       outputSchema,
+      model: ctx.runtimeOptions?.model ?? undefined,
+      effort: ctx.runtimeOptions?.effort ?? undefined,
     })) {
       if (event.type === "error") throw event.error;
+      if (event.type === "delta") onDelta?.(event.text);
       if (event.type === "completed") completed = event;
     }
     ctx.logger.info("runtime.invoked", {
@@ -94,6 +104,14 @@ async function runOnce(
     instructions,
     input: opts.input,
     outputSchema,
+    model: ctx.runtimeOptions?.model ?? undefined,
+    effort: ctx.runtimeOptions?.effort ?? undefined,
+    taskMode: ctx.runtimeOptions?.taskMode ?? undefined,
+    onEvent: onDelta
+      ? (e) => {
+          if (e.type === "delta") onDelta(e.text);
+        }
+      : undefined,
   });
   ctx.logger.info("runtime.invoked", {
     taskId: opts.taskId,
@@ -119,8 +137,22 @@ export async function runStructured<O>(
   });
 
   for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
+    let streamBuf = "";
+    let lastSent = "";
+    const onDelta =
+      opts.streamField && ctx.onProgress
+        ? (text: string) => {
+            streamBuf += text;
+            const field = opts.streamField!;
+            const partial = extractPartialStringField(streamBuf, field);
+            if (partial !== null && partial.length > lastSent.length) {
+              lastSent = partial;
+              ctx.onProgress!({ field, text: partial });
+            }
+          }
+        : undefined;
     try {
-      const { output } = await runOnce(ctx, opts, instructions, outputSchema);
+      const { output } = await runOnce(ctx, opts, instructions, outputSchema, onDelta);
       const parsed = opts.schema.safeParse(output);
       if (parsed.success) {
         ctx.logger.info("output.validated", { taskId: opts.taskId, attempt });
@@ -146,6 +178,7 @@ export async function runStructured<O>(
       }
     }
     instructions = `${opts.instructions}\n\nYour previous response was invalid: ${lastError}\nFix the output to satisfy the schema exactly.`;
+    if (attempt < MAX_ATTEMPTS) ctx.onProgress?.({ stage: "retrying" });
   }
   throw new SkillOutputError(opts.taskId, lastError);
 }

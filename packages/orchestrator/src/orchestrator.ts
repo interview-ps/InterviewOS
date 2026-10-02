@@ -5,9 +5,12 @@ import {
   CandidateProfileSchema,
   InterviewOSStateSchema,
   selectNextSkill,
+  inRound,
   taxonomy,
   TargetRoleSchema,
   transition,
+  type CompanyProfile,
+  type RoundType,
   type AnswerEvaluation,
   type CandidateProfile,
   type Evidence,
@@ -26,17 +29,21 @@ import { RuntimeError, type AIRuntime } from "@interview-os/runtime";
 import { AppError, newId, type Logger } from "@interview-os/shared";
 import {
   answerEvaluator,
+  companyProfiler,
   interviewDebrief,
   interviewer,
   jdAnalyzer,
   prepPlanner,
   resumeAnalyzer,
   SkillRuntimeError,
+  starCoach,
   taxonomyEntries,
   type JdAnalyzerOutput,
   type PrepPlannerOutput,
+  type ProgressUpdate,
   type ResumeAnalyzerOutput,
   type SkillContext,
+  type StarCoachReviewOutput,
 } from "@interview-os/skills";
 import { Store } from "./store/index.js";
 
@@ -55,6 +62,25 @@ export interface SetupWorkspaceInput {
   company: string;
   role: string;
   level: Level;
+  /** §8.4: untrusted careers-page notes → company profiler. */
+  companyNotes?: string;
+}
+
+export interface TargetInput {
+  jobDescription: string;
+  company: string;
+  role: string;
+  level: Level;
+  companyNotes?: string;
+}
+
+export interface StartInterviewInput {
+  plannedQuestions?: number;
+  mode?: "interview" | "practice";
+  focusSkillId?: SkillId;
+  actionId?: string;
+  /** §8.4 round type; practice sessions ignore it (focus skill wins). */
+  roundType?: RoundType;
 }
 
 export interface SubmitAnswerResult {
@@ -79,6 +105,20 @@ interface PrepActionRowLike {
 
 const INTERVIEWER_SESSION_INSTRUCTIONS = `You are the interviewer thread for Interview OS, a mock-interview tool. Each message asks you to produce ONE interview question as JSON matching the provided schema. Never repeat earlier questions.`;
 
+/** Streaming progress pushed to SSE/API callers during long AI operations. */
+export interface ProgressOptions {
+  onProgress?: (p: ProgressUpdate) => void;
+}
+
+const TASK_MODES = ["app-server", "exec"] as const;
+export type TaskMode = (typeof TASK_MODES)[number];
+
+export interface OrchestratorSettings {
+  codexModel: string | null;
+  reasoningEffort: "low" | "medium" | "high" | null;
+  taskMode: TaskMode;
+}
+
 export class InterviewOrchestrator {
   private readonly store: Store;
   private readonly runtime: AIRuntime;
@@ -99,11 +139,72 @@ export class InterviewOrchestrator {
     return run;
   }
 
+  /** Settings-backed runtime overrides, read at call time (§8.3). */
+  private runtimeOptions(): SkillContext["runtimeOptions"] {
+    const effort = this.store.getSetting("reasoningEffort");
+    const taskMode = this.store.getSetting("taskMode");
+    return {
+      model: this.store.getSetting("codexModel") ?? null,
+      effort: effort === "low" || effort === "medium" || effort === "high" ? effort : null,
+      taskMode: taskMode === "exec" ? "exec" : "app-server",
+    };
+  }
+
+  getSettings(): OrchestratorSettings {
+    const opts = this.runtimeOptions();
+    return {
+      codexModel: opts?.model ?? null,
+      reasoningEffort: opts?.effort ?? null,
+      taskMode: opts?.taskMode ?? "app-server",
+    };
+  }
+
+  async updateSettings(patch: Partial<OrchestratorSettings>): Promise<OrchestratorSettings> {
+    return this.withLock(async () => {
+      if ("codexModel" in patch) {
+        const model = patch.codexModel ?? null;
+        if (model !== null) {
+          const models = await this.runtime.listModels();
+          if (!models.some((m) => m.id === model)) {
+            throw new AppError("VALIDATION", `unknown model "${model}"`);
+          }
+        }
+        this.store.setSetting("codexModel", model);
+      }
+      if ("reasoningEffort" in patch) {
+        const effort = patch.reasoningEffort ?? null;
+        if (effort !== null) {
+          const model = patch.codexModel ?? this.store.getSetting("codexModel") ?? null;
+          if (model !== null) {
+            const models = await this.runtime.listModels();
+            const m = models.find((x) => x.id === model);
+            if (m && m.supportedReasoningEfforts.length > 0 &&
+                !m.supportedReasoningEfforts.includes(effort)) {
+              throw new AppError(
+                "VALIDATION",
+                `model "${model}" does not support effort "${effort}"`,
+              );
+            }
+          }
+        }
+        this.store.setSetting("reasoningEffort", effort);
+      }
+      if ("taskMode" in patch && patch.taskMode !== undefined) {
+        if (!TASK_MODES.includes(patch.taskMode)) {
+          throw new AppError("VALIDATION", `invalid taskMode "${patch.taskMode}"`);
+        }
+        this.store.setSetting("taskMode", patch.taskMode);
+      }
+      return this.getSettings();
+    });
+  }
+
   private ctx(extra?: Partial<SkillContext>): SkillContext {
     return {
       runtime: this.runtime,
       logger: this.logger,
       now: this.now,
+      runtimeOptions: this.runtimeOptions(),
       ...extra,
     };
   }
@@ -129,16 +230,30 @@ export class InterviewOrchestrator {
 
   // ---------------------------------------------------------------- pipeline
 
-  async setupWorkspace(input: SetupWorkspaceInput) {
+  async setupWorkspace(input: SetupWorkspaceInput, opts?: ProgressOptions) {
     return this.withLock(async () => {
       this.logger.info("workflow.started", { workflow: "setupWorkspace" });
+      const onProgress = opts?.onProgress;
       try {
         // resume and JD analysis are independent — run them concurrently;
         // persistence stays sequential.
-        const [candidateOut, targetOut] = await Promise.all([
+        onProgress?.({ stage: "analyzing resume" });
+        onProgress?.({ stage: "analyzing job description" });
+        const profileCompany = input.companyNotes?.trim()
+          ? (onProgress?.({ stage: "profiling company" }),
+            companyProfiler.execute(
+              {
+                company: input.company,
+                companyNotes: input.companyNotes,
+                taxonomy: taxonomyEntries(),
+              },
+              this.ctx({ onProgress }),
+            ))
+          : Promise.resolve(null);
+        const [candidateOut, targetOut, companyProfile] = await Promise.all([
           resumeAnalyzer.execute(
             { resumeText: input.resumeText, taxonomy: taxonomyEntries() },
-            this.ctx(),
+            this.ctx({ onProgress }),
           ),
           jdAnalyzer.execute(
             {
@@ -148,13 +263,16 @@ export class InterviewOrchestrator {
               level: input.level,
               taxonomy: taxonomyEntries(),
             },
-            this.ctx(),
+            this.ctx({ onProgress }),
           ),
+          profileCompany,
         ]);
         const candidate = this.persistCandidate(input.resumeText, candidateOut);
-        const target = this.persistTarget(input, targetOut);
+        const target = this.persistTarget(input, targetOut, companyProfile);
         this.recomputeReadinessInternal("setup");
+        onProgress?.({ stage: "calculating gaps" });
         const gaps = this.calculateGapsInternal();
+        onProgress?.({ stage: "building prep plan" });
         const { actions } = await this.buildPreparationPlanInternal();
         this.logger.info("workflow.completed", { workflow: "setupWorkspace" });
         return { candidate, target, gaps, actions };
@@ -205,6 +323,21 @@ export class InterviewOrchestrator {
       data: candidate as unknown as object,
       createdAt: this.iso(),
     });
+    // STAR stories extracted from the resume seed the story bank (§8.4)
+    for (const story of candidate.starStories) {
+      this.store.insertStory({
+        id: newId("story"),
+        candidateId: candidate.id,
+        title: story.title,
+        situation: story.situation,
+        task: story.task,
+        action: story.action,
+        result: story.result,
+        skillIds: story.skillIds,
+        source: "resume",
+        updatedAt: this.iso(),
+      });
+    }
     const createdAt = this.iso();
     for (const skill of candidate.skills) {
       this.registerSkillNode(skill.skillId);
@@ -223,40 +356,56 @@ export class InterviewOrchestrator {
     return candidate;
   }
 
-  async analyzeTarget(input: {
-    jobDescription: string;
-    company: string;
-    role: string;
-    level: Level;
-  }): Promise<TargetRole> {
+  async analyzeTarget(input: TargetInput): Promise<TargetRole> {
     return this.withLock(() => this.analyzeTargetInternal(input));
   }
 
-  private async analyzeTargetInternal(input: {
-    jobDescription: string;
-    company: string;
-    role: string;
-    level: Level;
-  }): Promise<TargetRole> {
-    const output = await jdAnalyzer.execute(
-      { ...input, taxonomy: taxonomyEntries() },
+  /** §8.4: profile the company when untrusted notes were supplied. */
+  private profileCompany(input: TargetInput): Promise<CompanyProfile | null> {
+    if (!input.companyNotes?.trim()) return Promise.resolve(null);
+    return companyProfiler.execute(
+      {
+        company: input.company,
+        companyNotes: input.companyNotes,
+        taxonomy: taxonomyEntries(),
+      },
       this.ctx(),
     );
-    return this.persistTarget(input, output);
+  }
+
+  private async analyzeTargetInternal(input: TargetInput): Promise<TargetRole> {
+    const [output, profile] = await Promise.all([
+      jdAnalyzer.execute({ ...input, taxonomy: taxonomyEntries() }, this.ctx()),
+      this.profileCompany(input),
+    ]);
+    return this.persistTarget(input, output, profile);
   }
 
   private persistTarget(
-    input: { jobDescription: string; company: string; role: string; level: Level },
+    input: TargetInput,
     output: JdAnalyzerOutput,
+    companyProfile: CompanyProfile | null = null,
   ): TargetRole {
+    // §8.4: company focus skills boost requirement importance (+0.05, cap 0.95)
+    const focus = new Set<string>(companyProfile?.focusSkillIds ?? []);
+    const boost = (r: Requirement): Requirement =>
+      focus.has(r.skillId)
+        ? {
+            ...r,
+            importance: Math.min(0.95, Math.round((r.importance + 0.05) * 100) / 100),
+            boostedBy: "company-profile",
+          }
+        : r;
     const target: TargetRole = {
       id: newId("target"),
       company: input.company,
       role: input.role,
       level: input.level,
       jobDescription: input.jobDescription,
-      requirements: output.requirements,
-      preferredSkills: output.preferredSkills,
+      companyNotes: input.companyNotes,
+      requirements: output.requirements.map(boost),
+      preferredSkills: output.preferredSkills.map(boost),
+      companyProfile: companyProfile ?? undefined,
     };
     this.store.deactivateTargets();
     this.store.insertTarget({
@@ -281,6 +430,70 @@ export class InterviewOrchestrator {
       const node = taxonomy.getNode(id);
       this.store.upsertSkillNode(id, node?.label ?? taxonomy.labelFor(id), taxonomy.parentOf(id));
     }
+  }
+
+  // ---------------------------------------------------------------- targets
+
+  listTargets() {
+    return this.store.listTargets().map((t) => {
+      const parsed = TargetRoleSchema.safeParse(t.data);
+      const data = parsed.success ? parsed.data : null;
+      return {
+        id: t.id,
+        company: t.company,
+        role: t.role,
+        level: t.level,
+        active: t.active === 1,
+        createdAt: t.createdAt,
+        companyProfile: data?.companyProfile ?? null,
+        boostedSkillIds: data
+          ? [...data.requirements, ...data.preferredSkills]
+              .filter((r) => r.boostedBy)
+              .map((r) => r.skillId)
+          : [],
+      };
+    });
+  }
+
+  /** Add another target role for the active candidate; becomes the active target. */
+  async addTarget(input: TargetInput, opts?: ProgressOptions) {
+    return this.withLock(async () => {
+      const { candidate } = this.requireActive();
+      if (!candidate.id || candidate.id === "none") {
+        throw new AppError("NO_ACTIVE_PROFILE", "no active candidate");
+      }
+      opts?.onProgress?.({ stage: "analyzing job description" });
+      const [output, profile] = await Promise.all([
+        jdAnalyzer.execute(
+          { ...input, taxonomy: taxonomyEntries() },
+          this.ctx({ onProgress: opts?.onProgress }),
+        ),
+        this.profileCompany(input),
+      ]);
+      const target = this.persistTarget(input, output, profile);
+      opts?.onProgress?.({ stage: "calculating gaps" });
+      opts?.onProgress?.({ stage: "building prep plan" });
+      const { actions } = await this.buildPreparationPlanInternal();
+      this.logger.info("workflow.completed", { workflow: "addTarget", targetId: target.id });
+      return { target, actions };
+    });
+  }
+
+  async activateTarget(id: string) {
+    return this.withLock(async () => {
+      const row = this.store.getTarget(id);
+      if (!row) throw new AppError("NOT_FOUND", `no target ${id}`);
+      this.store.activateTarget(id);
+      this.logger.info("state.mutated", { entity: "target", id, active: true });
+      const openActions = this.store.listActions("open", id);
+      let actions: PrepActionRowLike[] = openActions.map(rowToAction);
+      if (openActions.length === 0) {
+        const plan = await this.buildPreparationPlanInternal();
+        actions = plan.actions;
+      }
+      const target = TargetRoleSchema.parse(row.data);
+      return { target, actions };
+    });
   }
 
   // ---------------------------------------------------------------- readiness
@@ -311,6 +524,7 @@ export class InterviewOrchestrator {
       evidence: this.evidenceForActive(candidate.id),
       requirements: this.allRequirements(target),
       taxonomy,
+      now: this.now(),
     });
   }
 
@@ -389,7 +603,7 @@ export class InterviewOrchestrator {
     const gaps = this.calculateGapsInternal();
     const evidence = this.evidenceForActive(candidate.id);
     const openSkills = new Set(
-      this.store.listActions("open").map((a) => a.skillId),
+      this.store.listActions("open", target.id).map((a) => a.skillId),
     );
 
     const targets: Array<{
@@ -440,14 +654,16 @@ export class InterviewOrchestrator {
       targets.forEach((t) => {
         const action = bySkill.get(t.skillId) ?? bySkill.get(t.skillId as string);
         if (!action) return;
-        created.push(this.insertPlannedAction(t.skillId, action, candidate.id, t.severity));
+        created.push(
+          this.insertPlannedAction(t.skillId, action, candidate.id, t.severity, target.id),
+        );
       });
     }
 
-    this.renumberActionPriorities(this.allRequirements(target));
+    this.renumberActionPriorities(this.allRequirements(target), target.id);
 
     const actions = this.store
-      .listActions()
+      .listActions(undefined, target.id)
       .filter((a) => a.status === "open" || a.status === "in_progress")
       .map(rowToAction);
     return { actions, created };
@@ -458,8 +674,9 @@ export class InterviewOrchestrator {
     action: { action: string; successCriteria: string[]; reason: string },
     candidateId: string,
     severity: "low" | "medium" | "high" = "medium",
+    targetId?: string,
   ): PrepActionRowLike {
-    const existing = this.store.openActionForSkill(skillId);
+    const existing = this.store.openActionForSkill(skillId, targetId);
     if (existing) this.store.updateActionStatus(existing.id, "superseded");
     const sourceEvidenceIds = this.store
       .evidenceForSkill(skillId, candidateId)
@@ -467,6 +684,7 @@ export class InterviewOrchestrator {
     const row = {
       id: newId("action"),
       skillId,
+      targetId: targetId ?? null,
       priority: 0, // renumbered by renumberActionPriorities
       reason: action.reason,
       action: action.action,
@@ -486,7 +704,7 @@ export class InterviewOrchestrator {
    * outrank generic gap actions: severityWeight × 1.5(if interview evidence)
    * × nearest requirement importance; ties by createdAt desc then skillId.
    */
-  private renumberActionPriorities(requirements: Requirement[]): void {
+  private renumberActionPriorities(requirements: Requirement[], targetId?: string): void {
     const reqMap = new Map(requirements.map((r) => [r.skillId, r]));
     const nearestReq = (skillId: string): Requirement | undefined => {
       let cur: string | null = skillId;
@@ -505,7 +723,7 @@ export class InterviewOrchestrator {
     );
     const sevW = { high: 3, medium: 2, low: 1 } as Record<string, number>;
     const open = this.store
-      .listActions()
+      .listActions(undefined, targetId)
       .filter((a) => a.status === "open" || a.status === "in_progress");
     const scored = open.map((a) => {
       const sourceIds = (a.sourceEvidenceIds ?? []) as string[];
@@ -531,10 +749,19 @@ export class InterviewOrchestrator {
 
   // ---------------------------------------------------------------- interviews
 
-  async startInterview(input: { plannedQuestions?: number } = {}) {
+  async startInterview(input: StartInterviewInput = {}, opts?: ProgressOptions) {
     return this.withLock(async () => {
       const { candidate, target } = this.requireActive();
-      const plannedQuestions = input.plannedQuestions ?? 4;
+      const mode = input.mode ?? "interview";
+      if (mode === "practice" && !input.focusSkillId) {
+        throw new AppError("VALIDATION", "practice sessions require focusSkillId");
+      }
+      if (input.actionId) {
+        const action = this.store.getAction(input.actionId);
+        if (!action) throw new AppError("NOT_FOUND", `no prep action ${input.actionId}`);
+      }
+      // practice sessions are single-question verifications
+      const plannedQuestions = mode === "practice" ? 1 : (input.plannedQuestions ?? 4);
       const sessionId = newId("int");
       const createdAt = this.iso();
       this.store.insertSession({
@@ -543,6 +770,10 @@ export class InterviewOrchestrator {
         targetId: target.id,
         status: "created",
         plannedQuestions,
+        mode,
+        roundType: input.roundType ?? "mixed",
+        focusSkillId: input.focusSkillId ?? null,
+        actionId: input.actionId ?? null,
         createdAt,
       });
       this.transitionSession(sessionId, "analyzing", "analyze");
@@ -562,7 +793,7 @@ export class InterviewOrchestrator {
         createdAt: this.iso(),
       });
       this.logger.info("workflow.completed", { workflow: "startInterview", sessionId });
-      return this.nextQuestionInternal(sessionId);
+      return this.nextQuestionInternal(sessionId, opts);
     });
   }
 
@@ -581,11 +812,11 @@ export class InterviewOrchestrator {
     this.store.updateSession(sessionId, { status: to });
   }
 
-  async nextQuestion(sessionId: string) {
-    return this.withLock(() => this.nextQuestionInternal(sessionId));
+  async nextQuestion(sessionId: string, opts?: ProgressOptions) {
+    return this.withLock(() => this.nextQuestionInternal(sessionId, opts));
   }
 
-  private async nextQuestionInternal(sessionId: string) {
+  private async nextQuestionInternal(sessionId: string, opts?: ProgressOptions) {
     const session = this.store.getSession(sessionId);
     if (!session) throw new AppError("NOT_FOUND", `no session ${sessionId}`);
     const questions = this.store.listQuestions(sessionId);
@@ -617,36 +848,57 @@ export class InterviewOrchestrator {
       .listSessions()
       .flatMap((s) => this.store.listQuestions(s.id).map((q) => q.text));
 
-    const selection = selectNextSkill({
-      requirements: this.allRequirements(target),
-      readiness: graph.dimensions,
-      evidence,
-      askedThisSession: questions.map((q) => q.skillId as SkillId),
-      askedPreviousSession,
-      questionIndex: questions.length,
-    });
+    const roundType = (session.roundType ?? "mixed") as RoundType;
+    opts?.onProgress?.({ stage: "selecting skill" });
+    const selection =
+      session.mode === "practice" && session.focusSkillId
+        ? {
+            skillId: session.focusSkillId as SkillId,
+            reason: `practice: verifying ${taxonomy.labelFor(session.focusSkillId as SkillId)}`,
+            priority: 99,
+          }
+        : selectNextSkill({
+            requirements: this.allRequirements(target),
+            readiness: graph.dimensions,
+            evidence,
+            askedThisSession: questions.map((q) => q.skillId as SkillId),
+            askedPreviousSession,
+            questionIndex: questions.length,
+            roundType,
+          });
     if (!selection) {
       this.transitionSession(sessionId, "complete", "complete");
       return { session: this.store.getSession(sessionId), question: null };
     }
 
+    // §8.4: behavioral/hr interviewers get company themes + story titles
+    const behavioralRound = roundType === "behavioral" || roundType === "hr";
+    const interviewerInput = {
+      skillId: selection.skillId,
+      label: taxonomy.labelFor(selection.skillId),
+      role: target.role,
+      level: target.level,
+      company: target.company,
+      reason: selection.reason,
+      previousQuestions: [...allPreviousTexts],
+      candidateSummary: `${candidate.name ?? "candidate"} — ${candidate.headline ?? ""}`.trim(),
+      roundType,
+      companyThemes: behavioralRound ? (target.companyProfile?.behavioralThemes ?? []) : [],
+      storyTitles: behavioralRound
+        ? this.store.listStories(candidate.id).map((s) => s.title).slice(0, 10)
+        : [],
+    };
+
     const runtimeSessionId = await this.ensureRuntimeSession(sessionId);
-    const interviewCtx = this.ctx({ sessionId, runtimeSessionId });
+    const interviewCtx = this.ctx({
+      sessionId,
+      runtimeSessionId,
+      onProgress: opts?.onProgress,
+    });
+    opts?.onProgress?.({ stage: "writing question" });
     let produced;
     try {
-      produced = await interviewer.execute(
-        {
-          skillId: selection.skillId,
-          label: taxonomy.labelFor(selection.skillId),
-          role: target.role,
-          level: target.level,
-          company: target.company,
-          reason: selection.reason,
-          previousQuestions: [...allPreviousTexts],
-          candidateSummary: `${candidate.name ?? "candidate"} — ${candidate.headline ?? ""}`.trim(),
-        },
-        interviewCtx,
-      );
+      produced = await interviewer.execute(interviewerInput, interviewCtx);
     } catch (err) {
       // in-memory runtime session gone (server restart): resume by thread and retry once
       if (
@@ -655,16 +907,7 @@ export class InterviewOrchestrator {
       ) {
         const rid = await this.resumeRuntimeSession(sessionId);
         produced = await interviewer.execute(
-          {
-            skillId: selection.skillId,
-            label: taxonomy.labelFor(selection.skillId),
-            role: target.role,
-            level: target.level,
-            company: target.company,
-            reason: selection.reason,
-            previousQuestions: [...allPreviousTexts],
-            candidateSummary: `${candidate.name ?? "candidate"} — ${candidate.headline ?? ""}`.trim(),
-          },
+          interviewerInput,
           this.ctx({ sessionId, runtimeSessionId: rid }),
         );
       } else {
@@ -717,7 +960,11 @@ export class InterviewOrchestrator {
     return rtSession.id;
   }
 
-  async submitAnswer(sessionId: string, answerText: string): Promise<SubmitAnswerResult> {
+  async submitAnswer(
+    sessionId: string,
+    answerText: string,
+    opts?: ProgressOptions,
+  ): Promise<SubmitAnswerResult> {
     return this.withLock(async () => {
       const session = this.store.getSession(sessionId);
       if (!session) throw new AppError("NOT_FOUND", `no session ${sessionId}`);
@@ -744,6 +991,7 @@ export class InterviewOrchestrator {
       let evaluation: AnswerEvaluation;
       let skillImpact: SubmitAnswerResult["skillImpact"];
       const newActions: PrepActionRowLike[] = [];
+      opts?.onProgress?.({ stage: "evaluating answer" });
       try {
         evaluation = await answerEvaluator.execute(
           {
@@ -757,8 +1005,9 @@ export class InterviewOrchestrator {
             answer: answerText,
             role: target.role,
             level: target.level,
+            roundType: (session.roundType ?? "mixed") as RoundType,
           },
-          this.ctx({ sessionId }),
+          this.ctx({ sessionId, onProgress: opts?.onProgress }),
         );
         AnswerEvaluationSchema.parse(evaluation);
         this.store.insertEvaluation({
@@ -775,6 +1024,8 @@ export class InterviewOrchestrator {
           skillId: active.skillId,
         });
 
+        const evidenceType = session.mode === "practice" ? "practice" : "interview_answer";
+        const createdEvidenceIds: string[] = [];
         const evidenceCreatedAt = this.iso();
         for (const s of evaluation.scores) {
           const skillId = s.skill;
@@ -782,11 +1033,12 @@ export class InterviewOrchestrator {
             evaluation.weaknesses.find((w) => w.skill === skillId)?.evidence ??
             evaluation.strengths.find((st) => st.skill === skillId)?.evidence ??
             evaluation.summary;
+          const evidenceId = newId("ev");
           this.store.insertEvidence({
-            id: newId("ev"),
+            id: evidenceId,
             candidateId: candidate.id,
             skillId,
-            type: "interview_answer",
+            type: evidenceType,
             score: s.score,
             confidence: s.confidence,
             observation: match,
@@ -794,9 +1046,11 @@ export class InterviewOrchestrator {
             questionId: active.id,
             createdAt: evidenceCreatedAt,
           });
+          createdEvidenceIds.push(evidenceId);
           this.registerSkillNode(skillId);
         }
 
+        opts?.onProgress?.({ stage: "updating readiness" });
         const after = this.recomputeReadinessInternal("answer");
         skillImpact = evaluation.scores.map((s) => ({
           skillId: s.skill,
@@ -807,6 +1061,7 @@ export class InterviewOrchestrator {
         // plan update for medium+ weaknesses
         const weakTargets = evaluation.weaknesses.filter((w) => w.severity !== "low");
         if (weakTargets.length > 0) {
+          opts?.onProgress?.({ stage: "updating prep plan" });
           const plan = await prepPlanner.execute(
             {
               targets: weakTargets.map((w) => ({
@@ -825,10 +1080,37 @@ export class InterviewOrchestrator {
             const skillId = a.skillId as SkillId;
             const severity = weakTargets.find((w) => w.skill === skillId)?.severity;
             newActions.push(
-              this.insertPlannedAction(skillId, a, candidate.id, severity ?? "medium"),
+              this.insertPlannedAction(
+                skillId,
+                a,
+                candidate.id,
+                severity ?? "medium",
+                target.id,
+              ),
             );
           });
-          this.renumberActionPriorities(this.allRequirements(target));
+          this.renumberActionPriorities(this.allRequirements(target), target.id);
+        }
+
+        // practice session linked to a prep action: a demonstrated focus-skill
+        // score ≥ 0.7 closes the action; otherwise attach the new evidence ids
+        if (session.actionId) {
+          const focusSkillId = session.focusSkillId;
+          const demonstrated = focusSkillId
+            ? evaluation.scores.find((s) => s.skill === focusSkillId)?.score
+            : undefined;
+          if (demonstrated !== undefined && demonstrated >= 0.7) {
+            this.store.updateActionStatus(session.actionId, "done");
+          } else {
+            const action = this.store.getAction(session.actionId);
+            if (action) {
+              const existing = (action.sourceEvidenceIds ?? []) as string[];
+              this.store.updateActionSourceEvidence(session.actionId, [
+                ...existing,
+                ...createdEvidenceIds,
+              ]);
+            }
+          }
         }
       } catch (err) {
         // keep the session usable: mark the stored answer failed and roll the
@@ -854,7 +1136,7 @@ export class InterviewOrchestrator {
     });
   }
 
-  async completeInterview(sessionId: string) {
+  async completeInterview(sessionId: string, opts?: ProgressOptions) {
     return this.withLock(async () => {
       const session = this.store.getSession(sessionId);
       if (!session) throw new AppError("NOT_FOUND", `no session ${sessionId}`);
@@ -863,16 +1145,16 @@ export class InterviewOrchestrator {
         this.transitionSession(sessionId, "complete", "complete");
         this.store.updateSession(sessionId, { completedAt: this.iso() });
       }
-      const debrief = await this.createDebriefInternal(sessionId);
+      const debrief = await this.createDebriefInternal(sessionId, opts);
       return { session: this.store.getSession(sessionId), debrief };
     });
   }
 
-  async createDebrief(sessionId: string) {
-    return this.withLock(() => this.createDebriefInternal(sessionId));
+  async createDebrief(sessionId: string, opts?: ProgressOptions) {
+    return this.withLock(() => this.createDebriefInternal(sessionId, opts));
   }
 
-  private async createDebriefInternal(sessionId: string) {
+  private async createDebriefInternal(sessionId: string, opts?: ProgressOptions) {
     const session = this.store.getSession(sessionId);
     if (!session) throw new AppError("NOT_FOUND", `no session ${sessionId}`);
     const existing = this.store.getDebrief(sessionId);
@@ -906,6 +1188,7 @@ export class InterviewOrchestrator {
     if (existing) {
       output = existing.data;
     } else {
+      opts?.onProgress?.({ stage: "writing debrief" });
       output = await interviewDebrief.execute(
         {
           role: target.role,
@@ -921,7 +1204,7 @@ export class InterviewOrchestrator {
             .listActions("open")
             .map((a) => ({ skillId: a.skillId, action: a.action })),
         },
-        this.ctx({ sessionId }),
+        this.ctx({ sessionId, onProgress: opts?.onProgress }),
       );
       this.store.insertDebrief({
         id: newId("debrief"),
@@ -971,8 +1254,8 @@ export class InterviewOrchestrator {
           })
         : [];
 
-    const openActions = this.store.listActions("open").map(rowToAction);
-    const inProgress = this.store.listActions("in_progress").map(rowToAction);
+    const openActions = this.store.listActions("open", target.id).map(rowToAction);
+    const inProgress = this.store.listActions("in_progress", target.id).map(rowToAction);
     const doneActions = this.store.listActions("done");
 
     const sessions = this.store.listSessions();
@@ -1054,10 +1337,11 @@ export class InterviewOrchestrator {
   async getSkillDetail(skillId: string) {
     const graph = this.graphForActive();
     const candidate = this.store.getActiveCandidate()!;
+    const target = this.store.getActiveTarget();
     const evidence = this.store.evidenceForSkill(skillId, candidate.id);
     const history = this.store.readinessHistory(skillId);
-    const actions = this.store.actionsForSkill(skillId).map(rowToAction);
-    const openAction = this.store.openActionForSkill(skillId);
+    const actions = this.store.actionsForSkill(skillId, target?.id).map(rowToAction);
+    const openAction = this.store.openActionForSkill(skillId, target?.id);
     return {
       skillId,
       readiness: graph.dimensions[skillId] ?? null,
@@ -1069,11 +1353,15 @@ export class InterviewOrchestrator {
   }
 
   listInterviews() {
-    return this.store.listSessions().map((s) => ({
-      ...s,
-      questions: this.store.listQuestions(s.id).length,
-      debrief: this.store.getDebrief(s.id)?.data ?? null,
-    }));
+    return this.store.listSessions().map((s) => {
+      const target = s.targetId ? this.store.getTarget(s.targetId) : undefined;
+      return {
+        ...s,
+        target: target ? { id: target.id, role: target.role, company: target.company } : null,
+        questions: this.store.listQuestions(s.id).length,
+        debrief: this.store.getDebrief(s.id)?.data ?? null,
+      };
+    });
   }
 
   getInterview(id: string) {
@@ -1090,6 +1378,163 @@ export class InterviewOrchestrator {
 
   listPreparationActions(): PrepActionRowLike[] {
     return this.store.listActions().map(rowToAction);
+  }
+
+  /**
+   * Self-check completion (§8.1): marks the action done and, when checked
+   * criteria are supplied, records one `self_report` evidence row, then
+   * recomputes readiness and rebuilds the plan.
+   */
+  async completeAction(actionId: string, opts: { checkedCriteria?: string[] } = {}) {
+    return this.withLock(async () => {
+      const action = this.store.getAction(actionId);
+      if (!action) throw new AppError("NOT_FOUND", `no prep action ${actionId}`);
+      const { candidate } = this.requireActive();
+      const criteria =
+        (Array.isArray(action.successCriteria)
+          ? action.successCriteria
+          : JSON.parse(String(action.successCriteria ?? "[]"))) as string[];
+
+      let evidenceId: string | null = null;
+      if (opts.checkedCriteria !== undefined) {
+        const bad = opts.checkedCriteria.filter((cc) => !criteria.includes(cc));
+        if (bad.length > 0) {
+          throw new AppError("VALIDATION", `unknown success criteria: ${bad.join("; ")}`);
+        }
+        const checked = opts.checkedCriteria;
+        evidenceId = newId("ev");
+        this.store.insertEvidence({
+          id: evidenceId,
+          candidateId: candidate.id,
+          skillId: action.skillId,
+          type: "self_report",
+          score: criteria.length === 0 ? 0 : checked.length / criteria.length,
+          confidence: 0.5,
+          observation: `Self-check: met ${checked.length}/${criteria.length} criteria — ${checked.join("; ")}`,
+          createdAt: this.iso(),
+        });
+      }
+
+      this.store.updateActionStatus(actionId, "done");
+      this.logger.info("state.mutated", { entity: "prep_action", id: actionId, status: "done" });
+      this.recomputeReadinessInternal("practice");
+      const { actions } = await this.buildPreparationPlanInternal();
+      return { ok: true, evidenceId, actions };
+    });
+  }
+
+  // ---------------------------------------------------------------- STAR stories (§8.4)
+
+  listStories() {
+    const { candidate } = this.requireActive();
+    return this.store.listStories(candidate.id);
+  }
+
+  /** Generate resume-grounded STAR stories via star-coach; dedupe by title. */
+  async generateStories(opts?: ProgressOptions) {
+    return this.withLock(async () => {
+      const { candidate, target } = this.requireActive();
+      opts?.onProgress?.({ stage: "drafting stories" });
+      const behavioralSkillIds = [
+        ...target.requirements,
+        ...target.preferredSkills,
+      ]
+        .map((r) => r.skillId)
+        .filter((id) => inRound(id, "behavioral") || inRound(id, "hr"));
+      const existing = this.store.listStories(candidate.id);
+      const out = (await starCoach.execute(
+        {
+          mode: "generate",
+          experience: candidate.experience,
+          achievements: candidate.achievements,
+          projects: candidate.projects,
+          behavioralSkillIds,
+          existingTitles: existing.map((s) => s.title),
+        },
+        this.ctx({ onProgress: opts?.onProgress }),
+      )) as { stories: Array<{ title: string; situation: string; task: string; action: string; result: string; skillIds: SkillId[] }> };
+      const taken = new Set(existing.map((s) => s.title.toLowerCase()));
+      const created = [];
+      for (const s of out.stories) {
+        if (taken.has(s.title.toLowerCase())) continue;
+        taken.add(s.title.toLowerCase());
+        const id = newId("story");
+        this.store.insertStory({
+          id,
+          candidateId: candidate.id,
+          title: s.title,
+          situation: s.situation,
+          task: s.task,
+          action: s.action,
+          result: s.result,
+          skillIds: s.skillIds,
+          source: "generated",
+          updatedAt: this.iso(),
+        });
+        created.push(this.store.getStory(id)!);
+      }
+      this.logger.info("state.mutated", {
+        entity: "star_story",
+        id: `${created.length} generated`,
+      });
+      return { stories: this.store.listStories(candidate.id), created: created.length };
+    });
+  }
+
+  /** User edits mark the story as theirs (source 'user'). */
+  async updateStory(
+    id: string,
+    patch: {
+      title?: string;
+      situation?: string;
+      task?: string;
+      action?: string;
+      result?: string;
+      skillIds?: SkillId[];
+    },
+  ) {
+    return this.withLock(async () => {
+      const row = this.store.getStory(id);
+      if (!row) throw new AppError("NOT_FOUND", `no story ${id}`);
+      this.store.updateStory(id, {
+        ...(patch.title !== undefined && { title: patch.title }),
+        ...(patch.situation !== undefined && { situation: patch.situation }),
+        ...(patch.task !== undefined && { task: patch.task }),
+        ...(patch.action !== undefined && { action: patch.action }),
+        ...(patch.result !== undefined && { result: patch.result }),
+        ...(patch.skillIds !== undefined && { skillIds: patch.skillIds }),
+        source: "user",
+        updatedAt: this.iso(),
+      });
+      this.logger.info("state.mutated", { entity: "star_story", id });
+      return this.store.getStory(id);
+    });
+  }
+
+  /** Coach review of one story (star-coach.review); streams `feedback`. */
+  async coachStory(id: string, opts?: ProgressOptions): Promise<StarCoachReviewOutput> {
+    return this.withLock(async () => {
+      const { target } = this.requireActive();
+      const row = this.store.getStory(id);
+      if (!row) throw new AppError("NOT_FOUND", `no story ${id}`);
+      opts?.onProgress?.({ stage: "coaching story" });
+      return (await starCoach.execute(
+        {
+          mode: "review",
+          story: {
+            title: row.title,
+            situation: row.situation,
+            task: row.task,
+            action: row.action,
+            result: row.result,
+            skillIds: (row.skillIds as string[]) ?? [],
+          },
+          role: target.role,
+          level: target.level,
+        },
+        this.ctx({ onProgress: opts?.onProgress }),
+      )) as StarCoachReviewOutput;
+    });
   }
 
   updateActionStatus(actionId: string, status: "open" | "in_progress" | "done" | "superseded") {

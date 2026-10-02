@@ -1,6 +1,7 @@
 import type { CodexProcess } from "./CodexProcess.js";
 import type {
   InitializeResult,
+  ModelListResponse,
   ThreadResumeResult,
   ThreadStartParams,
   ThreadStartResult,
@@ -43,5 +44,18 @@ export class CodexProtocol {
 
   async turnStart(params: TurnStartParams): Promise<TurnStartResult> {
     return (await this.proc.request("turn/start", params)) as TurnStartResult;
+  }
+
+  /** Best-effort cancel of an in-flight turn. */
+  async turnInterrupt(threadId: string, turnId: string): Promise<void> {
+    await this.proc.request("turn/interrupt", { threadId, turnId }, 5_000);
+  }
+
+  /** One page of the model catalog. */
+  async modelList(cursor?: string | null): Promise<ModelListResponse> {
+    return (await this.proc.request("model/list", {
+      includeHidden: false,
+      cursor: cursor ?? null,
+    })) as ModelListResponse;
   }
 }

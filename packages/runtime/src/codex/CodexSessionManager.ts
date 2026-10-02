@@ -1,6 +1,10 @@
 import { newId } from "@interview-os/shared";
 import {
   RuntimeError,
+  validateModelAndEffort,
+  type AgentEvent,
+  type AgentResult,
+  type AgentTask,
   type RuntimeEvent,
   type RuntimeMessage,
   type RuntimeSession,
@@ -111,6 +115,190 @@ export class CodexSessionManager {
     return this.streamTurn(sessionId, msg);
   }
 
+  /**
+   * One-shot task on an ephemeral thread over the shared app-server process
+   * (§8.3 task mode). Streams `item/agentMessage/delta` through task.onEvent;
+   * on timeout the turn is interrupted best-effort before failing.
+   */
+  async runTask(task: AgentTask): Promise<AgentResult> {
+    const started = Date.now();
+    const events: AgentEvent[] = [];
+    const emit = (e: RuntimeEvent) => {
+      events.push(e);
+      task.onEvent?.(e);
+    };
+    const fail = (error: RuntimeError, raw?: string): AgentResult => ({
+      ok: false,
+      error,
+      raw,
+      durationMs: Date.now() - started,
+      events,
+    });
+
+    const invalid = validateModelAndEffort(task.model, task.effort);
+    if (invalid) return fail(invalid);
+    const timeoutMs = task.timeoutMs ?? this.opts.turnTimeoutMs;
+    emit({ type: "started" });
+
+    let threadId: string | undefined;
+    let turnId: string | undefined;
+    for (let attempt = 0; attempt < 2; attempt++) {
+      try {
+        await this.proc.ensureReady();
+        const thread = await this.protocol.threadStart({
+          cwd: this.opts.workspaceDir,
+          sandbox: "read-only",
+          approvalPolicy: "never",
+          ephemeral: true,
+          developerInstructions: task.instructions,
+          model: task.model ?? undefined,
+        });
+        threadId = thread.thread.id;
+        const turn = await this.protocol.turnStart({
+          threadId,
+          input: [
+            {
+              type: "text",
+              text: `Input (JSON):\n${JSON.stringify(task.input, null, 2)}\n`,
+              text_elements: [],
+            },
+          ],
+          outputSchema: task.outputSchema,
+          model: task.model ?? undefined,
+          effort: task.effort ?? undefined,
+        });
+        turnId = turn.turn.id;
+        break;
+      } catch (err) {
+        const retryable =
+          err instanceof RuntimeError &&
+          (err.code === "CRASHED" || err.code === "SPAWN_FAILED");
+        if (attempt === 1 || !retryable) {
+          return fail(asRuntimeError(err));
+        }
+      }
+    }
+
+    return new Promise<AgentResult>((resolve) => {
+      let lastText = "";
+      let settled = false;
+      const finish = (result: AgentResult) => {
+        if (settled) return;
+        settled = true;
+        clearTimeout(timer);
+        offNotification();
+        offExit();
+        resolve(result);
+      };
+
+      const offNotification = this.proc.onNotification((method, rawParams) => {
+        const params = (rawParams ?? {}) as TurnParams;
+        if (params.threadId !== undefined && params.threadId !== threadId) return;
+        if (params.turnId !== undefined && turnId !== undefined && params.turnId !== turnId)
+          return;
+        if (
+          params.turn?.id !== undefined &&
+          turnId !== undefined &&
+          params.turn.id !== turnId
+        )
+          return;
+
+        switch (method) {
+          case "item/agentMessage/delta":
+            if (typeof params.delta === "string") {
+              emit({ type: "delta", text: params.delta });
+            }
+            break;
+          case "item/completed":
+            if (params.item?.type === "agentMessage" && typeof params.item.text === "string") {
+              lastText = params.item.text;
+              emit({ type: "message", text: params.item.text });
+            }
+            break;
+          case "turn/completed": {
+            const status = params.turn?.status ?? "completed";
+            if (status !== "completed") {
+              finish(
+                fail(
+                  new RuntimeError(
+                    "PROTOCOL",
+                    `codex turn ended with status "${status}": ${JSON.stringify(params.turn?.error ?? null)}`,
+                  ),
+                  lastText,
+                ),
+              );
+              return;
+            }
+            if (lastText === "") {
+              finish(
+                fail(
+                  new RuntimeError(
+                    "MALFORMED_EVENT",
+                    "codex turn completed without an agent message",
+                  ),
+                ),
+              );
+              return;
+            }
+            try {
+              const output = JSON.parse(lastText) as unknown;
+              emit({ type: "completed", output, raw: lastText });
+              finish({
+                ok: true,
+                output,
+                raw: lastText,
+                durationMs: Date.now() - started,
+                events,
+              });
+            } catch {
+              finish(
+                fail(
+                  new RuntimeError(
+                    "MALFORMED_OUTPUT",
+                    "turn completed but the final agent message was not valid JSON",
+                  ),
+                  lastText,
+                ),
+              );
+            }
+            break;
+          }
+          case "turn/failed":
+          case "error":
+            finish(
+              fail(
+                new RuntimeError(
+                  "PROTOCOL",
+                  `codex turn error: ${params.message ?? JSON.stringify(params)}`,
+                ),
+                lastText,
+              ),
+            );
+            break;
+        }
+      });
+
+      const offExit = this.proc.onExit(() => {
+        finish(fail(new RuntimeError("CRASHED", "codex app-server exited mid-turn")));
+      });
+
+      const timer = setTimeout(() => {
+        if (threadId && turnId) {
+          this.protocol.turnInterrupt(threadId, turnId).catch(() => {});
+        }
+        finish(
+          fail(
+            new RuntimeError(
+              "TIMEOUT",
+              `codex task timed out after ${timeoutMs}ms`,
+            ),
+            lastText,
+          ),
+        );
+      }, timeoutMs);
+    });
+  }
+
   private async *streamTurn(
     sessionId: string,
     msg: RuntimeMessage,
@@ -123,6 +311,11 @@ export class CodexSessionManager {
       };
       return;
     }
+    const invalid = validateModelAndEffort(msg.model, msg.effort);
+    if (invalid) {
+      yield { type: "error", error: invalid };
+      return;
+    }
     yield { type: "started" };
 
     let turnId: string | undefined;
@@ -133,6 +326,8 @@ export class CodexSessionManager {
           threadId: session.threadId,
           input: [{ type: "text", text: msg.text, text_elements: [] }],
           outputSchema: msg.outputSchema,
+          model: msg.model ?? undefined,
+          effort: msg.effort ?? undefined,
         });
         turnId = result.turn?.id;
         break;
@@ -257,6 +452,11 @@ export class CodexSessionManager {
 
   sessionThreadId(sessionId: string): string | undefined {
     return this.sessions.get(sessionId)?.threadId;
+  }
+
+  async modelList(cursor?: string | null) {
+    await this.proc.ensureReady();
+    return this.protocol.modelList(cursor);
   }
 }
 

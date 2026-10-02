@@ -243,3 +243,66 @@ Errors: JSON `{error:{code,message}}`. Request bodies validated with Zod; body s
 `workflow.started|completed|failed, skill.invoked, runtime.invoked (latencyMs), output.validated
 |invalid, state.mutated, evaluation.recorded, readiness.updated`. Redacts keys matching
 `/token|key|secret|password|authorization|cookie/i`; resume/JD/answer text is logged only as length.
+
+## 8. v0.2 additions
+
+### 8.1 Loop depth
+- **Time decay** (core/readiness): `w_i = confidence_i × typeWeight × 0.85^rank × 0.5^(ageDays_i / halfLife(type))`,
+  halfLife days: interview_answer 60, practice 45, self_report 30, resume_claim 180. `buildReadinessGraph`
+  takes `now`. Displayed readiness is always computed live at read time; snapshots still append on recompute.
+- **Practice evidence**: completing a prep action offers (a) a self-check over its success criteria →
+  one `self_report` evidence (score = checked/total, confidence 0.5, observation lists checked criteria),
+  and (b) "Verify with a question" → a practice session (`mode:'practice'`, `plannedQuestions:1`,
+  `focusSkillId` = action skill; selection bypasses the heuristic). Answers in practice sessions produce
+  `practice` evidence instead of `interview_answer`. Any of these → recompute readiness → plan update.
+- **Multiple targets per candidate**: evidence/readiness stay candidate-level (carry across targets);
+  requirements, gaps, prep actions (`target_id` column) and sessions are per target. One active target;
+  switching re-derives gaps/plan for that target. API: `GET /api/targets`, `POST /api/targets`
+  `{jobDescription, company, role, level, companyNotes?}` (analyse JD for the active candidate),
+  `POST /api/targets/:id/activate`.
+
+### 8.2 Documents
+`POST /api/documents/extract` (multipart `file`, ≤5 MB) → `{text, format, pages?, warnings[]}`.
+PDF via `unpdf`, DOCX via `mammoth`, txt/md decoded as UTF-8. Format decided by magic bytes
+(`%PDF-`, `PK\x03\x04` + `word/document.xml`), not by filename. Processed in memory, never shelled out;
+text normalised and truncated to 50 000 chars (warning when truncated or empty, e.g. scanned PDF).
+
+### 8.3 Live Codex UX
+- **Task mode**: `runTask` on Codex runs either via `exec` (v0.1) or via an **ephemeral app-server thread**
+  on the warm process (`thread/start {ephemeral:true, sandbox:'read-only', approvalPolicy:'never'}` +
+  `turn/start {outputSchema}`). Setting `taskMode: 'app-server' | 'exec'`, default `app-server`.
+- **Streaming**: `AgentTask.onEvent?(e: RuntimeEvent)` receives `delta` events (Codex
+  `item/agentMessage/delta`; MockRuntime chunks its JSON output into deltas). `SkillContext.onProgress?(p)`
+  with `p = {stage} | {field, text}`; `runStructured` extracts the in-progress value of the skill's
+  `streamField` from the partial JSON (`extractPartialStringField(buf, field)`) — interviewer:`question`,
+  answer-evaluator:`summary`, interview-debrief:`summary`, star-coach:`feedback`.
+- **SSE**: long endpoints accept `Accept: text/event-stream` (or `?stream=1`) and respond with events
+  `stage {name}`, `delta {field, text}` (full text so far), `result {…same JSON as non-stream…}`,
+  `error {code,message}`. Applies to workspace/setup, targets create, interviews create/next/answer/complete,
+  stories generate/coach. Non-stream JSON behaviour unchanged.
+- **Settings** (SQLite `settings` key/value): `codexModel: string|null` (null = Codex default),
+  `reasoningEffort: 'low'|'medium'|'high'|null`, `taskMode`. `GET /api/settings`, `PUT /api/settings`,
+  `GET /api/runtime/models` (Codex `model/list` → `{id, displayName, supportedReasoningEfforts,
+  defaultReasoningEffort}`; mock → `[{id:'mock'}]`). Model must be in the list and match
+  `^[A-Za-z0-9._:-]+$` before it reaches argv (`-m`, `-c model_reasoning_effort=…`) or JSON-RPC
+  (`model`/`effort` on `thread/start`/`turn/start`). Approvals: fixed read-only sandbox + decline-all, shown
+  read-only with an explanation.
+
+### 8.4 Interview breadth
+- **Round types**: session `roundType: 'mixed'|'technical'|'system_design'|'behavioral'|'hr'` (default mixed =
+  v0.1 behaviour). `core/interview/rounds.ts` `inRound(skillId, roundType)`: technical = not
+  system-design/behavioral/communication/hr subtrees; system_design = `system-design.*` +
+  `distributed-systems.*`; behavioral = `behavioral.*` + `communication`; hr = `hr.*`. Pool filtered before
+  prioritisation; if empty, the round's taxonomy nodes join with importance 0.6. Taxonomy adds `hr`
+  (`.motivation`, `.career-goals`, `.culture-fit`, `.work-style`) and `behavioral` children
+  (`.ownership`, `.failure-learning`, `.collaboration`). Interviewer prompt gets `roundType` + company themes.
+- **STAR**: `AnswerEvaluation.star: {situation, task, action, result: boolean, notes} | null` (filled for
+  behavioral/hr). `star_stories` table (id, candidateId, title, situation, task, action, result, skillIds,
+  source 'resume'|'generated'|'user', updatedAt). Skill `star-coach`: mode `generate` (experience +
+  achievements + behavioral requirements → story drafts) and mode `review` (story → `{feedback, missing[],
+  suggestions[], improvedDraft}`). Behavioral interviewer receives story titles to probe. API:
+  `GET /api/stories`, `POST /api/stories/generate`, `PATCH /api/stories/:id`, `POST /api/stories/:id/coach`.
+- **Company profile**: optional pasted `companyNotes` (untrusted) on a target → skill `company-profiler` →
+  `{values[], interviewStyle, focusSkillIds[], behavioralThemes[]}` stored in target data. Requirements whose
+  skill is in `focusSkillIds` get +0.05 importance (cap 0.95); themes feed behavioral/HR interviewer prompts.
+  No web research.

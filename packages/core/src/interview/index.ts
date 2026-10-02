@@ -72,6 +72,8 @@ export type InterviewStateSlice = z.infer<typeof InterviewStateSliceSchema>;
 
 export { selectNextSkill } from "./prioritize.js";
 export type { SkillCandidate, SelectNextSkillInput, SelectNextSkillResult } from "./prioritize.js";
+export { RoundTypeSchema, inRound, roundFallbackRequirements } from "./rounds.js";
+export type { RoundType } from "./rounds.js";
 export {
   INTERVIEW_STATES,
   InterviewEventSchema,

@@ -4,12 +4,36 @@ import { useParams } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
   api,
+  streamPost,
   type Debrief,
   type SessionDetail,
   type SessionQuestion,
+  type StartInterviewResult,
   type SubmitAnswerResult,
 } from "@/lib/api";
 import { Bar, Button, Card, CardTitle, ErrorNote, Pill, Spinner, skillLabel } from "@/components/ui";
+
+/** Live text streamed from the model while a long AI step runs (§8.3). */
+function StreamDraft({
+  stage,
+  draft,
+}: {
+  stage: string | null;
+  draft: { field: string; text: string } | null;
+}) {
+  if (!draft || draft.text.length === 0) return null;
+  return (
+    <p className="mt-3 rounded-[0.6rem] bg-page p-3 text-sm text-muted" aria-live="polite">
+      {stage && (
+        <span className="mb-1 block text-xs font-medium uppercase tracking-wide text-blue">
+          {stage}…
+        </span>
+      )}
+      {draft.text}
+      <span aria-hidden>▌</span>
+    </p>
+  );
+}
 
 export default function InterviewSession() {
   const { id } = useParams<{ id: string }>();
@@ -21,6 +45,8 @@ export default function InterviewSession() {
   const [busy, setBusy] = useState(false);
   const [elapsed, setElapsed] = useState(0);
   const [error, setError] = useState<unknown>(null);
+  const [stage, setStage] = useState<string | null>(null);
+  const [draft, setDraft] = useState<{ field: string; text: string } | null>(null);
   const timer = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const load = useCallback(async () => {
@@ -44,13 +70,19 @@ export default function InterviewSession() {
   };
   const untick = () => { if (timer.current) clearInterval(timer.current); };
 
+  const progress = {
+    onStage: (name: string) => setStage(name),
+    onDelta: (field: string, text: string) => setDraft({ field, text }),
+  };
+
   const submit = () => {
     setBusy(true);
     setError(null);
+    setStage(null);
+    setDraft(null);
     tick();
-    api
-      .submitAnswer(id, answer)
-      .then((r) => setResult(r))
+    streamPost<SubmitAnswerResult>(`/api/interviews/${id}/answer`, { answer }, progress)
+      .then((r) => { setResult(r); setDraft(null); })
       .catch((e) => setError(e))
       .finally(() => { setBusy(false); untick(); });
   };
@@ -58,11 +90,13 @@ export default function InterviewSession() {
   const next = () => {
     setBusy(true);
     setError(null);
-    api
-      .nextQuestion(id)
+    setStage(null);
+    setDraft(null);
+    streamPost<StartInterviewResult>(`/api/interviews/${id}/next`, {}, progress)
       .then(async (r) => {
         setAnswer("");
         setResult(null);
+        setDraft(null);
         if (r.question) setCurrent(r.question);
         else await load();
       })
@@ -75,9 +109,14 @@ export default function InterviewSession() {
 
   const finish = () => {
     setBusy(true);
-    api
-      .completeInterview(id)
-      .then((r) => { setDebrief(r.debrief); return load(); })
+    setStage(null);
+    setDraft(null);
+    streamPost<{ session: SessionDetail["session"]; debrief: Debrief }>(
+      `/api/interviews/${id}/complete`,
+      {},
+      progress,
+    )
+      .then((r) => { setDebrief(r.debrief); setDraft(null); return load(); })
       .catch(async () => {
         const d = await api.debrief(id).catch(() => null);
         if (d) setDebrief(d);
@@ -93,8 +132,13 @@ export default function InterviewSession() {
 
   return (
     <div className="max-w-3xl space-y-5">
-      <h1 className="text-xl font-bold text-navy">
-        Interview <span className="text-sm font-normal text-muted">round {round} / {detail?.session.plannedQuestions}</span>
+      <h1 className="flex items-center gap-2 text-xl font-bold text-navy">
+        {detail?.session.mode === "practice" ? "Practice" : "Interview"}
+        {detail?.session.mode === "practice" && <Pill tone="amber">Practice</Pill>}
+        {detail?.session.mode !== "practice" && detail?.session.roundType && detail.session.roundType !== "mixed" && (
+          <Pill tone="blue">{detail.session.roundType.replace("_", " ")}</Pill>
+        )}
+        <span className="text-sm font-normal text-muted">round {round} / {detail?.session.plannedQuestions}</span>
       </h1>
       <ErrorNote error={error} />
 
@@ -127,14 +171,40 @@ export default function InterviewSession() {
                 </Button>
                 {busy && (
                   <span role="status" aria-live="polite" className="text-sm text-muted">
-                    Evaluating… {elapsed}s
+                    {stage ? `${stage}…` : "Evaluating…"} {elapsed}s
                   </span>
                 )}
               </div>
+              {busy && <StreamDraft stage={stage} draft={draft} />}
             </div>
           ) : (
             <div className="mt-4 space-y-4" aria-live="polite">
               <p className="rounded-[0.6rem] bg-page p-3 text-sm">{result.evaluation.summary}</p>
+              {result.evaluation.star && (
+                <div data-testid="star-checklist">
+                  <h3 className="text-sm font-semibold text-navy">STAR checklist</h3>
+                  <ul className="mt-1 space-y-1 text-sm">
+                    {(
+                      [
+                        ["Situation", result.evaluation.star.situation],
+                        ["Task", result.evaluation.star.task],
+                        ["Action", result.evaluation.star.action],
+                        ["Result", result.evaluation.star.result],
+                      ] as const
+                    ).map(([name, ok]) => (
+                      <li key={name} className="flex items-center gap-2">
+                        <span className={ok ? "text-green" : "text-accent"} aria-hidden>
+                          {ok ? "✓" : "✗"}
+                        </span>
+                        <span className={ok ? "text-muted" : "font-medium text-ink"}>{name}</span>
+                      </li>
+                    ))}
+                  </ul>
+                  {result.evaluation.star.notes && (
+                    <p className="mt-1 text-xs text-muted">{result.evaluation.star.notes}</p>
+                  )}
+                </div>
+              )}
               <div className="grid gap-4 sm:grid-cols-2">
                 <div>
                   <h3 className="text-sm font-semibold text-green">What went well</h3>
@@ -193,13 +263,19 @@ export default function InterviewSession() {
                   </ul>
                 </div>
               )}
-              <div className="flex gap-2">
+              <div className="flex items-center gap-3">
                 {result.nextAvailable === "question" ? (
                   <Button onClick={next} disabled={busy}>Next Question</Button>
                 ) : (
                   <Button onClick={finish} disabled={busy}>Finish Interview</Button>
                 )}
+                {busy && stage && (
+                  <span role="status" aria-live="polite" className="text-sm text-muted">
+                    {stage}…
+                  </span>
+                )}
               </div>
+              {busy && <StreamDraft stage={stage} draft={draft} />}
             </div>
           )}
         </Card>
@@ -208,7 +284,15 @@ export default function InterviewSession() {
       {!done && !current && detail && (
         <Card>
           <p className="text-sm">All planned questions answered.</p>
-          <div className="mt-3"><Button onClick={finish} disabled={busy}>Finish Interview</Button></div>
+          <div className="mt-3 flex items-center gap-3">
+            <Button onClick={finish} disabled={busy}>Finish Interview</Button>
+            {busy && stage && (
+              <span role="status" aria-live="polite" className="text-sm text-muted">
+                {stage}…
+              </span>
+            )}
+          </div>
+          {busy && <StreamDraft stage={stage} draft={draft} />}
         </Card>
       )}
 

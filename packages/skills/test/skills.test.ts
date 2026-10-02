@@ -3,6 +3,7 @@ import { MockRuntime } from "@interview-os/runtime";
 import { createLogger } from "@interview-os/shared";
 import {
   answerEvaluator,
+  companyProfiler,
   gapAnalyzer,
   interviewDebrief,
   interviewer,
@@ -14,6 +15,7 @@ import {
   runStructured,
   SkillOutputError,
   SkillRuntimeError,
+  starCoach,
   taxonomyEntries,
   type SkillContext,
 } from "../src/index.js";
@@ -211,6 +213,183 @@ describe("answer-evaluator", () => {
     const inv = out.scores.find((s) => s.skill === "distributed-systems.caching.cache-invalidation")!;
     expect(inv.score).toBeGreaterThanOrEqual(0.9);
     expect(out.weaknesses).toHaveLength(0);
+  });
+});
+
+describe("answer-evaluator STAR (§8.4)", () => {
+  const behavioralQuestion = {
+    text: "Tell me about a time you took ownership of a problem.",
+    topic: "Ownership",
+    skillId: "behavioral.ownership",
+    difficulty: "easy" as const,
+    expectedConcepts: [],
+  };
+
+  it("detects STAR coverage and missing parts on behavioral answers", async () => {
+    const { ctx } = makeCtx();
+    const out = await answerEvaluator.execute(
+      {
+        question: behavioralQuestion,
+        answer: "When I was at Acme our team had an outage and I led the fix.",
+        role: "BE",
+        level: "senior",
+        roundType: "behavioral",
+      },
+      ctx,
+    );
+    expect(out.star).not.toBeNull();
+    expect(out.star!.situation).toBe(true);
+    expect(out.star!.action).toBe(true);
+    expect(out.star!.task).toBe(false);
+    expect(out.star!.result).toBe(false);
+    const w = out.weaknesses.find((w) => w.skill === "communication")!;
+    expect(w.severity).toBe("medium");
+    expect(w.evidence).toContain("Answer lacked a clear");
+    expect(out.missingConcepts).toContain("STAR Result");
+    expect(out.missingConcepts).toContain("STAR Task");
+  });
+
+  it("marks all four parts on a complete STAR answer", async () => {
+    const { ctx } = makeCtx();
+    const out = await answerEvaluator.execute(
+      {
+        question: behavioralQuestion,
+        answer:
+          "When I was at Acme in 2024 our team was responsible for checkout. My task was to cut " +
+          "errors; I led a retry redesign and shipped it, which reduced failures by 40%.",
+        role: "BE",
+        level: "senior",
+        roundType: "behavioral",
+      },
+      ctx,
+    );
+    expect(out.star).toMatchObject({
+      situation: true,
+      task: true,
+      action: true,
+      result: true,
+    });
+    expect(out.weaknesses.every((w) => w.skill !== "communication")).toBe(true);
+  });
+
+  it("leaves star null for non-behavioral questions", async () => {
+    const { ctx } = makeCtx();
+    const out = await answerEvaluator.execute(
+      {
+        question: {
+          text: "How does a B-tree index work?",
+          topic: "Indexing",
+          skillId: "sql.indexing",
+          difficulty: "medium" as const,
+          expectedConcepts: [],
+        },
+        answer: "It keeps keys sorted so range scans are fast.",
+        role: "BE",
+        level: "senior",
+        roundType: "technical",
+      },
+      ctx,
+    );
+    expect(out.star).toBeNull();
+  });
+});
+
+describe("star-coach (§8.4)", () => {
+  it("generate produces resume-grounded stories with placeholders", async () => {
+    const { ctx } = makeCtx();
+    const out = await starCoach.execute(
+      {
+        mode: "generate",
+        experience: [
+          {
+            title: "Senior Engineer",
+            company: "Acme",
+            highlights: ["led the incident response", "built the billing API"],
+          },
+        ],
+        achievements: ["won the hackathon"],
+        projects: [],
+        behavioralSkillIds: ["behavioral.ownership"],
+        existingTitles: [],
+      },
+      ctx,
+    );
+    expect("stories" in out).toBe(true);
+    if (!("stories" in out)) return;
+    expect(out.stories.length).toBeGreaterThan(0);
+    expect(out.stories.length).toBeLessThanOrEqual(4);
+    expect(out.stories[0]!.title).toContain("Acme");
+    expect(out.stories[0]!.result).toContain("[add metric]");
+  });
+
+  it("generate dedupes against existing titles", async () => {
+    const { ctx } = makeCtx();
+    const existing = "Acme: led the incident response";
+    const out = await starCoach.execute(
+      {
+        mode: "generate",
+        experience: [
+          {
+            title: "Senior Engineer",
+            company: "Acme",
+            highlights: ["led the incident response"],
+          },
+        ],
+        achievements: [],
+        projects: [],
+        behavioralSkillIds: [],
+        existingTitles: [existing],
+      },
+      ctx,
+    );
+    if (!("stories" in out)) throw new Error("expected generate output");
+    expect(out.stories.map((s) => s.title)).not.toContain(existing);
+  });
+
+  it("review flags placeholders and number-less results", async () => {
+    const { ctx } = makeCtx();
+    const out = await starCoach.execute(
+      {
+        mode: "review",
+        story: {
+          title: "Outage fix",
+          situation: "",
+          task: "[add task]",
+          action: "I led the fix",
+          result: "it got better",
+        },
+        role: "Backend Engineer",
+        level: "senior",
+      },
+      ctx,
+    );
+    if (!("missing" in out)) throw new Error("expected review output");
+    expect(out.missing.some((m) => /result/i.test(m))).toBe(true);
+    expect(out.missing.some((m) => /situation/i.test(m))).toBe(true);
+    expect(out.improvedDraft.result).toContain("[add metric");
+    expect(out.feedback.length).toBeGreaterThan(0);
+  });
+});
+
+describe("company-profiler (§8.4)", () => {
+  it("extracts values, focus skills and behavioral themes", async () => {
+    const { ctx } = makeCtx();
+    const notes = `# Acme values
+- We value ownership: engineers take problems end-to-end.
+- Customer focus: every decision starts from the customer.
+- We value engineers who reason about caching and reliability.
+## Interview process
+- A technical deep-dive loop with a behavioral round.`;
+    const out = await companyProfiler.execute(
+      { company: "Acme", companyNotes: notes, taxonomy: taxonomyEntries() },
+      ctx,
+    );
+    expect(out.values.length).toBeGreaterThan(0);
+    expect(out.values.join(" ")).toMatch(/ownership/i);
+    expect(out.focusSkillIds).toContain("distributed-systems.caching");
+    expect(out.behavioralThemes).toContain("ownership");
+    expect(out.behavioralThemes).toContain("customer focus");
+    expect(out.interviewStyle).toMatch(/interview|loop/i);
   });
 });
 

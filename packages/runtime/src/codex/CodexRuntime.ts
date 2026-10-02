@@ -2,9 +2,11 @@ import fs from "node:fs/promises";
 import type { Logger } from "@interview-os/shared";
 import {
   RuntimeError,
+  validateModelAndEffort,
   type AgentResult,
   type AgentTask,
   type AIRuntime,
+  type ModelInfo,
   type RuntimeEvent,
   type RuntimeMessage,
   type RuntimeSession,
@@ -45,6 +47,10 @@ export class CodexRuntime implements AIRuntime {
 
   async runTask(task: AgentTask): Promise<AgentResult> {
     const started = Date.now();
+    const invalid = validateModelAndEffort(task.model, task.effort);
+    if (invalid) {
+      return { ok: false, error: invalid, durationMs: 0, events: [] };
+    }
     const bin = await findCodexExecutable(this.opts.env);
     if (!bin) {
       return {
@@ -58,14 +64,17 @@ export class CodexRuntime implements AIRuntime {
       };
     }
     await fs.mkdir(this.opts.workspaceDir, { recursive: true });
-    const adapter = new CodexExecAdapter({
-      bin,
-      workspaceDir: this.opts.workspaceDir,
-      env: this.opts.env,
-      defaultTimeoutMs: this.timeoutMs,
-      extraChildEnv: this.opts.extraChildEnv,
-    });
-    return adapter.runTask(task);
+    if ((task.taskMode ?? "app-server") === "exec") {
+      const adapter = new CodexExecAdapter({
+        bin,
+        workspaceDir: this.opts.workspaceDir,
+        env: this.opts.env,
+        defaultTimeoutMs: this.timeoutMs,
+        extraChildEnv: this.opts.extraChildEnv,
+      });
+      return adapter.runTask(task);
+    }
+    return this.sessionManagerFor(bin).runTask(task);
   }
 
   async createSession(input: SessionInput): Promise<RuntimeSession> {
@@ -122,6 +131,32 @@ export class CodexRuntime implements AIRuntime {
 
   async closeSession(sessionId: string): Promise<void> {
     await this.sessions?.closeSession(sessionId);
+  }
+
+  /** Model catalog via `model/list` on the warm app-server process. */
+  async listModels(): Promise<ModelInfo[]> {
+    const bin = await findCodexExecutable(this.opts.env);
+    if (!bin) return [];
+    const mgr = this.sessionManagerFor(bin);
+    const models: ModelInfo[] = [];
+    let cursor: string | null = null;
+    for (let page = 0; page < 10; page++) {
+      const res = await mgr.modelList(cursor);
+      for (const m of res.data) {
+        if (m.hidden) continue;
+        models.push({
+          id: m.id,
+          displayName: m.displayName || m.id,
+          supportedReasoningEfforts: (m.supportedReasoningEfforts ?? []).map(
+            (o) => o.reasoningEffort,
+          ),
+          defaultReasoningEffort: m.defaultReasoningEffort ?? null,
+        });
+      }
+      if (!res.nextCursor) break;
+      cursor = res.nextCursor;
+    }
+    return models;
   }
 
   async dispose(): Promise<void> {

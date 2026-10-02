@@ -10,7 +10,8 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "test:codex": "INTERVIEW_OS_LIVE_CODEX=1 vitest run live.test",
-    "test:e2e": "playwright test"
+    "test:e2e": "playwright test",
+    "test:e2e:live": "playwright test -c playwright.live.config.ts"
   },
   "devDependencies": {
     "@interview-os/core": "workspace:*",

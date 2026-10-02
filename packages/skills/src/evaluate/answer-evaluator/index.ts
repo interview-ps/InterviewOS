@@ -4,6 +4,7 @@ import {
   ExpectedConceptSchema,
   LevelSchema,
   QuestionDifficultySchema,
+  RoundTypeSchema,
   type AnswerEvaluation,
   type SkillId,
 } from "@interview-os/core";
@@ -23,8 +24,10 @@ export const AnswerEvaluatorInputSchema = z.object({
   answer: z.string(),
   role: z.string(),
   level: LevelSchema,
+  /** §8.4: behavioral/hr rounds require a STAR assessment. */
+  roundType: RoundTypeSchema.default("mixed"),
 });
-export type AnswerEvaluatorInput = z.infer<typeof AnswerEvaluatorInputSchema>;
+export type AnswerEvaluatorInput = z.input<typeof AnswerEvaluatorInputSchema>;
 
 /** AI output keeps skill ids loose; they are normalized post-hoc. */
 export const AnswerEvaluationAiSchema = AnswerEvaluationSchema.extend({
@@ -46,7 +49,7 @@ export const AnswerEvaluationAiSchema = AnswerEvaluationSchema.extend({
 });
 
 export const answerEvaluator: InterviewSkill<
-  z.infer<typeof AnswerEvaluatorInputSchema>,
+  z.input<typeof AnswerEvaluatorInputSchema>,
   AnswerEvaluation
 > = {
   id: "answer-evaluator",
@@ -58,6 +61,7 @@ export const answerEvaluator: InterviewSkill<
       instructions: ANSWER_EVALUATOR_PROMPT,
       input,
       schema: AnswerEvaluationAiSchema,
+      streamField: "summary",
     });
     const fix = (skill: string) => normalizeSkillIdValue(skill) ?? null;
     return {

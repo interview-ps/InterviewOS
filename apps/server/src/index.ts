@@ -20,7 +20,7 @@ if (runtime.kind === "mock") {
 }
 
 const orchestrator = new InterviewOrchestrator({ store, runtime, logger });
-const app = createApp({ orchestrator, runtime });
+const app = createApp({ orchestrator, runtime, logger });
 
 serve({ fetch: app.fetch, port }, (info) => {
   logger.info("server.listening", {

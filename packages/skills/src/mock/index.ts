@@ -5,6 +5,11 @@ import { prepPlannerMock } from "../prepare/prep-planner/mock.js";
 import { interviewerMock } from "../interview/interviewer/mock.js";
 import { answerEvaluatorMock } from "../evaluate/answer-evaluator/mock.js";
 import { interviewDebriefMock } from "../evaluate/interview-debrief/mock.js";
+import { companyProfilerMock } from "../analyze/company-profiler/mock.js";
+import {
+  starCoachGenerateMock,
+  starCoachReviewMock,
+} from "../prepare/star-coach/mock.js";
 
 /** Registers every AI skill's deterministic handler on a MockRuntime. */
 export function registerMockHandlers(runtime: MockRuntime): void {
@@ -14,4 +19,7 @@ export function registerMockHandlers(runtime: MockRuntime): void {
   runtime.register("interviewer", interviewerMock);
   runtime.register("answer-evaluator", answerEvaluatorMock);
   runtime.register("interview-debrief", interviewDebriefMock);
+  runtime.register("company-profiler", companyProfilerMock);
+  runtime.register("star-coach.generate", starCoachGenerateMock);
+  runtime.register("star-coach.review", starCoachReviewMock);
 }

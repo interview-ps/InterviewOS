@@ -1,24 +1,108 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { api, type SetupResult } from "@/lib/api";
-import { Bar, Button, Card, CardTitle, ErrorNote, Pill, Spinner, skillLabel } from "@/components/ui";
+import { api, streamPost, type SetupResult, type TargetListItem } from "@/lib/api";
+import { Bar, Button, Card, CardTitle, ErrorNote, Pill, skillLabel } from "@/components/ui";
 
 const LEVELS = ["junior", "mid", "senior", "staff"];
+const ACCEPT = ".pdf,.docx,.txt,.md";
+
+interface FileMeta {
+  name: string;
+  chars: number;
+  warnings: string[];
+}
+
+function FileNote({ meta }: { meta: FileMeta | undefined }) {
+  if (!meta) return null;
+  return (
+    <p className="mt-1 text-xs text-muted" aria-live="polite">
+      {meta.name} — {meta.chars.toLocaleString()} characters
+      {meta.warnings.map((w, i) => (
+        <span key={i} className="block text-accent">⚠ {w}</span>
+      ))}
+    </p>
+  );
+}
+
+/** Live stage list streamed over SSE: done stages get ✓, last one spins. */
+function StageList({ stages, running }: { stages: string[]; running: boolean }) {
+  if (stages.length === 0) return null;
+  return (
+    <ul className="mt-2 space-y-1 text-sm" aria-live="polite">
+      {stages.map((s, i) => {
+        const current = running && i === stages.length - 1;
+        return (
+          <li key={`${s}-${i}`} className="flex items-center gap-2">
+            {current ? (
+              <span
+                className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-line border-t-blue"
+                aria-hidden
+              />
+            ) : (
+              <span className="text-green" aria-hidden>✓</span>
+            )}
+            <span className={current ? "text-ink" : "text-muted"}>{s}</span>
+          </li>
+        );
+      })}
+    </ul>
+  );
+}
+
+function useDocLoader(
+  setText: (text: string) => void,
+  setMeta: (meta: FileMeta) => void,
+  onError: (e: unknown) => void,
+) {
+  return useCallback(
+    (file: File | undefined) => {
+      if (!file) return;
+      const lower = file.name.toLowerCase();
+      if (lower.endsWith(".pdf") || lower.endsWith(".docx")) {
+        api
+          .extractDocument(file)
+          .then((r) => {
+            setText(r.text);
+            setMeta({ name: file.name, chars: r.text.length, warnings: r.warnings });
+          })
+          .catch(onError);
+      } else {
+        file.text().then((t) => {
+          setText(t);
+          setMeta({ name: file.name, chars: t.length, warnings: [] });
+        }).catch(onError);
+      }
+    },
+    [setText, setMeta, onError],
+  );
+}
 
 export default function TargetRole() {
-  const [form, setForm] = useState({ resumeText: "", jobDescription: "", company: "", role: "", level: "senior" });
+  const [form, setForm] = useState({ resumeText: "", jobDescription: "", company: "", role: "", level: "senior", companyNotes: "" });
+  const [meta, setMeta] = useState<{ resumeText?: FileMeta; jobDescription?: FileMeta }>({});
+  const [targets, setTargets] = useState<TargetListItem[]>([]);
+  const [addForm, setAddForm] = useState({ jobDescription: "", company: "", role: "", level: "mid", companyNotes: "" });
+  const [addMeta, setAddMeta] = useState<FileMeta | undefined>();
+  const [addBusy, setAddBusy] = useState(false);
   const [examples, setExamples] = useState<string[]>([]);
   const [busy, setBusy] = useState(false);
   const [elapsed, setElapsed] = useState(0);
+  const [stages, setStages] = useState<string[]>([]);
   const [result, setResult] = useState<SetupResult | null>(null);
   const [error, setError] = useState<unknown>(null);
   const timer = useRef<ReturnType<typeof setInterval> | null>(null);
+  const hasCandidate = targets.length > 0;
+
+  const loadTargets = useCallback(() => {
+    api.listTargets().then(setTargets).catch(() => setTargets([]));
+  }, []);
 
   useEffect(() => {
     api.examples().then(setExamples).catch(() => {});
+    loadTargets();
     return () => { if (timer.current) clearInterval(timer.current); };
-  }, []);
+  }, [loadTargets]);
 
   const loadExample = (name: string) => {
     api.example(name).then((ex) => {
@@ -29,27 +113,65 @@ export default function TargetRole() {
         company: ex.company,
         role: ex.role,
         level: ex.level,
+        companyNotes: ex.companyNotes ?? "",
       }));
+      setMeta({});
     }).catch((e) => setError(e));
   };
 
-  const loadFile = (file: File | undefined, key: "resumeText" | "jobDescription") => {
-    if (!file) return;
-    file.text().then((t) => setForm((f) => ({ ...f, [key]: t })));
-  };
+  const loadResumeFile = useDocLoader(
+    (t) => setForm((f) => ({ ...f, resumeText: t })),
+    (m) => setMeta((p) => ({ ...p, resumeText: m })),
+    setError,
+  );
+  const loadJdFile = useDocLoader(
+    (t) => setForm((f) => ({ ...f, jobDescription: t })),
+    (m) => setMeta((p) => ({ ...p, jobDescription: m })),
+    setError,
+  );
+  const loadAddJdFile = useDocLoader(
+    (t) => setAddForm((f) => ({ ...f, jobDescription: t })),
+    setAddMeta,
+    setError,
+  );
 
   const submit = () => {
     setBusy(true);
     setError(null);
     setResult(null);
     setElapsed(0);
+    setStages([]);
     timer.current = setInterval(() => setElapsed((s) => s + 1), 1000);
-    api
-      .setup(form)
-      .then(setResult)
+    streamPost<SetupResult>("/api/workspace/setup", form, {
+      onStage: (name) => setStages((s) => [...s, name]),
+    })
+      .then((r) => { setResult(r); loadTargets(); })
       .catch((e) => setError(e))
       .finally(() => {
         setBusy(false);
+        if (timer.current) clearInterval(timer.current);
+      });
+  };
+
+  const submitAdd = () => {
+    setAddBusy(true);
+    setError(null);
+    setElapsed(0);
+    setStages([]);
+    timer.current = setInterval(() => setElapsed((s) => s + 1), 1000);
+    streamPost<{ target: unknown; actions: unknown[] }>("/api/targets", {
+      jobDescription: addForm.jobDescription,
+      company: addForm.company,
+      role: addForm.role,
+      level: addForm.level,
+      companyNotes: addForm.companyNotes || undefined,
+    }, {
+      onStage: (name) => setStages((s) => [...s, name]),
+    })
+      .then(() => window.location.reload())
+      .catch((e) => {
+        setError(e);
+        setAddBusy(false);
         if (timer.current) clearInterval(timer.current);
       });
   };
@@ -59,8 +181,146 @@ export default function TargetRole() {
       <h1 className="text-xl font-bold text-navy">Target Role</h1>
       <ErrorNote error={error} />
 
+      {targets.length > 0 && (
+        <Card>
+          <CardTitle>Your targets</CardTitle>
+          {(() => {
+            const profile = targets.find((t) => t.active)?.companyProfile;
+            if (!profile) return null;
+            return (
+              <div className="mb-3 rounded-[0.6rem] border border-line bg-page p-3 text-sm" data-testid="company-profile">
+                <p className="font-medium text-navy">Company profile</p>
+                {profile.values.length > 0 && (
+                  <p className="mt-1 text-muted">
+                    <span className="text-ink">Values:</span> {profile.values.join(" · ")}
+                  </p>
+                )}
+                {profile.interviewStyle && (
+                  <p className="mt-1 text-muted">
+                    <span className="text-ink">Interview style:</span> {profile.interviewStyle}
+                  </p>
+                )}
+                {profile.focusSkillIds.length > 0 && (
+                  <p className="mt-1 text-muted">
+                    <span className="text-ink">Focus areas:</span>{" "}
+                    {profile.focusSkillIds.map((id) => skillLabel(id)).join(", ")}
+                  </p>
+                )}
+                {profile.behavioralThemes.length > 0 && (
+                  <p className="mt-1 text-muted">
+                    <span className="text-ink">Behavioral themes:</span>{" "}
+                    {profile.behavioralThemes.join(", ")}
+                  </p>
+                )}
+              </div>
+            );
+          })()}
+          <ul className="space-y-1.5 text-sm">
+            {targets.map((t) => (
+              <li key={t.id} className="flex items-center justify-between gap-2">
+                <span>
+                  {t.role} — {t.company} <span className="text-xs text-muted">({t.level})</span>
+                </span>
+                {t.active ? (
+                  <Pill tone="green">active</Pill>
+                ) : (
+                  <Button
+                    variant="secondary"
+                    onClick={() =>
+                      api.activateTarget(t.id).then(() => window.location.reload()).catch(setError)
+                    }
+                  >
+                    Switch
+                  </Button>
+                )}
+              </li>
+            ))}
+          </ul>
+        </Card>
+      )}
+
+      {hasCandidate && (
+        <Card>
+          <CardTitle>Add another target role</CardTitle>
+          <p className="mt-1 text-xs text-muted">
+            Uses your current resume. The new target becomes active.
+          </p>
+          <label className="mt-3 block text-sm">
+            <span className="mb-1 block font-medium">Job description</span>
+            <textarea
+              value={addForm.jobDescription}
+              onChange={(e) => setAddForm((f) => ({ ...f, jobDescription: e.target.value }))}
+              rows={6}
+              className="w-full rounded-[0.6rem] border border-line bg-surface p-3 font-mono text-xs"
+            />
+            <input
+              type="file"
+              accept={ACCEPT}
+              aria-label="Upload job description file"
+              className="mt-1 text-xs text-muted"
+              onChange={(e) => loadAddJdFile(e.target.files?.[0])}
+            />
+            <FileNote meta={addMeta} />
+          </label>
+          <div className="mt-3 grid gap-3 sm:grid-cols-3">
+            <label className="text-sm">
+              <span className="mb-1 block font-medium">Company</span>
+              <input
+                value={addForm.company}
+                onChange={(e) => setAddForm((f) => ({ ...f, company: e.target.value }))}
+                className="w-full rounded-[0.6rem] border border-line px-3 py-2"
+              />
+            </label>
+            <label className="text-sm">
+              <span className="mb-1 block font-medium">Role</span>
+              <input
+                value={addForm.role}
+                onChange={(e) => setAddForm((f) => ({ ...f, role: e.target.value }))}
+                className="w-full rounded-[0.6rem] border border-line px-3 py-2"
+              />
+            </label>
+            <label className="text-sm">
+              <span className="mb-1 block font-medium">Level</span>
+              <select
+                value={addForm.level}
+                onChange={(e) => setAddForm((f) => ({ ...f, level: e.target.value }))}
+                className="w-full rounded-[0.6rem] border border-line bg-surface px-3 py-2"
+              >
+                {LEVELS.map((l) => <option key={l} value={l}>{l}</option>)}
+              </select>
+            </label>
+          </div>
+          <label className="mt-3 block text-sm">
+            <span className="mb-1 block font-medium">Company notes <span className="font-normal text-muted">(optional)</span></span>
+            <textarea
+              value={addForm.companyNotes}
+              onChange={(e) => setAddForm((f) => ({ ...f, companyNotes: e.target.value }))}
+              rows={2}
+              className="w-full rounded-[0.6rem] border border-line bg-surface p-3 text-xs"
+            />
+          </label>
+          <div className="mt-3 flex items-center gap-3">
+            <Button
+              variant="secondary"
+              onClick={submitAdd}
+              disabled={addBusy || !addForm.jobDescription || !addForm.company || !addForm.role}
+            >
+              Add target
+            </Button>
+            {addBusy && (
+              <span role="status" aria-live="polite" className="inline-flex items-center gap-2 text-sm text-muted">
+                <span className="h-4 w-4 animate-spin rounded-full border-2 border-line border-t-blue" aria-hidden />
+                Working… {elapsed}s elapsed
+              </span>
+            )}
+          </div>
+          {addBusy && <StageList stages={stages} running={addBusy} />}
+        </Card>
+      )}
+
       <Card>
-        <div className="grid gap-4 md:grid-cols-2">
+        <CardTitle>{hasCandidate ? "Start over with a new resume" : "Set up your workspace"}</CardTitle>
+        <div className="mt-3 grid gap-4 md:grid-cols-2">
           <label className="block text-sm">
             <span className="mb-1 block font-medium">Resume</span>
             <textarea
@@ -71,11 +331,12 @@ export default function TargetRole() {
             />
             <input
               type="file"
-              accept=".txt,.md"
+              accept={ACCEPT}
               aria-label="Upload resume file"
               className="mt-1 text-xs text-muted"
-              onChange={(e) => loadFile(e.target.files?.[0], "resumeText")}
+              onChange={(e) => loadResumeFile(e.target.files?.[0])}
             />
+            <FileNote meta={meta.resumeText} />
           </label>
           <label className="block text-sm">
             <span className="mb-1 block font-medium">Job description</span>
@@ -87,11 +348,12 @@ export default function TargetRole() {
             />
             <input
               type="file"
-              accept=".txt,.md"
+              accept={ACCEPT}
               aria-label="Upload job description file"
               className="mt-1 text-xs text-muted"
-              onChange={(e) => loadFile(e.target.files?.[0], "jobDescription")}
+              onChange={(e) => loadJdFile(e.target.files?.[0])}
             />
+            <FileNote meta={meta.jobDescription} />
           </label>
         </div>
 
@@ -124,6 +386,18 @@ export default function TargetRole() {
           </label>
         </div>
 
+        <label className="mt-3 block text-sm">
+          <span className="mb-1 block font-medium">
+            Company notes <span className="font-normal text-muted">(values, interview style — paste from the careers page)</span>
+          </span>
+          <textarea
+            value={form.companyNotes}
+            onChange={(e) => setForm((f) => ({ ...f, companyNotes: e.target.value }))}
+            rows={3}
+            className="w-full rounded-[0.6rem] border border-line bg-surface p-3 text-xs"
+          />
+        </label>
+
         <div className="mt-4 flex flex-wrap items-center gap-3">
           {examples.length > 0 && (
             <label className="text-sm text-muted">
@@ -144,10 +418,11 @@ export default function TargetRole() {
           {busy && (
             <span role="status" aria-live="polite" className="inline-flex items-center gap-2 text-sm text-muted">
               <span className="h-4 w-4 animate-spin rounded-full border-2 border-line border-t-blue" aria-hidden />
-              Analyzing with AI… {elapsed}s elapsed
+              Working… {elapsed}s elapsed
             </span>
           )}
         </div>
+        {busy && <StageList stages={stages} running={busy} />}
       </Card>
 
       {result && (
@@ -175,6 +450,7 @@ export default function TargetRole() {
                 <li key={r.skillId} className="flex items-center justify-between gap-2">
                   <span>{r.label || skillLabel(r.skillId)}</span>
                   <span className="flex items-center gap-2">
+                    {r.boostedBy === "company-profile" && <Pill tone="green">company profile</Pill>}
                     <span className="text-xs text-muted">{Math.round(r.importance * 100)}%</span>
                     <Pill tone={r.kind === "required" ? "blue" : "muted"}>{r.kind}</Pill>
                   </span>

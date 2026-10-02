@@ -51,10 +51,15 @@ export default function Dashboard() {
   const lastSession = sessions[0];
 
   const startPractice = () => {
+    if (!nextAction) return;
     setStarting(true);
     api
-      .startInterview()
-      .then(() => router.push("/interview"))
+      .startInterview({
+        mode: "practice",
+        focusSkillId: nextAction.skillId,
+        actionId: nextAction.id,
+      })
+      .then((r) => router.push(`/interview/${r.session!.id}`))
       .catch((e) => setError(e))
       .finally(() => setStarting(false));
   };

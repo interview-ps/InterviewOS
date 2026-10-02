@@ -37,6 +37,14 @@ export interface AgentTask {
   input: unknown;
   outputSchema: JSONSchema;
   timeoutMs?: number;
+  /** Streaming callback — receives the same events collected on the result. */
+  onEvent?: (e: RuntimeEvent) => void;
+  /** Codex model override (validated: /^[A-Za-z0-9._:-]{1,64}$/). */
+  model?: string | null;
+  /** Codex reasoning effort override. */
+  effort?: "low" | "medium" | "high" | null;
+  /** How the task is executed: warm app-server turn (default) or `codex exec`. */
+  taskMode?: "app-server" | "exec";
 }
 
 export type AgentEvent = { type: string } & Record<string, unknown>;
@@ -50,6 +58,15 @@ export interface RuntimeMessage {
   taskId?: string;
   input?: unknown;
   outputSchema?: JSONSchema;
+  model?: string | null;
+  effort?: "low" | "medium" | "high" | null;
+}
+
+export interface ModelInfo {
+  id: string;
+  displayName: string;
+  supportedReasoningEfforts: string[];
+  defaultReasoningEffort: string | null;
 }
 
 export type RuntimeEvent =
@@ -78,5 +95,27 @@ export interface AIRuntime {
   resumeSession(threadId: string, input: SessionInput): Promise<RuntimeSession>;
   sendMessage(sessionId: string, msg: RuntimeMessage): AsyncIterable<RuntimeEvent>;
   closeSession(sessionId: string): Promise<void>;
+  listModels(): Promise<ModelInfo[]>;
   dispose(): Promise<void>;
+}
+
+export const MODEL_ID_REGEX = /^[A-Za-z0-9._:-]{1,64}$/;
+export const REASONING_EFFORTS = ["low", "medium", "high"] as const;
+export type ReasoningEffort = (typeof REASONING_EFFORTS)[number];
+
+/** Defence-in-depth validation before a model/effort reaches a child process. */
+export function validateModelAndEffort(
+  model?: string | null,
+  effort?: string | null,
+): RuntimeError | null {
+  if (model != null && !MODEL_ID_REGEX.test(model)) {
+    return new RuntimeError("PROTOCOL", `invalid model id "${model.slice(0, 40)}…"`);
+  }
+  if (
+    effort != null &&
+    !(REASONING_EFFORTS as readonly string[]).includes(effort)
+  ) {
+    return new RuntimeError("PROTOCOL", `invalid reasoning effort "${effort}"`);
+  }
+  return null;
 }

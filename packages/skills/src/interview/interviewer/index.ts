@@ -1,5 +1,10 @@
 import { z } from "zod";
-import { ExpectedConceptSchema, LevelSchema, type SkillId } from "@interview-os/core";
+import {
+  ExpectedConceptSchema,
+  LevelSchema,
+  RoundTypeSchema,
+  type SkillId,
+} from "@interview-os/core";
 import { runStructured } from "../../framework/runStructured.js";
 import type { InterviewSkill } from "../../framework/skill.js";
 import { normalizeSkillIds, normalizeSkillIdValue } from "../../framework/common.js";
@@ -14,8 +19,14 @@ export const InterviewerInputSchema = z.object({
   reason: z.string(),
   previousQuestions: z.array(z.string()),
   candidateSummary: z.string(),
+  /** §8.4 round type — shapes the interviewer persona. */
+  roundType: RoundTypeSchema.default("mixed"),
+  /** Company behavioral themes (values etc.), for behavioral/hr questions. */
+  companyThemes: z.array(z.string()).default([]),
+  /** Titles of the candidate's STAR stories a behavioral interviewer may reference. */
+  storyTitles: z.array(z.string()).default([]),
 });
-export type InterviewerInput = z.infer<typeof InterviewerInputSchema>;
+export type InterviewerInput = z.input<typeof InterviewerInputSchema>;
 
 const InterviewerConceptSchema = z.object({
   concept: z.string(),
@@ -41,7 +52,10 @@ export interface InterviewerOutput {
   difficulty: "easy" | "medium" | "hard";
 }
 
-export const interviewer: InterviewSkill<InterviewerInput, InterviewerOutput> = {
+export const interviewer: InterviewSkill<
+  z.input<typeof InterviewerInputSchema>,
+  InterviewerOutput
+> = {
   id: "interviewer",
   inputSchema: InterviewerInputSchema,
   outputSchema: InterviewerOutputSchema as z.ZodType<InterviewerOutput>,
@@ -51,6 +65,7 @@ export const interviewer: InterviewSkill<InterviewerInput, InterviewerOutput> = 
       instructions: INTERVIEWER_PROMPT,
       input,
       schema: InterviewerOutputSchema,
+      streamField: "question",
       // interviewer prefers the session thread when one is attached to ctx
       session: ctx.runtimeSessionId
         ? { runtimeSessionId: ctx.runtimeSessionId }
