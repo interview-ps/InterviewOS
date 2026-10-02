@@ -148,7 +148,7 @@ export interface RuntimeStatus {
   workspace?: string;
   status: string;
   message?: string;
-  mode: "codex" | "mock";
+  mode: "codex" | "mock" | "claude" | "opencode";
 }
 
 export interface ExampleMeta {
@@ -304,10 +304,11 @@ export interface RuntimeModel {
   displayName: string;
   supportedReasoningEfforts: string[];
   defaultReasoningEffort: string | null;
+  isDefault?: boolean;
 }
 
 export interface AppSettings {
-  codexModel: string | null;
+  model: string | null;
   reasoningEffort: "low" | "medium" | "high" | null;
   taskMode: "app-server" | "exec";
 }

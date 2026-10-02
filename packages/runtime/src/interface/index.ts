@@ -19,7 +19,7 @@ export class RuntimeError extends Error {
   }
 }
 
-export type RuntimeKind = "codex" | "mock";
+export type RuntimeKind = "codex" | "mock" | "claude" | "opencode";
 
 export interface RuntimeStatus {
   runtime: RuntimeKind;
@@ -39,11 +39,11 @@ export interface AgentTask {
   timeoutMs?: number;
   /** Streaming callback — receives the same events collected on the result. */
   onEvent?: (e: RuntimeEvent) => void;
-  /** Codex model override (validated: /^[A-Za-z0-9._:-]{1,64}$/). */
+  /** Model override (validated by MODEL_ID_REGEX; provider-qualified ids allowed). */
   model?: string | null;
-  /** Codex reasoning effort override. */
+  /** Reasoning effort override. */
   effort?: "low" | "medium" | "high" | null;
-  /** How the task is executed: warm app-server turn (default) or `codex exec`. */
+  /** Codex-only: warm app-server turn (default) or `codex exec`. */
   taskMode?: "app-server" | "exec";
 }
 
@@ -67,6 +67,8 @@ export interface ModelInfo {
   displayName: string;
   supportedReasoningEfforts: string[];
   defaultReasoningEffort: string | null;
+  /** Marks the provider's default model; used when a saved model disappears. */
+  isDefault?: boolean;
 }
 
 export type RuntimeEvent =
@@ -99,7 +101,9 @@ export interface AIRuntime {
   dispose(): Promise<void>;
 }
 
-export const MODEL_ID_REGEX = /^[A-Za-z0-9._:-]{1,64}$/;
+/** Model id: 1–128 chars, optionally one `/` separating provider and model. */
+export const MODEL_ID_REGEX =
+  /^(?=.{1,128}$)[A-Za-z0-9._:-]+(?:\/[A-Za-z0-9._:-]+)?$/;
 export const REASONING_EFFORTS = ["low", "medium", "high"] as const;
 export type ReasoningEffort = (typeof REASONING_EFFORTS)[number];
 

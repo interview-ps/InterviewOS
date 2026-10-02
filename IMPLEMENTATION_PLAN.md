@@ -4,7 +4,7 @@ Vertical slices; each phase ends green (`pnpm typecheck && pnpm test`).
 
 - [x] **P1 Repo + schemas** — pnpm workspace, TS strict, Vitest; `shared` (logger, ids);
       `core` schemas, taxonomy, readiness math, gaps, prioritisation, state machine + unit tests.
-- [x] **P2 Runtime** — `AIRuntime`, `MockRuntime`, `LocalCodexRuntime` (detect, exec adapter,
+- [x] **P2 Runtime** — `AIRuntime`, `MockRuntime`, `CodexRuntime` (detect, exec adapter,
       app-server process/protocol/sessions/event parser). Runtime tests against
       `tests/fixtures/fake-codex.mjs` (unavailable, available, crash, malformed event, malformed
       output, timeout, session resume). Opt-in live test `INTERVIEW_OS_LIVE_CODEX=1`.
@@ -26,5 +26,12 @@ Vertical slices; each phase ends green (`pnpm typecheck && pnpm test`).
       mode), live-Codex E2E pass.
 - [x] **V3 Interview breadth** — round types, STAR evaluation + story bank + coach, company profile.
 
-Deferred to v0.3+: cover letters, LinkedIn, job search, offer comparison, salary negotiation,
+## v0.3
+- [x] **V4 Multi-provider runtimes** — `ClaudeCodeRuntime` (`@anthropic-ai/claude-agent-sdk`) and
+      `OpencodeRuntime` (one-shot `opencode run --format json` CLI, stdin prompt; no `serve`/SDK)
+      beside Codex; dynamic model discovery with provider-default fallback; `codexModel` → `model`
+      settings migration; repo agent tooling (`CLAUDE.md`, `.claude/`, `.opencode/`) with
+      read/shell permission hardening.
+
+Deferred to v0.4+: cover letters, LinkedIn, job search, offer comparison, salary negotiation,
 company profile library/web research, large question banks, multi-user, collaboration.

@@ -34,6 +34,7 @@ export interface InterviewSkill<I, O> {
 
 export class SkillRuntimeError extends AppError {
   readonly runtimeCode: string;
+  readonly taskId: string;
 
   constructor(taskId: string, cause: { code: string; message: string }) {
     super(
@@ -42,12 +43,16 @@ export class SkillRuntimeError extends AppError {
     );
     this.name = "SkillRuntimeError";
     this.runtimeCode = cause.code;
+    this.taskId = taskId;
   }
 }
 
 export class SkillOutputError extends AppError {
+  readonly taskId: string;
+
   constructor(taskId: string, detail: string) {
     super("SKILL_OUTPUT", `skill "${taskId}" produced invalid output: ${detail}`);
     this.name = "SkillOutputError";
+    this.taskId = taskId;
   }
 }
