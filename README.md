@@ -298,6 +298,14 @@ $env:INTERVIEW_OS_LIVE_OPENCODE="1"; pnpm test:opencode
 `tests/integration/feedback-loop.test.ts` is the canonical product test: it
 walks the full loop and asserts the weak-skill retest behaviour end to end.
 
+### Continuous integration
+
+GitHub Actions runs on pull requests and pushes to `main`. It installs the locked
+pnpm dependencies on Node.js 24, typechecks the workspace, runs the Vitest unit
+and integration suite, and builds the Next.js app. The workflow does not run
+Playwright or live AI provider tests. It can also be started manually from the
+Actions tab.
+
 ## Project structure
 
 ```
