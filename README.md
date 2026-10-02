@@ -282,6 +282,7 @@ POSIX shell:
 
 ```sh
 pnpm typecheck && pnpm test     # unit + runtime (fake codex) + integration
+pnpm test:coverage              # same tests, minimum 70% line coverage
 pnpm test:e2e                   # Playwright over the mock runtime
 INTERVIEW_OS_LIVE_CODEX=1 pnpm test:codex        # opt-in live Codex unit test
 INTERVIEW_OS_LIVE_CLAUDE=1 pnpm test:claude      # opt-in live Claude smoke
@@ -302,7 +303,9 @@ walks the full loop and asserts the weak-skill retest behaviour end to end.
 
 GitHub Actions runs on pull requests and pushes to `main`. It installs the locked
 pnpm dependencies on Node.js 24, typechecks the workspace, runs the Vitest unit
-and integration suite, and builds the Next.js app. The workflow does not run
+and integration suite with a 70% line coverage minimum, and builds the Next.js
+app. The coverage check measures package source, the API server, and web library
+modules; it does not measure Next.js UI components. The workflow does not run
 Playwright or live AI provider tests. It can also be started manually from the
 Actions tab.
 
