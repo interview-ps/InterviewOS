@@ -69,7 +69,7 @@ const TargetCreateSchema = z.object({
   companyNotes: z.string().max(50_000).optional(),
 });
 const SettingsSchema = z.object({
-  codexModel: z.string().max(64).nullable().optional(),
+  model: z.string().max(128).nullable().optional(),
   reasoningEffort: z.enum(["low", "medium", "high"]).nullable().optional(),
   taskMode: z.enum(["app-server", "exec"]).optional(),
 });
@@ -94,11 +94,31 @@ async function parseBody<S extends z.ZodType>(c: Context, schema: S): Promise<z.
 }
 
 function errorStatus(err: unknown): { status: number; code: string; message: string } {
-  if (err instanceof SkillRuntimeError && err.runtimeCode === "UNAVAILABLE") {
-    return { status: 503, code: "UNAVAILABLE", message: err.message };
+  if (err instanceof SkillRuntimeError) {
+    if (err.runtimeCode === "UNAVAILABLE") {
+      return { status: 503, code: "UNAVAILABLE", message: err.message };
+    }
+    if (err.runtimeCode === "TIMEOUT") {
+      return {
+        status: 504,
+        code: "RUNTIME_TIMEOUT",
+        message: `The AI runtime timed out while running "${err.taskId}". ${err.message}`,
+      };
+    }
+    return {
+      status: 502,
+      code: "RUNTIME_FAILED",
+      message: `The AI runtime failed while running "${err.taskId}". ${err.message}`,
+    };
   }
   if (err instanceof RuntimeError && err.code === "UNAVAILABLE") {
     return { status: 503, code: "UNAVAILABLE", message: err.message };
+  }
+  if (err instanceof RuntimeError) {
+    if (err.code === "TIMEOUT") {
+      return { status: 504, code: "RUNTIME_TIMEOUT", message: err.message };
+    }
+    return { status: 502, code: "RUNTIME_FAILED", message: err.message };
   }
   if (err instanceof SkillOutputError) {
     return { status: 502, code: err.code, message: err.message };

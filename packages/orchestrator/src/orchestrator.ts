@@ -114,7 +114,7 @@ const TASK_MODES = ["app-server", "exec"] as const;
 export type TaskMode = (typeof TASK_MODES)[number];
 
 export interface OrchestratorSettings {
-  codexModel: string | null;
+  model: string | null;
   reasoningEffort: "low" | "medium" | "high" | null;
   taskMode: TaskMode;
 }
@@ -144,7 +144,7 @@ export class InterviewOrchestrator {
     const effort = this.store.getSetting("reasoningEffort");
     const taskMode = this.store.getSetting("taskMode");
     return {
-      model: this.store.getSetting("codexModel") ?? null,
+      model: this.store.getSetting("model") ?? null,
       effort: effort === "low" || effort === "medium" || effort === "high" ? effort : null,
       taskMode: taskMode === "exec" ? "exec" : "app-server",
     };
@@ -153,28 +153,42 @@ export class InterviewOrchestrator {
   getSettings(): OrchestratorSettings {
     const opts = this.runtimeOptions();
     return {
-      codexModel: opts?.model ?? null,
+      model: opts?.model ?? null,
       reasoningEffort: opts?.effort ?? null,
       taskMode: opts?.taskMode ?? "app-server",
     };
   }
 
+  /**
+   * Resolve a saved model against the live catalog. A model that vanished
+   * (provider changed / catalog refreshed) falls back to the entry flagged
+   * `isDefault` (or the first entry) and is persisted, so the UI never shows a
+   * stale id. Returns the effective model.
+   */
+  private async resolveModelOrDefault(saved: string | null): Promise<string | null> {
+    const models = await this.runtime.listModels();
+    if (models.length === 0) return saved;
+    if (saved && models.some((m) => m.id === saved)) return saved;
+    const fallback = models.find((m) => m.isDefault) ?? models[0];
+    const next = fallback?.id ?? null;
+    if (next !== saved) this.store.setSetting("model", next);
+    return next;
+  }
+
   async updateSettings(patch: Partial<OrchestratorSettings>): Promise<OrchestratorSettings> {
     return this.withLock(async () => {
-      if ("codexModel" in patch) {
-        const model = patch.codexModel ?? null;
+      if ("model" in patch) {
+        const model = patch.model ?? null;
         if (model !== null) {
-          const models = await this.runtime.listModels();
-          if (!models.some((m) => m.id === model)) {
-            throw new AppError("VALIDATION", `unknown model "${model}"`);
-          }
+          this.store.setSetting("model", await this.resolveModelOrDefault(model));
+        } else {
+          this.store.setSetting("model", null);
         }
-        this.store.setSetting("codexModel", model);
       }
       if ("reasoningEffort" in patch) {
         const effort = patch.reasoningEffort ?? null;
         if (effort !== null) {
-          const model = patch.codexModel ?? this.store.getSetting("codexModel") ?? null;
+          const model = patch.model ?? this.store.getSetting("model") ?? null;
           if (model !== null) {
             const models = await this.runtime.listModels();
             const m = models.find((x) => x.id === model);
@@ -189,7 +203,8 @@ export class InterviewOrchestrator {
         }
         this.store.setSetting("reasoningEffort", effort);
       }
-      if ("taskMode" in patch && patch.taskMode !== undefined) {
+      // taskMode is a Codex-only execution detail; ignore it for other runtimes.
+      if ("taskMode" in patch && patch.taskMode !== undefined && this.runtime.kind === "codex") {
         if (!TASK_MODES.includes(patch.taskMode)) {
           throw new AppError("VALIDATION", `invalid taskMode "${patch.taskMode}"`);
         }
@@ -277,10 +292,15 @@ export class InterviewOrchestrator {
         this.logger.info("workflow.completed", { workflow: "setupWorkspace" });
         return { candidate, target, gaps, actions };
       } catch (err) {
-        this.logger.warn("workflow.failed", {
+        const detail: Record<string, unknown> = {
           workflow: "setupWorkspace",
           error: (err as Error).message,
-        });
+        };
+        if (err instanceof SkillRuntimeError) {
+          detail.skill = err.taskId;
+          detail.runtimeCode = err.runtimeCode;
+        }
+        this.logger.warn("workflow.failed", detail);
         throw err;
       }
     });

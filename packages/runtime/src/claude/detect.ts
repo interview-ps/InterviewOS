@@ -3,18 +3,21 @@ import fs from "node:fs/promises";
 import path from "node:path";
 import type { RuntimeStatus } from "../interface/index.js";
 import { execFileSafe } from "../process/launch.js";
+import { buildClaudeChildEnv } from "./childEnv.js";
 
-export const CODEX_SETUP_MESSAGE =
-  "Codex CLI not found. Install: npm i -g @openai/codex, then run `codex login`.";
+export const CLAUDE_SETUP_MESSAGE =
+  "Claude Code not found. Install: npm i -g @anthropic-ai/claude-code, then run `claude` to log in.";
 
 function candidateNames(): string[] {
-  return process.platform === "win32" ? ["codex.cmd", "codex.exe", "codex"] : ["codex"];
+  return process.platform === "win32"
+    ? ["claude.cmd", "claude.exe", "claude"]
+    : ["claude"];
 }
 
-export async function findCodexExecutable(
+export async function findClaudeExecutable(
   env: NodeJS.ProcessEnv,
 ): Promise<string | undefined> {
-  const override = env.INTERVIEW_OS_CODEX_BIN;
+  const override = env.INTERVIEW_OS_CLAUDE_BIN;
   if (override) {
     try {
       await fs.access(override, fsConstants.X_OK);
@@ -39,49 +42,54 @@ export async function findCodexExecutable(
   return undefined;
 }
 
-export async function getCodexVersion(bin: string): Promise<string | undefined> {
+export async function getClaudeVersion(bin: string, env: NodeJS.ProcessEnv): Promise<string | undefined> {
   return new Promise((resolve) => {
-    execFileSafe(bin, ["--version"], { timeout: 5000, shell: false }, (err, stdout, stderr) => {
-      if (err) return resolve(undefined);
-      const text = `${stdout}\n${stderr}`;
-      const match = text.match(/codex-cli\s+([0-9][^\s]*)/) ?? text.match(/(\d+\.\d+\.\d+)/);
-      resolve(match?.[1]);
-    });
+    execFileSafe(
+      bin,
+      ["--version"],
+      { timeout: 5000, env: buildClaudeChildEnv(env), shell: false },
+      (err, stdout, stderr) => {
+        if (err) return resolve(undefined);
+        const text = `${stdout}\n${stderr}`;
+        const match = text.match(/(\d+\.\d+\.\d+[^\s]*)/);
+        resolve(match?.[1]);
+      },
+    );
   });
 }
 
-export async function codexHealthCheck(
+export async function claudeHealthCheck(
   env: NodeJS.ProcessEnv,
   workspaceDir: string,
 ): Promise<RuntimeStatus> {
-  const executable = await findCodexExecutable(env);
+  const executable = await findClaudeExecutable(env);
   if (!executable) {
     return {
-      runtime: "codex",
+      runtime: "claude",
       available: false,
       workspace: workspaceDir,
       status: "unavailable",
-      message: CODEX_SETUP_MESSAGE,
+      message: CLAUDE_SETUP_MESSAGE,
     };
   }
-  const version = await getCodexVersion(executable);
+  const version = await getClaudeVersion(executable, env);
   if (!version) {
     return {
-      runtime: "codex",
+      runtime: "claude",
       available: false,
       executable,
       workspace: workspaceDir,
       status: "error",
-      message: `Found Codex at ${executable} but \`--version\` failed or timed out. ${CODEX_SETUP_MESSAGE}`,
+      message: `Found Claude Code at ${executable} but \`--version\` failed or timed out. ${CLAUDE_SETUP_MESSAGE}`,
     };
   }
   return {
-    runtime: "codex",
+    runtime: "claude",
     available: true,
     version,
     executable,
     workspace: workspaceDir,
     status: "ready",
-    message: `codex-cli ${version}`,
+    message: `claude-code ${version}`,
   };
 }

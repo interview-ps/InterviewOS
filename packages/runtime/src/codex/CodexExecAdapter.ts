@@ -1,4 +1,3 @@
-import { spawn } from "node:child_process";
 import fs from "node:fs/promises";
 import path from "node:path";
 import { newId } from "@interview-os/shared";
@@ -7,6 +6,7 @@ import {
   type AgentResult,
   type AgentTask,
 } from "../interface/index.js";
+import { spawnCommand } from "../process/launch.js";
 import { buildChildEnv } from "./childEnv.js";
 import { CodexExecEventParser } from "./CodexEventParser.js";
 
@@ -75,7 +75,7 @@ export class CodexExecAdapter {
     return new Promise<AgentResult>((resolve) => {
       let child;
       try {
-        child = spawn(this.opts.bin, args, {
+        child = spawnCommand(this.opts.bin, args, {
           cwd: this.opts.workspaceDir,
           env: buildChildEnv(this.opts.env, this.opts.extraChildEnv),
           shell: false,

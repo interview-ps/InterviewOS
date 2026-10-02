@@ -24,7 +24,8 @@ export interface MarkdownSection {
 
 export function splitSections(text: string): MarkdownSection[] {
   const sections: MarkdownSection[] = [{ heading: "", lines: [] }];
-  for (const line of text.split("\n")) {
+  for (const rawLine of text.split("\n")) {
+    const line = rawLine.replace(/\r$/, "");
     const h = line.match(/^#{1,3}\s+(.+)$/);
     if (h) {
       sections.push({ heading: h[1]!.trim().toLowerCase(), lines: [] });

@@ -1,6 +1,7 @@
-import { spawn, type ChildProcessWithoutNullStreams } from "node:child_process";
+import { type ChildProcessWithoutNullStreams } from "node:child_process";
 import readline from "node:readline";
 import { RuntimeError } from "../interface/index.js";
+import { spawnCommand } from "../process/launch.js";
 import { buildChildEnv } from "./childEnv.js";
 
 export const PROCESS_REQUEST_TIMEOUT_MS = 30_000;
@@ -81,7 +82,7 @@ export class CodexProcess {
   }
 
   private spawnChild(): void {
-    const child = spawn(this.opts.bin, ["app-server", "--listen", "stdio://"], {
+    const child = spawnCommand(this.opts.bin, ["app-server", "--listen", "stdio://"], {
       cwd: this.opts.workspaceDir,
       env: buildChildEnv(this.opts.env, this.opts.extraChildEnv),
       shell: false,
@@ -190,6 +191,22 @@ export class CodexProcess {
       pendingReq.reject(new RuntimeError("CRASHED", "codex app-server closed"));
       this.pending.delete(id);
     }
-    child?.kill("SIGKILL");
+    if (!child) return;
+    // Wait for the OS to reap the child. On Windows an exited-but-unreaped
+    // process keeps its workspace cwd locked, so returning immediately races
+    // with callers that delete the workspace right after dispose().
+    await new Promise<void>((resolve) => {
+      if (child.exitCode !== null || child.signalCode !== null) return resolve();
+      const timer = setTimeout(() => {
+        child.removeListener("exit", onExit);
+        resolve();
+      }, 2000);
+      const onExit = () => {
+        clearTimeout(timer);
+        resolve();
+      };
+      child.once("exit", onExit);
+      child.kill("SIGKILL");
+    });
   }
 }
