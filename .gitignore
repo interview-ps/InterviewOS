@@ -86,3 +86,12 @@ temp/
 *.orig
 .cache/
 .local/
+
+# Interview OS runtime data
+data/*.db*
+data/codex-workspace/
+test-results/
+playwright-report/
+
+# Next.js generated
+next-env.d.ts

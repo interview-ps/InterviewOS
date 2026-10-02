@@ -1,0 +1,23 @@
+# Interview OS — Implementation Plan (v0.1)
+
+Vertical slices; each phase ends green (`pnpm typecheck && pnpm test`).
+
+- [x] **P1 Repo + schemas** — pnpm workspace, TS strict, Vitest; `shared` (logger, ids);
+      `core` schemas, taxonomy, readiness math, gaps, prioritisation, state machine + unit tests.
+- [x] **P2 Runtime** — `AIRuntime`, `MockRuntime`, `LocalCodexRuntime` (detect, exec adapter,
+      app-server process/protocol/sessions/event parser). Runtime tests against
+      `tests/fixtures/fake-codex.mjs` (unavailable, available, crash, malformed event, malformed
+      output, timeout, session resume). Opt-in live test `INTERVIEW_OS_LIVE_CODEX=1`.
+- [x] **P3 Analyzers** — resume-analyzer, jd-analyzer (+ `runStructured` retry/validation).
+- [x] **P4 Gaps + readiness graph** — gap-analyzer skill on core/gaps; SQLite store, evidence, snapshots.
+- [x] **P5 Prep planner** — concrete actions with success criteria; dedupe per skill.
+- [x] **P6 Interview session** — state machine persisted; interview planner + interviewer; Codex thread mapping.
+- [x] **P7 Answer evaluator** — 7 dimensions, evidence extraction.
+- [x] **P8 Feedback loop** — evaluation → evidence → readiness → plan → next question retests weakness;
+      canonical integration test `tests/integration/feedback-loop.test.ts` (must pass); debrief.
+- [x] **P9 UI** — Dashboard, Target Role, Prep Plan, Interview, Readiness (tree + evidence), History,
+      Settings (Local Codex); runtime badge.
+- [x] **P10 Polish** — Playwright E2E on mock runtime, README, CONTRIBUTING, examples, live Codex smoke.
+
+Deferred to v0.2+: cover letters, LinkedIn, job search, offer comparison, salary negotiation,
+company profile library, large question banks, PDF parsing, multi-user, collaboration.
