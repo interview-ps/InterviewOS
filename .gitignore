@@ -49,6 +49,7 @@ env/
 .ruff_cache/
 .coverage
 coverage.xml
+coverage/
 htmlcov/
 .ipynb_checkpoints/
 
