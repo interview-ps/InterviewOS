@@ -318,7 +318,7 @@ describe("runTask (app-server task mode)", () => {
 
 describe("app-server sessions", () => {
   it("runs a multi-turn session and declines approval requests", async () => {
-    const rt = fakeRuntime("ok");
+    const rt = fakeRuntime("eager");
     try {
       const session = await rt.createSession({ instructions: "be helpful" });
       expect(session.threadId).toBe("thread-1");

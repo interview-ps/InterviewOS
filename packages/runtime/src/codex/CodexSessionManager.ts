@@ -318,6 +318,13 @@ export class CodexSessionManager {
     }
     yield { type: "started" };
 
+    // The app-server may emit turn notifications before the turn/start response
+    // has been consumed. Capture them until the turn listener is installed.
+    const earlyNotifications: Array<[string, unknown]> = [];
+    const offEarly = this.proc.onNotification((method, params) => {
+      earlyNotifications.push([method, params]);
+    });
+
     let turnId: string | undefined;
     for (let attempt = 0; attempt < 2; attempt++) {
       try {
@@ -336,6 +343,7 @@ export class CodexSessionManager {
           err instanceof RuntimeError &&
           (err.code === "CRASHED" || err.code === "SPAWN_FAILED");
         if (attempt === 1 || !retryable) {
+          offEarly();
           yield { type: "error", error: asRuntimeError(err) };
           return;
         }
@@ -347,7 +355,7 @@ export class CodexSessionManager {
     const queue = new EventQueue();
     let lastMessageText = "";
 
-    const offNotification = this.proc.onNotification((method, rawParams) => {
+    const handleNotification = (method: string, rawParams: unknown) => {
       const params = (rawParams ?? {}) as TurnParams;
       if (params.threadId !== undefined && params.threadId !== session.threadId) return;
       if (params.turnId !== undefined && turnId !== undefined && params.turnId !== turnId)
@@ -416,7 +424,12 @@ export class CodexSessionManager {
           queue.finish();
           break;
       }
-    });
+    };
+    const offNotification = this.proc.onNotification(handleNotification);
+    offEarly();
+    for (const [method, params] of earlyNotifications) {
+      handleNotification(method, params);
+    }
 
     const offExit = this.proc.onExit(() => {
       queue.push({

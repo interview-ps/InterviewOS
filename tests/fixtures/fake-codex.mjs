@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 // Fake codex CLI for Interview OS runtime tests. Modes via FAKE_CODEX_MODE:
-//   ok | crash | malformed-event | malformed-output | hang | app-crash-once
+//   ok | eager | crash | malformed-event | malformed-output | hang | app-crash-once
 //   app-crash-midturn | app-crash-midturn-once (crashes mid-turn once; the
 //   restarted process works — remembers via a marker in FAKE_CODEX_RECORD)
 // When FAKE_CODEX_RECORD is set, interesting app-server params are appended to
@@ -223,7 +223,13 @@ function runAppServer() {
         record({ event: "turn/start", ...lastTurn, threadId: msg.params?.threadId });
         const turnId = `turn-${++turnSeq}`;
         reply({ turn: { id: turnId, status: "inProgress" } });
-        setImmediate(() => runTurn(msg.params?.threadId, turnId, turnSeq));
+        if (MODE === "eager") {
+          // Deliver notifications with the turn/start response to exercise
+          // clients that must subscribe before awaiting the RPC result.
+          runTurn(msg.params?.threadId, turnId, turnSeq);
+        } else {
+          setImmediate(() => runTurn(msg.params?.threadId, turnId, turnSeq));
+        }
         break;
       }
       case "turn/interrupt":
