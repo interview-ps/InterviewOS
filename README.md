@@ -1,346 +1,319 @@
-# Interview OS
+<p align="center">
+  <img src="apps/web/public/interview-ps-logo.png" alt="Interview OS logo" width="112" />
+</p>
 
-A local-first interview-preparation system that keeps a continuously updated,
-evidence-backed model of your interview readiness — and drives preparation and
-mock interviews from it.
+<h1 align="center">Interview OS</h1>
 
-## What it is
+<p align="center">
+  <strong>Turn interview practice into a feedback loop.</strong><br />
+  A local-first workspace that uses evidence from your answers to guide what you prepare next.
+</p>
 
-Interview OS analyzes your resume against a target job description, computes a
-per-skill readiness graph backed by explicit evidence, builds a concrete prep
-plan, and runs mock interviews that deliberately retest your weak areas. Every
-readiness score is traceable to the evidence that produced it.
+<p align="center">
+  <a href="#quickstart"><strong>Quickstart</strong></a> &middot;
+  <a href="#how-it-works"><strong>How it works</strong></a> &middot;
+  <a href="#features"><strong>Features</strong></a> &middot;
+  <a href="#architecture"><strong>Architecture</strong></a> &middot;
+  <a href="#contributing"><strong>Contributing</strong></a>
+</p>
 
-## Why it exists
+<p align="center">
+  <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-blue" alt="MIT License" /></a>
+  <a href="https://github.com/interview-ps/InterviewOS/actions/workflows/ci.yml"><img src="https://github.com/interview-ps/InterviewOS/actions/workflows/ci.yml/badge.svg" alt="CI status" /></a>
+  <a href="https://github.com/interview-ps/InterviewOS/stargazers"><img src="https://img.shields.io/github/stars/interview-ps/InterviewOS?style=flat" alt="GitHub stars" /></a>
+</p>
 
-Question generators produce a list of questions. Interview OS runs a feedback
-loop instead:
+<br />
 
-```
-Resume + JD → resume-analyzer → jd-analyzer → gap-analyzer → prep-planner
-→ interview (planner + interviewer) → answer-evaluator → evidence
-→ readiness recompute → prep-planner update → next interview retests weak skills ↺
-→ interview-debrief
-```
+## Prepare for the interview you are actually facing
 
-A weak answer on cache invalidation doesn't just get noted — it becomes
-evidence, lowers that skill's readiness score, reprioritizes your prep plan,
-and makes a follow-up question on the same weakness more likely next round.
+Interview OS reads your resume and a target job description, maps the skills that
+matter for that role, and builds a preparation plan. Practice sessions and mock
+interviews then add evidence to a readiness graph. A weak answer changes your
+next practice action and the questions you see in a later interview.
 
-## Demo workflow
+| | Step | What happens |
+| --- | --- | --- |
+| **01** | **Set a target** | Compare your resume with a job description and identify skill gaps. |
+| **02** | **Prepare** | Work through a plan focused on the most important gaps. |
+| **03** | **Interview and improve** | Answer questions, review evidence-backed feedback, and retest weak skills. |
 
-1. `pnpm dev`, open http://localhost:3000, go to **Target Role**.
-2. Load the `backend-engineer` example — a Python/APIs-strong candidate
-   applying to a Senior Backend Engineer role heavy on caching and distributed
-   systems.
-3. Analyze → the gap analysis surfaces distributed-systems/caching/system-design
-   gaps and generates a prep plan.
-4. **Interview** → the first question probes caching consistency. Answer it
-   vaguely ("I'd put Redis in front of the database") → the evaluator records
-   weak evidence on `distributed-systems.caching.cache-invalidation`.
-5. **Readiness** → that skill now shows `weak`, backed by the evidence entry
-   from your answer; **Prep Plan** reprioritizes an invalidation practice
-   action to #1.
-6. Start another interview → the first question retests the weakness.
+<br />
 
-## Architecture
+## Who it is for
 
-```
-┌──────────────────────────────────────────┐
-│              INTERVIEW OS                │
-├──────────────────────────────────────────┤
-│ Applications                             │
-│ Resume │ Prep │ Interview │ Readiness    │
-├──────────────────────────────────────────┤
-│ Skills                                   │
-│ JD │ Resume │ Gap │ Interview │ Evaluate │
-├──────────────────────────────────────────┤
-│ Orchestration                            │
-│ Planner │ Router │ Session │ State       │
-├──────────────────────────────────────────┤
-│ Intelligence                             │
-│ Candidate │ Gap │ Readiness │ Evaluation │
-├──────────────────────────────────────────┤
-│ Runtime                                  │
-│ Local Codex │ Mock │ Future Providers    │
-└──────────────────────────────────────────┘
+- Candidates preparing for a specific role who want a plan tied to its requirements.
+- People practicing technical, system design, behavioral, or HR interviews.
+- Candidates who want to see *why* a readiness score changed after an answer.
+- Developers who want to run a local app with Codex, Claude Code, opencode, or a deterministic mock runtime.
+
+<br />
+
+## How it works
+
+```text
+Resume + job description
+          ↓
+Candidate profile + target requirements
+          ↓
+Gap analysis → preparation plan
+          ↓
+Practice or mock interview → answer evaluation
+          ↓
+Skill evidence → readiness update → revised plan
+          └───────────────────────────────↺ retest weak skills
 ```
 
-## Features (v0.2)
+For example, a vague answer about cache invalidation becomes weak evidence for
+that skill. The readiness score updates, an invalidation exercise moves up the
+prep plan, and a later interview can probe the same weakness again. Every
+exposed score carries the evidence ids behind it.
 
-- Resume + JD analysis into typed candidate/target profiles (Zod-validated AI output).
-- Evidence-backed readiness graph with append-only score snapshots, now with
-  **time decay**: evidence weights halve at type-specific half-lives
-  (interview answers 60 d, practice 45 d, self-reports 30 d, resume claims 180 d).
-- Gap analysis and a concrete, reprioritizing prep plan.
-- **Practice sessions**: single-question sessions focused on one prep action
-  ("verify with a question"); answers produce `practice` evidence and
-  auto-complete the action at a demonstrated score ≥ 0.7.
-- **Self-check completion**: ticking success criteria on a prep action records
-  one `self_report` evidence entry (score = met/total criteria, confidence 0.5).
-- **Multiple targets per candidate**: add additional role targets that reuse the
-  same resume; evidence/readiness are shared while gaps, plans and sessions are
-  scoped per target. Switch targets from the header or the Target Role page.
-- **Document upload**: resume/JD inputs accept PDF, DOCX, TXT and Markdown;
-  extraction is server-side, in-memory, detected by magic bytes (5 MB limit,
-  50k-char output cap).
-- **Live streaming UX** (SSE): setup, target analysis, question generation,
-  evaluation and debrief stream stage updates and partial text to the UI —
-  question text and evaluation summaries type in live.
-- **Runtime settings**: Codex model, reasoning effort and task mode
-  (`app-server` warm process, default | `exec` per-task spawn) are configurable
-  from Settings, persisted in SQLite, and applied on the next AI call.
-- State-machine-driven mock interviews with per-question selection reasons.
-- **Round types** (§8.4): `mixed`, `technical`, `system_design`, `behavioral`,
-  `hr`. Rounds filter the candidate pool for question selection (including the
-  every-4th-question strong-area confirmation); an empty pool in a focused
-  round falls back to that round's taxonomy nodes. The interviewer adopts a
-  per-round persona (e.g. scale numbers + requirements→estimation→trade-offs
-  for system design; STAR prompts for behavioral).
-- **STAR evaluation**: behavioral/HR answers get a `star` assessment
-  (Situation/Task/Action/Result + notes); missing parts become a
-  `communication` weakness and a prep action.
-- **STAR story bank + coach**: stories extracted from your resume or generated
-  on demand live under **Stories** — editable, and coachable via
-  `star-coach.review` (feedback, missing parts, an improved draft).
-- **Company profile**: optional careers-page notes (untrusted, delimited for
-  the model) are profiled into values/interview style/focus skills/behavioral
-  themes; focus skills boost matching JD requirements by +0.05 (cap 0.95) and
-  themes reach the behavioral/HR interviewer.
-- 7-dimension answer evaluation feeding evidence back into readiness.
-- Deliberate weak-skill retesting in subsequent sessions.
-- Full evidence/audit trail per skill, persisted in local SQLite.
-- Deterministic mock runtime for development and tests — no AI calls needed.
+### Try the feedback loop
 
-### API additions (v0.2)
+1. Start the app with the [quickstart](#quickstart) and open **Target Role**.
+2. Load the bundled `backend-engineer` example and analyze the target. It
+   highlights gaps in caching, distributed systems, and system design.
+3. Start an interview and give a vague answer to a caching consistency
+   question, such as “I'd put Redis in front of the database.”
+4. Open **Readiness** to inspect the weak evidence, then **Prep Plan** to see
+   the reprioritized practice action.
+5. Start another interview to see how the question selection responds.
 
-| Route | Purpose |
-|---|---|
-| `POST /api/preparation/:id/complete` | Self-check: `{checkedCriteria: string[]}` → `self_report` evidence + `done` |
-| `GET /api/targets` / `POST /api/targets` / `POST /api/targets/:id/activate` | Multi-target management |
-| `POST /api/documents/extract` | Multipart `file` → `{text, format, pages?, warnings}` |
-| `POST /api/interviews` | extended with `{mode: "practice", focusSkillId, actionId, roundType}` |
-| `GET /api/settings` / `PUT /api/settings` | `{model, reasoningEffort, taskMode}` — validated against the live model list; a vanished model falls back to the provider default |
-| `GET /api/runtime/models` | Codex model catalog (`model/list`) |
-| `GET /api/stories` | STAR story bank for the active candidate |
-| `POST /api/stories/generate` | `star-coach.generate` → new stories (source `generated`, deduped by title) |
-| `PATCH /api/stories/:id` | Edit a story (source becomes `user`) |
-| `POST /api/stories/:id/coach` | `star-coach.review` → feedback, missing parts, improved draft |
+<br />
 
-Long-running POSTs (`workspace/setup`, `targets`, `interviews`,
-`interviews/:id/next|answer|complete`, `stories/generate`, `stories/:id/coach`) also accept `?stream=1` or
-`Accept: text/event-stream` and then emit SSE `stage`/`delta`/`result`/`error`
-events instead of a single JSON response.
+## Features
 
-## AI runtimes
+<table>
+  <tr>
+    <td width="33%" valign="top"><h3>🎯 Role-specific planning</h3>Resume and job-description analysis produces typed profiles, skill gaps, and a concrete prep plan.</td>
+    <td width="33%" valign="top"><h3>📈 Evidence-backed readiness</h3>Answers, practice, self-checks, and resume claims feed an auditable skill graph with append-only snapshots and time decay.</td>
+    <td width="33%" valign="top"><h3>🎤 Adaptive interviews</h3>Mock interviews deliberately retest weak skills and explain why each question was selected.</td>
+  </tr>
+  <tr>
+    <td valign="top"><h3>🧭 Focused practice</h3>Single-question practice sessions target prep actions. Demonstrated progress can complete an action.</td>
+    <td valign="top"><h3>🗂️ Multiple targets</h3>Prepare for several roles with one candidate profile. Targets keep their own gaps, plans, and sessions.</td>
+    <td valign="top"><h3>✍️ Behavioral coaching</h3>STAR evaluation and an editable story bank help develop answers for behavioral and HR rounds.</td>
+  </tr>
+  <tr>
+    <td valign="top"><h3>📄 Document input</h3>Upload PDF, DOCX, TXT, or Markdown resumes and job descriptions. Extraction runs in memory on the server.</td>
+    <td valign="top"><h3>⚡ Live progress</h3>Analysis, question generation, evaluation, and debrief stages stream updates to the UI.</td>
+    <td valign="top"><h3>🔌 Runtime choice</h3>Use a local Codex, Claude Code, or opencode installation, or run the full flow with the mock runtime.</td>
+  </tr>
+</table>
 
-Interview OS selects its AI backend with `INTERVIEW_OS_RUNTIME`. Every backend
-implements the same `AIRuntime` interface, and only `packages/runtime` knows
-about any specific provider.
+Interview rounds can be `mixed`, `technical`, `system_design`, `behavioral`, or
+`hr`. Optional company notes can influence the behavioral themes and skill
+focus. The seven-dimension answer evaluation feeds evidence back into readiness.
 
-| Runtime | `INTERVIEW_OS_RUNTIME` | Transport | Structured output | Sessions |
-|---|---|---|---|---|
-| Codex (default) | `codex` | `codex app-server` / `codex exec` | `--output-schema` | app-server thread |
-| Claude Code | `claude` | `@anthropic-ai/claude-agent-sdk` | `outputFormat: json_schema` | one-shot wrapper |
-| opencode | `opencode` | one-shot `opencode run --format json` | JSON reply parsed client-side | one-shot wrapper |
-| Mock | `mock` | in-process | deterministic | in-memory |
+<br />
 
-For Claude and opencode, log in once with the provider's own tooling
-(`claude`, `opencode auth login`); Interview OS reads no API keys itself.
-Child processes receive an allowlisted environment only.
+## Quickstart
 
-### Local Codex integration
+**Requirements:** Node.js 24 and [pnpm](https://pnpm.io) 12. The mock runtime
+runs without an AI provider account or CLI.
 
-Interview OS talks to a locally installed [Codex](https://github.com/openai/codex)
-CLI —" no API keys or secrets pass through the app:
-
-- **Detection**: `codex` is found on `PATH` (or `INTERVIEW_OS_CODEX_BIN`) and
-  probed with `--version`.
-- **One-shot tasks** (analysis, evaluation, debrief) run on the shared
-  `codex app-server` process as ephemeral threads by default —" warm start,
-  `item/agentMessage/delta` events streamed to the caller —" or via `codex exec`
-  (`taskMode: "exec"` in Settings) with a strict JSON output schema; the prompt
-  is piped on stdin —" untrusted resume/JD/answer text never appears in argv or
-  shell strings.
-- **Interview sessions**: a backend-owned `codex app-server` process
-  (JSON-RPC over stdio) keeps an interviewer thread per session; thread ids are
-  persisted and resumed across restarts.
-- **Streaming**: agent-message deltas surface as `{type:"delta"}` runtime
-  events → `runStructured` extracts the configured `streamField` mid-generation
-  → SSE to the browser.
-- **Model & effort**: selectable per task (`model`/`effort` on `AgentTask` /
-  `RuntimeMessage`, from `model/list`); applied via app-server params or
-  `codex exec -m <model> -c model_reasoning_effort="<effort>"`. Invalid values
-  are rejected before anything spawns.
-- **Sandbox**: read-only workspace under `data/codex-workspace`; approval
-  requests are always declined.
-- **Environment**: child processes receive an allowlisted environment only.
-
-### Claude Code (`INTERVIEW_OS_RUNTIME=claude`)
-
-Uses the official Agent SDK. Structured tasks set
-`outputFormat: { type: "json_schema", schema }` and read the result's
-`structured_output`. Each call is one-shot; `createSession` returns a local
-opaque `threadId` and `sendMessage` runs a fresh task with the full prompt (no
-server-side resume). `listModels()` uses the SDK's `supportedModels()` and falls
-back to `default`/`sonnet`/`opus`/`haiku` aliases when unavailable.
-
-### opencode (`INTERVIEW_OS_RUNTIME=opencode`)
-
-Runs the opencode CLI once per task: `opencode run --format json [-m
-provider/model]`. There is no `opencode serve` process and no SDK. The prompt —
-instructions, JSON Schema and input — is written to the child's **stdin** (never
-argv, so untrusted text is never shell-interpreted and Windows `.cmd` shims
-work); the assistant `text` parts are collected from the NDJSON stream and the
-JSON reply is parsed as the structured output. `INTERVIEW_OS_OPENCODE_TIMEOUT_MS`
-bounds each task. Model ids are provider-qualified (`provider/model`, e.g.
-`anthropic/claude-sonnet-5`) from `opencode models`.
-
-## Installation
-
-- Node.js 24 (developed and tested on v24.x), [pnpm](https://pnpm.io) 12
-- For the real AI runtime: Codex CLI on `PATH` (`codex --version`), or Claude
-  Code (`claude`) / opencode (`opencode`) for the alternative runtimes
-
-```sh
-git clone <repo> && cd InterviewOS
+```bash
+git clone https://github.com/interview-ps/InterviewOS.git
+cd InterviewOS
 pnpm install
-```
-
-Examples below use POSIX shell syntax (`VAR=value command`). On Windows
-PowerShell, set the variable first or use its own syntax — see
-[Environment variables on Windows](#environment-variables-on-windows).
-
-## Quick start
-
-```sh
-pnpm dev          # server :4100 + web :3000
-```
-
-Open http://localhost:3000 and set a target role (or load a bundled example).
-
-### Running on Windows
-
-Interview OS runs locally on Windows. The only common obstacle is an
-Application Control / Device Guard policy that blocks `pnpm.exe`; the server and
-web app themselves are fine, including the `better-sqlite3` native module.
-
-- If `pnpm ...` fails with `was blocked by your organization's Device Guard
-  policy`, use `corepack pnpm <args>` instead. The root `dev` / `typecheck`
-  scripts already call `corepack pnpm` internally, so `corepack pnpm dev` and
-  `corepack pnpm typecheck` work.
-- `corepack pnpm dev` starts both apps (server :4100, web :3000). Verify the API
-  directly at http://localhost:4100/api/runtime/status.
-- The test runner (`vitest`) may fail to start on such hosts because a
-  `rolldown` native binding is blocked. That is independent of SQLite; run the
-  tests on an unlocked machine or in CI.
-
-## Mock runtime
-
-No Codex installed? Run fully deterministically:
-
-```sh
 INTERVIEW_OS_RUNTIME=mock pnpm dev
 ```
 
+Open [http://localhost:3000](http://localhost:3000). The web app runs on port
+3000 and the API server on port 4100. Load the `backend-engineer` example on
+**Target Role** to try the complete loop.
+
+To use the default Codex runtime, install and sign in to the
+[Codex CLI](https://github.com/openai/codex), then run `pnpm dev`. You can also
+select Claude Code or opencode with `INTERVIEW_OS_RUNTIME`; each uses its own
+local sign-in.
+
+On Windows PowerShell, set the runtime before starting the app:
+
 ```powershell
-$env:INTERVIEW_OS_RUNTIME="mock"; pnpm dev   # Windows PowerShell
+$env:INTERVIEW_OS_RUNTIME="mock"; pnpm dev
 ```
 
-## Configuration
+If a Windows Application Control policy blocks `pnpm.exe`, use
+`corepack pnpm dev`. See [Windows notes](#windows-notes) for testing details.
+
+<br />
+
+## AI runtimes
+
+Every backend implements `AIRuntime`; provider-specific code lives in
+`packages/runtime`.
+
+| Runtime | `INTERVIEW_OS_RUNTIME` | How it runs | Session behavior |
+| --- | --- | --- | --- |
+| Codex (default) | `codex` | Local `codex app-server` or `codex exec` | App-server threads can resume across restarts. |
+| Claude Code | `claude` | Local Agent SDK installation | One-shot session wrapper. |
+| opencode | `opencode` | Local `opencode run --format json` | One-shot session wrapper. |
+| Mock | `mock` | Deterministic in-process responses | In-memory. |
+
+Codex tasks use a read-only workspace and decline approval requests. Prompts
+containing resumes, job descriptions, and answers travel through stdin or SDK
+payloads, never process arguments or shell strings. Child processes receive an
+allowlisted environment. Provider authentication stays with the provider's
+local installation.
+
+<details>
+<summary><strong>Runtime and server configuration</strong></summary>
 
 | Variable | Default | Purpose |
-|---|---|---|
+| --- | --- | --- |
 | `INTERVIEW_OS_RUNTIME` | `codex` | `codex`, `mock`, `claude`, or `opencode` |
-| `INTERVIEW_OS_RUNTIME_FALLBACK` | — | `mock` to fall back when the selected runtime is unavailable |
-| `INTERVIEW_OS_CODEX_BIN` | `codex` on PATH | Path to the Codex executable |
+| `INTERVIEW_OS_RUNTIME_FALLBACK` | — | Set to `mock` to fall back when the selected runtime is unavailable |
+| `INTERVIEW_OS_CODEX_BIN` | `codex` on PATH | Codex executable path |
 | `INTERVIEW_OS_CODEX_TIMEOUT_MS` | `120000` | Per-task timeout |
-| `INTERVIEW_OS_CODEX_WORKSPACE` | `data/codex-workspace` | Read-only sandbox dir |
-| `INTERVIEW_OS_CLAUDE_BIN` | `claude` on PATH | Path to the Claude Code executable |
+| `INTERVIEW_OS_CODEX_WORKSPACE` | `data/codex-workspace` | Read-only workspace |
+| `INTERVIEW_OS_CLAUDE_BIN` | `claude` on PATH | Claude executable path |
 | `INTERVIEW_OS_CLAUDE_TIMEOUT_MS` | `120000` | Per-task timeout |
-| `INTERVIEW_OS_CLAUDE_WORKSPACE` | `data/claude-workspace` | Working dir for Claude tasks |
-| `INTERVIEW_OS_OPENCODE_BIN` | `opencode` on PATH | Path to the opencode executable |
+| `INTERVIEW_OS_CLAUDE_WORKSPACE` | `data/claude-workspace` | Claude task workspace |
+| `INTERVIEW_OS_OPENCODE_BIN` | `opencode` on PATH | opencode executable path |
 | `INTERVIEW_OS_OPENCODE_TIMEOUT_MS` | `120000` | Per-task timeout |
-| `INTERVIEW_OS_OPENCODE_WORKSPACE` | `data/opencode-workspace` | Working dir for opencode |
+| `INTERVIEW_OS_OPENCODE_WORKSPACE` | `data/opencode-workspace` | opencode task workspace |
 | `INTERVIEW_OS_PORT` | `4100` | API server port |
 | `INTERVIEW_OS_DB` | `data/interview-os.db` | SQLite database path |
-| `INTERVIEW_OS_MOCK_DELAY_MS` | `0` | Per-chunk delay for mock streamed deltas (demo the streaming UX without Codex) |
+| `INTERVIEW_OS_MOCK_DELAY_MS` | `0` | Delay for streamed mock updates |
 
-### Environment variables on Windows
+</details>
 
-The `VAR=value command` form is POSIX-shell only. On Windows, set the variable
-first, or inline it per shell:
+<br />
 
-| Shell | Set for the session | Inline for one command |
-|---|---|---|
-| PowerShell | `$env:INTERVIEW_OS_RUNTIME="opencode"` | `$env:INTERVIEW_OS_RUNTIME="opencode"; pnpm dev` |
-| cmd.exe | `set INTERVIEW_OS_RUNTIME=opencode` | `set INTERVIEW_OS_RUNTIME=opencode && pnpm dev` |
+## Architecture
 
-## Testing
-
-POSIX shell:
-
-```sh
-pnpm typecheck && pnpm test     # unit + runtime (fake codex) + integration
-pnpm test:coverage              # same tests, minimum 70% line coverage
-pnpm test:e2e                   # Playwright over the mock runtime
-INTERVIEW_OS_LIVE_CODEX=1 pnpm test:codex        # opt-in live Codex unit test
-INTERVIEW_OS_LIVE_CLAUDE=1 pnpm test:claude      # opt-in live Claude smoke
-INTERVIEW_OS_LIVE_OPENCODE=1 pnpm test:opencode  # opt-in live opencode smoke
-INTERVIEW_OS_LIVE_CODEX=1 pnpm test:e2e:live     # opt-in live Codex end-to-end
+```text
+┌──────────────────────────────────────────────────────────────┐
+│                         Interview OS                         │
+├──────────────────────────────────────────────────────────────┤
+│ Next.js web app                 Hono API + SQLite store       │
+├──────────────────────────────────────────────────────────────┤
+│ Orchestrator → skills → core candidate and readiness model   │
+├──────────────────────────────────────────────────────────────┤
+│ AIRuntime → Codex | Claude Code | opencode | Mock            │
+└──────────────────────────────────────────────────────────────┘
 ```
 
-Windows PowerShell:
+| Path | Responsibility |
+| --- | --- |
+| `apps/web` | Next.js and Tailwind UI on port 3000 |
+| `apps/server` | Hono API on port 4100, document extraction, SQLite ownership |
+| `packages/core` | Zod state schemas, taxonomy, readiness, gaps, prioritization |
+| `packages/skills` | Analysis, planning, interview, coaching, evaluation, debrief |
+| `packages/orchestrator` | Workflow and persisted state |
+| `packages/runtime` | Provider adapters and deterministic mock runtime |
+| `packages/shared` | Logging, ids, and errors |
+| `tests` | Integration tests, fake provider fixture, optional browser tests |
 
-```powershell
-$env:INTERVIEW_OS_LIVE_OPENCODE="1"; pnpm test:opencode
+Read [ARCHITECTURE.md](ARCHITECTURE.md) for the design and
+[AGENTS.md](AGENTS.md) for the invariants contributors must preserve.
+
+<details>
+<summary><strong>Selected API routes</strong></summary>
+
+| Route | Purpose |
+| --- | --- |
+| `POST /api/preparation/:id/complete` | Record a self-check as evidence |
+| `GET /api/targets`, `POST /api/targets`, `POST /api/targets/:id/activate` | Manage target roles |
+| `POST /api/documents/extract` | Extract an uploaded resume or job description |
+| `POST /api/interviews` | Start an interview or focused practice session |
+| `GET /api/settings`, `PUT /api/settings` | Configure model, effort, and task mode |
+| `GET /api/runtime/models` | List available Codex models |
+| `GET /api/stories`, `POST /api/stories/generate` | Read or generate STAR stories |
+| `PATCH /api/stories/:id`, `POST /api/stories/:id/coach` | Edit or coach a story |
+
+Long-running operations also accept `?stream=1` or
+`Accept: text/event-stream` and emit `stage`, `delta`, `result`, and `error`
+events.
+
+</details>
+
+<br />
+
+## FAQ
+
+**Can I try the product without installing an AI provider?**
+
+Yes. `INTERVIEW_OS_RUNTIME=mock pnpm dev` runs the complete feedback loop with
+deterministic responses.
+
+**Where does Interview OS store my progress?**
+
+The API server persists candidate state, sessions, and evidence in a local
+SQLite database. Readiness snapshots are append-only, and scores retain links
+to their supporting evidence.
+
+**Can I prepare for more than one job?**
+
+Yes. Targets share your candidate profile and evidence while keeping their
+requirements, plans, and interviews separate.
+
+**Which interview formats are supported?**
+
+Mixed, technical, system design, behavioral, and HR rounds are available.
+Behavioral and HR answers can receive STAR feedback.
+
+<br />
+
+## Development
+
+```bash
+pnpm dev             # API + web app
+pnpm typecheck       # TypeScript checks across the workspace
+pnpm test            # Unit, runtime, and integration tests
+pnpm test:coverage   # Same suite, with a 70% line coverage minimum
+pnpm test:e2e        # Optional Playwright tests on the mock runtime
 ```
 
-`tests/integration/feedback-loop.test.ts` is the canonical product test: it
-walks the full loop and asserts the weak-skill retest behaviour end to end.
+`tests/integration/feedback-loop.test.ts` exercises the canonical product loop.
+CI runs typechecking, the Vitest coverage gate, and the web build on pull
+requests and pushes to `main`. CI does not run Playwright or live provider
+tests. Coverage measures package source, the API server, and web library
+modules; it does not measure Next.js UI components.
 
-### Continuous integration
+Live provider tests are opt-in through `INTERVIEW_OS_LIVE_CODEX=1`,
+`INTERVIEW_OS_LIVE_CLAUDE=1`, or `INTERVIEW_OS_LIVE_OPENCODE=1` with the
+corresponding `pnpm test:codex`, `pnpm test:claude`, or
+`pnpm test:opencode` command. The live Codex browser suite uses
+`INTERVIEW_OS_LIVE_CODEX=1 pnpm test:e2e:live`.
 
-GitHub Actions runs on pull requests and pushes to `main`. It installs the locked
-pnpm dependencies on Node.js 24, typechecks the workspace, runs the Vitest unit
-and integration suite with a 70% line coverage minimum, and builds the Next.js
-app. The coverage check measures package source, the API server, and web library
-modules; it does not measure Next.js UI components. The workflow does not run
-Playwright or live AI provider tests. It can also be started manually from the
-Actions tab.
+### Windows notes
 
-## Project structure
+The `VAR=value command` form in the examples uses POSIX shell syntax. In
+PowerShell, set the variable first (`$env:INTERVIEW_OS_RUNTIME="mock"; pnpm dev`);
+in cmd.exe use `set INTERVIEW_OS_RUNTIME=mock && pnpm dev`.
+On hosts where Application Control blocks `pnpm.exe`, prefix commands with
+`corepack`. A policy that blocks the test runner's native `rolldown` binding
+requires running tests on an unlocked machine or in CI.
 
-```
-apps/server         Hono API :4100, owns SQLite + provider child processes
-apps/web            Next.js + Tailwind UI :3000 (/api → server)
-packages/shared     logger (redacting), ids, errors
-packages/core       schemas, taxonomy, readiness math, gaps, prioritization, state machine
-packages/runtime    AIRuntime, MockRuntime, codex/ (exec adapter + app-server), claude/ (SDK), opencode/ (CLI)
-packages/skills     resume/jd/gap/company analyzers, prep-planner, star-coach, interviewer, evaluator, debrief
-packages/orchestrator InterviewOrchestrator + SQLite store (drizzle/better-sqlite3)
-examples/           seed resumes + JDs (backend-engineer is canonical)
-tests/              integration, fixtures/fake-codex.mjs, e2e (Playwright)
-```
+<br />
 
-## Roadmap (v0.3+)
+## Roadmap
 
-Resume re-upload with versioned claims, voice mode, real company research
-(beyond pasted notes), cover letters, LinkedIn optimisation, job-search
-automation, offer comparison, salary negotiation, company-profile libraries,
-larger question banks, multi-user/collaboration.
-
-## Acknowledgements
-
-Ideas inspired by
-[Paramchoudhary/ResumeSkills](https://github.com/Paramchoudhary/ResumeSkills)
-(MIT) and [jennifer88huang/interview-skills](https://github.com/jennifer88huang/interview-skills).
-No code was copied; Interview OS is independently implemented.
+The next planned areas include resume re-upload with versioned claims, voice
+mode, company research, cover letters, LinkedIn optimization, job search and
+offer support, larger question banks, and collaboration. See
+[IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md) for the broader plan.
 
 ## Contributing
 
-See [CONTRIBUTING.md](CONTRIBUTING.md) and the invariants in [AGENTS.md](AGENTS.md).
+Contributions are welcome. Start with [CONTRIBUTING.md](CONTRIBUTING.md), then
+read the architectural rules in [AGENTS.md](AGENTS.md). Bug reports and feature
+requests belong in [GitHub Issues](https://github.com/interview-ps/InterviewOS/issues).
+
+## Acknowledgements
+
+Ideas were inspired by
+[Paramchoudhary/ResumeSkills](https://github.com/Paramchoudhary/ResumeSkills)
+and [jennifer88huang/interview-skills](https://github.com/jennifer88huang/interview-skills).
+No code was copied; Interview OS is independently implemented.
 
 ## License
 
-MIT — interview.ps
+MIT — interview.ps. See [LICENSE](LICENSE).
+
+---
+
+<p align="center"><sub>Local-first interview preparation, built around evidence and practice.</sub></p>
