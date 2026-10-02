@@ -4,12 +4,13 @@ import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useState, type ReactNode } from "react";
-import { api, type RuntimeStatus } from "@/lib/api";
+import { api, type RuntimeStatus, type TargetListItem } from "@/lib/api";
 
 const NAV = [
   { href: "/", label: "Dashboard" },
   { href: "/target", label: "Target Role" },
   { href: "/prep", label: "Prep Plan" },
+  { href: "/stories", label: "Stories" },
   { href: "/interview", label: "Interview" },
   { href: "/readiness", label: "Readiness" },
   { href: "/history", label: "History" },
@@ -41,6 +42,43 @@ function RuntimeBadge({ status }: { status: RuntimeStatus | null }) {
   );
 }
 
+function TargetSwitcher() {
+  const [targets, setTargets] = useState<TargetListItem[]>([]);
+  const [switching, setSwitching] = useState(false);
+
+  useEffect(() => {
+    api.listTargets().then(setTargets).catch(() => setTargets([]));
+  }, []);
+
+  if (targets.length === 0) return null;
+  const active = targets.find((t) => t.active);
+
+  return (
+    <label className="flex items-center gap-2 text-sm text-muted">
+      <span className="hidden sm:inline">Target</span>
+      <select
+        aria-label="Active target role"
+        value={active?.id ?? ""}
+        disabled={switching}
+        onChange={(e) => {
+          setSwitching(true);
+          api
+            .activateTarget(e.target.value)
+            .then(() => window.location.reload())
+            .catch(() => setSwitching(false));
+        }}
+        className="max-w-56 rounded-[0.6rem] border border-line bg-surface px-2 py-1 text-sm text-ink focus:outline-none focus:ring-2 focus:ring-accent"
+      >
+        {targets.map((t) => (
+          <option key={t.id} value={t.id}>
+            {t.role} — {t.company}
+          </option>
+        ))}
+      </select>
+    </label>
+  );
+}
+
 export function Shell({ children }: { children: ReactNode }) {
   const pathname = usePathname();
   const [status, setStatus] = useState<RuntimeStatus | null>(null);
@@ -67,7 +105,8 @@ export function Shell({ children }: { children: ReactNode }) {
         <div className="font-display text-base font-semibold text-navy">
           Interview OS <span className="font-normal text-muted">· by interview.ps</span>
         </div>
-        <div className="ml-auto">
+        <div className="ml-auto flex items-center gap-4">
+          <TargetSwitcher />
           <RuntimeBadge status={status} />
         </div>
       </header>

@@ -126,6 +126,79 @@ describe("server api", () => {
     expect(body.error.code).toBe("INVALID_TRANSITION");
   }, 30_000);
 
+  it("streams answer evaluation over SSE (stage → delta → result)", async () => {
+    const app = makeServer();
+    await post(app, "/api/workspace/setup", setupBody);
+    const interview = await json(await post(app, "/api/interviews"));
+
+    const res = await app.request(
+      `/api/interviews/${interview.session.id}/answer?stream=1`,
+      {
+        method: "POST",
+        headers: {
+          "content-type": "application/json",
+          accept: "text/event-stream",
+        },
+        body: JSON.stringify({ answer: "cache-aside with Redis; no TTL plan." }),
+      },
+    );
+    expect(res.status).toBe(200);
+    expect(res.headers.get("content-type")).toContain("text/event-stream");
+    const body = await res.text();
+    const events = [...body.matchAll(/^event: (\w+)$/gm)].map((m) => m[1]);
+    expect(events).toContain("stage");
+    expect(events).toContain("delta");
+    expect(events[events.length - 1]).toBe("result");
+    expect(events.indexOf("stage")).toBeLessThan(events.indexOf("result"));
+    expect(body).toContain('"evaluating answer"');
+    const resultLine = body
+      .split("\n")
+      .find((l) => l.startsWith("data: ") && l.includes('"evaluation"'));
+    expect(resultLine).toBeTruthy();
+  }, 30_000);
+
+  it("emits an error event (not an HTTP error) when a streamed op fails", async () => {
+    const app = makeServer();
+    const res = await app.request("/api/interviews/nope/answer?stream=1", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ answer: "anything" }),
+    });
+    expect(res.status).toBe(200);
+    const body = await res.text();
+    expect(body).toContain("event: error");
+    expect(body).toContain('"NOT_FOUND"');
+    expect(body).not.toContain("event: result");
+  });
+
+  it("settings + runtime models round-trip", async () => {
+    const app = makeServer();
+    const models = await json(await app.request("/api/runtime/models"));
+    expect(models[0].id).toBe("mock");
+
+    const before = await json(await app.request("/api/settings"));
+    expect(before.taskMode).toBe("app-server");
+    expect(before.codexModel).toBeNull();
+
+    const put = await app.request("/api/settings", {
+      method: "PUT",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ taskMode: "exec", codexModel: "mock" }),
+    });
+    expect(put.status).toBe(200);
+    const after = await json(put);
+    expect(after.taskMode).toBe("exec");
+    expect(after.codexModel).toBe("mock");
+
+    const bad = await app.request("/api/settings", {
+      method: "PUT",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ codexModel: "no-such-model" }),
+    });
+    expect(bad.status).toBe(400);
+    expect((await json(bad)).error.code).toBe("VALIDATION");
+  });
+
   it("validates bodies and enforces the size limit", async () => {
     const app = makeServer();
     const bad = await post(app, "/api/workspace/setup", JSON.stringify({ resumeText: "x" }));

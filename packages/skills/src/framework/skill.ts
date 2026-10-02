@@ -2,6 +2,11 @@ import type { AIRuntime } from "@interview-os/runtime";
 import { AppError, type Logger } from "@interview-os/shared";
 import type { z } from "zod";
 
+/** Progress update pushed by skills during long-running AI calls (§8.3). */
+export type ProgressUpdate =
+  | { stage: string }
+  | { field: string; text: string };
+
 export interface SkillContext {
   runtime: AIRuntime;
   logger: Logger;
@@ -9,6 +14,14 @@ export interface SkillContext {
   sessionId?: string;
   /** Runtime session id for skills that talk on an existing thread. */
   runtimeSessionId?: string;
+  /** Streamed progress: stage changes and partial field text. */
+  onProgress?: (p: ProgressUpdate) => void;
+  /** Per-call runtime overrides, resolved by the orchestrator from settings. */
+  runtimeOptions?: {
+    model?: string | null;
+    effort?: "low" | "medium" | "high" | null;
+    taskMode?: "app-server" | "exec";
+  };
   now(): Date;
 }
 

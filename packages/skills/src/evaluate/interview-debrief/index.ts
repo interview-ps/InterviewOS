@@ -40,6 +40,7 @@ export const interviewDebrief: InterviewSkill<
       instructions: INTERVIEW_DEBRIEF_PROMPT,
       input,
       schema: InterviewDebriefOutputSchema,
+      streamField: "summary",
     });
   },
 };

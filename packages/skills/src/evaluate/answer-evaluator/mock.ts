@@ -1,4 +1,30 @@
+import { inRound, type SkillId } from "@interview-os/core";
+
 const round2 = (n: number) => Math.round(n * 100) / 100;
+
+/** §8.4 STAR detection heuristics for the mock runtime. */
+const STAR_PARTS: Array<{ name: string; key: "situation" | "task" | "action" | "result"; re: RegExp }> = [
+  {
+    name: "Situation",
+    key: "situation",
+    re: /when i|at my (previous|last)|in 20\d\d|our team was/i,
+  },
+  {
+    name: "Task",
+    key: "task",
+    re: /my (goal|task|responsibility)|i was (responsible|asked)|needed to/i,
+  },
+  {
+    name: "Action",
+    key: "action",
+    re: /\bi (led|built|implemented|decided|proposed|organized|wrote|designed|talked)/i,
+  },
+  {
+    name: "Result",
+    key: "result",
+    re: /result|reduced|increased|improved|saved|\d+%|shipped|launched/i,
+  },
+];
 
 interface ExpectedConcept {
   concept: string;
@@ -9,6 +35,7 @@ interface ExpectedConcept {
 interface EvalInput {
   question: { text: string; skillId: string; expectedConcepts?: ExpectedConcept[] };
   answer: string;
+  roundType?: string;
 }
 
 function conceptCovered(concept: ExpectedConcept, answer: string): boolean {
@@ -18,8 +45,29 @@ function conceptCovered(concept: ExpectedConcept, answer: string): boolean {
 }
 
 export function answerEvaluatorMock(input: unknown): unknown {
-  const { question, answer } = input as EvalInput;
+  const { question, answer, roundType = "mixed" } = input as EvalInput;
   const concepts = question.expectedConcepts ?? [];
+
+  // §8.4: STAR applies to behavioral/hr questions (round type or skill subtree).
+  const starRelevant =
+    roundType === "behavioral" ||
+    roundType === "hr" ||
+    inRound(question.skillId as SkillId, "behavioral") ||
+    inRound(question.skillId as SkillId, "hr");
+  const starHits = STAR_PARTS.map((p) => ({ ...p, hit: starRelevant && p.re.test(answer) }));
+  const missingStar = starRelevant ? starHits.filter((p) => !p.hit) : [];
+  const star = starRelevant
+    ? {
+        situation: starHits[0]!.hit,
+        task: starHits[1]!.hit,
+        action: starHits[2]!.hit,
+        result: starHits[3]!.hit,
+        notes:
+          missingStar.length === 0
+            ? "All four STAR parts are present."
+            : `Missing: ${missingStar.map((p) => p.name).join(", ")}`,
+      }
+    : null;
   const words = answer.trim().split(/\s+/).filter(Boolean).length;
   const sentences = answer.split(/[.!?]+/).filter((s) => s.trim().length > 0).length;
 
@@ -44,6 +92,17 @@ export function answerEvaluatorMock(input: unknown): unknown {
   }
   bySkill.set(question.skillId, bySkill.get(question.skillId) ?? { total: 0, covered: 0, names: [], missed: [] });
 
+  // STAR coverage feeds the communication score for behavioral/hr answers.
+  if (starRelevant) {
+    const comm = bySkill.get("communication") ?? { total: 0, covered: 0, names: [], missed: [] };
+    for (const p of starHits) {
+      comm.total += 1;
+      if (p.hit) comm.covered += 1;
+      else comm.missed.push(`STAR ${p.name}`);
+    }
+    bySkill.set("communication", comm);
+  }
+
   const scores = [...bySkill.entries()].map(([skillId, s]) => ({
     skill: skillId,
     score:
@@ -57,12 +116,19 @@ export function answerEvaluatorMock(input: unknown): unknown {
     .filter(([, s]) => s.total > 0 && s.covered / s.total >= 0.75)
     .map(([skill, s]) => ({ skill, evidence: `Explained ${s.names.join(", ")}` }));
   const weaknesses = [...bySkill.entries()]
-    .filter(([, s]) => s.total > 0 && s.covered / s.total < 0.5)
+    .filter(([skill, s]) => s.total > 0 && s.covered / s.total < 0.5 && !(starRelevant && skill === "communication"))
     .map(([skill, s]) => ({
       skill,
       severity: s.covered / s.total < 0.25 ? ("high" as const) : ("medium" as const),
       evidence: `Did not address: ${s.missed.join(", ")}`,
     }));
+  if (missingStar.length > 0) {
+    weaknesses.push({
+      skill: "communication",
+      severity: "medium",
+      evidence: `Answer lacked a clear ${missingStar.map((p) => p.name).join(", ")}`,
+    });
+  }
 
   const dim = (base: number) => ({
     score: round2(Math.min(1, Math.max(0, base))),
@@ -82,7 +148,11 @@ export function answerEvaluatorMock(input: unknown): unknown {
     strengths,
     weaknesses,
     scores,
-    missingConcepts: missing.map((c) => c.concept),
+    missingConcepts: [
+      ...missing.map((c) => c.concept),
+      ...missingStar.map((p) => `STAR ${p.name}`),
+    ],
+    star,
     betterApproach:
       missing.length === 0
         ? "The answer covered the expected ground."

@@ -39,6 +39,7 @@ export interface ThreadStartParams {
   approvalPolicy: "never";
   ephemeral: boolean;
   developerInstructions: string;
+  model?: string | null;
 }
 
 export interface ThreadStartResult {
@@ -59,9 +60,23 @@ export interface TurnStartParams {
   threadId: string;
   input: Array<{ type: "text"; text: string; text_elements: unknown[] }>;
   outputSchema?: JSONSchema;
+  model?: string | null;
+  effort?: string | null;
 }
 
 export interface TurnStartResult {
   turn: { id: string; status: string; [key: string]: unknown };
   [key: string]: unknown;
+}
+
+export interface ModelListResponse {
+  data: Array<{
+    id: string;
+    displayName: string;
+    hidden: boolean;
+    supportedReasoningEfforts: Array<{ reasoningEffort: string; description: string }>;
+    defaultReasoningEffort: string | null;
+    [key: string]: unknown;
+  }>;
+  nextCursor: string | null;
 }

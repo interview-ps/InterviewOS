@@ -9,6 +9,16 @@ export const EvaluationDimensionSchema = z.object({
 });
 export type EvaluationDimension = z.infer<typeof EvaluationDimensionSchema>;
 
+/** STAR coverage for behavioral/hr answers (§8.4); null for other rounds. */
+export const StarAssessmentSchema = z.object({
+  situation: z.boolean(),
+  task: z.boolean(),
+  action: z.boolean(),
+  result: z.boolean(),
+  notes: z.string(),
+});
+export type StarAssessment = z.infer<typeof StarAssessmentSchema>;
+
 export const AnswerEvaluationSchema = z.object({
   summary: z.string(),
   dimensions: z.object({
@@ -38,6 +48,7 @@ export const AnswerEvaluationSchema = z.object({
   missingConcepts: z.array(z.string()),
   betterApproach: z.string(),
   followUpTopics: z.array(z.string()),
+  star: StarAssessmentSchema.nullable().default(null),
 });
 export type AnswerEvaluation = z.infer<typeof AnswerEvaluationSchema>;
 

@@ -4,6 +4,7 @@ import {
   type AgentResult,
   type AgentTask,
   type AIRuntime,
+  type ModelInfo,
   type RuntimeEvent,
   type RuntimeMessage,
   type RuntimeSession,
@@ -13,10 +14,28 @@ import {
 
 export type MockTaskHandler = (input: unknown, task: AgentTask) => unknown;
 
+export interface MockRuntimeOptions {
+  /**
+   * Delay between streamed delta chunks (INTERVAL for demos / e2e where the
+   * streaming path must be observable). Server reads INTERVIEW_OS_MOCK_DELAY_MS.
+   */
+  chunkDelayMs?: number;
+}
+
 interface MockThread {
   session: RuntimeSession;
   turns: number;
 }
+
+const CHUNK = 40;
+
+function chunks(text: string): string[] {
+  const out: string[] = [];
+  for (let i = 0; i < text.length; i += CHUNK) out.push(text.slice(i, i + CHUNK));
+  return out;
+}
+
+const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
 /**
  * Deterministic, network-free runtime. Task handlers are registered per taskId;
@@ -26,7 +45,12 @@ export class MockRuntime implements AIRuntime {
   readonly kind = "mock" as const;
   private readonly handlers = new Map<string, MockTaskHandler>();
   private readonly threads = new Map<string, MockThread>();
+  private readonly delayMs: number;
   private threadSeq = 0;
+
+  constructor(opts: MockRuntimeOptions = {}) {
+    this.delayMs = opts.chunkDelayMs ?? 0;
+  }
 
   register(taskId: string, handler: MockTaskHandler): void {
     this.handlers.set(taskId, handler);
@@ -34,6 +58,17 @@ export class MockRuntime implements AIRuntime {
 
   async healthCheck(): Promise<RuntimeStatus> {
     return { runtime: "mock", available: true, status: "ready" };
+  }
+
+  async listModels(): Promise<ModelInfo[]> {
+    return [
+      {
+        id: "mock",
+        displayName: "Mock (deterministic)",
+        supportedReasoningEfforts: [],
+        defaultReasoningEffort: null,
+      },
+    ];
   }
 
   async runTask(task: AgentTask): Promise<AgentResult> {
@@ -52,16 +87,24 @@ export class MockRuntime implements AIRuntime {
     }
     const output = handler(task.input, task);
     const raw = JSON.stringify(output);
+    const events: RuntimeEvent[] = [{ type: "started" }];
+    task.onEvent?.({ type: "started" });
+    for (const chunk of chunks(raw)) {
+      if (this.delayMs > 0) await sleep(this.delayMs);
+      const e: RuntimeEvent = { type: "delta", text: chunk };
+      events.push(e);
+      task.onEvent?.(e);
+    }
+    events.push({ type: "message", text: raw });
+    events.push({ type: "completed", output, raw });
+    task.onEvent?.({ type: "message", text: raw });
+    task.onEvent?.({ type: "completed", output, raw });
     return {
       ok: true,
       output,
       raw,
       durationMs: Date.now() - started,
-      events: [
-        { type: "started" },
-        { type: "message", text: raw },
-        { type: "completed", output, raw },
-      ],
+      events,
     };
   }
 
@@ -119,9 +162,9 @@ export class MockRuntime implements AIRuntime {
     } else {
       text = `[mock turn ${thread.turns}] ${msg.text.length} chars`;
     }
-    const words = text.split(" ");
-    for (const word of words) {
-      yield { type: "delta", text: word + " " };
+    for (const chunk of chunks(text)) {
+      if (this.delayMs > 0) await sleep(this.delayMs);
+      yield { type: "delta", text: chunk };
     }
     yield { type: "message", text };
     yield { type: "completed", output, raw: text };

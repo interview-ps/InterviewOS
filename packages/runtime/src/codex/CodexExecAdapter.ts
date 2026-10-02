@@ -67,8 +67,10 @@ export class CodexExecAdapter {
       this.opts.workspaceDir,
       "--output-schema",
       schemaFile,
-      "-",
     ];
+    if (task.model) args.push("-m", task.model);
+    if (task.effort) args.push("-c", `model_reasoning_effort="${task.effort}"`);
+    args.push("-");
 
     return new Promise<AgentResult>((resolve) => {
       let child;

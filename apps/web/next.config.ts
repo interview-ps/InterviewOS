@@ -4,6 +4,9 @@ const serverPort = process.env.INTERVIEW_OS_PORT ?? "4100";
 
 const nextConfig: NextConfig = {
   transpilePackages: ["@interview-os/core"],
+  // gzip on proxied /api responses buffers SSE event streams into one chunk —
+  // this is a local tool, compression buys nothing
+  compress: false,
   webpack(config) {
     // workspace packages use .js ESM specifiers that point at .ts sources
     config.resolve.extensionAlias = {

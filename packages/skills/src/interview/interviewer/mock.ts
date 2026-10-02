@@ -297,8 +297,241 @@ const TEMPLATES: Record<string, QuestionTemplate[]> = {
       topic: "Conflict",
       subSkills: ["behavioral.conflict"],
       expectedConcepts: [
-        CONCEPT("situation and action", "behavioral.conflict", ["disagree", "conflict", "decided"]),
-        CONCEPT("outcome", "behavioral", ["result", "outcome", "learned"]),
+        CONCEPT("Situation context", "communication", ["when i", "at my", "our team", "we were"]),
+        CONCEPT("Your specific actions", "communication", [
+          "i led",
+          "i decided",
+          "i proposed",
+          "i talked",
+          "i wrote",
+        ]),
+        CONCEPT("Measurable result", "communication", [
+          "result",
+          "outcome",
+          "%",
+          "reduced",
+          "improved",
+          "shipped",
+        ]),
+      ],
+      difficulty: "easy",
+    },
+  ],
+  "behavioral.conflict": [
+    {
+      text: "Tell me about a specific time you disagreed with a teammate or your manager. Walk me through what you did and how it ended.",
+      topic: "Conflict",
+      subSkills: [],
+      expectedConcepts: [
+        CONCEPT("Situation context", "communication", ["when i", "at my", "our team", "we were"]),
+        CONCEPT("The disagreement", "behavioral.conflict", ["disagree", "conflict", "pushback"]),
+        CONCEPT("Your specific actions", "communication", [
+          "i led",
+          "i decided",
+          "i proposed",
+          "i talked",
+        ]),
+        CONCEPT("Measurable result", "communication", ["result", "outcome", "%", "resolved"]),
+      ],
+      difficulty: "easy",
+    },
+  ],
+  "behavioral.ownership": [
+    {
+      text: "Tell me about a time you took ownership of a problem that wasn't strictly yours. What did you do?",
+      topic: "Ownership",
+      subSkills: [],
+      expectedConcepts: [
+        CONCEPT("Situation context", "communication", ["when i", "at my", "our team", "we were"]),
+        CONCEPT("Your specific actions", "communication", [
+          "i led",
+          "i decided",
+          "i built",
+          "i organized",
+          "i drove",
+        ]),
+        CONCEPT("Measurable result", "communication", [
+          "result",
+          "%",
+          "reduced",
+          "improved",
+          "shipped",
+        ]),
+      ],
+      difficulty: "easy",
+    },
+  ],
+  "behavioral.failure-learning": [
+    {
+      text: "Tell me about a time something you were responsible for failed. What did you do and what did you learn?",
+      topic: "Learning from failure",
+      subSkills: [],
+      expectedConcepts: [
+        CONCEPT("Situation context", "communication", ["when i", "at my", "our team", "we were"]),
+        CONCEPT("What went wrong", "behavioral.failure-learning", [
+          "fail",
+          "broke",
+          "outage",
+          "mistake",
+        ]),
+        CONCEPT("Your specific actions", "communication", [
+          "i led",
+          "i decided",
+          "i implemented",
+          "i wrote",
+        ]),
+        CONCEPT("What changed after", "behavioral.failure-learning", [
+          "learned",
+          "after that",
+          "now we",
+          "postmortem",
+        ]),
+      ],
+      difficulty: "medium",
+    },
+  ],
+  "behavioral.collaboration": [
+    {
+      text: "Describe a time you worked closely with another team or function to ship something. What was your role?",
+      topic: "Collaboration",
+      subSkills: [],
+      expectedConcepts: [
+        CONCEPT("Situation context", "communication", ["when i", "at my", "our team", "we were"]),
+        CONCEPT("Who you worked with", "behavioral.collaboration", [
+          "product",
+          "design",
+          "team",
+          "stakeholder",
+          "partner",
+        ]),
+        CONCEPT("Your specific actions", "communication", [
+          "i led",
+          "i organized",
+          "i proposed",
+          "i built",
+        ]),
+        CONCEPT("Measurable result", "communication", ["result", "%", "shipped", "launched"]),
+      ],
+      difficulty: "easy",
+    },
+  ],
+  "behavioral.leadership": [
+    {
+      text: "Tell me about a time you led without formal authority — how did you get people on board?",
+      topic: "Leadership",
+      subSkills: [],
+      expectedConcepts: [
+        CONCEPT("Situation context", "communication", ["when i", "at my", "our team", "we were"]),
+        CONCEPT("Your specific actions", "communication", [
+          "i led",
+          "i proposed",
+          "i convinced",
+          "i organized",
+        ]),
+        CONCEPT("Measurable result", "communication", [
+          "result",
+          "%",
+          "adopted",
+          "shipped",
+          "decided",
+        ]),
+      ],
+      difficulty: "medium",
+    },
+  ],
+  hr: [
+    {
+      text: "What draws you to this role, and where do you want to grow next?",
+      topic: "Motivation & growth",
+      subSkills: ["hr.motivation", "hr.career-goals"],
+      expectedConcepts: [
+        CONCEPT("Genuine motivation", "hr.motivation", ["excited", "motivated", "interested", "drawn"]),
+        CONCEPT("Career direction", "hr.career-goals", ["grow", "goal", "next", "learn"]),
+        CONCEPT("Mutual fit", "hr.culture-fit", ["team", "culture", "value"]),
+      ],
+      difficulty: "easy",
+    },
+  ],
+  "hr.motivation": [
+    {
+      text: "Why this role, and why our company specifically?",
+      topic: "Motivation",
+      subSkills: [],
+      expectedConcepts: [
+        CONCEPT("Specific interest in the role", "hr.motivation", [
+          "role",
+          "excited",
+          "interested",
+          "motivated",
+        ]),
+        CONCEPT("Knowledge of the company", "hr.motivation", [
+          "your",
+          "company",
+          "product",
+          "mission",
+          "values",
+        ]),
+        CONCEPT("What you bring", "hr.motivation", ["experience", "skills", "i've", "i have"]),
+      ],
+      difficulty: "easy",
+    },
+  ],
+  "hr.career-goals": [
+    {
+      text: "Where do you want your career to go over the next few years, and how does this role fit?",
+      topic: "Career goals",
+      subSkills: [],
+      expectedConcepts: [
+        CONCEPT("A direction, not a title", "hr.career-goals", [
+          "grow",
+          "learn",
+          "lead",
+          "deepen",
+          "goal",
+        ]),
+        CONCEPT("Fit with this role", "hr.career-goals", ["this role", "here", "opportunity"]),
+      ],
+      difficulty: "easy",
+    },
+  ],
+  "hr.culture-fit": [
+    {
+      text: "What kind of team culture brings out your best work, and what kind drains you?",
+      topic: "Culture fit",
+      subSkills: [],
+      expectedConcepts: [
+        CONCEPT("Concrete culture traits", "hr.culture-fit", [
+          "culture",
+          "feedback",
+          "autonomy",
+          "collaboration",
+          "transparent",
+        ]),
+        CONCEPT("Self-awareness", "hr.culture-fit", ["i work best", "i need", "i prefer", "thrive"]),
+      ],
+      difficulty: "easy",
+    },
+  ],
+  "hr.work-style": [
+    {
+      text: "How do you like to work day to day — how do you communicate, take feedback, and manage your time?",
+      topic: "Work style",
+      subSkills: [],
+      expectedConcepts: [
+        CONCEPT("Concrete work habits", "hr.work-style", [
+          "i prefer",
+          "i usually",
+          "async",
+          "standup",
+          "feedback",
+        ]),
+        CONCEPT("Collaboration style", "hr.work-style", [
+          "pair",
+          "review",
+          "communicate",
+          "slack",
+          "docs",
+        ]),
       ],
       difficulty: "easy",
     },

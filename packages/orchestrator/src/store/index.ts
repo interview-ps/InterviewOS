@@ -12,6 +12,8 @@ import {
   preparationActions,
   readinessScores,
   runtimeSessions,
+  settings,
+  starStories,
   skillEvidence,
   skillNodes,
   targetRoles,
@@ -35,6 +37,9 @@ CREATE TABLE IF NOT EXISTS interview_sessions (
   status TEXT NOT NULL DEFAULT 'created',
   current_round INTEGER NOT NULL DEFAULT 0,
   planned_questions INTEGER NOT NULL DEFAULT 4,
+  mode TEXT NOT NULL DEFAULT 'interview',
+  round_type TEXT NOT NULL DEFAULT 'mixed',
+  focus_skill_id TEXT, action_id TEXT,
   created_at TEXT NOT NULL, completed_at TEXT
 );
 CREATE TABLE IF NOT EXISTS interview_questions (
@@ -70,7 +75,7 @@ CREATE TABLE IF NOT EXISTS readiness_scores (
   computed_at TEXT NOT NULL
 );
 CREATE TABLE IF NOT EXISTS preparation_actions (
-  id TEXT PRIMARY KEY, skill_id TEXT NOT NULL, priority REAL NOT NULL,
+  id TEXT PRIMARY KEY, skill_id TEXT NOT NULL, target_id TEXT, priority REAL NOT NULL,
   reason TEXT NOT NULL DEFAULT '', action TEXT NOT NULL,
   success_criteria TEXT NOT NULL DEFAULT '[]', status TEXT NOT NULL DEFAULT 'open',
   severity TEXT NOT NULL DEFAULT 'medium',
@@ -83,6 +88,17 @@ CREATE TABLE IF NOT EXISTS runtime_sessions (
 );
 CREATE TABLE IF NOT EXISTS interview_debriefs (
   id TEXT PRIMARY KEY, session_id TEXT NOT NULL, data TEXT NOT NULL, created_at TEXT NOT NULL
+);
+CREATE TABLE IF NOT EXISTS star_stories (
+  id TEXT PRIMARY KEY, candidate_id TEXT NOT NULL,
+  title TEXT NOT NULL,
+  situation TEXT NOT NULL DEFAULT '', task TEXT NOT NULL DEFAULT '',
+  action TEXT NOT NULL DEFAULT '', result TEXT NOT NULL DEFAULT '',
+  skill_ids TEXT NOT NULL DEFAULT '[]',
+  source TEXT NOT NULL DEFAULT 'user', updated_at TEXT NOT NULL
+);
+CREATE TABLE IF NOT EXISTS settings (
+  key TEXT PRIMARY KEY, value TEXT NOT NULL
 );
 `;
 
@@ -99,6 +115,7 @@ export type ReadinessRow = typeof readinessScores.$inferSelect;
 export type PrepActionRow = typeof preparationActions.$inferSelect;
 export type RuntimeSessionRow = typeof runtimeSessions.$inferSelect;
 export type DebriefRow = typeof interviewDebriefs.$inferSelect;
+export type StarStoryRow = typeof starStories.$inferSelect;
 
 export class Store {
   readonly db: Db;
@@ -132,6 +149,37 @@ export class Store {
       "severity",
       "ALTER TABLE preparation_actions ADD COLUMN severity TEXT NOT NULL DEFAULT 'medium'",
     );
+    addColumn(
+      "interview_sessions",
+      "mode",
+      "ALTER TABLE interview_sessions ADD COLUMN mode TEXT NOT NULL DEFAULT 'interview'",
+    );
+    addColumn(
+      "interview_sessions",
+      "focus_skill_id",
+      "ALTER TABLE interview_sessions ADD COLUMN focus_skill_id TEXT",
+    );
+    addColumn(
+      "interview_sessions",
+      "action_id",
+      "ALTER TABLE interview_sessions ADD COLUMN action_id TEXT",
+    );
+    addColumn(
+      "preparation_actions",
+      "target_id",
+      "ALTER TABLE preparation_actions ADD COLUMN target_id TEXT",
+    );
+    addColumn(
+      "interview_sessions",
+      "round_type",
+      "ALTER TABLE interview_sessions ADD COLUMN round_type TEXT NOT NULL DEFAULT 'mixed'",
+    );
+    // backfill: existing actions belong to whichever target was active at upgrade time
+    this.client.exec(
+      `UPDATE preparation_actions SET target_id = (
+         SELECT id FROM target_roles WHERE active = 1 LIMIT 1
+       ) WHERE target_id IS NULL`,
+    );
   }
 
   // --- candidates / targets -------------------------------------------------
@@ -156,6 +204,20 @@ export class Store {
   }
   getActiveTarget(): TargetRow | undefined {
     return this.db.select().from(targetRoles).where(eq(targetRoles.active, 1)).get();
+  }
+  listTargets(): TargetRow[] {
+    return this.db
+      .select()
+      .from(targetRoles)
+      .orderBy(desc(targetRoles.createdAt))
+      .all();
+  }
+  getTarget(id: string): TargetRow | undefined {
+    return this.db.select().from(targetRoles).where(eq(targetRoles.id, id)).get();
+  }
+  activateTarget(id: string): void {
+    this.db.update(targetRoles).set({ active: 0 }).run();
+    this.db.update(targetRoles).set({ active: 1 }).where(eq(targetRoles.id, id)).run();
   }
 
   // --- sessions ---------------------------------------------------------------
@@ -307,6 +369,13 @@ export class Store {
       .where(eq(preparationActions.id, id))
       .run();
   }
+  getAction(id: string): PrepActionRow | undefined {
+    return this.db
+      .select()
+      .from(preparationActions)
+      .where(eq(preparationActions.id, id))
+      .get();
+  }
   updateActionPriority(id: string, priority: number): void {
     this.db
       .update(preparationActions)
@@ -314,30 +383,40 @@ export class Store {
       .where(eq(preparationActions.id, id))
       .run();
   }
-  listActions(status?: string): PrepActionRow[] {
+  updateActionSourceEvidence(id: string, sourceEvidenceIds: string[]): void {
+    this.db
+      .update(preparationActions)
+      .set({ sourceEvidenceIds })
+      .where(eq(preparationActions.id, id))
+      .run();
+  }
+  listActions(status?: string, targetId?: string): PrepActionRow[] {
+    const clauses = [];
+    if (status) clauses.push(eq(preparationActions.status, status));
+    if (targetId) clauses.push(eq(preparationActions.targetId, targetId));
     const q = this.db.select().from(preparationActions);
-    const rows = status
-      ? q.where(eq(preparationActions.status, status)).all()
-      : q.all();
+    const rows = clauses.length > 0 ? q.where(and(...clauses)).all() : q.all();
     return rows.sort((a, b) => a.priority - b.priority);
   }
-  openActionForSkill(skillId: string): PrepActionRow | undefined {
+  openActionForSkill(skillId: string, targetId?: string): PrepActionRow | undefined {
+    const clauses = [
+      eq(preparationActions.skillId, skillId),
+      eq(preparationActions.status, "open"),
+    ];
+    if (targetId) clauses.push(eq(preparationActions.targetId, targetId));
     return this.db
       .select()
       .from(preparationActions)
-      .where(
-        and(
-          eq(preparationActions.skillId, skillId),
-          eq(preparationActions.status, "open"),
-        ),
-      )
+      .where(and(...clauses))
       .get();
   }
-  actionsForSkill(skillId: string): PrepActionRow[] {
+  actionsForSkill(skillId: string, targetId?: string): PrepActionRow[] {
+    const clauses = [eq(preparationActions.skillId, skillId)];
+    if (targetId) clauses.push(eq(preparationActions.targetId, targetId));
     return this.db
       .select()
       .from(preparationActions)
-      .where(eq(preparationActions.skillId, skillId))
+      .where(and(...clauses))
       .all();
   }
 
@@ -381,6 +460,46 @@ export class Store {
       .where(eq(interviewDebriefs.sessionId, sessionId))
       .orderBy(desc(interviewDebriefs.createdAt))
       .get();
+  }
+
+  // --- star stories (§8.4) ----------------------------------------------------
+  insertStory(row: typeof starStories.$inferInsert): void {
+    this.db.insert(starStories).values(row).run();
+  }
+  listStories(candidateId: string): StarStoryRow[] {
+    return this.db
+      .select()
+      .from(starStories)
+      .where(eq(starStories.candidateId, candidateId))
+      .orderBy(desc(starStories.updatedAt))
+      .all();
+  }
+  getStory(id: string): StarStoryRow | undefined {
+    return this.db.select().from(starStories).where(eq(starStories.id, id)).get();
+  }
+  updateStory(id: string, patch: Partial<typeof starStories.$inferInsert>): void {
+    this.db.update(starStories).set(patch).where(eq(starStories.id, id)).run();
+  }
+
+  // --- settings (key/value) --------------------------------------------------
+  getSetting(key: string): string | undefined {
+    return this.db.select().from(settings).where(eq(settings.key, key)).get()?.value;
+  }
+  setSetting(key: string, value: string | null): void {
+    if (value === null) {
+      this.db.delete(settings).where(eq(settings.key, key)).run();
+      return;
+    }
+    this.db
+      .insert(settings)
+      .values({ key, value })
+      .onConflictDoUpdate({ target: settings.key, set: { value } })
+      .run();
+  }
+  allSettings(): Record<string, string> {
+    return Object.fromEntries(
+      this.db.select().from(settings).all().map((r) => [r.key, r.value]),
+    );
   }
 }
 

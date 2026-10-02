@@ -19,6 +19,11 @@
     "@interview-os/shared": "workspace:*",
     "@interview-os/skills": "workspace:*",
     "hono": "4.13.9",
+    "mammoth": "1.13.0",
+    "unpdf": "1.8.1",
     "zod": "4.6.5"
+  },
+  "devDependencies": {
+    "fflate": "0.8.3"
   }
 }

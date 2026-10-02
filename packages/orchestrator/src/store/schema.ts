@@ -28,6 +28,10 @@ export const interviewSessions = sqliteTable("interview_sessions", {
   status: text("status").notNull().default("created"),
   currentRound: integer("current_round").notNull().default(0),
   plannedQuestions: integer("planned_questions").notNull().default(4),
+  mode: text("mode").notNull().default("interview"), // interview | practice
+  roundType: text("round_type").notNull().default("mixed"), // §8.4 round type
+  focusSkillId: text("focus_skill_id"),
+  actionId: text("action_id"),
   createdAt: text("created_at").notNull(),
   completedAt: text("completed_at"),
 });
@@ -97,6 +101,7 @@ export const readinessScores = sqliteTable("readiness_scores", {
 export const preparationActions = sqliteTable("preparation_actions", {
   id: text("id").primaryKey(),
   skillId: text("skill_id").notNull(),
+  targetId: text("target_id"),
   priority: real("priority").notNull(),
   reason: text("reason").notNull().default(""),
   action: text("action").notNull(),
@@ -122,4 +127,22 @@ export const interviewDebriefs = sqliteTable("interview_debriefs", {
   sessionId: text("session_id").notNull(),
   data: text("data", { mode: "json" }).notNull(),
   createdAt: text("created_at").notNull(),
+});
+
+export const starStories = sqliteTable("star_stories", {
+  id: text("id").primaryKey(),
+  candidateId: text("candidate_id").notNull(),
+  title: text("title").notNull(),
+  situation: text("situation").notNull().default(""),
+  task: text("task").notNull().default(""),
+  action: text("action").notNull().default(""),
+  result: text("result").notNull().default(""),
+  skillIds: text("skill_ids", { mode: "json" }).notNull().default("[]"),
+  source: text("source").notNull().default("user"), // resume | generated | user
+  updatedAt: text("updated_at").notNull(),
+});
+
+export const settings = sqliteTable("settings", {
+  key: text("key").primaryKey(),
+  value: text("value").notNull(),
 });

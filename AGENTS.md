@@ -16,8 +16,9 @@ interview-question generator. See `ARCHITECTURE.md` for the full design.
    its evidence ids.
 4. **Runtime-specific logic stays behind `AIRuntime`.** Only `packages/runtime` knows about Codex.
 5. The orchestrator contains workflow, not domain intelligence. Skills are small and single-purpose.
-6. Resumes, JDs and answers are untrusted: never put them in process argv or shell strings,
-   never log their contents (lengths only), never expose a shell to the browser.
+6. Resumes, JDs, answers, company notes and uploaded documents are untrusted: never put them
+   in process argv or shell strings, never log their contents (lengths only), never expose a
+   shell to the browser.
 7. Never log or return secrets/tokens. Codex auth is handled by the local Codex install.
 
 ## Repository map
@@ -27,8 +28,9 @@ apps/web            Next.js + Tailwind UI :3000 (/api → server)
 packages/shared     logger (redacting), ids, errors
 packages/core       schemas, taxonomy, readiness, gaps, prioritize, state machine
 packages/runtime    AIRuntime, MockRuntime, codex/ (exec adapter + app-server)
-packages/skills     resume-analyzer, jd-analyzer, gap-analyzer, prep-planner,
-                    interviewer, answer-evaluator, interview-debrief
+packages/skills     resume-analyzer, jd-analyzer, gap-analyzer, company-profiler,
+                    prep-planner, star-coach, interviewer, answer-evaluator,
+                    interview-debrief
 packages/orchestrator InterviewOrchestrator + SQLite store (drizzle/better-sqlite3)
 examples/           seed resumes + JDs (backend-engineer is canonical)
 tests/              integration (canonical feedback loop), fixtures/fake-codex.mjs, e2e

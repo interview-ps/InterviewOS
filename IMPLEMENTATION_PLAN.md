@@ -19,5 +19,12 @@ Vertical slices; each phase ends green (`pnpm typecheck && pnpm test`).
       Settings (Local Codex); runtime badge.
 - [x] **P10 Polish** — Playwright E2E on mock runtime, README, CONTRIBUTING, examples, live Codex smoke.
 
-Deferred to v0.2+: cover letters, LinkedIn, job search, offer comparison, salary negotiation,
-company profile library, large question banks, PDF parsing, multi-user, collaboration.
+## v0.2 (see ARCHITECTURE §8)
+- [x] **V1 Loop depth + documents** — time decay, practice/self-check evidence, practice sessions,
+      multiple targets per candidate, PDF/DOCX extraction.
+- [x] **V2 Live Codex UX** — app-server task mode, streaming deltas + SSE, settings (model, effort, task
+      mode), live-Codex E2E pass.
+- [x] **V3 Interview breadth** — round types, STAR evaluation + story bank + coach, company profile.
+
+Deferred to v0.3+: cover letters, LinkedIn, job search, offer comparison, salary negotiation,
+company profile library/web research, large question banks, multi-user, collaboration.

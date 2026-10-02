@@ -2,6 +2,7 @@ import type { SkillId } from "../skill-id.js";
 import { parentSkillId } from "../skill-id.js";
 import type { Requirement } from "../target/index.js";
 import type { Evidence, SkillReadiness } from "../readiness/schema.js";
+import { inRound, roundFallbackRequirements, type RoundType } from "./rounds.js";
 
 export interface SelectNextSkillInput {
   requirements: Requirement[];
@@ -11,6 +12,8 @@ export interface SelectNextSkillInput {
   askedPreviousSession: SkillId[];
   /** 0-based index of the question about to be asked in this session. */
   questionIndex: number;
+  /** Interview round type; "mixed" (default) keeps the whole pool. */
+  roundType?: RoundType;
 }
 
 export interface SkillCandidate {
@@ -66,9 +69,22 @@ function recencyAdjustment(
 }
 
 export function selectNextSkill(input: SelectNextSkillInput): SelectNextSkillResult | null {
-  const { requirements, readiness, evidence, askedThisSession, askedPreviousSession, questionIndex } =
-    input;
-  const reqMap = new Map<SkillId, Requirement>(requirements.map((r) => [r.skillId, r]));
+  const {
+    requirements,
+    readiness,
+    evidence,
+    askedThisSession,
+    askedPreviousSession,
+    questionIndex,
+    roundType = "mixed",
+  } = input;
+  // §8.4 round filter: requirements and readiness dims outside the round drop out
+  const inScope = (skillId: SkillId) => inRound(skillId, roundType);
+  const requirements0 = requirements.filter((r) => inScope(r.skillId));
+  const scopedReadiness = Object.fromEntries(
+    Object.entries(readiness).filter(([id]) => inScope(id as SkillId)),
+  ) as Record<SkillId, SkillReadiness>;
+  const reqMap = new Map<SkillId, Requirement>(requirements0.map((r) => [r.skillId, r]));
   const askedHere = new Set(askedThisSession);
   const askedBefore = new Set(askedPreviousSession);
   const evidenceBySkill = new Map<SkillId, Evidence[]>();
@@ -80,7 +96,7 @@ export function selectNextSkill(input: SelectNextSkillInput): SelectNextSkillRes
 
   // Every 4th question of a session confirms a strong area (highest score, confidence < 0.8).
   if ((questionIndex + 1) % 4 === 0) {
-    const confirmable = Object.values(readiness)
+    const confirmable = Object.values(scopedReadiness)
       .filter((r) => r.score !== null && r.confidence < CONFIRMATION_CONFIDENCE_CAP)
       .sort((a, b) => (b.score! - a.score!) || a.skillId.localeCompare(b.skillId));
     const top = confirmable[0];
@@ -99,8 +115,8 @@ export function selectNextSkill(input: SelectNextSkillInput): SelectNextSkillRes
   }
 
   const pool = new Set<SkillId>();
-  for (const r of requirements) pool.add(r.skillId);
-  for (const [skillId, dim] of Object.entries(readiness)) {
+  for (const r of requirements0) pool.add(r.skillId);
+  for (const [skillId, dim] of Object.entries(scopedReadiness)) {
     const hasEvidence = dim.evidenceIds.length > 0 || dim.score !== null;
     const nearestReq = nearestRequirement(skillId, reqMap);
     if (hasEvidence && nearestReq && nearestReq.skillId !== skillId) {
@@ -108,6 +124,14 @@ export function selectNextSkill(input: SelectNextSkillInput): SelectNextSkillRes
     }
     if (dim.status !== "unknown" && dim.confidence < LOW_CONFIDENCE) {
       pool.add(skillId); // low-confidence skill
+    }
+  }
+
+  // Empty pool in a focused round → the round's taxonomy nodes join at 0.6.
+  if (pool.size === 0 && roundType !== "mixed") {
+    for (const req of roundFallbackRequirements(roundType)) {
+      reqMap.set(req.skillId, req);
+      pool.add(req.skillId);
     }
   }
 
