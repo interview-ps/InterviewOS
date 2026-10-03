@@ -9,15 +9,19 @@ export interface GuardResult {
   substitutions: string[];
 }
 
+// All quantifiers over untrusted resume/suggestion text are bounded — an
+// unbounded ambiguous quantifier is a quadratic ReDoS (CodeQL
+// js/polynomial-redos). Bounds stay generous for real placeholders, numbers
+// and entity names.
 // "40%", "$120k", "€1.5M", "10x", "3M", "10,000" — not "IPv4"/"O(n4)".
 const NUMBER_TOKEN_RE =
-  /(?<![\w$€£])(?:[$€£]\s*)?\d[\d,]*(?:\.\d+)?\s*(?:%|percent\b|[xkmb]\b)|(?<![\w$€£])[$€£]\s*\d[\d,]*(?:\.\d+)?|(?<![\w$€£.])\d[\d,]*(?:\.\d+)?\b/gi;
+  /(?<![\w$€£])(?:[$€£]\s{0,2})?\d[\d,]{0,19}(?:\.\d{1,6})?\s{0,2}(?:%|percent\b|[xkmb]\b)|(?<![\w$€£])[$€£]\s{0,2}\d[\d,]{0,19}(?:\.\d{1,6})?|(?<![\w$€£.])\d[\d,]{0,19}(?:\.\d{1,6})?\b/gi;
 
 // Capitalised multi-letter tokens: PostgreSQL, AWS, Node.js, C#, C++.
 const ENTITY_RE =
-  /(?<![\w.])[A-Z][A-Za-z0-9]*(?:(?:[.+#][A-Za-z0-9]+)|[+#]+)*/g;
+  /(?<![\w.])[A-Z][A-Za-z0-9]{0,30}(?:(?:[.+#][A-Za-z0-9]{1,8})|[+#]{1,4}){0,6}/g;
 
-const PLACEHOLDER_RE = /\[[^\]]*\]/g;
+const PLACEHOLDER_RE = /\[[^\]]{0,64}\]/g;
 
 /**
  * Sentence-initial/common English words that are fine capitalised — modest on

@@ -202,6 +202,20 @@ describe("guardSuggestion (§9.5)", () => {
     expect(r.ok).toBe(false);
     expect(r.dropped).toMatch(/REST|SQL/);
   });
+
+  it("finishes quickly on pathological input (bounded quantifiers, no ReDoS)", () => {
+    // CodeQL js/polynomial-redos: crafted inputs hitting each guard regex.
+    const improved = [
+      "[".repeat(200_000), // PLACEHOLDER_RE with no closing ]
+      "1" + ",".repeat(200_000), // NUMBER_TOKEN_RE [\d,]
+      "A" + "+a".repeat(100_000), // ENTITY_RE suffix group
+    ].join(" ");
+    const start = performance.now();
+    const r = guardSuggestion("Built APIs", improved, resume);
+    const elapsed = performance.now() - start;
+    expect(elapsed).toBeLessThan(2_000);
+    expect(typeof r.ok).toBe("boolean");
+  });
 });
 
 describe("selectWeakestBullets (§9.5)", () => {
