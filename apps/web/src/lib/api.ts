@@ -510,6 +510,21 @@ export async function streamPost<T>(
   let buf = "";
   let result: T | undefined;
   let streamError: ApiError | null = null;
+  // The server heartbeats every 10s; ~60s without any frame means a proxy or
+  // the network silently ate the stream — fail rather than spin forever.
+  let lastFrameAt = Date.now();
+  const watchdog = setInterval(() => {
+    if (result !== undefined || streamError) return;
+    if (Date.now() - lastFrameAt > 60_000) {
+      streamError = new ApiError(
+        0,
+        "STREAM_STALLED",
+        "No progress for 60s — the server connection stalled. Check the server and retry.",
+      );
+      handlers.onError?.(streamError);
+      void reader.cancel().catch(() => {});
+    }
+  }, 5_000);
 
   const dispatch = (event: string, raw: string) => {
     const payload = raw ? (JSON.parse(raw) as Record<string, unknown>) : {};
@@ -540,6 +555,7 @@ export async function streamPost<T>(
     }
     const { done, value } = await reader.read();
     if (done) break;
+    lastFrameAt = Date.now();
     buf += decoder.decode(value, { stream: true });
     let idx: number;
     while ((idx = buf.indexOf("\n\n")) >= 0) {
@@ -561,6 +577,7 @@ export async function streamPost<T>(
       }
     }
   }
+  clearInterval(watchdog);
   if (streamError) throw streamError;
   if (result === undefined) {
     throw new ApiError(500, "INCOMPLETE_STREAM", "stream ended without a result");

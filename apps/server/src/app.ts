@@ -220,6 +220,10 @@ function streamOrJson<T>(
         .then(() => stream.writeSSE({ event, data: JSON.stringify(data) }))
         .catch(() => {});
     };
+    // heartbeat while the operation runs: keeps dev proxies flushing (the
+    // Next.js rewrite proxy otherwise intermittently holds the tail bytes)
+    // and gives clients a liveness signal during long silent stretches.
+    const heartbeat = setInterval(() => enqueue("ping", {}), 10_000);
     try {
       const result = await run((p) => {
         if ("stage" in p) enqueue("stage", { name: p.stage });
@@ -238,6 +242,8 @@ function streamOrJson<T>(
           data: JSON.stringify({ code: mapped.code, message: mapped.message }),
         })
         .catch(() => {});
+    } finally {
+      clearInterval(heartbeat);
     }
   });
 }
