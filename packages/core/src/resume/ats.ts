@@ -65,14 +65,18 @@ const ACTION_VERBS = new Set([
   "transformed", "tripled", "wrote",
 ]);
 
-const EMAIL_RE = /[\w.+-]+@[\w-]+\.[\w.]+/;
-const PHONE_RE = /\+?\d[\d\s().-]{7,}\d/;
+// Quantifiers are bounded on purpose: resume text is untrusted, and an
+// unbounded ambiguous quantifier is a quadratic ReDoS (CodeQL
+// js/polynomial-redos). Bounds stay generous — real emails/phones/numbers
+// never reach them.
+const EMAIL_RE = /[\w.+-]{1,64}@[\w-]{1,63}\.[\w.]{1,24}/;
+const PHONE_RE = /\+?\d[\d\s().-]{7,20}\d/;
 const URL_RE = /(https?:\/\/|www\.|linkedin\.com|github\.com)/i;
 const BULLET_RE = /^\s*(?:[-*•‣◦]|\d+\.)\s*/;
-const NUMBER_RE = /[$€£]?\d[\d,]*(?:\.\d+)?\s*(?:%|percent|x|k|m|b)?\b/i;
+const NUMBER_RE = /[$€£]?\d[\d,]{0,15}(?:\.\d+)?\s{0,4}(?:%|percent|x|k|m|b)?\b/i;
 const YEAR_RE = /\b(19|20)\d{2}\b/;
 const MONTH_RE =
-  /\b(jan|feb|mar|apr|may|jun|jul|aug|sep|sept|oct|nov|dec)[a-z]*\.?\s*['’]?\d{2,4}\b/i;
+  /\b(jan|feb|mar|apr|may|jun|jul|aug|sep|sept|oct|nov|dec)[a-z]{0,9}\.?\s{0,2}['’]?\d{2,4}\b/i;
 const PRESENT_RE = /\b(present|current|ongoing)\b/i;
 const FIRST_PERSON_RE = /\b(i|me|my|mine|myself|we|our|us)\b/gi;
 

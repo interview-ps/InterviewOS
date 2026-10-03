@@ -105,6 +105,23 @@ describe("atsCheck (§9.5)", () => {
     expect(q.detail).toMatch(/1 of 6 bullets include a number \(17%\)/);
     expect(q.status).toBe("warn");
   });
+
+  it("finishes quickly on pathological input (bounded quantifiers, no ReDoS)", () => {
+    // CodeQL js/polynomial-redos: unbounded ambiguous quantifiers on uncontrolled
+    // text are quadratic. Crafted inputs that hit each regex's worst case.
+    const hostile = [
+      "+".repeat(200_000), // EMAIL_RE local-part class
+      "a@b.com\n",
+      "1" + ".".repeat(200_000), // PHONE_RE middle class vs trailing \d
+      "1" + ",".repeat(200_000), // NUMBER_RE [\d,]
+      "jan" + "u".repeat(200_000) + " ".repeat(200_000), // MONTH_RE [a-z]*\s*
+    ].join("\n");
+    const start = performance.now();
+    const r = atsCheck(hostile, BACKEND_REQS);
+    const elapsed = performance.now() - start;
+    expect(elapsed).toBeLessThan(2_000);
+    expect(r.checks.length).toBeGreaterThan(0);
+  });
 });
 
 describe("guardSuggestion (§9.5)", () => {
