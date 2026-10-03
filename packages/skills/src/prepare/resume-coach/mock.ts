@@ -31,7 +31,12 @@ function rewriteBullet(bullet: string): { improved: string; rationale: string } 
   let improved = text;
 
   // "Role — Company — action" → fold the employer in as "… at <Company>"
-  const roleCompany = text.match(/^(.+?)\s+[—–-]\s+(.+?)\s+[—–-]\s+(.+)$/);
+  // bounded quantifiers — resume bullets are untrusted (CodeQL
+  // js/polynomial-redos): an unbounded lazy group + \s+ is quadratic on
+  // space runs.
+  const roleCompany = text.match(
+    /^(.{0,120}?)\s{1,4}[—–-]\s{1,4}(.{0,80}?)\s{1,4}[—–-]\s{1,4}(.{0,200})$/,
+  );
   if (roleCompany) {
     const company = roleCompany[2]!;
     const action = roleCompany[3]!;
