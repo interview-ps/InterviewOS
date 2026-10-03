@@ -89,6 +89,12 @@ import { HistoryService } from "./history-service.js";
 import { ReadinessService } from "./readiness-service.js";
 import { PreparationService } from "./preparation-service.js";
 import {
+  WorkspaceService,
+  type SetupWorkspaceInput,
+  type TargetInput,
+} from "./workspace-service.js";
+import { TargetService } from "./target-service.js";
+import {
   rowToAction,
   rowToQuestion,
   type OrchestratorQuestion,
@@ -96,6 +102,7 @@ import {
 } from "./projection.js";
 
 export type { OrchestratorQuestion, PrepActionRowLike } from "./projection.js";
+export type { SetupWorkspaceInput, TargetInput } from "./workspace-service.js";
 
 const OVERALL_SKILL_ID = "__overall__";
 
@@ -104,24 +111,6 @@ export interface OrchestratorDeps {
   runtime: AIRuntime;
   logger: Logger;
   now?: () => Date;
-}
-
-export interface SetupWorkspaceInput {
-  resumeText: string;
-  jobDescription: string;
-  company: string;
-  role: string;
-  level: Level;
-  /** §8.4: untrusted careers-page notes → company profiler. */
-  companyNotes?: string;
-}
-
-export interface TargetInput {
-  jobDescription: string;
-  company: string;
-  role: string;
-  level: Level;
-  companyNotes?: string;
 }
 
 export interface StartInterviewInput {
@@ -182,6 +171,8 @@ export class InterviewOrchestrator {
   private readonly history: HistoryService;
   private readonly readiness: ReadinessService;
   private readonly preparation: PreparationService;
+  private readonly workspace: WorkspaceService;
+  private readonly targets: TargetService;
   private queue: Promise<unknown> = Promise.resolve();
 
   constructor(deps: OrchestratorDeps) {
@@ -218,6 +209,18 @@ export class InterviewOrchestrator {
     });
     this.readiness = new ReadinessService(this.workflow);
     this.preparation = new PreparationService(this.workflow, this.readiness);
+    this.workspace = new WorkspaceService({
+      ctx: this.workflow,
+      readiness: this.readiness,
+      preparation: this.preparation,
+    });
+    this.targets = new TargetService({
+      ctx: this.workflow,
+      readiness: this.readiness,
+      preparation: this.preparation,
+      workspace: this.workspace,
+      recordUsageEvent: (event) => this.recordUsageEvent(event),
+    });
   }
 
   private withLock<T>(fn: () => Promise<T>): Promise<T> {
@@ -251,326 +254,42 @@ export class InterviewOrchestrator {
     return this.workflow.requireActive();
   }
 
+  private registerSkillNode(skillId: SkillId): void {
+    this.workflow.registerSkillNode(skillId);
+  }
+
   // ---------------------------------------------------------------- pipeline
 
   async setupWorkspace(input: SetupWorkspaceInput, opts?: ProgressOptions) {
-    return this.withLock(async () => {
-      this.logger.info("workflow.started", { workflow: "setupWorkspace" });
-      const onProgress = opts?.onProgress;
-      try {
-        // resume and JD analysis are independent — run them concurrently;
-        // persistence stays sequential.
-        onProgress?.({ stage: "analyzing resume" });
-        onProgress?.({ stage: "analyzing job description" });
-        const profileCompany = input.companyNotes?.trim()
-          ? (onProgress?.({ stage: "profiling company" }),
-            this.host.invoke(
-              companyProfiler,
-              {
-                company: input.company,
-                companyNotes: input.companyNotes,
-                taxonomy: taxonomyEntries(),
-              },
-              this.ctx({ onProgress }),
-            ))
-          : Promise.resolve(null);
-        const [candidateOut, targetOut, companyProfile] = await Promise.all([
-          this.host.invoke(
-            resumeAnalyzer,
-            { resumeText: input.resumeText, taxonomy: taxonomyEntries() },
-            this.ctx({ onProgress }),
-          ),
-          this.host.invoke(
-            jdAnalyzer,
-            {
-              jobDescription: input.jobDescription,
-              company: input.company,
-              role: input.role,
-              level: input.level,
-              taxonomy: taxonomyEntries(),
-            },
-            this.ctx({ onProgress }),
-          ),
-          profileCompany,
-        ]);
-        const candidate = this.persistCandidate(input.resumeText, candidateOut);
-        const target = this.persistTarget(input, targetOut, companyProfile);
-        this.recomputeReadinessInternal("setup");
-        onProgress?.({ stage: "calculating gaps" });
-        const gaps = this.calculateGapsInternal();
-        onProgress?.({ stage: "building prep plan" });
-        const { actions } = await this.buildPreparationPlanInternal();
-        this.logger.info("workflow.completed", { workflow: "setupWorkspace" });
-        return { candidate, target, gaps, actions };
-      } catch (err) {
-        const detail: Record<string, unknown> = {
-          workflow: "setupWorkspace",
-          error: (err as Error).message,
-        };
-        if (err instanceof SkillRuntimeError) {
-          detail.skill = err.taskId;
-          detail.runtimeCode = err.runtimeCode;
-        }
-        this.logger.warn("workflow.failed", detail);
-        throw err;
-      }
-    });
+    return this.withLock(async () => this.workspace.setupWorkspace(input, opts));
   }
 
   async analyzeCandidate(resumeText: string): Promise<CandidateProfile> {
-    return this.withLock(() => this.analyzeCandidateInternal(resumeText));
-  }
-
-  private async analyzeCandidateInternal(resumeText: string): Promise<CandidateProfile> {
-    const output = await this.host.invoke(
-      resumeAnalyzer,
-      { resumeText, taxonomy: taxonomyEntries() },
-      this.ctx(),
-    );
-    return this.persistCandidate(resumeText, output);
-  }
-
-  private persistCandidate(
-    resumeText: string,
-    output: ResumeAnalyzerOutput,
-  ): CandidateProfile {
-    // §9.6: the skill's outputs persist candidate profile + evidence + stories.
-    this.host.assertCan("resume-analyzer", "candidate.write");
-    this.host.assertCan("resume-analyzer", "evidence.write");
-    this.host.assertCan("resume-analyzer", "stories.write");
-    const candidate: CandidateProfile = {
-      id: newId("cand"),
-      name: output.name ?? undefined,
-      headline: output.headline ?? undefined,
-      experience: output.experience,
-      skills: output.skills,
-      projects: output.projects,
-      achievements: output.achievements,
-      education: output.education,
-      starStories: output.starStories,
-    };
-    this.store.deactivateCandidates();
-    this.store.insertCandidate({
-      id: candidate.id,
-      active: 1,
-      name: candidate.name ?? null,
-      headline: candidate.headline ?? null,
-      resumeText,
-      data: candidate as unknown as object,
-      createdAt: this.iso(),
-    });
-    // STAR stories extracted from the resume seed the story bank (§8.4)
-    for (const story of candidate.starStories) {
-      this.store.insertStory({
-        id: newId("story"),
-        candidateId: candidate.id,
-        title: story.title,
-        situation: story.situation,
-        task: story.task,
-        action: story.action,
-        result: story.result,
-        skillIds: story.skillIds,
-        source: "resume",
-        updatedAt: this.iso(),
-      });
-    }
-    const createdAt = this.iso();
-    for (const skill of candidate.skills) {
-      this.registerSkillNode(skill.skillId);
-      this.store.insertEvidence({
-        id: newId("ev"),
-        candidateId: candidate.id,
-        skillId: skill.skillId,
-        type: "resume_claim",
-        score: skill.level,
-        confidence: 0.5,
-        observation: skill.evidence,
-        createdAt,
-      });
-    }
-    this.logger.info("state.mutated", { entity: "candidate", id: candidate.id });
-    return candidate;
+    return this.withLock(() => this.workspace.analyzeCandidateInternal(resumeText));
   }
 
   async analyzeTarget(input: TargetInput): Promise<TargetRole> {
-    return this.withLock(() => this.analyzeTargetInternal(input));
-  }
-
-  /** §8.4: profile the company when untrusted notes were supplied. */
-  private profileCompany(input: TargetInput): Promise<CompanyNotesProfile | null> {
-    if (!input.companyNotes?.trim()) return Promise.resolve(null);
-    return this.host.invoke(
-      companyProfiler,
-      {
-        company: input.company,
-        companyNotes: input.companyNotes,
-        taxonomy: taxonomyEntries(),
-      },
-      this.ctx(),
-    );
-  }
-
-  private async analyzeTargetInternal(input: TargetInput): Promise<TargetRole> {
-    const [output, profile] = await Promise.all([
-      this.host.invoke(
-        jdAnalyzer,
-        { ...input, taxonomy: taxonomyEntries() },
-        this.ctx(),
-      ),
-      this.profileCompany(input),
-    ]);
-    return this.persistTarget(input, output, profile);
-  }
-
-  /**
-   * §9.3 importance: recompute from `baseImportance` (the JD-analyzer value)
-   * so boosts never compound. Built-in profile emphasis applies
-   * `boostedBy: "company-profile:<id>"`; the pasted-notes overlay keeps the
-   * v0.2 `+0.05` / `"company-profile"` semantics.
-   */
-  private applyRequirementBoosts(
-    req: Requirement,
-    companyProfileId: string | undefined,
-    notesFocus: Set<string>,
-  ): Requirement {
-    const base = req.baseImportance ?? req.importance;
-    const profile = companyProfileId ? getCompanyProfile(companyProfileId) : null;
-    let importance = base;
-    let boostedBy: string | undefined;
-    const emphasis = profile?.emphasis.find((e) => e.skillId === req.skillId);
-    if (emphasis && profile && profile.id !== "generic") {
-      importance = Math.min(0.95, importance + emphasis.weight);
-      boostedBy = `company-profile:${profile.id}`;
-    }
-    if (notesFocus.has(req.skillId)) {
-      importance = Math.min(0.95, importance + 0.05);
-      boostedBy = boostedBy ?? "company-profile";
-    }
-    return {
-      ...req,
-      baseImportance: base,
-      importance: Math.round(importance * 100) / 100,
-      boostedBy,
-    };
-  }
-
-  private persistTarget(
-    input: TargetInput,
-    output: JdAnalyzerOutput,
-    companyProfile: CompanyNotesProfile | null = null,
-  ): TargetRole {
-    // §9.6: skill outputs persist the target row (+ its notes-derived profile).
-    this.host.assertCan("jd-analyzer", "target.write");
-    if (companyProfile) this.host.assertCan("company-profiler", "target.write");
-    // §9.3: auto-match a built-in profile; §8.4 notes profile stays an overlay
-    const profileId = matchCompanyProfile(input.company).id;
-    const notesFocus = new Set<string>(companyProfile?.focusSkillIds ?? []);
-    const boost = (r: Requirement): Requirement =>
-      this.applyRequirementBoosts(r, profileId, notesFocus);
-    const target: TargetRole = {
-      id: newId("target"),
-      company: input.company,
-      role: input.role,
-      level: input.level,
-      jobDescription: input.jobDescription,
-      companyNotes: input.companyNotes,
-      requirements: output.requirements.map(boost),
-      preferredSkills: output.preferredSkills.map(boost),
-      companyProfile: companyProfile ?? undefined,
-      companyProfileId: profileId,
-    };
-    this.store.deactivateTargets();
-    this.store.insertTarget({
-      id: target.id,
-      active: 1,
-      company: target.company,
-      role: target.role,
-      level: target.level,
-      jobDescription: target.jobDescription,
-      data: target as unknown as object,
-      createdAt: this.iso(),
-    });
-    for (const req of [...target.requirements, ...target.preferredSkills]) {
-      this.registerSkillNode(req.skillId);
-    }
-    this.logger.info("state.mutated", { entity: "target", id: target.id });
-    return target;
-  }
-
-  private registerSkillNode(skillId: SkillId): void {
-    this.workflow.registerSkillNode(skillId);
+    return this.withLock(() => this.workspace.analyzeTargetInternal(input));
   }
 
   // ---------------------------------------------------------------- targets
 
   listTargets() {
-    return this.store.listTargets().map((t) => {
-      const parsed = TargetRoleSchema.safeParse(t.data);
-      const data = parsed.success ? parsed.data : null;
-      return {
-        id: t.id,
-        company: t.company,
-        role: t.role,
-        level: t.level,
-        active: t.active === 1,
-        createdAt: t.createdAt,
-        companyProfile: data?.companyProfile ?? null,
-        companyProfileId: data?.companyProfileId ?? "generic",
-        boostedSkillIds: data
-          ? [...data.requirements, ...data.preferredSkills]
-              .filter((r) => r.boostedBy)
-              .map((r) => r.skillId)
-          : [],
-      };
-    });
+    return this.targets.listTargets();
   }
 
   /** Add another target role for the active candidate; becomes the active target. */
   async addTarget(input: TargetInput, opts?: ProgressOptions) {
-    return this.withLock(async () => {
-      const { candidate } = this.requireActive();
-      if (!candidate.id || candidate.id === "none") {
-        throw new AppError("NO_ACTIVE_PROFILE", "no active candidate");
-      }
-      opts?.onProgress?.({ stage: "analyzing job description" });
-      const [output, profile] = await Promise.all([
-        this.host.invoke(
-          jdAnalyzer,
-          { ...input, taxonomy: taxonomyEntries() },
-          this.ctx({ onProgress: opts?.onProgress }),
-        ),
-        this.profileCompany(input),
-      ]);
-      const target = this.persistTarget(input, output, profile);
-      opts?.onProgress?.({ stage: "calculating gaps" });
-      opts?.onProgress?.({ stage: "building prep plan" });
-      const { actions } = await this.buildPreparationPlanInternal();
-      this.logger.info("workflow.completed", { workflow: "addTarget", targetId: target.id });
-      return { target, actions };
-    });
+    return this.withLock(async () => this.targets.addTarget(input, opts));
   }
 
   async activateTarget(id: string) {
-    return this.withLock(async () => {
-      const row = this.store.getTarget(id);
-      if (!row) throw new AppError("NOT_FOUND", `no target ${id}`);
-      this.store.activateTarget(id);
-      this.recordUsageEvent("target.switched");
-      this.logger.info("state.mutated", { entity: "target", id, active: true });
-      const openActions = this.store.listActions("open", id);
-      let actions: PrepActionRowLike[] = openActions.map(rowToAction);
-      if (openActions.length === 0) {
-        const plan = await this.buildPreparationPlanInternal();
-        actions = plan.actions;
-      }
-      const target = TargetRoleSchema.parse(row.data);
-      return { target, actions };
-    });
+    return this.withLock(async () => this.targets.activateTarget(id));
   }
 
-  /** §9.3: all built-in company profiles (each carries the disclaimer). */
+  /** Â§9.3: all built-in company profiles (each carries the disclaimer). */
   listCompanyProfiles() {
-    return COMPANY_PROFILES;
+    return this.targets.listCompanyProfiles();
   }
 
   /**
@@ -579,31 +298,9 @@ export class InterviewOrchestrator {
    * overlay (§8.4) re-applies on top. Then readiness + plan rebuild.
    */
   async updateTargetCompanyProfile(targetId: string, companyProfileId: string) {
-    return this.withLock(async () => {
-      const row = this.store.getTarget(targetId);
-      if (!row) throw new AppError("NOT_FOUND", `no target ${targetId}`);
-      if (!COMPANY_PROFILES.some((p) => p.id === companyProfileId)) {
-        throw new AppError("VALIDATION", `unknown company profile "${companyProfileId}"`);
-      }
-      const target = TargetRoleSchema.parse(row.data);
-      target.companyProfileId = companyProfileId;
-      const notesFocus = new Set<string>(target.companyProfile?.focusSkillIds ?? []);
-      target.requirements = target.requirements.map((r) =>
-        this.applyRequirementBoosts(r, companyProfileId, notesFocus),
-      );
-      target.preferredSkills = target.preferredSkills.map((r) =>
-        this.applyRequirementBoosts(r, companyProfileId, notesFocus),
-      );
-      this.store.updateTargetData(targetId, target as unknown as object);
-      this.logger.info("state.mutated", {
-        entity: "target",
-        id: targetId,
-        companyProfileId,
-      });
-      this.recomputeReadinessInternal("company-profile");
-      const { actions } = await this.buildPreparationPlanInternal();
-      return { target, actions };
-    });
+    return this.withLock(async () =>
+      this.targets.updateTargetCompanyProfile(targetId, companyProfileId),
+    );
   }
 
   // ---------------------------------------------------------------- readiness
