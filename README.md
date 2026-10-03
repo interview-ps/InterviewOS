@@ -115,6 +115,7 @@ The mock runtime makes this walkthrough repeatable without AI calls. For your ow
     <td align="center" valign="top"><picture><source media="(prefers-color-scheme: dark)" srcset="docs/assets/logos/opencode-dark.svg" /><img src="docs/assets/logos/opencode.svg" width="32" height="32" alt="opencode" /></picture><br/><sub>opencode</sub></td>
     <td align="center" valign="top"><img src="docs/assets/logos/claude.svg" width="32" height="32" alt="Claude Code" /><br/><sub>Claude Code</sub></td>
     <td align="center" valign="top"><img src="docs/assets/logos/codex.svg" width="32" height="32" alt="Codex" /><br/><sub>Codex</sub></td>
+    <td align="center" valign="top"><picture><source media="(prefers-color-scheme: dark)" srcset="docs/assets/logos/devin-dark.png" /><img src="docs/assets/logos/devin.png" width="32" height="32" alt="Devin" /></picture><br/><sub>Devin</sub></td>
   </tr>
 </table>
 </div>
