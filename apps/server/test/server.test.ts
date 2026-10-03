@@ -98,6 +98,20 @@ describe("server api", () => {
     expect(body.status).toBe("ready");
   });
 
+  it("lists built-in company profiles at /api/companies", async () => {
+    const app = makeServer();
+    const res = await app.request("/api/companies");
+    expect(res.status).toBe(200);
+    const profiles = await json(res);
+    expect(profiles.length).toBeGreaterThan(1);
+    const generic = profiles.find((p: { id: string }) => p.id === "generic");
+    expect(generic.name).toBeTruthy();
+    expect(generic.disclaimer).toBeTruthy();
+    expect(generic.typicalLoop.length).toBeGreaterThan(0);
+    expect(generic.typicalLoop[0].mode).toBeTruthy();
+    expect(generic.typicalLoop[0].label).toBeTruthy();
+  });
+
   it("serves examples", async () => {
     const app = makeServer();
     const list = await json(await app.request("/api/examples"));
@@ -238,6 +252,21 @@ describe("server api", () => {
     });
     expect(fallback.status).toBe(200);
     expect((await json(fallback)).model).toBe("mock");
+  });
+
+  it("records usage events and serves metrics at /api", async () => {
+    const app = makeServer();
+    const ev = await post(app, "/api/events", JSON.stringify({ event: "palette.used" }));
+    expect(ev.status).toBe(200);
+    const bad = await post(app, "/api/events", JSON.stringify({ event: "nope" }));
+    expect(bad.status).toBe(400);
+    expect((await json(bad)).error.code).toBe("VALIDATION");
+
+    const res = await app.request("/api/metrics");
+    expect(res.status).toBe(200);
+    const body = await json(res);
+    expect(body.usage["palette.used"]).toBe(1);
+    expect(body.loopsStarted).toBe(0);
   });
 
   it("validates bodies and enforces the size limit", async () => {

@@ -4,6 +4,7 @@ import { DEFAULT_EXAMPLES_DIR } from "../paths.js";
 import type { AppDeps, AppEnv } from "./context.js";
 import { apiBodyLimit, docBodyLimit } from "./middleware/body-limit.js";
 import { onError } from "./middleware/error.js";
+import { companiesRoutes } from "./routes/companies.js";
 import { documentsRoutes } from "./routes/documents.js";
 import { examplesRoutes } from "./routes/examples.js";
 import { historyRoutes } from "./routes/history.js";
@@ -18,6 +19,7 @@ import { pluginsRoutes } from "./routes/plugins.js";
 import { skillsRoutes } from "./routes/skills.js";
 import { storiesRoutes } from "./routes/stories.js";
 import { targetsRoutes } from "./routes/targets.js";
+import { usageRoutes } from "./routes/usage.js";
 import { workspaceRoutes } from "./routes/workspace.js";
 
 export type { AppDeps } from "./context.js";
@@ -48,8 +50,10 @@ export function createApp(deps: AppDeps) {
   app.onError(onError);
 
   app.route("/api", workspaceRoutes);
+  app.route("/api", usageRoutes);
   app.route("/api/preparation", preparationRoutes);
   app.route("/api/targets", targetsRoutes);
+  app.route("/api/companies", companiesRoutes);
   app.route("/api/interviews", interviewsRoutes);
   app.route("/api/stories", storiesRoutes);
   app.route("/api/loops", loopsRoutes);

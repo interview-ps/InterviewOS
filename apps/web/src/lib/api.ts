@@ -1,5 +1,7 @@
 import type {
   CandidateProfile,
+  CompanyNotesProfile,
+  CompanyProfile,
   Evidence,
   Gap,
   InterviewOSState,
@@ -145,26 +147,8 @@ export interface InterviewListItem extends SessionRow {
   debrief: Debrief | null;
 }
 
-export interface CompanyProfile {
-  values: string[];
-  interviewStyle: string;
-  focusSkillIds: string[];
-  behavioralThemes: string[];
-}
-
-/** §9.3 built-in company profile (GET /api/companies). */
-export interface CompanyProfileInfo {
-  id: string;
-  name: string;
-  aliases: string[];
-  disclaimer: string;
-  typicalLoop: { mode: string; label: string }[];
-  emphasis: Partial<Record<string, number>>;
-  behavioralFramework: { name: string; themes: string[]; guidance: string } | null;
-  followUpDepth: number;
-  rubricEmphasis: string[];
-  roleExpectations: string;
-}
+export type { CompanyNotesProfile, CompanyProfile };
+export type CompanyProfileInfo = CompanyProfile;
 
 export interface TargetListItem {
   id: string;
@@ -173,7 +157,7 @@ export interface TargetListItem {
   level: string;
   active: boolean;
   createdAt: string;
-  companyProfile: CompanyProfile | null;
+  companyProfile: CompanyNotesProfile | null;
   companyProfileId: string | null;
   boostedSkillIds: string[];
 }
