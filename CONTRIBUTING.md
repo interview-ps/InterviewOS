@@ -21,6 +21,21 @@ so a bare `corepack pnpm dev` works. `vitest` may be blocked by a `rolldown`
 native binding on such hosts — use an unlocked machine or CI for the full test
 suite.
 
+Two other Windows setup failures are unrelated to Device Guard:
+
+- `pnpm install` fails inside `better-sqlite3` (`gyp ERR! find VS` /
+  `missing any Windows SDK`): `allowBuilds` in `pnpm-workspace.yaml` permits an
+  implicit `node-gyp rebuild` that needs the Visual Studio "Desktop development
+  with C++" workload. The package already ships `prebuilds/win32-x64.node` and
+  loads it at runtime, so run `pnpm install --ignore-scripts` instead — the
+  install must complete once, because pnpm re-verifies dependencies before
+  running scripts and will retry the build otherwise.
+- `corepack pnpm` fails with `MODULE_NOT_FOUND` for
+  `.../pnpm/<version>/bin/pnpm.cjs`: that Corepack predates pnpm 12's
+  `bin/pnpm.mjs` entry point. Upgrade Corepack (`npm i -g corepack@latest`) or
+  use a standalone pnpm install; the root scripts' expansions are
+  `pnpm -r --parallel --if-present dev` and `pnpm -r --if-present typecheck`.
+
 ## Invariants
 
 Read [AGENTS.md](AGENTS.md) first. The load-bearing rules:
