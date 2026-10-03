@@ -214,7 +214,7 @@ export interface RuntimeStatus {
   workspace?: string;
   status: string;
   message?: string;
-  mode: "codex" | "mock" | "claude" | "opencode";
+  mode: "codex" | "mock" | "claude" | "opencode" | "devin";
 }
 
 export interface ExampleMeta {

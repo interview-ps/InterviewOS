@@ -13,6 +13,7 @@
     "test:codex": "INTERVIEW_OS_LIVE_CODEX=1 vitest run live.test",
     "test:claude": "INTERVIEW_OS_LIVE_CLAUDE=1 vitest run claude-online",
     "test:opencode": "INTERVIEW_OS_LIVE_OPENCODE=1 vitest run opencode-online",
+    "test:devin": "INTERVIEW_OS_LIVE_DEVIN=1 vitest run devin-online",
     "test:e2e": "playwright test",
     "test:e2e:live": "playwright test -c playwright.live.config.ts"
   },

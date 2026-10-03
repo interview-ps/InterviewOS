@@ -19,7 +19,7 @@ export class RuntimeError extends Error {
   }
 }
 
-export type RuntimeKind = "codex" | "mock" | "claude" | "opencode";
+export type RuntimeKind = "codex" | "mock" | "claude" | "opencode" | "devin";
 
 export interface RuntimeStatus {
   runtime: RuntimeKind;
