@@ -9,6 +9,22 @@ export const CandidateSkillSchema = z.object({
 });
 export type CandidateSkill = z.infer<typeof CandidateSkillSchema>;
 
+/**
+ * A candidate has at most one claim per skill: the first occurrence wins, later
+ * duplicates are dropped so the readiness graph never gets two evidence rows for
+ * the same skill (§3). Models occasionally emit the same skillId twice.
+ */
+export const CandidateSkillListSchema = z
+  .array(CandidateSkillSchema)
+  .transform((skills) => {
+    const seen = new Set<string>();
+    return skills.filter((skill) => {
+      if (seen.has(skill.skillId)) return false;
+      seen.add(skill.skillId);
+      return true;
+    });
+  });
+
 export const ExperienceSchema = z.object({
   title: z.string(),
   company: z.string(),
@@ -49,7 +65,7 @@ export const CandidateProfileSchema = z.object({
   name: z.string().optional(),
   headline: z.string().optional(),
   experience: z.array(ExperienceSchema).default([]),
-  skills: z.array(CandidateSkillSchema).default([]),
+  skills: CandidateSkillListSchema.default([]),
   projects: z.array(ProjectSchema).default([]),
   achievements: z.array(z.string()).default([]),
   education: z.array(EducationSchema).default([]),

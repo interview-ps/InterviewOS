@@ -6,6 +6,7 @@ import { usePathname } from "next/navigation";
 import { useEffect, useState, type ReactNode } from "react";
 import { api, type RuntimeStatus, type TargetListItem } from "@/lib/api";
 import { CommandPalette } from "@/components/command-palette";
+import { runtimeLabel } from "@/lib/runtime";
 import { ToastHost, toast } from "@/components/ui";
 
 const NAV = [
@@ -25,14 +26,15 @@ function RuntimeBadge({ status }: { status: RuntimeStatus | null }) {
   let text = "Checking runtime…";
   let cls = "text-muted";
   if (status) {
+    const label = runtimeLabel(status.mode);
     if (status.mode === "mock") {
       text = "Mock Runtime";
       cls = "text-blue";
     } else if (status.available) {
-      text = "Local Codex Connected";
+      text = `${label} Connected`;
       cls = "text-green";
     } else {
-      text = "Codex Not Available";
+      text = `${label} Not Available`;
       dot = "○";
       cls = "text-muted";
     }

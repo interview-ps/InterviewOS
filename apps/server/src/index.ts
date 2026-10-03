@@ -10,12 +10,10 @@ import { loadPlugins } from "./plugins.js";
 const logger = createLogger({ level: "info", service: "server" });
 
 const dbPath = process.env.INTERVIEW_OS_DB ?? path.join(REPO_ROOT, "data/interview-os.db");
-const workspaceDir =
-  process.env.INTERVIEW_OS_CODEX_WORKSPACE ?? path.join(REPO_ROOT, "data/codex-workspace");
 const port = Number(process.env.INTERVIEW_OS_PORT ?? 4100);
 
 const store = openStore(dbPath);
-const runtime = await createRuntime({ env: process.env, workspaceDir, logger });
+const runtime = await createRuntime({ env: process.env, logger });
 if (runtime.kind === "mock") {
   registerMockHandlers(runtime as MockRuntime);
 }

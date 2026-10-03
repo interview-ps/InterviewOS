@@ -207,14 +207,24 @@ export function StatusPill({ status }: { status: string }) {
 
 export function ErrorNote({ error }: { error: unknown }) {
   if (!error) return null;
-  const isUnavailable = error instanceof ApiError && error.status === 503;
+  const status = error instanceof ApiError ? error.status : undefined;
+  const code = error instanceof ApiError ? error.code : undefined;
+  const isUnavailable = status === 503;
+  const isRuntimeFailure = status === 502 || code === "RUNTIME_FAILED";
+  const isTimeout = status === 504 || code === "RUNTIME_TIMEOUT";
+  const heading =
+    isTimeout ? "The AI runtime timed out"
+    : isRuntimeFailure ? "The AI runtime failed"
+    : isUnavailable ? "The AI runtime is unavailable"
+    : "Something went wrong";
   return (
     <div role="alert" className="rounded-[0.6rem] border border-accent/40 bg-[#fdf3e7] p-4 text-sm text-ink">
-      <p className="font-medium text-accent">Something went wrong</p>
+      <p className="font-medium text-accent">{heading}</p>
       <p className="mt-1 text-muted">{error instanceof Error ? error.message : String(error)}</p>
-      {isUnavailable && (
+      {(isUnavailable || isRuntimeFailure || isTimeout) && (
         <p className="mt-2 text-muted">
-          The AI runtime is unavailable — see <a className="text-blue underline" href="/settings">Settings</a> for setup instructions.
+          Check the active runtime under <a className="text-blue underline" href="/settings">Settings</a>, then retry.
+          {isUnavailable && " See Settings for setup instructions."}
         </p>
       )}
     </div>

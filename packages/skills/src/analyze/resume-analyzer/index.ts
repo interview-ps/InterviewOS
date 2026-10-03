@@ -1,6 +1,6 @@
 import { z } from "zod";
 import {
-  CandidateSkillSchema,
+  CandidateSkillListSchema,
   EducationSchema,
   ExperienceSchema,
   ProjectSchema,
@@ -38,7 +38,7 @@ const ResumeAnalyzerAiOutputSchema = z.object({
 });
 
 export const ResumeAnalyzerOutputSchema = ResumeAnalyzerAiOutputSchema.extend({
-  skills: z.array(CandidateSkillSchema),
+  skills: CandidateSkillListSchema,
 });
 export interface ResumeAnalyzerOutput {
   name: string | null;
@@ -85,9 +85,12 @@ export const resumeAnalyzer: InterviewSkill<ResumeAnalyzerInput, ResumeAnalyzerO
       schema: ResumeAnalyzerAiOutputSchema,
     });
     const skills: CandidateSkill[] = [];
+    const seen = new Set<string>();
     for (const s of output.skills) {
       const skillId = normalizeSkillIdValue(s.skillId);
-      if (skillId) skills.push({ skillId, level: s.level, source: "resume", evidence: s.evidence });
+      if (!skillId || seen.has(skillId)) continue;
+      seen.add(skillId);
+      skills.push({ skillId, level: s.level, source: "resume", evidence: s.evidence });
     }
     return { ...output, skills };
   },

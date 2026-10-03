@@ -13,13 +13,14 @@ Resume + JD → resume-analyzer → jd-analyzer → gap-analyzer → prep-planne
 
 ```
 apps/
-  server/      Hono HTTP API (port 4100). Owns SQLite + the local Codex process.
+  server/      Hono HTTP API (port 4100). Owns SQLite + the provider child process.
   web/         Next.js (App Router) + Tailwind UI (port 3000). /api/* rewritten to server.
 packages/
   shared/      logger (redacting, JSON lines), ids, errors, clock
   core/        Zod schemas = canonical shared state; taxonomy; readiness math; gaps;
                question prioritisation; interview state machine. Pure + deterministic.
-  runtime/     AIRuntime interface; MockRuntime; LocalCodexRuntime (exec + app-server).
+  runtime/     AIRuntime interface; MockRuntime; CodexRuntime, ClaudeCodeRuntime,
+               OpencodeRuntime (one provider per directory).
   skills/      The 7 v0.1 skills. Each = typed input → typed output (Zod-validated).
   orchestrator/ InterviewOrchestrator (workflow only) + SQLite store (drizzle + better-sqlite3).
 examples/      backend-engineer (canonical), product-manager, data-engineer: resume.md + job.md
@@ -129,7 +130,7 @@ the source of truth; a session has `plannedQuestions` (default 4).
 
 ```ts
 interface AIRuntime {
-  readonly kind: 'codex' | 'mock';
+  readonly kind: 'codex' | 'mock' | 'claude' | 'opencode';
   healthCheck(): Promise<RuntimeStatus>;          // {runtime, available, version?, executable?, status, message?, workspace?}
   runTask(task: AgentTask): Promise<AgentResult>; // one-shot
   createSession(input: SessionInput): Promise<RuntimeSession>;      // {id, threadId}
@@ -147,16 +148,18 @@ RuntimeEvent = {type:'started'} | {type:'delta', text} | {type:'message', text}
              | {type:'completed', output?: unknown, raw: string} | {type:'error', error}
 RuntimeError.code: 'UNAVAILABLE'|'SPAWN_FAILED'|'CRASHED'|'TIMEOUT'|'MALFORMED_EVENT'|'MALFORMED_OUTPUT'|'PROTOCOL'
 ```
-Factory `createRuntime(env)`: `INTERVIEW_OS_RUNTIME=mock|codex` (default `codex`; if Codex is
-unavailable at startup the server logs it, reports status, and falls back to mock **only** when
-`INTERVIEW_OS_RUNTIME_FALLBACK=mock`; otherwise AI actions return 503 with setup instructions).
+Factory `createRuntime(env)`: `INTERVIEW_OS_RUNTIME=codex|mock|claude|opencode` (default `codex`;
+if the selected runtime is unavailable at startup the server logs it, reports status, and falls
+back to mock **only** when `INTERVIEW_OS_RUNTIME_FALLBACK=mock`; otherwise AI actions return 503
+with setup instructions). Each provider defaults to its own workspace dir
+(`data/<provider>-workspace`, overridable with `INTERVIEW_OS_<PROVIDER>_WORKSPACE`).
 
 ### MockRuntime
 Deterministic, no network. Dispatches on `task.taskId` to handlers that use taxonomy keyword
 matching over the provided input (resume text, JD text, answer text vs `expectedConcepts`).
 Supports the full v0.1 flow including sessions. Same input ⇒ same output.
 
-### LocalCodexRuntime (`runtime/codex/`)
+### CodexRuntime (`runtime/codex/`)
 - `detect.ts`: locate executable (`INTERVIEW_OS_CODEX_BIN` or PATH lookup in Node — no shell),
   `execFile(bin, ['--version'])` with 5 s timeout → version.
 - `CodexExecAdapter.ts` (used by `runTask`): `spawn(bin, ['exec','--json','--skip-git-repo-check',
@@ -178,6 +181,26 @@ Supports the full v0.1 flow including sessions. Same input ⇒ same output.
   (`PATH, HOME, USER, LANG, LC_ALL, TMPDIR, CODEX_HOME, XDG_*`, `OPENAI_API_KEY` if set) — never
   logged; cwd = `data/codex-workspace`; read-only sandbox; no browser-reachable shell.
 - Timeouts (default 120 s per task, configurable `INTERVIEW_OS_CODEX_TIMEOUT_MS`) kill the child.
+
+### ClaudeCodeRuntime (`runtime/claude/`)
+`AIRuntime` over `@anthropic-ai/claude-agent-sdk`. `detect.ts` locates the CLI
+(`INTERVIEW_OS_CLAUDE_BIN`/PATH, `--version`). `runTask` sets
+`outputFormat:{type:'json_schema',schema}` and reads the result's `structured_output`. Sessions are
+one-shot: `createSession` returns a local opaque `threadId` and `sendMessage` runs a fresh
+`runTask` carrying the full prompt (no server-side resume). `listModels()` uses
+`supportedModels()` with a static `default/sonnet/opus/haiku` fallback. Child env allowlist:
+`PATH, HOME, USER, LANG, LC_ALL, TMPDIR, CLAUDE_CONFIG_DIR, ANTHROPIC_*` — never the full env,
+never logged. Permission mode `dontAsk`; no tools exposed for one-shot tasks.
+
+### OpencodeRuntime (`runtime/opencode/`)
+`AIRuntime` over one-shot `opencode run --format json` CLI invocations (no `opencode serve`, no
+SDK). The prompt — including the JSON Schema and input — is written to the child's **stdin**
+(never argv, so Windows `.cmd` shims work and untrusted text is never shell-interpreted); the
+assistant text parts are collected from the NDJSON stream and parsed as structured output. A
+per-task timeout (`INTERVIEW_OS_OPENCODE_TIMEOUT_MS`) kills the process. Sessions are one-shot:
+`createSession` returns a local opaque `threadId` and `sendMessage` runs a fresh task. Model ids
+are provider-qualified (`provider/model`) from `opencode models`. Child env allowlist excludes
+provider API keys (opencode reads them from its own auth store).
 
 ## 4. Skills (packages/skills)
 
@@ -280,13 +303,14 @@ text normalised and truncated to 50 000 chars (warning when truncated or empty, 
   `stage {name}`, `delta {field, text}` (full text so far), `result {…same JSON as non-stream…}`,
   `error {code,message}`. Applies to workspace/setup, targets create, interviews create/next/answer/complete,
   stories generate/coach. Non-stream JSON behaviour unchanged.
-- **Settings** (SQLite `settings` key/value): `codexModel: string|null` (null = Codex default),
-  `reasoningEffort: 'low'|'medium'|'high'|null`, `taskMode`. `GET /api/settings`, `PUT /api/settings`,
-  `GET /api/runtime/models` (Codex `model/list` → `{id, displayName, supportedReasoningEfforts,
-  defaultReasoningEffort}`; mock → `[{id:'mock'}]`). Model must be in the list and match
-  `^[A-Za-z0-9._:-]+$` before it reaches argv (`-m`, `-c model_reasoning_effort=…`) or JSON-RPC
-  (`model`/`effort` on `thread/start`/`turn/start`). Approvals: fixed read-only sandbox + decline-all, shown
-  read-only with an explanation.
+- **Settings** (SQLite `settings` key/value): `model: string|null` (null = provider default),
+  `reasoningEffort: 'low'|'medium'|'high'|null`, `taskMode` (Codex-only). A one-time migration copies
+  the legacy `codexModel` key to `model`. `GET /api/settings`, `PUT /api/settings`,
+  `GET /api/runtime/models` (`{id, displayName, supportedReasoningEfforts, defaultReasoningEffort,
+  isDefault?}`; mock → `[{id:'mock'}]`). A saved model absent from the live catalog falls back to the
+  entry flagged `isDefault` and is persisted. Model must match `^[A-Za-z0-9._:-]+(/[A-Za-z0-9._:-]+)?$`
+  (≤128 chars) before it reaches argv (`-m`, `-c model_reasoning_effort=…`) or an SDK/JSON-RPC payload
+  (`model`/`effort`). Approvals: fixed read-only sandbox + decline-all, shown read-only with an explanation.
 
 ### 8.4 Interview breadth
 - **Round types**: session `roundType: 'mixed'|'technical'|'system_design'|'behavioral'|'hr'` (default mixed =

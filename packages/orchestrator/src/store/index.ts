@@ -262,6 +262,15 @@ export class Store {
          SELECT id FROM target_roles WHERE active = 1 LIMIT 1
        ) WHERE target_id IS NULL`,
     );
+    // settings: copy legacy codexModel → model when model is absent (leave the
+    // old key so the migration is idempotent and reversible; both can coexist
+    // because `settings.key` is the PK, so never blind-INSERT the old key).
+    this.client.exec(
+      `INSERT INTO settings (key, value)
+         SELECT 'model', value FROM settings
+         WHERE key = 'codexModel'
+           AND NOT EXISTS (SELECT 1 FROM settings WHERE key = 'model')`,
+    );
   }
 
   // --- candidates / targets -------------------------------------------------

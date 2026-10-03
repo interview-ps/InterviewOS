@@ -7,6 +7,7 @@ import {
   type RuntimeModel,
   type RuntimeStatus,
 } from "@/lib/api";
+import { runtimeLabel } from "@/lib/runtime";
 import { Button, Card, CardTitle, ErrorNote, PageHeader, Pill, SkeletonCard, Spinner, toast } from "@/components/ui";
 
 const EFFORTS = ["low", "medium", "high"] as const;
@@ -40,7 +41,7 @@ export default function Settings() {
     api.runtimeCheck().then(setStatus).catch((e) => setError(e)).finally(() => setChecking(false));
   };
 
-  const selectedModel = models.find((m) => m.id === draft?.codexModel) ?? null;
+  const selectedModel = models.find((m) => m.id === draft?.model) ?? null;
   const effortOptions =
     selectedModel && selectedModel.supportedReasoningEfforts.length > 0
       ? selectedModel.supportedReasoningEfforts
@@ -79,7 +80,7 @@ export default function Settings() {
       <ErrorNote error={error} />
 
       <Card>
-        <CardTitle>AI Runtime — Local Codex</CardTitle>
+        <CardTitle>AI Runtime — {status ? runtimeLabel(status.mode) : "…"}</CardTitle>
         {status && (
           <dl className="grid grid-cols-[8rem_1fr] gap-y-2 text-sm">
             <dt className="text-muted">Status</dt>
@@ -111,16 +112,16 @@ export default function Settings() {
             <label className="block">
               <span className="mb-1 block font-medium">Model</span>
               <select
-                value={draft.codexModel ?? ""}
+                value={draft.model ?? ""}
                 onChange={(e) =>
-                  setDraft((d) => d && { ...d, codexModel: e.target.value || null })
+                  setDraft((d) => d && { ...d, model: e.target.value || null })
                 }
                 className="w-full rounded-[0.6rem] border border-line bg-surface px-3 py-2"
               >
-                <option value="">Codex default</option>
+                <option value="">Provider default</option>
                 {models.map((m) => (
                   <option key={m.id} value={m.id}>
-                    {m.displayName} ({m.id})
+                    {m.displayName} ({m.id}){m.isDefault ? " — default" : ""}
                   </option>
                 ))}
               </select>
@@ -129,6 +130,7 @@ export default function Settings() {
               <span className="mb-1 block font-medium">Reasoning effort</span>
               <select
                 value={draft.reasoningEffort ?? ""}
+                disabled={effortOptions.length === 0}
                 onChange={(e) =>
                   setDraft(
                     (d) =>
@@ -149,22 +151,29 @@ export default function Settings() {
                   </option>
                 ))}
               </select>
+              {effortOptions.length === 0 && (
+                <span className="mt-1 block text-xs text-muted">
+                  This provider does not expose reasoning-effort levels.
+                </span>
+              )}
             </label>
-            <label className="block">
-              <span className="mb-1 block font-medium">Task mode</span>
-              <select
-                value={draft.taskMode}
-                onChange={(e) =>
-                  setDraft(
-                    (d) => d && { ...d, taskMode: e.target.value as AppSettings["taskMode"] },
-                  )
-                }
-                className="w-full rounded-[0.6rem] border border-line bg-surface px-3 py-2"
-              >
-                <option value="app-server">app-server (recommended — warm process, streams text)</option>
-                <option value="exec">exec (spawns `codex exec` per task)</option>
-              </select>
-            </label>
+            {status?.mode === "codex" && (
+              <label className="block">
+                <span className="mb-1 block font-medium">Task mode</span>
+                <select
+                  value={draft.taskMode}
+                  onChange={(e) =>
+                    setDraft(
+                      (d) => d && { ...d, taskMode: e.target.value as AppSettings["taskMode"] },
+                    )
+                  }
+                  className="w-full rounded-[0.6rem] border border-line bg-surface px-3 py-2"
+                >
+                  <option value="app-server">app-server (recommended — warm process, streams text)</option>
+                  <option value="exec">exec (spawns `codex exec` per task)</option>
+                </select>
+              </label>
+            )}
             <div className="flex items-center gap-3">
               <Button onClick={save} disabled={saving || !dirty}>
                 {saving ? "Saving…" : "Save"}
@@ -186,8 +195,9 @@ export default function Settings() {
           <dt className="text-muted">Sandbox</dt><dd>read-only</dd>
           <dt className="text-muted">Approvals</dt>
           <dd>
-            Codex runs in a read-only sandbox in data/codex-workspace; approval
-            requests are declined automatically.
+            {runtimeLabel(status?.mode ?? "codex")} runs with an allowlisted
+            environment in a read-only workspace; approval requests are declined
+            automatically.
           </dd>
         </dl>
       </Card>

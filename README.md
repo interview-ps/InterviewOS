@@ -250,7 +250,7 @@ All AI work runs on a locally installed Codex CLI — see
 | `POST /api/documents/extract` | Multipart `file` → `{text, format, pages?, warnings}` |
 | `POST /api/interviews` | extended with `{mode, focusSkillId, actionId, roundType}` — `mode` also accepts a ModeId as a `roundType` alias |
 | `POST /api/interviews/:id/answer` | `{answer, code?, language?}` — code ≤ 50 KB, language from a fixed allowlist |
-| `GET /api/settings` / `PUT /api/settings` | `{codexModel, reasoningEffort, taskMode}` — validated against the live model list |
+| `GET /api/settings` / `PUT /api/settings` | `{model, reasoningEffort, taskMode}` — validated against the live model list; a vanished model falls back to the provider default |
 | `GET /api/runtime/models` | Codex model catalog (`model/list`) |
 | `GET /api/stories` | STAR story bank for the active candidate |
 | `POST /api/stories/generate` | `star-coach.generate` → new stories (source `generated`, deduped by title) |
@@ -277,18 +277,35 @@ Long-running POSTs (`workspace/setup`, `targets`, `interviews`,
 `Accept: text/event-stream` and then emit SSE `stage`/`delta`/`result`/`error`
 events instead of a single JSON response.
 
-## Local Codex integration
+## AI runtimes
+
+Interview OS selects its AI backend with `INTERVIEW_OS_RUNTIME`. Every backend
+implements the same `AIRuntime` interface, and only `packages/runtime` knows
+about any specific provider.
+
+| Runtime | `INTERVIEW_OS_RUNTIME` | Transport | Structured output | Sessions |
+|---|---|---|---|---|
+| Codex (default) | `codex` | `codex app-server` / `codex exec` | `--output-schema` | app-server thread |
+| Claude Code | `claude` | `@anthropic-ai/claude-agent-sdk` | `outputFormat: json_schema` | one-shot wrapper |
+| opencode | `opencode` | one-shot `opencode run --format json` | JSON reply parsed client-side | one-shot wrapper |
+| Mock | `mock` | in-process | deterministic | in-memory |
+
+For Claude and opencode, log in once with the provider's own tooling
+(`claude`, `opencode auth login`); Interview OS reads no API keys itself.
+Child processes receive an allowlisted environment only.
+
+### Local Codex integration
 
 Interview OS talks to a locally installed [Codex](https://github.com/openai/codex)
-CLI — no API keys or secrets pass through the app:
+CLI —" no API keys or secrets pass through the app:
 
 - **Detection**: `codex` is found on `PATH` (or `INTERVIEW_OS_CODEX_BIN`) and
   probed with `--version`.
 - **One-shot tasks** (analysis, evaluation, debrief) run on the shared
-  `codex app-server` process as ephemeral threads by default — warm start,
-  `item/agentMessage/delta` events streamed to the caller — or via `codex exec`
+  `codex app-server` process as ephemeral threads by default —" warm start,
+  `item/agentMessage/delta` events streamed to the caller —" or via `codex exec`
   (`taskMode: "exec"` in Settings) with a strict JSON output schema; the prompt
-  is piped on stdin — untrusted resume/JD/answer text never appears in argv or
+  is piped on stdin —" untrusted resume/JD/answer text never appears in argv or
   shell strings.
 - **Interview sessions**: a backend-owned `codex app-server` process
   (JSON-RPC over stdio) keeps an interviewer thread per session; thread ids are
@@ -304,15 +321,40 @@ CLI — no API keys or secrets pass through the app:
   requests are always declined.
 - **Environment**: child processes receive an allowlisted environment only.
 
+### Claude Code (`INTERVIEW_OS_RUNTIME=claude`)
+
+Uses the official Agent SDK. Structured tasks set
+`outputFormat: { type: "json_schema", schema }` and read the result's
+`structured_output`. Each call is one-shot; `createSession` returns a local
+opaque `threadId` and `sendMessage` runs a fresh task with the full prompt (no
+server-side resume). `listModels()` uses the SDK's `supportedModels()` and falls
+back to `default`/`sonnet`/`opus`/`haiku` aliases when unavailable.
+
+### opencode (`INTERVIEW_OS_RUNTIME=opencode`)
+
+Runs the opencode CLI once per task: `opencode run --format json [-m
+provider/model]`. There is no `opencode serve` process and no SDK. The prompt —
+instructions, JSON Schema and input — is written to the child's **stdin** (never
+argv, so untrusted text is never shell-interpreted and Windows `.cmd` shims
+work); the assistant `text` parts are collected from the NDJSON stream and the
+JSON reply is parsed as the structured output. `INTERVIEW_OS_OPENCODE_TIMEOUT_MS`
+bounds each task. Model ids are provider-qualified (`provider/model`, e.g.
+`anthropic/claude-sonnet-5`) from `opencode models`.
+
 ## Installation
 
 - Node.js 24 (developed and tested on v24.x), [pnpm](https://pnpm.io) 12
-- For the real AI runtime: Codex CLI on `PATH` (`codex --version`)
+- For the real AI runtime: Codex CLI on `PATH` (`codex --version`), or Claude
+  Code (`claude`) / opencode (`opencode`) for the alternative runtimes
 
 ```sh
 git clone <repo> && cd InterviewOS
 pnpm install
 ```
+
+Examples below use POSIX shell syntax (`VAR=value command`). On Windows
+PowerShell, set the variable first or use its own syntax — see
+[Environment variables on Windows](#environment-variables-on-windows).
 
 ## Quick start
 
@@ -322,6 +364,22 @@ pnpm dev          # server :4100 + web :3000
 
 Open http://localhost:3000 and set a target role (or load a bundled example).
 
+### Running on Windows
+
+Interview OS runs locally on Windows. The only common obstacle is an
+Application Control / Device Guard policy that blocks `pnpm.exe`; the server and
+web app themselves are fine, including the `better-sqlite3` native module.
+
+- If `pnpm ...` fails with `was blocked by your organization's Device Guard
+  policy`, use `corepack pnpm <args>` instead. The root `dev` / `typecheck`
+  scripts already call `corepack pnpm` internally, so `corepack pnpm dev` and
+  `corepack pnpm typecheck` work.
+- `corepack pnpm dev` starts both apps (server :4100, web :3000). Verify the API
+  directly at http://localhost:4100/api/runtime/status.
+- The test runner (`vitest`) may fail to start on such hosts because a
+  `rolldown` native binding is blocked. That is independent of SQLite; run the
+  tests on an unlocked machine or in CI.
+
 ## Mock runtime
 
 No Codex installed? Run fully deterministically:
@@ -330,41 +388,82 @@ No Codex installed? Run fully deterministically:
 INTERVIEW_OS_RUNTIME=mock pnpm dev
 ```
 
+```powershell
+$env:INTERVIEW_OS_RUNTIME="mock"; pnpm dev   # Windows PowerShell
+```
+
 ## Configuration
 
 | Variable | Default | Purpose |
 |---|---|---|
-| `INTERVIEW_OS_RUNTIME` | `codex` | `codex` or `mock` |
-| `INTERVIEW_OS_RUNTIME_FALLBACK` | — | `mock` to fall back when Codex is unavailable |
+| `INTERVIEW_OS_RUNTIME` | `codex` | `codex`, `mock`, `claude`, or `opencode` |
+| `INTERVIEW_OS_RUNTIME_FALLBACK` | — | `mock` to fall back when the selected runtime is unavailable |
 | `INTERVIEW_OS_CODEX_BIN` | `codex` on PATH | Path to the Codex executable |
 | `INTERVIEW_OS_CODEX_TIMEOUT_MS` | `120000` | Per-task timeout |
 | `INTERVIEW_OS_CODEX_WORKSPACE` | `data/codex-workspace` | Read-only sandbox dir |
+| `INTERVIEW_OS_CLAUDE_BIN` | `claude` on PATH | Path to the Claude Code executable |
+| `INTERVIEW_OS_CLAUDE_TIMEOUT_MS` | `120000` | Per-task timeout |
+| `INTERVIEW_OS_CLAUDE_WORKSPACE` | `data/claude-workspace` | Working dir for Claude tasks |
+| `INTERVIEW_OS_OPENCODE_BIN` | `opencode` on PATH | Path to the opencode executable |
+| `INTERVIEW_OS_OPENCODE_TIMEOUT_MS` | `120000` | Per-task timeout |
+| `INTERVIEW_OS_OPENCODE_WORKSPACE` | `data/opencode-workspace` | Working dir for opencode |
 | `INTERVIEW_OS_PORT` | `4100` | API server port |
 | `INTERVIEW_OS_DB` | `data/interview-os.db` | SQLite database path |
 | `INTERVIEW_OS_PLUGINS_DIR` | `<repo>/plugins` | Plugin discovery directory (manifest.json + index.ts per plugin) |
 | `INTERVIEW_OS_MOCK_DELAY_MS` | `0` | Per-chunk delay for mock streamed deltas (demo the streaming UX without Codex) |
 | `INTERVIEW_OS_TEST_MODE` | — | `1` enables `POST /api/test/reset` (e2e isolation only) |
 
+### Environment variables on Windows
+
+The `VAR=value command` form is POSIX-shell only. On Windows, set the variable
+first, or inline it per shell:
+
+| Shell | Set for the session | Inline for one command |
+|---|---|---|
+| PowerShell | `$env:INTERVIEW_OS_RUNTIME="opencode"` | `$env:INTERVIEW_OS_RUNTIME="opencode"; pnpm dev` |
+| cmd.exe | `set INTERVIEW_OS_RUNTIME=opencode` | `set INTERVIEW_OS_RUNTIME=opencode && pnpm dev` |
+
 ## Testing
+
+POSIX shell:
 
 ```sh
 pnpm typecheck && pnpm test     # unit + runtime (fake codex) + integration
+pnpm test:coverage              # same tests, minimum 70% line coverage
 pnpm test:e2e                   # Playwright over the mock runtime (4 focused specs)
-INTERVIEW_OS_LIVE_CODEX=1 pnpm test:codex      # opt-in live Codex unit test
-INTERVIEW_OS_LIVE_CODEX=1 pnpm test:e2e:live   # opt-in live Codex end-to-end
+INTERVIEW_OS_LIVE_CODEX=1 pnpm test:codex        # opt-in live Codex unit test
+INTERVIEW_OS_LIVE_CLAUDE=1 pnpm test:claude      # opt-in live Claude smoke
+INTERVIEW_OS_LIVE_OPENCODE=1 pnpm test:opencode  # opt-in live opencode smoke
+INTERVIEW_OS_LIVE_CODEX=1 pnpm test:e2e:live     # opt-in live Codex end-to-end
+```
+
+Windows PowerShell:
+
+```powershell
+$env:INTERVIEW_OS_LIVE_OPENCODE="1"; pnpm test:opencode
 ```
 
 `tests/integration/feedback-loop.test.ts` is the canonical product test: it
 walks the full loop and asserts the weak-skill retest behaviour end to end.
 
+### Continuous integration
+
+GitHub Actions runs on pull requests and pushes to `main`. It installs the locked
+pnpm dependencies on Node.js 24, typechecks the workspace, runs the Vitest unit
+and integration suite with a 70% line coverage minimum, and builds the Next.js
+app. The coverage check measures package source, the API server, and web library
+modules; it does not measure Next.js UI components. The workflow does not run
+Playwright or live AI provider tests. It can also be started manually from the
+Actions tab.
+
 ## Project structure
 
 ```
-apps/server         Hono API :4100, owns SQLite + Codex child processes
+apps/server         Hono API :4100, owns SQLite + provider child processes
 apps/web            Next.js + Tailwind UI :3000 (/api → server)
 packages/shared     logger (redacting), ids, errors
 packages/core       schemas, taxonomy, readiness math, gaps, prioritization, state machine
-packages/runtime    AIRuntime, MockRuntime, codex/ (exec adapter + app-server)
+packages/runtime    AIRuntime, MockRuntime, codex/ (exec adapter + app-server), claude/ (SDK), opencode/ (CLI)
 packages/skills     resume/jd/gap/company analyzers, prep-planner, star-coach, interviewer, evaluator, debrief
 packages/orchestrator InterviewOrchestrator + SQLite store (drizzle/better-sqlite3)
 examples/           seed resumes + JDs (backend-engineer is canonical)

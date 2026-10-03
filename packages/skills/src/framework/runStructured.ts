@@ -165,6 +165,11 @@ export async function runStructured<O>(
     } catch (err) {
       if (err instanceof RuntimeError) {
         if (!RETRYABLE_CODES.has(err.code)) {
+          ctx.logger.warn("skill.failed", {
+            taskId: opts.taskId,
+            runtimeCode: err.code,
+            message: err.message,
+          });
           throw new SkillRuntimeError(opts.taskId, err);
         }
         lastError = `${err.code}: ${err.message}`;
@@ -180,5 +185,10 @@ export async function runStructured<O>(
     instructions = `${opts.instructions}\n\nYour previous response was invalid: ${lastError}\nFix the output to satisfy the schema exactly.`;
     if (attempt < MAX_ATTEMPTS) ctx.onProgress?.({ stage: "retrying" });
   }
+  ctx.logger.warn("skill.failed", {
+    taskId: opts.taskId,
+    runtimeCode: "MALFORMED_OUTPUT",
+    message: lastError,
+  });
   throw new SkillOutputError(opts.taskId, lastError);
 }

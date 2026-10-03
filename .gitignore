@@ -49,6 +49,7 @@ env/
 .ruff_cache/
 .coverage
 coverage.xml
+coverage/
 htmlcov/
 .ipynb_checkpoints/
 
@@ -90,6 +91,8 @@ temp/
 # Interview OS runtime data
 data/*.db*
 data/codex-workspace/
+data/claude-workspace/
+data/opencode-workspace/
 test-results/
 playwright-report/
 

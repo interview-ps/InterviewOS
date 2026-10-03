@@ -178,25 +178,27 @@ describe("server api", () => {
 
     const before = await json(await app.request("/api/settings"));
     expect(before.taskMode).toBe("app-server");
-    expect(before.codexModel).toBeNull();
+    expect(before.model).toBeNull();
 
     const put = await app.request("/api/settings", {
       method: "PUT",
       headers: { "content-type": "application/json" },
-      body: JSON.stringify({ taskMode: "exec", codexModel: "mock" }),
+      body: JSON.stringify({ taskMode: "exec", model: "mock" }),
     });
     expect(put.status).toBe(200);
     const after = await json(put);
-    expect(after.taskMode).toBe("exec");
-    expect(after.codexModel).toBe("mock");
+    // taskMode is a Codex-only execution detail; the mock runtime ignores it.
+    expect(after.taskMode).toBe("app-server");
+    expect(after.model).toBe("mock");
 
-    const bad = await app.request("/api/settings", {
+    // a vanished model falls back to the provider default instead of erroring
+    const fallback = await app.request("/api/settings", {
       method: "PUT",
       headers: { "content-type": "application/json" },
-      body: JSON.stringify({ codexModel: "no-such-model" }),
+      body: JSON.stringify({ model: "no-such-model" }),
     });
-    expect(bad.status).toBe(400);
-    expect((await json(bad)).error.code).toBe("VALIDATION");
+    expect(fallback.status).toBe(200);
+    expect((await json(fallback)).model).toBe("mock");
   });
 
   it("validates bodies and enforces the size limit", async () => {
