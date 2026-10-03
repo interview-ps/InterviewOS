@@ -78,6 +78,14 @@ import { Store } from "./store/index.js";
 import type { LoopRow, SessionRow } from "./store/index.js";
 import { WorkflowContext, type ProgressOptions } from "./context.js";
 import {
+  SettingsService,
+  type OrchestratorSettings,
+} from "./settings-service.js";
+import { ResumeService } from "./resume-service.js";
+import { StoryService } from "./story-service.js";
+import { PluginService } from "./plugin-service.js";
+import { DebriefService } from "./debrief-service.js";
+import {
   rowToAction,
   rowToQuestion,
   type OrchestratorQuestion,
@@ -151,15 +159,7 @@ export interface SubmitAnswerResult {
 const INTERVIEWER_SESSION_INSTRUCTIONS = `You are the interviewer thread for Interview OS, a mock-interview tool. Each message asks you to produce ONE interview question as JSON matching the provided schema. Never repeat earlier questions.`;
 
 export type { ProgressOptions } from "./context.js";
-
-const TASK_MODES = ["app-server", "exec"] as const;
-export type TaskMode = (typeof TASK_MODES)[number];
-
-export interface OrchestratorSettings {
-  model: string | null;
-  reasoningEffort: "low" | "medium" | "high" | null;
-  taskMode: TaskMode;
-}
+export type { OrchestratorSettings, TaskMode } from "./settings-service.js";
 
 export class InterviewOrchestrator {
   private readonly store: Store;
@@ -169,6 +169,11 @@ export class InterviewOrchestrator {
   /** §9.6: every skill call goes through this host. */
   readonly host: SkillHost;
   private readonly workflow: WorkflowContext;
+  private readonly settings: SettingsService;
+  private readonly resume: ResumeService;
+  private readonly stories: StoryService;
+  private readonly plugins: PluginService;
+  private readonly debrief: DebriefService;
   private queue: Promise<unknown> = Promise.resolve();
 
   constructor(deps: OrchestratorDeps) {
@@ -185,6 +190,19 @@ export class InterviewOrchestrator {
       this.logger,
       this.now,
     );
+    this.settings = new SettingsService(this.workflow, this.runtime);
+    this.resume = new ResumeService({
+      ctx: this.workflow,
+      calculateGaps: () => this.calculateGapsInternal(),
+      recordUsageEvent: (event) => this.recordUsageEvent(event),
+    });
+    this.stories = new StoryService(this.workflow);
+    this.plugins = new PluginService({
+      ctx: this.workflow,
+      graphForActive: () => this.graphForActive(),
+      calculateGaps: () => this.calculateGapsInternal(),
+    });
+    this.debrief = new DebriefService(this.workflow);
   }
 
   private withLock<T>(fn: () => Promise<T>): Promise<T> {
@@ -199,67 +217,11 @@ export class InterviewOrchestrator {
   }
 
   getSettings(): OrchestratorSettings {
-    const opts = this.runtimeOptions();
-    return {
-      model: opts?.model ?? null,
-      reasoningEffort: opts?.effort ?? null,
-      taskMode: opts?.taskMode ?? "app-server",
-    };
-  }
-
-  /**
-   * Resolve a saved model against the live catalog. A model that vanished
-   * (provider changed / catalog refreshed) falls back to the entry flagged
-   * `isDefault` (or the first entry) and is persisted, so the UI never shows a
-   * stale id. Returns the effective model.
-   */
-  private async resolveModelOrDefault(saved: string | null): Promise<string | null> {
-    const models = await this.runtime.listModels();
-    if (models.length === 0) return saved;
-    if (saved && models.some((m) => m.id === saved)) return saved;
-    const fallback = models.find((m) => m.isDefault) ?? models[0];
-    const next = fallback?.id ?? null;
-    if (next !== saved) this.store.setSetting("model", next);
-    return next;
+    return this.settings.getSettings();
   }
 
   async updateSettings(patch: Partial<OrchestratorSettings>): Promise<OrchestratorSettings> {
-    return this.withLock(async () => {
-      if ("model" in patch) {
-        const model = patch.model ?? null;
-        if (model !== null) {
-          this.store.setSetting("model", await this.resolveModelOrDefault(model));
-        } else {
-          this.store.setSetting("model", null);
-        }
-      }
-      if ("reasoningEffort" in patch) {
-        const effort = patch.reasoningEffort ?? null;
-        if (effort !== null) {
-          const model = patch.model ?? this.store.getSetting("model") ?? null;
-          if (model !== null) {
-            const models = await this.runtime.listModels();
-            const m = models.find((x) => x.id === model);
-            if (m && m.supportedReasoningEfforts.length > 0 &&
-                !m.supportedReasoningEfforts.includes(effort)) {
-              throw new AppError(
-                "VALIDATION",
-                `model "${model}" does not support effort "${effort}"`,
-              );
-            }
-          }
-        }
-        this.store.setSetting("reasoningEffort", effort);
-      }
-      // taskMode is a Codex-only execution detail; ignore it for other runtimes.
-      if ("taskMode" in patch && patch.taskMode !== undefined && this.runtime.kind === "codex") {
-        if (!TASK_MODES.includes(patch.taskMode)) {
-          throw new AppError("VALIDATION", `invalid taskMode "${patch.taskMode}"`);
-        }
-        this.store.setSetting("taskMode", patch.taskMode);
-      }
-      return this.getSettings();
-    });
+    return this.withLock(async () => this.settings.updateSettings(patch));
   }
 
   private ctx(extra?: Partial<SkillContext>): SkillContext {
@@ -1467,71 +1429,11 @@ export class InterviewOrchestrator {
   }
 
   async createDebrief(sessionId: string, opts?: ProgressOptions) {
-    return this.withLock(() => this.createDebriefInternal(sessionId, opts));
+    return this.withLock(() => this.debrief.createDebriefInternal(sessionId, opts));
   }
 
-  private async createDebriefInternal(sessionId: string, opts?: ProgressOptions) {
-    const session = this.store.getSession(sessionId);
-    if (!session) throw new AppError("NOT_FOUND", `no session ${sessionId}`);
-    const existing = this.store.getDebrief(sessionId);
-    const status = session.status as InterviewStatus;
-    if (status === "complete") {
-      this.transitionSession(sessionId, "debrief", "debrief");
-    } else if (status !== "debrief") {
-      transition(status, "debrief"); // throws
-    }
-
-    const { target } = this.requireActive();
-    const questions = this.store.listQuestions(sessionId);
-    const evaluations = this.store
-      .listEvaluations(sessionId)
-      .map((r) => r.data as unknown as AnswerEvaluation);
-    const latest = this.store.latestReadinessBySkill();
-    const afterMap: Record<string, number | null> = {};
-    const beforeMap: Record<string, number | null> = {};
-    for (const [skillId, row] of latest) {
-      if (skillId === OVERALL_SKILL_ID) continue;
-      afterMap[skillId] = row.score;
-    }
-    // readiness "before" = latest snapshot at or before session creation
-    for (const skillId of Object.keys(afterMap)) {
-      const history = this.store.readinessHistory(skillId);
-      const beforeRow = history.find((r) => r.computedAt <= session.createdAt);
-      beforeMap[skillId] = beforeRow ? beforeRow.score : null;
-    }
-
-    let output;
-    if (existing) {
-      output = existing.data;
-    } else {
-      opts?.onProgress?.({ stage: "writing debrief" });
-      output = await this.host.invoke(
-        interviewDebrief,
-        {
-          role: target.role,
-          questions: questions.map((q) => ({
-            text: q.text,
-            skillId: q.skillId,
-            topic: q.topic,
-          })),
-          evaluations: evaluations as unknown[],
-          readinessBefore: beforeMap,
-          readinessAfter: afterMap,
-          openActions: this.store
-            .listActions("open")
-            .map((a) => ({ skillId: a.skillId, action: a.action })),
-        },
-        this.ctx({ sessionId, onProgress: opts?.onProgress }),
-      );
-      this.host.assertCan("interview-debrief", "interview.write");
-      this.store.insertDebrief({
-        id: newId("debrief"),
-        sessionId,
-        data: output as object,
-        createdAt: this.iso(),
-      });
-    }
-    return output;
+  private createDebriefInternal(sessionId: string, opts?: ProgressOptions) {
+    return this.debrief.createDebriefInternal(sessionId, opts);
   }
 
   // --------------------------------------------------------- §9.4 loops
@@ -2325,62 +2227,12 @@ export class InterviewOrchestrator {
   // ---------------------------------------------------------------- STAR stories (§8.4)
 
   listStories() {
-    const { candidate } = this.requireActive();
-    return this.store.listStories(candidate.id);
+    return this.stories.listStories();
   }
 
   /** Generate resume-grounded STAR stories via star-coach; dedupe by title. */
   async generateStories(opts?: ProgressOptions) {
-    return this.withLock(async () => {
-      const { candidate, target } = this.requireActive();
-      opts?.onProgress?.({ stage: "drafting stories" });
-      const behavioralSkillIds = [
-        ...target.requirements,
-        ...target.preferredSkills,
-      ]
-        .map((r) => r.skillId)
-        .filter((id) => inRound(id, "behavioral") || inRound(id, "hr"));
-      const existing = this.store.listStories(candidate.id);
-      const out = (await this.host.invoke(
-        starCoach,
-        {
-          mode: "generate" as const,
-          experience: candidate.experience,
-          achievements: candidate.achievements,
-          projects: candidate.projects,
-          behavioralSkillIds,
-          existingTitles: existing.map((s) => s.title),
-        },
-        this.ctx({ onProgress: opts?.onProgress }),
-      )) as { stories: Array<{ title: string; situation: string; task: string; action: string; result: string; skillIds: SkillId[] }> };
-      // §9.6: star-coach output persists generated stories.
-      this.host.assertCan("star-coach", "stories.write");
-      const taken = new Set(existing.map((s) => s.title.toLowerCase()));
-      const created = [];
-      for (const s of out.stories) {
-        if (taken.has(s.title.toLowerCase())) continue;
-        taken.add(s.title.toLowerCase());
-        const id = newId("story");
-        this.store.insertStory({
-          id,
-          candidateId: candidate.id,
-          title: s.title,
-          situation: s.situation,
-          task: s.task,
-          action: s.action,
-          result: s.result,
-          skillIds: s.skillIds,
-          source: "generated",
-          updatedAt: this.iso(),
-        });
-        created.push(this.store.getStory(id)!);
-      }
-      this.logger.info("state.mutated", {
-        entity: "star_story",
-        id: `${created.length} generated`,
-      });
-      return { stories: this.store.listStories(candidate.id), created: created.length };
-    });
+    return this.withLock(async () => this.stories.generateStories(opts));
   }
 
   /** User edits mark the story as theirs (source 'user'). */
@@ -2395,182 +2247,34 @@ export class InterviewOrchestrator {
       skillIds?: SkillId[];
     },
   ) {
-    return this.withLock(async () => {
-      const row = this.store.getStory(id);
-      if (!row) throw new AppError("NOT_FOUND", `no story ${id}`);
-      this.store.updateStory(id, {
-        ...(patch.title !== undefined && { title: patch.title }),
-        ...(patch.situation !== undefined && { situation: patch.situation }),
-        ...(patch.task !== undefined && { task: patch.task }),
-        ...(patch.action !== undefined && { action: patch.action }),
-        ...(patch.result !== undefined && { result: patch.result }),
-        ...(patch.skillIds !== undefined && { skillIds: patch.skillIds }),
-        source: "user",
-        updatedAt: this.iso(),
-      });
-      this.logger.info("state.mutated", { entity: "star_story", id });
-      return this.store.getStory(id);
-    });
+    return this.withLock(async () => this.stories.updateStory(id, patch));
   }
 
   /** Coach review of one story (star-coach.review); streams `feedback`. */
   async coachStory(id: string, opts?: ProgressOptions): Promise<StarCoachReviewOutput> {
-    return this.withLock(async () => {
-      const { target } = this.requireActive();
-      const row = this.store.getStory(id);
-      if (!row) throw new AppError("NOT_FOUND", `no story ${id}`);
-      opts?.onProgress?.({ stage: "coaching story" });
-      return (await this.host.invoke(
-        starCoach,
-        {
-          mode: "review" as const,
-          story: {
-            title: row.title,
-            situation: row.situation,
-            task: row.task,
-            action: row.action,
-            result: row.result,
-            skillIds: (row.skillIds as string[]) ?? [],
-          },
-          role: target.role,
-          level: target.level,
-        },
-        this.ctx({ onProgress: opts?.onProgress }),
-      )) as StarCoachReviewOutput;
-    });
+    return this.withLock(async () => this.stories.coachStory(id, opts));
   }
 
   // ------------------------------------------------------------- §9.5 resume coach
 
-  /**
-   * Deterministic ATS check + resume-coach bullets/tailor (run concurrently).
-   * Every suggestion passes guardSuggestion before persisting — the coach
-   * never creates evidence and never changes readiness.
-   */
   async reviewResume(opts?: ProgressOptions): Promise<ResumeReview> {
-    return this.withLock(async () => {
-      const { candidate, target } = this.requireActive();
-      const candidateRow = this.store.getActiveCandidate()!;
-      const resumeText = candidateRow.resumeText;
-      if (!resumeText.trim()) {
-        throw new AppError(
-          "VALIDATION",
-          "no resume on file — set up the workspace first",
-        );
-      }
-
-      opts?.onProgress?.({ stage: "checking ATS" });
-      const requirements = this.allRequirements(target);
-      const ats = atsCheck(resumeText, requirements);
-      const weakBullets = selectWeakestBullets(resumeText, 8);
-
-      opts?.onProgress?.({ stage: "improving bullets" });
-      opts?.onProgress?.({ stage: "tailoring to role" });
-      const [bulletsOut, tailorOut] = await Promise.all([
-        weakBullets.length > 0
-          ? this.host.invoke(
-              resumeCoach,
-              { mode: "bullets", resumeText, bullets: weakBullets },
-              this.ctx({ onProgress: opts?.onProgress }),
-            )
-          : Promise.resolve({ suggestions: [] }),
-        this.host.invoke(
-          resumeCoach,
-          {
-            mode: "tailor",
-            resumeText,
-            requirements,
-            role: target.role,
-            level: target.level,
-          },
-          this.ctx({ onProgress: opts?.onProgress }),
-        ),
-      ]);
-      const bulletSuggestions =
-        (bulletsOut as ResumeCoachBulletsOutput).suggestions ?? [];
-      const tailoring = (tailorOut as ResumeTailoring) ?? null;
-
-      // §9.5 guard: substitute invented numbers, drop invented entities.
-      const substitutions: string[] = [];
-      let dropped = 0;
-      const suggestions: ResumeSuggestion[] = bulletSuggestions.map((s) => {
-        const g = guardSuggestion(s.original, s.improved, resumeText);
-        substitutions.push(...g.substitutions);
-        if (!g.ok) {
-          dropped += 1;
-          return { ...s, improved: g.improved, dropped: g.dropped };
-        }
-        return { ...s, improved: g.improved };
-      });
-      this.logger.info("resume.guard", {
-        substitutions: substitutions.length,
-        dropped,
-      });
-
-      // §9.5: link prepGaps to real requirement gaps — no evidence, no
-      // readiness change.
-      const gaps = this.calculateGapsInternal();
-      const linkedGapSkillIds = [...new Set(
-        (tailoring?.prepGaps ?? [])
-          .map((pg) => {
-            const normalized = taxonomy.normalizeSkillId(pg);
-            const hit = gaps.find(
-              (g) =>
-                g.skillId === normalized ||
-                g.label.toLowerCase() === pg.toLowerCase(),
-            );
-            return hit?.skillId ?? null;
-          })
-          .filter((id): id is SkillId => id !== null),
-      )];
-
-      const review: ResumeReview = {
-        id: newId("rev"),
-        candidateId: candidate.id,
-        targetId: target.id,
-        ats,
-        suggestions,
-        tailoring,
-        linkedGapSkillIds,
-        guard: { substitutions: substitutions.length, dropped },
-        createdAt: this.iso(),
-      };
-      this.host.assertCan("resume-coach", "resume.write");
-      this.store.insertResumeReview(ResumeReviewSchema.parse(review));
-      this.recordUsageEvent("resume.coach.used");
-      this.logger.info("state.mutated", { entity: "resume_review", id: review.id });
-      return review;
-    });
+    return this.withLock(async () => this.resume.reviewResume(opts));
   }
 
-  /** Most recent persisted resume review, or null. */
   latestResumeReview(): ResumeReview | null {
-    const row = this.store.latestResumeReview();
-    if (!row) return null;
-    const parsed = ResumeReviewSchema.safeParse({
-      id: row.id,
-      candidateId: row.candidateId,
-      targetId: row.targetId,
-      ats: row.ats,
-      suggestions: row.suggestions,
-      tailoring: row.tailoring,
-      linkedGapSkillIds: row.linkedGapSkillIds,
-      guard: row.guard,
-      createdAt: row.createdAt,
-    });
-    return parsed.success ? parsed.data : null;
+    return this.resume.latestResumeReview();
   }
 
   // ------------------------------------------------------------- §9.6 plugins
 
   /** Register a plugin skill on the host (the server-side loader validates first). */
   registerPlugin(manifest: SkillManifest, executor: PluginExecutor): void {
-    this.host.registerPlugin(manifest, executor);
+    this.plugins.registerPlugin(manifest, executor);
   }
 
   /** All registered manifests — built-ins and loaded plugins. */
   listSkillManifests(): SkillManifest[] {
-    return this.host.manifests();
+    return this.plugins.listSkillManifests();
   }
 
   /**
@@ -2578,29 +2282,7 @@ export class InterviewOrchestrator {
    * the slices its manifest declares.
    */
   async runPlugin(id: string): Promise<unknown> {
-    return this.withLock(async () => {
-      const candidateRow = this.store.getActiveCandidate();
-      const targetRow = this.store.getActiveTarget();
-      const slices: PluginStateSlices = {};
-      if (candidateRow) {
-        const parsed = CandidateProfileSchema.safeParse(candidateRow.data);
-        if (parsed.success) slices.candidate = parsed.data;
-        slices.stories = this.store.listStories(candidateRow.id);
-      }
-      if (targetRow) {
-        const parsed = TargetRoleSchema.safeParse(targetRow.data);
-        if (parsed.success) slices.target = parsed.data;
-      }
-      if (candidateRow && targetRow) {
-        slices.readiness = this.graphForActive().dimensions;
-        slices.gaps = this.calculateGapsInternal();
-      }
-      slices.recentEvaluations = this.store
-        .listAllEvaluations()
-        .slice(-20)
-        .map((e) => e.data);
-      return this.host.invokePlugin(id, slices, this.ctx());
-    });
+    return this.withLock(async () => this.plugins.runPlugin(id));
   }
 
   updateActionStatus(actionId: string, status: "open" | "in_progress" | "done" | "superseded") {
