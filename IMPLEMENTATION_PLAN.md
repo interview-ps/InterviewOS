@@ -1,8 +1,8 @@
-# Interview OS — Implementation Plan (v0.1)
+# Interview OS — Implementation Plan
 
 Vertical slices; each phase ends green (`pnpm typecheck && pnpm test`).
 
-- [x] **P1 Repo + schemas** — pnpm workspace, TS strict, Vitest; `shared` (logger, ids);
+- [x] **P1 Repo + schemas** — pnpm workspace, TS strict, Vitest; `core/shared` (logger, ids);
       `core` schemas, taxonomy, readiness math, gaps, prioritisation, state machine + unit tests.
 - [x] **P2 Runtime** — `AIRuntime`, `MockRuntime`, `CodexRuntime` (detect, exec adapter,
       app-server process/protocol/sessions/event parser). Runtime tests against
@@ -33,8 +33,9 @@ Vertical slices; each phase ends green (`pnpm typecheck && pnpm test`).
 - [x] **W3 Resume + plugins** — ATS checks, resume coach with no-new-facts guard, manifests/permissions/host,
       plugin loader + sample plugin, command palette.
 - [x] **W4 Polish** — app-grade UI pass, E2E, live Codex verification, docs.
-- [x] **Multi-provider runtimes** (merged on main) — `ClaudeCodeRuntime` (`@anthropic-ai/claude-agent-sdk`)
-      and `OpencodeRuntime` (one-shot `opencode run --format json` CLI, stdin prompt) beside Codex;
+- [x] **Multi-provider runtimes** (merged on main) — `ClaudeCodeRuntime` (`@anthropic-ai/claude-agent-sdk`),
+      `OpencodeRuntime` (one-shot `opencode run --format json` CLI, stdin prompt), and
+      `DevinRuntime` (one-shot `devin -p --prompt-file <file>` CLI) beside Codex;
       dynamic model discovery with provider-default fallback; `codexModel` → `model` settings
       migration; repo agent tooling (`CLAUDE.md`, `.claude/`, `.opencode/`).
 

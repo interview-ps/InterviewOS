@@ -1,6 +1,6 @@
 import fs from "node:fs/promises";
 import path from "node:path";
-import { newId } from "@interview-os/shared";
+import { newId } from "@interview-os/core";
 import {
   RuntimeError,
   type AgentResult,

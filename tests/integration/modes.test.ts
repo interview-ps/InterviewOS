@@ -3,10 +3,10 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
 import { getMode, inRound, type RoundType } from "@interview-os/core";
-import { InterviewOrchestrator, openStore } from "@interview-os/orchestrator";
+import { InterviewOrchestrator, openStore } from "@interview-os/server/orchestrator";
 import { MockRuntime } from "@interview-os/runtime";
-import { createLogger } from "@interview-os/shared";
-import { registerMockHandlers } from "@interview-os/skills";
+import { createLogger } from "@interview-os/core";
+import { registerMockHandlers } from "@interview-os/server/skills";
 
 const REPO_ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../..");
 
@@ -52,7 +52,7 @@ describe("interview modes (§9.1)", () => {
       const start = await orch.startInterview({ plannedQuestions: 1, roundType: mode });
       expect(start.question).not.toBeNull();
       expect(inRound(start.question!.skillId, mode)).toBe(true);
-      const session = store.getSession(start.session.id)!;
+      const session = (await store.getSession(start.session.id))!;
       expect(session.roundType).toBe(mode);
       expect(session.modeState).toBeDefined();
     });
@@ -74,7 +74,7 @@ describe("interview modes (§9.1)", () => {
     expect(complexity).toBeDefined();
     expect(complexity!.score).toBeLessThan(0.6);
     // the answer row stored the code
-    const answers = store.listAnswers(start.session.id);
+    const answers = await store.listAnswers(start.session.id);
     expect(answers[0]!.code).toContain("def recentK");
     expect(answers[0]!.language).toBe("python");
     expect(result.nextAvailable).toBe("question");
@@ -87,7 +87,7 @@ describe("interview modes (§9.1)", () => {
     expect(q2.text.toLowerCase()).toContain("complexity");
 
     // the follow-up did not consume a planned question slot
-    const questions = store.listQuestions(start.session.id);
+    const questions = await store.listQuestions(start.session.id);
     expect(questions.filter((q) => !q.followUpOf).length).toBe(1);
     expect(questions.length).toBe(2);
   });
@@ -106,7 +106,7 @@ describe("interview modes (§9.1)", () => {
     await orch.submitAnswer(sid, {
       text: "Requirements: shorten URLs and redirect fast. Scale estimate: 1k QPS writes, 100k QPS reads, about 10GB storage growth per year. Constraints: low latency redirects.",
     });
-    let s = store.getSession(sid)!;
+    let s = (await store.getSession(sid))!;
     let dims = (s.modeState as { dimensions: Record<string, { status: string }> }).dimensions;
     expect(dims.requirements!.status).not.toBe("not_covered");
     expect(s.modeState.problem).toBeTruthy();
@@ -117,7 +117,7 @@ describe("interview modes (§9.1)", () => {
     await orch.submitAnswer(sid, {
       text: "Architecture: a load balancer in front of stateless app servers writing to Postgres, with Redis as a read cache for hot redirects.",
     });
-    s = store.getSession(sid)!;
+    s = (await store.getSession(sid))!;
     dims = (s.modeState as { dimensions: Record<string, { status: string }> }).dimensions;
     const covered = Object.values(dims).filter((d) => d.status !== "not_covered");
     expect(covered.length).toBeGreaterThanOrEqual(3);
@@ -228,6 +228,6 @@ describe("§9.3 company follow-up depth", () => {
       );
     }
     expect(orch.listCompanyProfiles().length).toBe(5);
-    expect(store.getTarget(target.id)).toBeDefined();
+    expect(await store.getTarget(target.id)).toBeDefined();
   });
 });

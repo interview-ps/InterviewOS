@@ -2,10 +2,10 @@ import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
-import { InterviewOrchestrator, openStore } from "@interview-os/orchestrator";
+import { InterviewOrchestrator, openStore } from "@interview-os/server/orchestrator";
 import { MockRuntime } from "@interview-os/runtime";
-import { createLogger } from "@interview-os/shared";
-import { registerMockHandlers } from "@interview-os/skills";
+import { createLogger } from "@interview-os/core";
+import { registerMockHandlers } from "@interview-os/server/skills";
 
 const REPO_ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../..");
 
@@ -48,7 +48,7 @@ describe("multiple targets (§8.1)", () => {
     expect(added.target.id).not.toBe(target1Id);
     expect(added.actions.length).toBeGreaterThan(0);
 
-    const targets = orch.listTargets();
+    const targets = await orch.listTargets();
     expect(targets.length).toBe(2);
     expect(targets.find((t) => t.id === added.target.id)!.active).toBe(true);
     expect(targets.find((t) => t.id === target1Id)!.active).toBe(false);
@@ -76,7 +76,7 @@ describe("multiple targets (§8.1)", () => {
         expect(openIds.has(a.id)).toBe(true);
       }
     }
-    expect(orch.listTargets().find((t) => t.id === target1Id)!.active).toBe(true);
+    expect((await orch.listTargets()).find((t) => t.id === target1Id)!.active).toBe(true);
 
     // activating a target with no open actions rebuilds its plan
     const back2 = await orch.activateTarget(added.target.id);

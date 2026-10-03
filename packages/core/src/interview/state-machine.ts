@@ -1,4 +1,4 @@
-import { AppError } from "@interview-os/shared";
+import { AppError } from "../shared/index.js";
 import { z } from "zod";
 import type { InterviewStatus } from "./index.js";
 

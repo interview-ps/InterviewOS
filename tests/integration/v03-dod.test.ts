@@ -3,10 +3,10 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
 import { taxonomy, type SkillId } from "@interview-os/core";
-import { InterviewOrchestrator, openStore } from "@interview-os/orchestrator";
+import { InterviewOrchestrator, openStore } from "@interview-os/server/orchestrator";
 import { MockRuntime } from "@interview-os/runtime";
-import { createLogger } from "@interview-os/shared";
-import { registerMockHandlers } from "@interview-os/skills";
+import { createLogger } from "@interview-os/core";
+import { registerMockHandlers } from "@interview-os/server/skills";
 
 const REPO_ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../..");
 const RESUME = fs.readFileSync(
@@ -58,7 +58,7 @@ describe("v0.3 definition of done (§9, mock)", () => {
       role: "Staff Backend Engineer",
       level: "staff",
     });
-    const targets = orch.listTargets();
+    const targets = await orch.listTargets();
     expect(targets.length).toBe(2);
     expect(targets.find((t) => t.active)?.id).toBe(t2.target.id);
 
@@ -67,7 +67,7 @@ describe("v0.3 definition of done (§9, mock)", () => {
     expect(amazon.followUpDepth).toBe(2);
     const patched = await orch.updateTargetCompanyProfile(t2.target.id, "amazon");
     expect(patched.target.companyProfileId).toBe("amazon");
-    expect(orch.listTargets().find((t) => t.id === t2.target.id)!.companyProfileId).toBe(
+    expect((await orch.listTargets()).find((t) => t.id === t2.target.id)!.companyProfileId).toBe(
       "amazon",
     );
 
@@ -120,7 +120,7 @@ describe("v0.3 definition of done (§9, mock)", () => {
     expect(loop.debrief!.rounds).toHaveLength(2);
 
     // readiness snapshots + per-round skill deltas after each round
-    const stored = store.getLoop(loopId)!;
+    const stored = (await store.getLoop(loopId))!;
     for (const r of stored.rounds as {
       readinessBefore: unknown;
       readinessAfter: unknown;
@@ -134,7 +134,7 @@ describe("v0.3 definition of done (§9, mock)", () => {
     }
 
     // --- prep actions exist (generated at setup + after interviews)
-    const actions = orch.listPreparationActions();
+    const actions = await orch.listPreparationActions();
     expect(actions.length).toBeGreaterThan(0);
 
     // --- resume review ran through the guard
@@ -144,7 +144,7 @@ describe("v0.3 definition of done (§9, mock)", () => {
     expect(review.suggestions.some((s) => s.improved.includes("[add metric]"))).toBe(true);
 
     // --- history returns all sessions with mode/company/target/loop
-    const history = orch.getHistory();
+    const history = await orch.getHistory();
     expect(history.length).toBe(modes.length + 2);
     for (const e of history) {
       expect(e.session.modeLabel ?? e.session.roundType).toBeTruthy();
@@ -157,7 +157,7 @@ describe("v0.3 definition of done (§9, mock)", () => {
     expect(loopEntries.map((e) => e.loop!.round).sort()).toEqual([1, 2]);
 
     // --- non-trivial metrics
-    const m = orch.getMetrics();
+    const m = await orch.getMetrics();
     expect(
       Object.values(m.sessionsPerMode).filter((n) => n > 0).length,
     ).toBeGreaterThanOrEqual(6);

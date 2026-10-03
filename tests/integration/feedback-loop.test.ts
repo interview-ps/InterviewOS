@@ -2,10 +2,10 @@ import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
-import { InterviewOrchestrator, openStore } from "@interview-os/orchestrator";
+import { InterviewOrchestrator, openStore } from "@interview-os/server/orchestrator";
 import { MockRuntime } from "@interview-os/runtime";
-import { createLogger } from "@interview-os/shared";
-import { registerMockHandlers } from "@interview-os/skills";
+import { createLogger } from "@interview-os/core";
+import { registerMockHandlers } from "@interview-os/server/skills";
 
 const REPO_ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../..");
 
@@ -66,7 +66,7 @@ describe("feedback loop (canonical)", () => {
       ),
     ).toBe(true);
 
-    const snapshotsAfterSetup = store.countReadinessSnapshots();
+    const snapshotsAfterSetup = await store.countReadinessSnapshots();
     expect(snapshotsAfterSetup).toBeGreaterThan(0);
 
     // --- 2. First interview ---
@@ -89,13 +89,11 @@ describe("feedback loop (canonical)", () => {
     expect(invWeakness).toBeDefined();
     expect(["medium", "high"]).toContain(invWeakness!.severity);
 
-    const invEvidence = store
-      .listEvidence()
-      .filter(
-        (e) =>
-          e.skillId === "distributed-systems.caching.cache-invalidation" &&
-          e.type === "interview_answer",
-      );
+    const invEvidence = (await store.listEvidence()).filter(
+      (e) =>
+        e.skillId === "distributed-systems.caching.cache-invalidation" &&
+        e.type === "interview_answer",
+    );
     expect(invEvidence.length).toBe(1);
     expect(invEvidence[0]!.sessionId).toBe(session1.id);
     expect(invEvidence[0]!.questionId).toBe(q1.id);
@@ -107,7 +105,7 @@ describe("feedback loop (canonical)", () => {
     expect(invReadiness.readiness!.status).toBe("weak");
     expect(invReadiness.readiness!.evidenceIds).toContain(invEvidenceId);
 
-    expect(store.countReadinessSnapshots()).toBeGreaterThan(snapshotsAfterSetup);
+    expect(await store.countReadinessSnapshots()).toBeGreaterThan(snapshotsAfterSetup);
 
     const invAction = result.newActions.find(
       (a) => a.skillId === "distributed-systems.caching.cache-invalidation",
@@ -118,7 +116,7 @@ describe("feedback loop (canonical)", () => {
 
     // --- 4. Complete interview 1 ---
     for (let guard = 0; guard < 10; guard++) {
-      const current = orch.getInterview(session1.id);
+      const current = await orch.getInterview(session1.id);
       const status = current.session.status;
       if (status === "complete" || status === "debrief") break;
       if (status === "follow_up") {
@@ -133,7 +131,7 @@ describe("feedback loop (canonical)", () => {
       }
     }
     await orch.completeInterview(session1.id);
-    const done1 = orch.getInterview(session1.id);
+    const done1 = await orch.getInterview(session1.id);
     expect(done1.session.status).toBe("debrief");
     expect(done1.debrief).toBeTruthy();
     expect((done1.debrief as { summary: string }).summary.length).toBeGreaterThan(0);
@@ -184,7 +182,7 @@ describe("feedback loop (canonical)", () => {
     // finish session 1 with reasonable answers
     const s1Questions: string[] = [q1.skillId];
     for (let guard = 0; guard < 10; guard++) {
-      const cur = orch.getInterview(s1);
+      const cur = await orch.getInterview(s1);
       const status = cur.session.status;
       if (status === "complete" || status === "debrief") break;
       if (status === "follow_up") {
@@ -203,15 +201,13 @@ describe("feedback loop (canonical)", () => {
       s.startsWith("distributed-systems.caching.") || s === "distributed-systems.consistency",
     );
     expect(retestInSession.length).toBeGreaterThan(0);
-    const retestQ = orch
-      .getInterview(s1)
+    const retestQ = (await orch.getInterview(s1))
       .questions.find((q) => q.skillId === retestInSession[0])!;
     expect(retestQ.selectionReason?.toLowerCase()).toContain("retest");
 
     // skills with weak interview evidence at end of session 1
     const weakAtEnd = new Set(
-      store
-        .listEvidence()
+      (await store.listEvidence())
         .filter((e) => e.type === "interview_answer" && e.score < 0.5)
         .map((e) => e.skillId),
     );
@@ -222,7 +218,7 @@ describe("feedback loop (canonical)", () => {
     const s2 = start2.session.id;
     const s2Questions = start2.question ? [start2.question] : [];
     for (let guard = 0; guard < 10 && s2Questions.length < 4; guard++) {
-      const cur = orch.getInterview(s2);
+      const cur = await orch.getInterview(s2);
       if (cur.session.status === "question") {
         const q = cur.questions[cur.questions.length - 1]!;
         await orch.submitAnswer(s2, goodAnswer(q));

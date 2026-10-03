@@ -1,12 +1,13 @@
 import fs from "node:fs";
 import path from "node:path";
 import { describe, expect, it } from "vitest";
-import { InterviewOrchestrator, openStore } from "@interview-os/orchestrator";
+import { InterviewOrchestrator, openStore } from "../src/orchestrator/index.js";
 import { MockRuntime } from "@interview-os/runtime";
-import { createLogger } from "@interview-os/shared";
-import { registerMockHandlers } from "@interview-os/skills";
-import { createApp, REPO_ROOT } from "../src/app.js";
-import { loadPlugins } from "../src/plugins.js";
+import { createLogger } from "@interview-os/core";
+import { registerMockHandlers } from "../src/skills/index.js";
+import { createApp } from "../src/http/app.js";
+import { REPO_ROOT } from "../src/paths.js";
+import { loadPlugins } from "../src/startup/plugins.js";
 
 const logger = createLogger({ level: "error", sink: () => {} });
 const fixtureDir = path.join(REPO_ROOT, "tests/fixtures/plugins");

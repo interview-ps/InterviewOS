@@ -2,12 +2,13 @@ import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
-import { InterviewOrchestrator, openStore } from "@interview-os/orchestrator";
+import { InterviewOrchestrator, openStore } from "../src/orchestrator/index.js";
 import { MockRuntime, RuntimeManager } from "@interview-os/runtime";
 import type { AIRuntime, RuntimeKind } from "@interview-os/runtime";
-import { createLogger } from "@interview-os/shared";
-import { registerMockHandlers } from "@interview-os/skills";
-import { createApp, REPO_ROOT } from "../src/app.js";
+import { createLogger } from "@interview-os/core";
+import { registerMockHandlers } from "../src/skills/index.js";
+import { createApp } from "../src/http/app.js";
+import { REPO_ROOT } from "../src/paths.js";
 
 const example = JSON.parse(
   fs.readFileSync(path.join(REPO_ROOT, "examples/backend-engineer/meta.json"), "utf8"),
@@ -95,6 +96,20 @@ describe("server api", () => {
     expect(body.runtime).toBe("mock");
     expect(body.available).toBe(true);
     expect(body.status).toBe("ready");
+  });
+
+  it("lists built-in company profiles at /api/companies", async () => {
+    const app = makeServer();
+    const res = await app.request("/api/companies");
+    expect(res.status).toBe(200);
+    const profiles = await json(res);
+    expect(profiles.length).toBeGreaterThan(1);
+    const generic = profiles.find((p: { id: string }) => p.id === "generic");
+    expect(generic.name).toBeTruthy();
+    expect(generic.disclaimer).toBeTruthy();
+    expect(generic.typicalLoop.length).toBeGreaterThan(0);
+    expect(generic.typicalLoop[0].mode).toBeTruthy();
+    expect(generic.typicalLoop[0].label).toBeTruthy();
   });
 
   it("serves examples", async () => {
@@ -239,6 +254,21 @@ describe("server api", () => {
     expect((await json(fallback)).model).toBe("mock");
   });
 
+  it("records usage events and serves metrics at /api", async () => {
+    const app = makeServer();
+    const ev = await post(app, "/api/events", JSON.stringify({ event: "palette.used" }));
+    expect(ev.status).toBe(200);
+    const bad = await post(app, "/api/events", JSON.stringify({ event: "nope" }));
+    expect(bad.status).toBe(400);
+    expect((await json(bad)).error.code).toBe("VALIDATION");
+
+    const res = await app.request("/api/metrics");
+    expect(res.status).toBe(200);
+    const body = await json(res);
+    expect(body.usage["palette.used"]).toBe(1);
+    expect(body.loopsStarted).toBe(0);
+  });
+
   it("validates bodies and enforces the size limit", async () => {
     const app = makeServer();
     const bad = await post(app, "/api/workspace/setup", JSON.stringify({ resumeText: "x" }));
@@ -296,7 +326,7 @@ describe("runtime detection + switching", () => {
     const body = await json(res);
     expect(body.mode).toBe("claude");
     expect(manager.kind).toBe("claude");
-    expect(store.getSetting("runtimeKind")).toBe("claude");
+    expect(await store.getSetting("runtimeKind")).toBe("claude");
 
     const status = await json(await app.request("/api/runtime/status"));
     expect(status.mode).toBe("claude");

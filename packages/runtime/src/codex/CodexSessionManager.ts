@@ -1,4 +1,4 @@
-import { newId } from "@interview-os/shared";
+import { newId } from "@interview-os/core";
 import {
   RuntimeError,
   validateModelAndEffort,

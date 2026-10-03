@@ -10,7 +10,7 @@ interview-question generator. See `ARCHITECTURE.md` for the full design.
 1. **No skill may create its own independent candidate model.** All state shapes live in
    `packages/core` (Zod). Import them; never redefine them.
 2. **AI-generated state mutations must pass schema validation** (`runStructured` in
-   `packages/skills`) before anything is persisted. Malformed output → retry → typed error.
+   `apps/server/src/skills/framework`) before anything is persisted. Malformed output → retry → typed error.
 3. **The readiness graph must remain evidence-backed.** Scores are derived from `skill_evidence`
    by `core/readiness`; snapshots are appended, never overwritten; every exposed score carries
    its evidence ids.
@@ -33,13 +33,16 @@ interview-question generator. See `ARCHITECTURE.md` for the full design.
 ```
 apps/server         Hono API :4100, owns SQLite + provider child process
 apps/web            Next.js + Tailwind UI :3000 (/api → server)
-packages/shared     logger (redacting), ids, errors
-packages/core       schemas, taxonomy, readiness, gaps, prioritize, state machine
+packages/core       schemas, taxonomy, readiness, gaps, prioritize, state machine,
+                    logger (redacting), ids, errors
 packages/runtime    AIRuntime, MockRuntime, codex/, claude/, opencode/, devin/
-packages/skills     resume-analyzer, jd-analyzer, gap-analyzer, company-profiler,
-                    prep-planner, star-coach, resume-coach, interviewer,
-                    answer-evaluator, interview-debrief, loop-debrief, host/SkillHost
-packages/orchestrator InterviewOrchestrator + SQLite store (drizzle/better-sqlite3)
+apps/server/src/skills        resume-analyzer, jd-analyzer, gap-analyzer, company-profiler,
+                              prep-planner, star-coach, resume-coach, interviewer,
+                              answer-evaluator, interview-debrief, loop-debrief, host/SkillHost
+apps/server/src/orchestrator  InterviewOrchestrator facade (withLock + composition) delegating
+                              to domain services (settings, workspace, targets, readiness,
+                              preparation, interview, loop, debrief, history, story, resume,
+                              plugin) over a shared WorkflowContext + SQLite store
 examples/           seed resumes + JDs (backend-engineer is canonical)
 plugins/            local read-only plugins (INTERVIEW_OS_PLUGINS_DIR overrides)
 tests/              integration (canonical feedback loop), fixtures/fake-codex.mjs, e2e
@@ -51,7 +54,7 @@ CLAUDE.md           Claude Code entrypoint (imports @AGENTS.md)
 ## How things work
 - **Shared state**: `InterviewOSState` is assembled by the store from SQLite. Skills get typed
   slices as input and return typed outputs; the orchestrator applies them as mutations.
-- **Skills**: `InterviewSkill<I,O>{ id, inputSchema, outputSchema, execute(input, ctx) }`.
+- **Skills**: `InterviewSkill<I,O>{ id, manifest, inputSchema, outputSchema, execute(input, ctx) }`.
   AI skills call `runStructured` → `ctx.runtime.runTask` (or `sendMessage` for the interviewer's
   session thread). Prompts live in each skill's `prompt.ts`.
 - **Codex runtime**: one-shot tasks use `codex exec --json --output-schema … -` (prompt on stdin,
@@ -96,6 +99,6 @@ INTERVIEW_OS_LIVE_DEVIN=1 pnpm test:devin      # opt-in, real local Devin CLI
 TypeScript strict, ESM, Zod for every boundary, small modules, no comments restating code,
 argv arrays for child processes, no new dependency without checking the existing stack covers it.
 
-## Not yet (v0.2+)
+## Not yet
 Cover letters, LinkedIn optimisation, job-search automation, offer comparison, salary
-negotiation, company-profile libraries, large question banks, PDF parsing, multi-user/collab.
+negotiation, web-researched company-profile libraries, large question banks, multi-user/collab.

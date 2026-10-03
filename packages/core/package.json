@@ -10,7 +10,6 @@
     "typecheck": "tsc --noEmit -p tsconfig.json"
   },
   "dependencies": {
-    "@interview-os/shared": "workspace:*",
     "zod": "4.6.5"
   }
 }

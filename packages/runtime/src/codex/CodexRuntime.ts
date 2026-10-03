@@ -1,5 +1,5 @@
 import fs from "node:fs/promises";
-import type { Logger } from "@interview-os/shared";
+import type { Logger } from "@interview-os/core";
 import {
   RuntimeError,
   validateModelAndEffort,

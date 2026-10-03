@@ -3,11 +3,11 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
 import { inRound } from "@interview-os/core";
-import { InterviewOrchestrator, openStore } from "@interview-os/orchestrator";
+import { InterviewOrchestrator, openStore } from "@interview-os/server/orchestrator";
 import { MockRuntime } from "@interview-os/runtime";
-import { createLogger } from "@interview-os/shared";
-import { jdAnalyzer, registerMockHandlers, taxonomyEntries } from "@interview-os/skills";
-import type { SkillContext } from "@interview-os/skills";
+import { createLogger } from "@interview-os/core";
+import { jdAnalyzer, registerMockHandlers, taxonomyEntries } from "@interview-os/server/skills";
+import type { SkillContext } from "@interview-os/server/skills";
 
 const REPO_ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../..");
 
@@ -84,7 +84,7 @@ describe("interview breadth (§8.4)", () => {
     expect(caching.boostedBy).toBe("company-profile");
 
     // stored on target data
-    const row = store.getTarget(target.id)!;
+    const row = (await store.getTarget(target.id))!;
     expect((row.data as { companyProfile?: unknown }).companyProfile).toBeDefined();
   });
 
@@ -98,7 +98,7 @@ describe("interview breadth (§8.4)", () => {
     });
     const q = start.question!;
     expect(inRound(q.skillId, "behavioral")).toBe(true);
-    expect(store.getSession(start.session.id)!.roundType).toBe("behavioral");
+    expect((await store.getSession(start.session.id))!.roundType).toBe("behavioral");
 
     const result = await orch.submitAnswer(
       start.session.id,
@@ -176,7 +176,7 @@ describe("interview breadth (§8.4)", () => {
     await orch.updateStory(generated[0]!.id, {
       result: "Reduced incident MTTR by 35% quarter over quarter.",
     });
-    const updated = store.getStory(generated[0]!.id)!;
+    const updated = (await store.getStory(generated[0]!.id))!;
     expect(updated.source).toBe("user");
     expect(updated.result).toContain("35%");
   });

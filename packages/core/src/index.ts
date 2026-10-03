@@ -1,3 +1,5 @@
+export * from "./shared/index.js";
+
 export {
   SKILL_ID_REGEX,
   SkillIdSchema,

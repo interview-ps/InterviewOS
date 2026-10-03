@@ -2,6 +2,15 @@ packages:
   - "apps/*"
   - "packages/*"
 
+# Drizzle declares many optional SQLite/DB drivers as optional peers; the server
+# only uses the built-in node:sqlite via drizzle-orm/sqlite-proxy, so skip the
+# unused native better-sqlite3 peer (its node-gyp build is what this migration
+# removes). Peer auto-install stays on because required peers (e.g. vitest's
+# `vite`) still need installing.
+ignoredOptionalDependencies:
+  - better-sqlite3
+
+# Build-script allowlist. better-sqlite3 must NOT appear here: it is no longer a
+# dependency, and its node-gyp build is what this migration removes.
 allowBuilds:
   esbuild: true
-  better-sqlite3: true
