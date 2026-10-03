@@ -161,3 +161,13 @@ Planned work includes sandboxed execution for coding answers, voice interviews, 
 Contributions are welcome. Start with [CONTRIBUTING.md](CONTRIBUTING.md) and the invariants in [AGENTS.md](AGENTS.md).
 
 Interview OS is [MIT licensed](LICENSE). Ideas were inspired by [ResumeSkills](https://github.com/Paramchoudhary/ResumeSkills) and [interview-skills](https://github.com/jennifer88huang/interview-skills); no code was copied.
+
+## Star History
+
+<a href="https://www.star-history.com/?repos=interview-ps%2Finterviewos&type=date&logscale=&releases=&legend=bottom-right">
+ <picture>
+   <source media="(prefers-color-scheme: dark)" srcset="https://api.star-history.com/chart?repos=interview-ps/interviewos&type=date&theme=dark&legend=bottom-right" />
+   <source media="(prefers-color-scheme: light)" srcset="https://api.star-history.com/chart?repos=interview-ps/interviewos&type=date&legend=bottom-right" />
+   <img alt="Star History Chart" src="https://api.star-history.com/chart?repos=interview-ps/interviewos&type=date&legend=bottom-right" />
+ </picture>
+</a>
