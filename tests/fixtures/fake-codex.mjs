@@ -148,6 +148,7 @@ const FAKE_MODELS = [
     model: "fake-small",
     displayName: "Fake Small",
     hidden: false,
+    isDefault: false,
     supportedReasoningEfforts: [
       { reasoningEffort: "low", description: "fast" },
       { reasoningEffort: "medium", description: "balanced" },
@@ -159,12 +160,24 @@ const FAKE_MODELS = [
     model: "fake-large",
     displayName: "Fake Large",
     hidden: false,
+    isDefault: true,
     supportedReasoningEfforts: [
       { reasoningEffort: "low", description: "fast" },
       { reasoningEffort: "medium", description: "balanced" },
       { reasoningEffort: "high", description: "deep" },
+      // upstream-only level the client must not advertise downstream
+      { reasoningEffort: "xhigh", description: "max" },
     ],
     defaultReasoningEffort: "high",
+  },
+  {
+    id: "fake-hidden",
+    model: "fake-hidden",
+    displayName: "Fake Hidden",
+    hidden: true,
+    isDefault: false,
+    supportedReasoningEfforts: [],
+    defaultReasoningEffort: null,
   },
 ];
 
@@ -196,12 +209,14 @@ function runAppServer() {
         break; // notification
       case "model/list": {
         record({ event: "model/list", params: msg.params });
-        // honour pagination: two fake models across two pages
-        if (msg.params?.cursor === "page2") {
-          reply({ data: [FAKE_MODELS[1]], nextCursor: null });
-        } else {
-          reply({ data: [FAKE_MODELS[0]], nextCursor: "page2" });
-        }
+        // honour pagination: three pages, one model each; the hidden model on
+        // the last page exercises the client's own `hidden` filter
+        const page =
+          msg.params?.cursor === "page3" ? 3 : msg.params?.cursor === "page2" ? 2 : 1;
+        reply({
+          data: [FAKE_MODELS[page - 1]],
+          nextCursor: page < 3 ? `page${page + 1}` : null,
+        });
         break;
       }
       case "thread/start": {

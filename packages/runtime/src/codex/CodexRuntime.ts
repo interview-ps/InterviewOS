@@ -1,6 +1,7 @@
 import fs from "node:fs/promises";
 import type { Logger } from "@interview-os/shared";
 import {
+  REASONING_EFFORTS,
   RuntimeError,
   validateModelAndEffort,
   type AgentResult,
@@ -137,26 +138,44 @@ export class CodexRuntime implements AIRuntime {
   async listModels(): Promise<ModelInfo[]> {
     const bin = await findCodexExecutable(this.opts.env);
     if (!bin) return [];
-    const mgr = this.sessionManagerFor(bin);
-    const models: ModelInfo[] = [];
-    let cursor: string | null = null;
-    for (let page = 0; page < 10; page++) {
-      const res = await mgr.modelList(cursor);
-      for (const m of res.data) {
-        if (m.hidden) continue;
-        models.push({
-          id: m.id,
-          displayName: m.displayName || m.id,
-          supportedReasoningEfforts: (m.supportedReasoningEfforts ?? []).map(
-            (o) => o.reasoningEffort,
-          ),
-          defaultReasoningEffort: m.defaultReasoningEffort ?? null,
-        });
+    try {
+      const mgr = this.sessionManagerFor(bin);
+      const models: ModelInfo[] = [];
+      const seen = new Set<string>();
+      let cursor: string | null = null;
+      for (let page = 0; page < 10; page++) {
+        const res = await mgr.modelList(cursor);
+        for (const m of res.data ?? []) {
+          if (m.hidden) continue;
+          const id = m.model ?? m.id;
+          if (typeof id !== "string" || id === "" || seen.has(id)) continue;
+          seen.add(id);
+          models.push({
+            id,
+            displayName: m.displayName || id,
+            // upstream also advertises e.g. minimal/xhigh, which the rest of
+            // the pipeline (validateModelAndEffort, SettingsSchema) rejects —
+            // only offer efforts that can actually be selected end-to-end
+            supportedReasoningEfforts: (m.supportedReasoningEfforts ?? [])
+              .map((o) => o?.reasoningEffort)
+              .filter((e): e is string =>
+                (REASONING_EFFORTS as readonly string[]).includes(e),
+              ),
+            defaultReasoningEffort: m.defaultReasoningEffort ?? null,
+            isDefault: m.isDefault === true,
+          });
+        }
+        if (!res.nextCursor) break;
+        cursor = res.nextCursor;
       }
-      if (!res.nextCursor) break;
-      cursor = res.nextCursor;
+      return models;
+    } catch (err) {
+      this.opts.logger?.warn("runtime.list_models_failed", {
+        runtime: "codex",
+        message: err instanceof Error ? err.message : String(err),
+      });
+      return [];
     }
-    return models;
   }
 
   async dispose(): Promise<void> {

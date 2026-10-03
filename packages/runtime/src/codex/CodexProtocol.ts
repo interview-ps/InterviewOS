@@ -54,6 +54,7 @@ export class CodexProtocol {
   /** One page of the model catalog. */
   async modelList(cursor?: string | null): Promise<ModelListResponse> {
     return (await this.proc.request("model/list", {
+      limit: 100,
       includeHidden: false,
       cursor: cursor ?? null,
     })) as ModelListResponse;

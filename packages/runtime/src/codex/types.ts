@@ -72,10 +72,13 @@ export interface TurnStartResult {
 export interface ModelListResponse {
   data: Array<{
     id: string;
-    displayName: string;
-    hidden: boolean;
-    supportedReasoningEfforts: Array<{ reasoningEffort: string; description: string }>;
-    defaultReasoningEffort: string | null;
+    /** The model slug `turn/start` expects; `id` is the preset identifier. */
+    model?: string;
+    displayName?: string;
+    hidden?: boolean;
+    isDefault?: boolean;
+    supportedReasoningEfforts?: Array<{ reasoningEffort: string; description: string }>;
+    defaultReasoningEffort?: string | null;
     [key: string]: unknown;
   }>;
   nextCursor: string | null;

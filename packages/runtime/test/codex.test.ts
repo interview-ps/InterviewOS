@@ -302,14 +302,24 @@ describe("runTask (app-server task mode)", () => {
   });
 
   it("listModels paginates model/list and maps effort options", async () => {
-    const rt = fakeRuntime("ok");
+    const rec = recordPath();
+    const rt = recordedRuntime("ok", rec);
     try {
       const models = await rt.listModels();
+      // hidden model on page 3 is dropped; all visible pages are returned
       expect(models.map((m) => m.id)).toEqual(["fake-small", "fake-large"]);
       expect(models[0]?.displayName).toBe("Fake Small");
       expect(models[0]?.supportedReasoningEfforts).toEqual(["low", "medium"]);
       expect(models[0]?.defaultReasoningEffort).toBe("medium");
+      expect(models[0]?.isDefault).toBe(false);
       expect(models[1]?.defaultReasoningEffort).toBe("high");
+      expect(models[1]?.isDefault).toBe(true);
+      // upstream-only effort levels are not advertised downstream
+      expect(models[1]?.supportedReasoningEfforts).toEqual(["low", "medium", "high"]);
+      const recs = await readRecord(rec);
+      const listReqs = recs.filter((r) => r.event === "model/list");
+      expect(listReqs.length).toBe(3);
+      expect((listReqs[0]?.params as { limit?: number })?.limit).toBe(100);
     } finally {
       await rt.dispose();
     }
