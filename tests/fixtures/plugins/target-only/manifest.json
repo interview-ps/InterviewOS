@@ -1,0 +1,9 @@
+{
+  "id": "target-only",
+  "version": "1.0.0",
+  "kind": "plugin",
+  "description": "Fixture: declares only target.read — must not see candidate data or runtime.",
+  "inputs": [{ "key": "target", "permission": "target.read" }],
+  "outputs": ["echo"],
+  "permissions": ["target.read"]
+}

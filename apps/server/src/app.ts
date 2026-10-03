@@ -5,7 +5,7 @@ import type { InterviewOrchestrator } from "@interview-os/orchestrator";
 import type { AIRuntime } from "@interview-os/runtime";
 import { RuntimeError } from "@interview-os/runtime";
 import { AppError, createLogger, type Logger } from "@interview-os/shared";
-import { RoundTypeSchema, SkillIdSchema } from "@interview-os/core";
+import { RoundTypeSchema, SkillIdSchema, MODE_IDS } from "@interview-os/core";
 import {
   SkillRuntimeError,
   SkillOutputError,
@@ -16,6 +16,7 @@ import { bodyLimit } from "hono/body-limit";
 import { streamSSE } from "hono/streaming";
 import { z } from "zod";
 import { extractDocument } from "./documents.js";
+import type { PluginLoadError } from "./plugins.js";
 
 export const REPO_ROOT = path.resolve(
   path.dirname(fileURLToPath(import.meta.url)),
@@ -27,6 +28,8 @@ export interface AppDeps {
   runtime: AIRuntime;
   examplesDir?: string;
   logger?: Logger;
+  /** §9.6: plugin directories that failed validation/import at startup. */
+  pluginErrors?: PluginLoadError[];
 }
 
 const SetupSchema = z.object({
@@ -41,7 +44,8 @@ const ResumeSchema = z.object({ resumeText: z.string().min(1).max(190_000) });
 const JobSchema = SetupSchema.omit({ resumeText: true });
 const InterviewCreateSchema = z.object({
   plannedQuestions: z.number().int().positive().max(20).optional(),
-  mode: z.enum(["interview", "practice"]).optional(),
+  // "interview"|"practice" = session mode (v0.2); a §9.1 ModeId also accepted
+  mode: z.string().max(32).optional(),
   focusSkillId: SkillIdSchema.optional(),
   actionId: z.string().min(1).optional(),
   roundType: RoundTypeSchema.optional(),
@@ -54,7 +58,27 @@ const StoryPatchSchema = z.object({
   result: z.string().max(20_000).optional(),
   skillIds: z.array(SkillIdSchema).optional(),
 });
-const AnswerSchema = z.object({ answer: z.string().min(1).max(190_000) });
+export const CODE_LANGUAGES = [
+  "python",
+  "javascript",
+  "typescript",
+  "java",
+  "go",
+  "cpp",
+  "csharp",
+  "ruby",
+  "rust",
+  "kotlin",
+  "swift",
+  "sql",
+  "other",
+] as const;
+const AnswerSchema = z.object({
+  answer: z.string().min(1).max(190_000),
+  /** §9.1: optional code submission, ≤ 50 KB, reviewed but not executed. */
+  code: z.string().max(50 * 1024).optional(),
+  language: z.enum(CODE_LANGUAGES).optional(),
+});
 const ActionPatchSchema = z.object({
   status: z.enum(["open", "in_progress", "done", "superseded"]),
 });
@@ -68,6 +92,23 @@ const TargetCreateSchema = z.object({
   level: z.enum(["junior", "mid", "senior", "staff"]),
   companyNotes: z.string().max(50_000).optional(),
 });
+const TargetPatchSchema = z.object({
+  companyProfileId: z.string().min(1).max(64),
+});
+const LoopCreateSchema = z.object({
+  rounds: z
+    .array(
+      z.object({
+        mode: z.enum(MODE_IDS),
+        label: z.string().max(80).optional(),
+        plannedQuestions: z.number().int().min(1).max(6).optional(),
+      }),
+    )
+    .min(2)
+    .max(7)
+    .optional(),
+});
+const UsageEventSchema = z.object({ event: z.string().min(1).max(64) });
 const SettingsSchema = z.object({
   codexModel: z.string().max(64).nullable().optional(),
   reasoningEffort: z.enum(["low", "medium", "high"]).nullable().optional(),
@@ -206,6 +247,13 @@ export function createApp(deps: AppDeps) {
 
   app.get("/api/state", async (c) => c.json(await orchestrator.getState()));
 
+  // test-mode only: reset endpoint for e2e isolation — 404 unless enabled
+  app.post("/api/test/reset", (c) => {
+    if (process.env.INTERVIEW_OS_TEST_MODE !== "1") return c.notFound();
+    orchestrator.resetAll();
+    return c.json({ ok: true });
+  });
+
   app.post("/api/workspace/setup", async (c) => {
     const body = await parseBody(c, SetupSchema);
     return streamOrJson(c, (onProgress) =>
@@ -269,6 +317,17 @@ export function createApp(deps: AppDeps) {
     c.json(await orchestrator.activateTarget(c.req.param("id"))),
   );
 
+  // §9.3: switch the target's company profile; boosts recompute from base.
+  app.patch("/api/targets/:id", async (c) => {
+    const { companyProfileId } = await parseBody(c, TargetPatchSchema);
+    return c.json(
+      await orchestrator.updateTargetCompanyProfile(c.req.param("id"), companyProfileId),
+    );
+  });
+
+  // §9.3: built-in company profiles (each carries its disclaimer).
+  app.get("/api/companies", (c) => c.json(orchestrator.listCompanyProfiles()));
+
   app.post("/api/documents/extract", async (c) => {
     const body = await c.req.parseBody();
     const file = body["file"];
@@ -297,8 +356,27 @@ export function createApp(deps: AppDeps) {
         throw new AppError("VALIDATION", "invalid request body");
       }
     }
+    // §9.1: `mode` accepts a ModeId (alias for roundType) or the v0.2
+    // session mode ("interview" | "practice").
+    let sessionMode: "interview" | "practice" | undefined;
+    let roundType = body.roundType;
+    if (body.mode !== undefined) {
+      if (body.mode === "interview" || body.mode === "practice") {
+        sessionMode = body.mode;
+      } else if (
+        body.mode === "mixed" ||
+        (MODE_IDS as readonly string[]).includes(body.mode)
+      ) {
+        roundType = RoundTypeSchema.parse(body.mode);
+      } else {
+        throw new AppError("VALIDATION", `unknown interview mode "${body.mode}"`);
+      }
+    }
     return streamOrJson(c, (onProgress) =>
-      orchestrator.startInterview(body, { onProgress }),
+      orchestrator.startInterview(
+        { ...body, mode: sessionMode, roundType },
+        { onProgress },
+      ),
     );
   });
 
@@ -329,10 +407,10 @@ export function createApp(deps: AppDeps) {
   );
 
   app.post("/api/interviews/:id/answer", async (c) => {
-    const { answer } = await parseBody(c, AnswerSchema);
+    const { answer, code, language } = await parseBody(c, AnswerSchema);
     const id = c.req.param("id");
     return streamOrJson(c, (onProgress) =>
-      orchestrator.submitAnswer(id, answer, { onProgress }),
+      orchestrator.submitAnswer(id, { text: answer, code, language }, { onProgress }),
     );
   });
 
@@ -360,6 +438,74 @@ export function createApp(deps: AppDeps) {
     }
     return c.json(interview.debrief);
   });
+
+  // --- §9.4 interview loops ------------------------------------------------
+
+  app.post("/api/loops", async (c) => {
+    const body = await parseBody(c, LoopCreateSchema);
+    return streamOrJson(c, (onProgress) =>
+      orchestrator.startLoop(body, { onProgress }),
+    );
+  });
+
+  app.get("/api/loops", (c) => c.json(orchestrator.listLoops()));
+
+  app.get("/api/loops/:id", (c) => c.json(orchestrator.getLoop(c.req.param("id"))));
+
+  app.post("/api/loops/:id/abandon", async (c) =>
+    c.json(await orchestrator.abandonLoop(c.req.param("id"))),
+  );
+
+  // --- §9.7 history / metrics / usage events --------------------------------
+
+  app.get("/api/history", (c) =>
+    c.json(
+      orchestrator.getHistory({
+        mode: c.req.query("mode") || undefined,
+        targetId: c.req.query("targetId") || undefined,
+        loopId: c.req.query("loopId") || undefined,
+        weakOnly: c.req.query("weakOnly") === "1" || c.req.query("weakOnly") === "true",
+      }),
+    ),
+  );
+
+  app.get("/api/history/:id", (c) => {
+    orchestrator.recordUsageEvent("history.viewed");
+    return c.json(orchestrator.getSessionHistory(c.req.param("id")));
+  });
+
+  // --- §9.5 resume coach ----------------------------------------------------
+
+  app.post("/api/resume/review", async (c) => {
+    return streamOrJson(c, (onProgress) =>
+      orchestrator.reviewResume({ onProgress }),
+    );
+  });
+
+  app.get("/api/resume/reviews/latest", (c) =>
+    c.json(orchestrator.latestResumeReview()),
+  );
+
+  // --- §9.6 skills & plugins ------------------------------------------------
+
+  app.get("/api/skills", (c) =>
+    c.json({
+      skills: orchestrator.listSkillManifests(),
+      pluginErrors: deps.pluginErrors ?? [],
+    }),
+  );
+
+  app.post("/api/plugins/:id/run", async (c) =>
+    c.json({ output: await orchestrator.runPlugin(c.req.param("id")) }),
+  );
+
+  app.post("/api/events", async (c) => {
+    const { event } = await parseBody(c, UsageEventSchema);
+    orchestrator.recordUsageEvent(event);
+    return c.json({ ok: true });
+  });
+
+  app.get("/api/metrics", (c) => c.json(orchestrator.getMetrics()));
 
   app.get("/api/readiness", async (c) => {
     const state = await orchestrator.getState();

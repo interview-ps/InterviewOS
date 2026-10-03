@@ -7,16 +7,19 @@ import {
   candidateAnswers,
   candidateProfiles,
   interviewDebriefs,
+  interviewLoops,
   interviewQuestions,
   interviewSessions,
   preparationActions,
   readinessScores,
   runtimeSessions,
   settings,
+  resumeReviews,
   starStories,
   skillEvidence,
   skillNodes,
   targetRoles,
+  usageEvents,
 } from "./schema.js";
 
 const DDL = `
@@ -40,7 +43,28 @@ CREATE TABLE IF NOT EXISTS interview_sessions (
   mode TEXT NOT NULL DEFAULT 'interview',
   round_type TEXT NOT NULL DEFAULT 'mixed',
   focus_skill_id TEXT, action_id TEXT,
+  mode_state TEXT NOT NULL DEFAULT '{}',
+  loop_id TEXT, loop_round INTEGER,
   created_at TEXT NOT NULL, completed_at TEXT
+);
+CREATE TABLE IF NOT EXISTS interview_loops (
+  id TEXT PRIMARY KEY, target_id TEXT,
+  company_profile_id TEXT NOT NULL DEFAULT 'generic',
+  rounds TEXT NOT NULL DEFAULT '[]',
+  status TEXT NOT NULL DEFAULT 'planned',
+  current_round INTEGER NOT NULL DEFAULT 0,
+  abandoned INTEGER NOT NULL DEFAULT 0,
+  debrief TEXT,
+  created_at TEXT NOT NULL, completed_at TEXT
+);
+CREATE TABLE IF NOT EXISTS resume_reviews (
+  id TEXT PRIMARY KEY, candidate_id TEXT, target_id TEXT,
+  ats TEXT NOT NULL, suggestions TEXT NOT NULL DEFAULT '[]',
+  tailoring TEXT, linked_gap_skill_ids TEXT NOT NULL DEFAULT '[]',
+  guard TEXT NOT NULL DEFAULT '{}', created_at TEXT NOT NULL
+);
+CREATE TABLE IF NOT EXISTS usage_events (
+  id TEXT PRIMARY KEY, event TEXT NOT NULL, created_at TEXT NOT NULL
 );
 CREATE TABLE IF NOT EXISTS interview_questions (
   id TEXT PRIMARY KEY, session_id TEXT NOT NULL, skill_id TEXT NOT NULL,
@@ -48,16 +72,21 @@ CREATE TABLE IF NOT EXISTS interview_questions (
   sub_skills TEXT NOT NULL DEFAULT '[]', expected_concepts TEXT NOT NULL DEFAULT '[]',
   difficulty TEXT NOT NULL DEFAULT 'medium',
   selection_priority REAL, selection_reason TEXT,
+  selection_factors TEXT NOT NULL DEFAULT '{}',
+  follow_up_of TEXT, follow_up_focus TEXT,
+  extra TEXT NOT NULL DEFAULT '{}',
   position INTEGER NOT NULL DEFAULT 0, created_at TEXT NOT NULL
 );
 CREATE TABLE IF NOT EXISTS candidate_answers (
   id TEXT PRIMARY KEY, question_id TEXT NOT NULL, session_id TEXT NOT NULL,
-  text TEXT NOT NULL, status TEXT NOT NULL DEFAULT 'evaluated',
+  text TEXT NOT NULL, code TEXT, language TEXT,
+  status TEXT NOT NULL DEFAULT 'evaluated',
   created_at TEXT NOT NULL
 );
 CREATE TABLE IF NOT EXISTS answer_evaluations (
   id TEXT PRIMARY KEY, answer_id TEXT NOT NULL, question_id TEXT NOT NULL,
-  session_id TEXT NOT NULL, data TEXT NOT NULL, created_at TEXT NOT NULL
+  session_id TEXT NOT NULL, data TEXT NOT NULL,
+  readiness_delta TEXT NOT NULL DEFAULT '[]', created_at TEXT NOT NULL
 );
 CREATE TABLE IF NOT EXISTS skill_nodes (
   id TEXT PRIMARY KEY, label TEXT NOT NULL, parent_id TEXT
@@ -116,6 +145,9 @@ export type PrepActionRow = typeof preparationActions.$inferSelect;
 export type RuntimeSessionRow = typeof runtimeSessions.$inferSelect;
 export type DebriefRow = typeof interviewDebriefs.$inferSelect;
 export type StarStoryRow = typeof starStories.$inferSelect;
+export type LoopRow = typeof interviewLoops.$inferSelect;
+export type UsageEventRow = typeof usageEvents.$inferSelect;
+export type ResumeReviewRow = typeof resumeReviews.$inferSelect;
 
 export class Store {
   readonly db: Db;
@@ -174,6 +206,56 @@ export class Store {
       "round_type",
       "ALTER TABLE interview_sessions ADD COLUMN round_type TEXT NOT NULL DEFAULT 'mixed'",
     );
+    addColumn(
+      "interview_sessions",
+      "mode_state",
+      "ALTER TABLE interview_sessions ADD COLUMN mode_state TEXT NOT NULL DEFAULT '{}'",
+    );
+    addColumn(
+      "interview_questions",
+      "selection_factors",
+      "ALTER TABLE interview_questions ADD COLUMN selection_factors TEXT NOT NULL DEFAULT '{}'",
+    );
+    addColumn(
+      "interview_questions",
+      "follow_up_of",
+      "ALTER TABLE interview_questions ADD COLUMN follow_up_of TEXT",
+    );
+    addColumn(
+      "interview_questions",
+      "follow_up_focus",
+      "ALTER TABLE interview_questions ADD COLUMN follow_up_focus TEXT",
+    );
+    addColumn(
+      "interview_questions",
+      "extra",
+      "ALTER TABLE interview_questions ADD COLUMN extra TEXT NOT NULL DEFAULT '{}'",
+    );
+    addColumn(
+      "candidate_answers",
+      "code",
+      "ALTER TABLE candidate_answers ADD COLUMN code TEXT",
+    );
+    addColumn(
+      "candidate_answers",
+      "language",
+      "ALTER TABLE candidate_answers ADD COLUMN language TEXT",
+    );
+    addColumn(
+      "interview_sessions",
+      "loop_id",
+      "ALTER TABLE interview_sessions ADD COLUMN loop_id TEXT",
+    );
+    addColumn(
+      "interview_sessions",
+      "loop_round",
+      "ALTER TABLE interview_sessions ADD COLUMN loop_round INTEGER",
+    );
+    addColumn(
+      "answer_evaluations",
+      "readiness_delta",
+      "ALTER TABLE answer_evaluations ADD COLUMN readiness_delta TEXT NOT NULL DEFAULT '[]'",
+    );
     // backfill: existing actions belong to whichever target was active at upgrade time
     this.client.exec(
       `UPDATE preparation_actions SET target_id = (
@@ -218,6 +300,9 @@ export class Store {
   activateTarget(id: string): void {
     this.db.update(targetRoles).set({ active: 0 }).run();
     this.db.update(targetRoles).set({ active: 1 }).where(eq(targetRoles.id, id)).run();
+  }
+  updateTargetData(id: string, data: object): void {
+    this.db.update(targetRoles).set({ data }).where(eq(targetRoles.id, id)).run();
   }
 
   // --- sessions ---------------------------------------------------------------
@@ -290,6 +375,16 @@ export class Store {
   }
   insertEvaluation(row: typeof answerEvaluations.$inferInsert): void {
     this.db.insert(answerEvaluations).values(row).run();
+  }
+  updateEvaluationDelta(
+    id: string,
+    delta: { skillId: string; before: number | null; after: number | null }[],
+  ): void {
+    this.db
+      .update(answerEvaluations)
+      .set({ readinessDelta: delta })
+      .where(eq(answerEvaluations.id, id))
+      .run();
   }
   listEvaluations(sessionId: string): EvaluationRow[] {
     return this.db
@@ -500,6 +595,78 @@ export class Store {
     return Object.fromEntries(
       this.db.select().from(settings).all().map((r) => [r.key, r.value]),
     );
+  }
+
+  /** Test-mode only (server gates on INTERVIEW_OS_TEST_MODE): wipe all state. */
+  resetAll(): void {
+    for (const t of [
+      candidateProfiles,
+      targetRoles,
+      interviewSessions,
+      interviewLoops,
+      interviewQuestions,
+      candidateAnswers,
+      answerEvaluations,
+      skillNodes,
+      skillEvidence,
+      readinessScores,
+      preparationActions,
+      runtimeSessions,
+      interviewDebriefs,
+      starStories,
+      settings,
+      resumeReviews,
+      usageEvents,
+    ]) {
+      this.db.delete(t).run();
+    }
+  }
+
+  // --- loops (§9.4) ----------------------------------------------------------
+  insertLoop(row: typeof interviewLoops.$inferInsert): void {
+    this.db.insert(interviewLoops).values(row).run();
+  }
+  getLoop(id: string): LoopRow | undefined {
+    return this.db.select().from(interviewLoops).where(eq(interviewLoops.id, id)).get();
+  }
+  listLoops(): LoopRow[] {
+    return this.db
+      .select()
+      .from(interviewLoops)
+      .orderBy(desc(interviewLoops.createdAt))
+      .all();
+  }
+  updateLoop(id: string, patch: Partial<typeof interviewLoops.$inferInsert>): void {
+    this.db.update(interviewLoops).set(patch).where(eq(interviewLoops.id, id)).run();
+  }
+  loopForSession(sessionId: string): LoopRow | undefined {
+    const s = this.getSession(sessionId);
+    return s?.loopId ? this.getLoop(s.loopId) : undefined;
+  }
+
+  // --- usage events (§9.7: names only, no content) ---------------------------
+  insertUsageEvent(row: { id: string; event: string; createdAt: string }): void {
+    this.db.insert(usageEvents).values(row).run();
+  }
+  countUsageEvents(event?: string): number {
+    const q = this.db.select({ n: sql<number>`count(*)` }).from(usageEvents);
+    const row = (event ? q.where(eq(usageEvents.event, event)) : q).get();
+    return row?.n ?? 0;
+  }
+
+  // --- resume reviews (§9.5) -------------------------------------------------
+  insertResumeReview(row: typeof resumeReviews.$inferInsert): void {
+    this.db.insert(resumeReviews).values(row).run();
+  }
+  latestResumeReview(candidateId?: string): ResumeReviewRow | undefined {
+    const rows = this.db
+      .select()
+      .from(resumeReviews)
+      .orderBy(desc(resumeReviews.createdAt))
+      .all();
+    return candidateId
+      ? rows.find((r) => r.candidateId === candidateId) ?? rows[0]
+      : rows[0];
   }
 }
 

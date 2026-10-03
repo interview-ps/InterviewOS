@@ -1,7 +1,7 @@
 import { defineConfig } from "@playwright/test";
 
-const SERVER_PORT = 4100;
-const WEB_PORT = 3000;
+const SERVER_PORT = 4310;
+const WEB_PORT = 3310;
 const DB = "/tmp/interview-os-e2e-live.db";
 
 /**
@@ -21,22 +21,29 @@ export default defineConfig({
   },
   webServer: [
     {
-      command: `sh -c 'rm -f ${DB} && exec ../../node_modules/.bin/tsx src/index.ts'`,
+      command: `sh -c 'rm -f ${DB} ${DB}-wal ${DB}-shm ${DB}-journal && exec ../../node_modules/.bin/tsx src/index.ts'`,
       cwd: "apps/server",
       url: `http://127.0.0.1:${SERVER_PORT}/api/runtime/status`,
       env: {
         INTERVIEW_OS_RUNTIME: "codex",
         INTERVIEW_OS_DB: DB,
         INTERVIEW_OS_PORT: String(SERVER_PORT),
+        // live Codex turns on a loaded machine can exceed the 120s default
+        INTERVIEW_OS_CODEX_TIMEOUT_MS: "300000",
       },
+      // surface server logs in the test output — live failures need them
+      stderr: "pipe",
       reuseExistingServer: false,
       timeout: 60_000,
     },
     {
       command:
-        "sh -c './node_modules/.bin/next build && exec ./node_modules/.bin/next start -p 3000'",
+        `sh -c './node_modules/.bin/next build && exec ./node_modules/.bin/next start -p ${WEB_PORT}'`,
       cwd: "apps/web",
       url: `http://127.0.0.1:${WEB_PORT}`,
+      env: {
+        INTERVIEW_OS_PORT: String(SERVER_PORT),
+      },
       reuseExistingServer: false,
       timeout: 240_000,
     },

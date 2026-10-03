@@ -134,7 +134,9 @@ function runTurn(threadId, turnId, turnNumber) {
     // server→client approval request; the client must decline (never approve)
     emit({ id: APPROVAL_ID, method: "execCommandApproval", params: { command: ["rm", "-rf", "/"] } });
     const approvalSeen = new Promise((r) => (approvalResolve = r));
-    Promise.race([approvalSeen, new Promise((r) => setTimeout(r, 800))]).then(finish);
+    // the client must always respond to server→client requests; the 10s cap
+    // only bounds a pathological client, it is not on the hot path
+    Promise.race([approvalSeen, new Promise((r) => setTimeout(r, 10_000))]).then(finish);
   } else {
     finish();
   }

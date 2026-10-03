@@ -21,6 +21,9 @@
 
   --radius-card: 1rem;
   --radius-sm: 0.6rem;
+
+  /* sidebar collapses to a top menu button below 900px */
+  --breakpoint-menu: 900px;
 }
 
 body {
@@ -31,6 +34,12 @@ body {
 
 h1, h2, h3, h4 {
   font-family: var(--font-display);
+}
+
+/* Plus Jakarta Sans has a very narrow space glyph (~0.2em vs Inter's ~0.3em);
+   in semibold display headings words read as merged — compensate globally. */
+h1, h2, h3, h4, .font-display {
+  word-spacing: 0.12em;
 }
 
 :focus-visible {

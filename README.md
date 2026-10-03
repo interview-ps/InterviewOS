@@ -58,6 +58,9 @@ and makes a follow-up question on the same weakness more likely next round.
 │ Orchestration                            │
 │ Planner │ Router │ Session │ State       │
 ├──────────────────────────────────────────┤
+│ SkillHost — manifests, permissions       │
+│ Plugins — local, read-only, declared I/O │
+├──────────────────────────────────────────┤
 │ Intelligence                             │
 │ Candidate │ Gap │ Readiness │ Evaluation │
 ├──────────────────────────────────────────┤
@@ -66,69 +69,211 @@ and makes a follow-up question on the same weakness more likely next round.
 └──────────────────────────────────────────┘
 ```
 
-## Features (v0.2)
+## What's new in v0.3
+
+- **Interview modes + full loops** (§9.1–9.4): six focused modes and
+  multi-round interview loops with deterministic round handoffs — a weak
+  round-1 answer retests related skills in later rounds.
+- **Company profiles** (§9.3): Google/Meta/Amazon/Microsoft-style loop shapes,
+  emphasis boosts and behavioral frameworks, per target.
+- **Resume coach** (§9.5): deterministic ATS check, guarded bullet rewrites
+  and role tailoring — it never invents facts.
+- **Skills & plugins** (§9.6): every skill declares a manifest; `SkillHost`
+  enforces input/output/permission boundaries; local read-only plugins load
+  from `plugins/`.
+- **History, metrics & command palette** (§9.7): full session history with
+  weak-answer filtering, progress metrics on Home, Ctrl/Cmd+K palette,
+  usage events.
+
+## Features
+
+### Readiness loop
 
 - Resume + JD analysis into typed candidate/target profiles (Zod-validated AI output).
-- Evidence-backed readiness graph with append-only score snapshots, now with
+- Evidence-backed readiness graph with append-only score snapshots and
   **time decay**: evidence weights halve at type-specific half-lives
   (interview answers 60 d, practice 45 d, self-reports 30 d, resume claims 180 d).
 - Gap analysis and a concrete, reprioritizing prep plan.
+- **Adaptive engine v3** (§9.2): question selection multiplies role
+  importance × readiness gap × uncertainty × weakness boost × recency ×
+  novelty, adapts difficulty to level and demonstrated strength, and pulls in
+  skills related to weaknesses seen in earlier rounds.
+- Deliberate weak-skill retesting in subsequent sessions; full evidence/audit
+  trail per skill, persisted in local SQLite.
+- Deterministic mock runtime for development and tests — no AI calls needed.
+
+### Interview modes & loops
+
+- **Interview modes** (§9.1): six focused modes — `technical`, `coding`,
+  `system_design`, `behavioral`, `hiring_manager`, `hr` — plus `mixed`, the
+  legacy v0.2 round. Each mode scopes which skills can be asked, carries its
+  own rubric of independent dimensions, keeps per-session mode state, and
+  decides follow-ups (which don't count toward planned questions). Coding
+  sessions present a problem and accept a code answer (≤ 50 KB, reviewed not
+  executed); system-design sessions walk eleven design dimensions whose
+  status (not covered → partial → covered) updates after every turn.
+- **Round types** (§8.4): `mixed` keeps the whole pool; every other mode
+  filters it (including the every-4th-question strong-area confirmation);
+  an empty pool in a focused mode falls back to that mode's taxonomy nodes.
+  The interviewer adopts a per-mode persona (e.g. scale numbers +
+  requirements→estimation→trade-offs for system design; STAR prompts for
+  behavioral).
+- **STAR evaluation**: behavioral/HR answers get a `star` assessment
+  (Situation/Task/Action/Result + notes); missing parts become a
+  `communication` weakness and a prep action.
+- **Full interview loops** (§9.4): a multi-round loop defaults to the active
+  target's company-profile `typicalLoop` (editable in the loop builder — mode,
+  label, questions per round, reorder/remove/add). Each round is a mode
+  session; completing a round stores a deterministic handoff (weak skills <
+  0.5, strong skills ≥ 0.75, observations) plus readiness before/after
+  snapshots and per-skill deltas for the skills that round evidenced, then
+  opens the next round. Weak skills carry forward via the engine's
+  `loopWeakSkills` (related skills pulled into scope, 1.4× boost, reason like
+  "Round 1 (Technical) showed weak Transactions"), and prior-round
+  observations reach the interviewer prompt. The last round ends with a
+  `loop-debrief`: per-round strong/mixed/weak signals + readiness change +
+  top actions — never a hire/no-hire verdict. Loops can be abandoned.
+- 7-dimension answer evaluation feeding evidence back into readiness.
+
+### Company profiles
+
+- Built-in profiles (Generic, Google, Meta, Amazon, Microsoft — heuristics
+  from commonly reported patterns, not official guides) are auto-matched from
+  the company name and selectable per target. Each profile shapes the typical
+  loop, emphasis boosts on matching requirements (recomputed from the
+  JD-analyzer base importances so boosts never compound), behavioral
+  framework, rubric emphasis and follow-up depth.
+- Optional careers-page notes (untrusted, delimited for the model) are
+  profiled into values/interview style/focus skills/behavioral themes that
+  stack on top; those focus skills boost matching JD requirements by +0.05
+  (cap 0.95) and themes reach the behavioral/HR interviewer.
+
+### Preparation: plan, stories, practice
+
 - **Practice sessions**: single-question sessions focused on one prep action
   ("verify with a question"); answers produce `practice` evidence and
   auto-complete the action at a demonstrated score ≥ 0.7.
 - **Self-check completion**: ticking success criteria on a prep action records
   one `self_report` evidence entry (score = met/total criteria, confidence 0.5).
+- **STAR story bank + coach**: stories extracted from your resume or generated
+  on demand live under **Stories** — editable, and coachable via
+  `star-coach.review` (feedback, missing parts, an improved draft).
 - **Multiple targets per candidate**: add additional role targets that reuse the
   same resume; evidence/readiness are shared while gaps, plans and sessions are
   scoped per target. Switch targets from the header or the Target Role page.
 - **Document upload**: resume/JD inputs accept PDF, DOCX, TXT and Markdown;
   extraction is server-side, in-memory, detected by magic bytes (5 MB limit,
   50k-char output cap).
+
+### Resume coach
+
+- `/resume` runs a review of the resume on file — a deterministic ATS check
+  (contact info, headings, length, bullets, quantified-impact ratio, action
+  verbs, pronouns, dates, required-skill keyword coverage → weighted 0–100
+  score), AI bullet rewrites, and a role-tailoring pass.
+- Bullet suggestions only come from experience/projects sections; a
+  no-invented-facts guard substitutes invented numbers with `[add metric]`
+  placeholders and drops suggestions that introduce entities absent from the
+  resume — nothing is auto-applied; you copy the suggestions you want.
+
+### Skills & plugins
+
+- Every skill carries a manifest (declared inputs, outputs, permissions) and
+  all skill calls go through `SkillHost`, which rejects undeclared inputs and
+  gates `ctx.runtime` behind `runtime.invoke`.
+- Local plugins load from `INTERVIEW_OS_PLUGINS_DIR` (default
+  `<repo>/plugins`) — each is a directory with `manifest.json` +
+  `index.ts|js`; plugins are read-only (write permissions are rejected at
+  load) and receive only the state slices their manifest declares. Ships with
+  `interview-day-checklist` as a sample. `/skills` lists manifests, load
+  errors and a Run button per plugin.
+
+### App surface
+
+- **History + metrics** (§9.7): every evaluation persists its readiness delta
+  (per-skill before→after). `/history` filters by mode, target, loop and
+  "weak answers only" (mean rubric < 0.5), expands to questions with nested
+  follow-ups, code answers, rubric bars, readiness changes, prep actions
+  created and the debrief. `/api/metrics` feeds the Home progress card (see
+  Success metrics below). Usage events are name+timestamp only —
+  `history.viewed`, `target.switched`, `resume.coach.used`, `palette.used`.
+- **Command palette** (§9.7): Ctrl/Cmd+K (or the ⌘K header button) opens a
+  fuzzy-filtered palette — start any interview mode or a full loop, practice
+  a skill with an open prep action, jump to a skill's readiness detail,
+  switch targets, run a resume review, check the Codex connection. Executions
+  record a `palette.used` usage event (names only, no content).
+- **Navigation** (§9.7): Home, Target, Prepare (Plan | Stories tabs),
+  Interview, Readiness, Resume, History, Skills & plugins, Settings — old
+  `/prep` and `/stories` routes redirect; the sidebar collapses to a menu
+  button below 900px.
 - **Live streaming UX** (SSE): setup, target analysis, question generation,
   evaluation and debrief stream stage updates and partial text to the UI —
   question text and evaluation summaries type in live.
 - **Runtime settings**: Codex model, reasoning effort and task mode
   (`app-server` warm process, default | `exec` per-task spawn) are configurable
   from Settings, persisted in SQLite, and applied on the next AI call.
-- State-machine-driven mock interviews with per-question selection reasons.
-- **Round types** (§8.4): `mixed`, `technical`, `system_design`, `behavioral`,
-  `hr`. Rounds filter the candidate pool for question selection (including the
-  every-4th-question strong-area confirmation); an empty pool in a focused
-  round falls back to that round's taxonomy nodes. The interviewer adopts a
-  per-round persona (e.g. scale numbers + requirements→estimation→trade-offs
-  for system design; STAR prompts for behavioral).
-- **STAR evaluation**: behavioral/HR answers get a `star` assessment
-  (Situation/Task/Action/Result + notes); missing parts become a
-  `communication` weakness and a prep action.
-- **STAR story bank + coach**: stories extracted from your resume or generated
-  on demand live under **Stories** — editable, and coachable via
-  `star-coach.review` (feedback, missing parts, an improved draft).
-- **Company profile**: optional careers-page notes (untrusted, delimited for
-  the model) are profiled into values/interview style/focus skills/behavioral
-  themes; focus skills boost matching JD requirements by +0.05 (cap 0.95) and
-  themes reach the behavioral/HR interviewer.
-- 7-dimension answer evaluation feeding evidence back into readiness.
-- Deliberate weak-skill retesting in subsequent sessions.
-- Full evidence/audit trail per skill, persisted in local SQLite.
-- Deterministic mock runtime for development and tests — no AI calls needed.
 
-### API additions (v0.2)
+### Local Codex
+
+All AI work runs on a locally installed Codex CLI — see
+[Local Codex integration](#local-codex-integration) below.
+
+## Screenshots
+
+| | |
+|---|---|
+| ![Home — progress metrics](docs/screenshots/home-progress.png) | ![Coding round evaluation](docs/screenshots/coding-eval.png) |
+| ![Loop debrief with per-round deltas](docs/screenshots/loop-debrief.png) | ![Readiness evidence](docs/screenshots/readiness.png) |
+
+## Success metrics
+
+`/api/metrics` measures whether the loop works, not vanity numbers:
+
+- **loopsCompleted / loopsStarted** — finished loops (abandoned don't count).
+- **sessionsPerMode** — sessions per interview mode.
+- **weaknessRetestRate** — of skills scored weak (< 0.5) in interview evidence,
+  the share later asked again on the same or a `related` skill. This is the
+  core loop working.
+- **improvementAfterPrep** — mean change in evidence scores for a skill after
+  its prep action completes.
+- **prepCompletionRate** — prep actions marked done / total.
+- **readinessCoverage** — required skills with an evidence-backed score
+  (confidence ≥ 40%) / total requirements.
+- **usage** — counts of allowlisted usage events (names only, no content).
+
+### API additions (v0.2+)
 
 | Route | Purpose |
 |---|---|
 | `POST /api/preparation/:id/complete` | Self-check: `{checkedCriteria: string[]}` → `self_report` evidence + `done` |
 | `GET /api/targets` / `POST /api/targets` / `POST /api/targets/:id/activate` | Multi-target management |
 | `POST /api/documents/extract` | Multipart `file` → `{text, format, pages?, warnings}` |
-| `POST /api/interviews` | extended with `{mode: "practice", focusSkillId, actionId, roundType}` |
+| `POST /api/interviews` | extended with `{mode, focusSkillId, actionId, roundType}` — `mode` also accepts a ModeId as a `roundType` alias |
+| `POST /api/interviews/:id/answer` | `{answer, code?, language?}` — code ≤ 50 KB, language from a fixed allowlist |
 | `GET /api/settings` / `PUT /api/settings` | `{codexModel, reasoningEffort, taskMode}` — validated against the live model list |
 | `GET /api/runtime/models` | Codex model catalog (`model/list`) |
 | `GET /api/stories` | STAR story bank for the active candidate |
 | `POST /api/stories/generate` | `star-coach.generate` → new stories (source `generated`, deduped by title) |
 | `PATCH /api/stories/:id` | Edit a story (source becomes `user`) |
 | `POST /api/stories/:id/coach` | `star-coach.review` → feedback, missing parts, improved draft |
+| `GET /api/companies` | Built-in company profiles (loop, emphasis, framework, disclaimer) |
+| `PATCH /api/targets/:id` | `{companyProfileId}` — switch profile; requirement boosts recomputed from base importances |
+| `POST /api/loops` | `{rounds?: [{mode, label?, plannedQuestions?}]}` → loop + round-1 session + first question |
+| `GET /api/loops` / `GET /api/loops/:id` | Loop timeline: rounds, status, handoffs, readiness before→after, debrief |
+| `POST /api/loops/:id/abandon` | Close an in-progress loop (`abandoned: true`, current session completed) |
+| `GET /api/history` | `?mode=&targetId=&loopId=&weakOnly=1` — sessions with nested follow-ups, rubric, readiness deltas, actions created |
+| `GET /api/history/:id` | One session's detail (records a `history.viewed` usage event) |
+| `POST /api/events` | `{event}` — allowlisted usage counter (no content) |
+| `GET /api/metrics` | Progress metrics for the Home card (see Success metrics) |
+| `POST /api/resume/review` | ATS check + bullet rewrites + tailoring (SSE-capable); guard applied before persisting |
+| `GET /api/resume/reviews/latest` | Most recent persisted resume review |
+| `GET /api/skills` | All skill manifests (built-ins + plugins) + plugin load errors |
+| `POST /api/plugins/:id/run` | Run a plugin against its manifest-declared state slices |
+| `POST /api/test/reset` | Test-only: wipes all state — 404 unless `INTERVIEW_OS_TEST_MODE=1` |
 
 Long-running POSTs (`workspace/setup`, `targets`, `interviews`,
-`interviews/:id/next|answer|complete`, `stories/generate`, `stories/:id/coach`) also accept `?stream=1` or
+`interviews/:id/next|answer|complete`, `stories/generate`, `stories/:id/coach`,
+`resume/review`) also accept `?stream=1` or
 `Accept: text/event-stream` and then emit SSE `stage`/`delta`/`result`/`error`
 events instead of a single JSON response.
 
@@ -196,13 +341,15 @@ INTERVIEW_OS_RUNTIME=mock pnpm dev
 | `INTERVIEW_OS_CODEX_WORKSPACE` | `data/codex-workspace` | Read-only sandbox dir |
 | `INTERVIEW_OS_PORT` | `4100` | API server port |
 | `INTERVIEW_OS_DB` | `data/interview-os.db` | SQLite database path |
+| `INTERVIEW_OS_PLUGINS_DIR` | `<repo>/plugins` | Plugin discovery directory (manifest.json + index.ts per plugin) |
 | `INTERVIEW_OS_MOCK_DELAY_MS` | `0` | Per-chunk delay for mock streamed deltas (demo the streaming UX without Codex) |
+| `INTERVIEW_OS_TEST_MODE` | — | `1` enables `POST /api/test/reset` (e2e isolation only) |
 
 ## Testing
 
 ```sh
 pnpm typecheck && pnpm test     # unit + runtime (fake codex) + integration
-pnpm test:e2e                   # Playwright over the mock runtime
+pnpm test:e2e                   # Playwright over the mock runtime (4 focused specs)
 INTERVIEW_OS_LIVE_CODEX=1 pnpm test:codex      # opt-in live Codex unit test
 INTERVIEW_OS_LIVE_CODEX=1 pnpm test:e2e:live   # opt-in live Codex end-to-end
 ```
@@ -224,12 +371,17 @@ examples/           seed resumes + JDs (backend-engineer is canonical)
 tests/              integration, fixtures/fake-codex.mjs, e2e (Playwright)
 ```
 
-## Roadmap (v0.3+)
+## Roadmap (v0.4+)
 
-Resume re-upload with versioned claims, voice mode, real company research
-(beyond pasted notes), cover letters, LinkedIn optimisation, job-search
-automation, offer comparison, salary negotiation, company-profile libraries,
-larger question banks, multi-user/collaboration.
+- **Sandboxed code execution** for coding rounds — run the answer, not just
+  review it.
+- **Voice mode** — spoken interviews with transcription.
+- **Plugin marketplace** — discoverable plugins plus scoped write permissions
+  (e.g. persisting derived artifacts) behind explicit grants.
+- Resume re-upload with versioned claims, real company research (beyond pasted
+  notes), cover letters, LinkedIn optimisation, job-search automation, offer
+  comparison, salary negotiation, company-profile libraries, larger question
+  banks, multi-user/collaboration.
 
 ## Acknowledgements
 

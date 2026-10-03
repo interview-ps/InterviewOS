@@ -1,5 +1,9 @@
 import { z } from "zod";
-import { CompanyProfileSchema, type CompanyProfile } from "@interview-os/core";
+import {
+  CompanyNotesProfileSchema,
+  type CompanyNotesProfile,
+  type SkillManifest,
+} from "@interview-os/core";
 import { runStructured } from "../../framework/runStructured.js";
 import type { InterviewSkill } from "../../framework/skill.js";
 import { normalizeSkillIds, TaxonomyEntrySchema } from "../../framework/common.js";
@@ -19,15 +23,36 @@ const CompanyProfilerAiOutputSchema = z.object({
   focusSkillIds: z.array(z.string()).default([]),
   behavioralThemes: z.array(z.string()).default([]),
 });
-export type CompanyProfilerOutput = CompanyProfile;
+export type CompanyProfilerOutput = CompanyNotesProfile;
+
+const manifest: SkillManifest = {
+  id: "company-profiler",
+  version: "1.0.0",
+  kind: "builtin",
+  description:
+    "Derives a company profile (values, interview style, focus skills, themes) from untrusted careers-page notes.",
+  inputs: [
+    { key: "company", permission: "target.read" },
+    { key: "companyNotes", permission: "target.read" },
+    { key: "taxonomy", permission: "taxonomy.read" },
+  ],
+  outputs: ["companyProfile"],
+  permissions: [
+    "target.read",
+    "taxonomy.read",
+    "runtime.invoke",
+    "target.write",
+  ],
+};
 
 export const companyProfiler: InterviewSkill<
   CompanyProfilerInput,
   CompanyProfilerOutput
 > = {
   id: "company-profiler",
+  manifest,
   inputSchema: CompanyProfilerInputSchema,
-  outputSchema: CompanyProfileSchema,
+  outputSchema: CompanyNotesProfileSchema,
   async execute(input, ctx) {
     const output = await runStructured(ctx, {
       taskId: "company-profiler",

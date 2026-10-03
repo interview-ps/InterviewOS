@@ -5,6 +5,7 @@ import { createRuntime, MockRuntime } from "@interview-os/runtime";
 import { createLogger } from "@interview-os/shared";
 import { registerMockHandlers } from "@interview-os/skills";
 import { createApp, REPO_ROOT } from "./app.js";
+import { loadPlugins } from "./plugins.js";
 
 const logger = createLogger({ level: "info", service: "server" });
 
@@ -20,7 +21,13 @@ if (runtime.kind === "mock") {
 }
 
 const orchestrator = new InterviewOrchestrator({ store, runtime, logger });
-const app = createApp({ orchestrator, runtime, logger });
+
+// §9.6: discover local plugins (default <repo>/plugins) before serving.
+const pluginsDir =
+  process.env.INTERVIEW_OS_PLUGINS_DIR ?? path.join(REPO_ROOT, "plugins");
+const pluginErrors = await loadPlugins(pluginsDir, orchestrator, logger);
+
+const app = createApp({ orchestrator, runtime, logger, pluginErrors });
 
 serve({ fetch: app.fetch, port }, (info) => {
   logger.info("server.listening", {

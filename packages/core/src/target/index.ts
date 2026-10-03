@@ -8,20 +8,23 @@ export const RequirementSchema = z.object({
   skillId: SkillIdSchema,
   label: z.string(),
   importance: z.number().min(0).max(1),
+  /** JD-analyzer importance before any boosts — boosts recompute from it (§9.3). */
+  baseImportance: z.number().min(0).max(1).optional(),
   kind: z.enum(["required", "preferred"]),
   evidence: z.string(),
-  /** e.g. "company-profile" — why this importance was raised (§8.4). */
+  /** e.g. "company-profile" / "company-profile:amazon" — why importance was raised. */
   boostedBy: z.string().optional(),
 });
 export type Requirement = z.infer<typeof RequirementSchema>;
 
-export const CompanyProfileSchema = z.object({
+/** §8.4: profile derived from untrusted pasted company notes (an overlay). */
+export const CompanyNotesProfileSchema = z.object({
   values: z.array(z.string()).default([]),
   interviewStyle: z.string().default(""),
   focusSkillIds: z.array(SkillIdSchema).default([]),
   behavioralThemes: z.array(z.string()).default([]),
 });
-export type CompanyProfile = z.infer<typeof CompanyProfileSchema>;
+export type CompanyNotesProfile = z.infer<typeof CompanyNotesProfileSchema>;
 
 export const TargetRoleSchema = z.object({
   id: z.string(),
@@ -32,6 +35,8 @@ export const TargetRoleSchema = z.object({
   companyNotes: z.string().optional(),
   requirements: z.array(RequirementSchema).default([]),
   preferredSkills: z.array(RequirementSchema).default([]),
-  companyProfile: CompanyProfileSchema.optional(),
+  companyProfile: CompanyNotesProfileSchema.optional(),
+  /** §9.3 built-in company profile id (auto-matched from `company`). */
+  companyProfileId: z.string().optional(),
 });
 export type TargetRole = z.infer<typeof TargetRoleSchema>;

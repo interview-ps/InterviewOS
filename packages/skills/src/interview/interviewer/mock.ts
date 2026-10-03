@@ -538,7 +538,14 @@ const TEMPLATES: Record<string, QuestionTemplate[]> = {
   ],
 };
 
-const GENERIC_TOPICS = ["applied in practice", "trade-offs", "debugging a failure"];
+const GENERIC_PROMPTS: ((label: string) => string)[] = [
+  (l) =>
+    `Walk me through a real project where you applied ${l}. What trade-offs did you make?`,
+  (l) =>
+    `Tell me about a time ${l} mattered in your work — what was hard about it?`,
+  (l) =>
+    `Looking back at your experience with ${l}, what would you do differently today?`,
+];
 
 export function interviewerMock(input: unknown): unknown {
   const { skillId, label, previousQuestions } = input as {
@@ -550,8 +557,8 @@ export function interviewerMock(input: unknown): unknown {
   const templates =
     TEMPLATES[skillId] ??
     TEMPLATES[taxonomy.parentOf(skillId as SkillId) ?? ""] ??
-    GENERIC_TOPICS.map((topic) => ({
-      text: `Walk me through how you have applied ${label} — ${topic} — what trade-offs did you make?`,
+    GENERIC_PROMPTS.map((prompt) => ({
+      text: prompt(label),
       topic: label,
       subSkills: [] as string[],
       expectedConcepts: (taxonomy.getNode(skillId as SkillId)?.keywords ?? [])

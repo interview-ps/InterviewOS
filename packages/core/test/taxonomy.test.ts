@@ -52,6 +52,14 @@ describe("taxonomy", () => {
     );
     expect(taxonomy.normalizeSkillId("Kafka")).toBe("distributed-systems.message-queues");
     expect(taxonomy.normalizeSkillId("brand new skill")).toBe("brand-new-skill");
+    // models sometimes prefix a keyword with a guessed branch — snap the last
+    // segment to the canonical node so related edges keep working
+    expect(taxonomy.normalizeSkillId("coding.complexity-analysis")).toBe("coding.complexity");
+    expect(taxonomy.normalizeSkillId("coding.Complexity Analysis")).toBe("coding.complexity");
+    // a genuinely unknown dotted id with no known last segment stays as-is
+    expect(taxonomy.normalizeSkillId("cloud.quantum-safe-crypto")).toBe(
+      "cloud.quantum-safe-crypto",
+    );
     expect(taxonomy.normalizeSkillId("!!!")).toBeNull();
   });
 });
