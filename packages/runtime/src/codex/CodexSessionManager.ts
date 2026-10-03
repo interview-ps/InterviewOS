@@ -263,18 +263,23 @@ export class CodexSessionManager {
       });
 
       const timer = setTimeout(() => {
-        if (threadId && turnId) {
-          this.protocol.turnInterrupt(threadId, turnId).catch(() => {});
-        }
-        finish(
-          fail(
-            new RuntimeError(
-              "TIMEOUT",
-              `codex task timed out after ${timeoutMs}ms`,
-            ),
-            lastText,
+        const timedOut = fail(
+          new RuntimeError(
+            "TIMEOUT",
+            `codex task timed out after ${timeoutMs}ms`,
           ),
+          lastText,
         );
+        // await the interrupt (bounded by its own request timeout) so the
+        // turn is actually cancelled before the caller sees TIMEOUT
+        if (threadId && turnId) {
+          void this.protocol
+            .turnInterrupt(threadId, turnId)
+            .catch(() => {})
+            .then(() => finish(timedOut));
+        } else {
+          finish(timedOut);
+        }
       }, timeoutMs);
 
       void (async () => {
