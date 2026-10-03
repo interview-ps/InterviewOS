@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="docs/assets/banner.png" alt="Interview OS — Open-Source AI Interview Preparation System" width="640" />
+</p>
+
 # Interview OS is interview preparation that learns from your answers.
 
 **A local-first, open-source workspace for turning a resume and job description into a targeted prep plan, realistic mock interviews, and an evidence-backed view of your readiness.**
@@ -102,6 +106,19 @@ On Windows PowerShell, start mock mode with `$env:INTERVIEW_OS_RUNTIME="mock"; p
 
 The mock runtime makes this walkthrough repeatable without AI calls. For your own resume and role, use a configured AI runtime. Resume and job description inputs accept PDF, DOCX, TXT, and Markdown files up to 5 MB.
 
+## Works with
+
+<div align="center">
+<table>
+  <tr>
+    <td align="center"><strong>Works<br/>with</strong></td>
+    <td align="center" valign="top"><picture><source media="(prefers-color-scheme: dark)" srcset="docs/assets/logos/opencode-dark.svg" /><img src="docs/assets/logos/opencode.svg" width="32" height="32" alt="opencode" /></picture><br/><sub>opencode</sub></td>
+    <td align="center" valign="top"><img src="docs/assets/logos/claude.svg" width="32" height="32" alt="Claude Code" /><br/><sub>Claude Code</sub></td>
+    <td align="center" valign="top"><img src="docs/assets/logos/codex.svg" width="32" height="32" alt="Codex" /><br/><sub>Codex</sub></td>
+  </tr>
+</table>
+</div>
+
 ## AI runtimes and local data
 
 | Runtime | Select with `INTERVIEW_OS_RUNTIME` | How to start |
@@ -160,7 +177,7 @@ Planned work includes sandboxed execution for coding answers, voice interviews, 
 
 Contributions are welcome. Start with [CONTRIBUTING.md](CONTRIBUTING.md) and the invariants in [AGENTS.md](AGENTS.md).
 
-Interview OS is [MIT licensed](LICENSE). Ideas were inspired by [ResumeSkills](https://github.com/Paramchoudhary/ResumeSkills) and [interview-skills](https://github.com/jennifer88huang/interview-skills); no code was copied.
+Interview OS is [MIT licensed](LICENSE).
 
 ## Star History
 
