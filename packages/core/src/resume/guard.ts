@@ -85,9 +85,10 @@ function numericCore(token: string): string {
 
 function containsNumber(haystackNorm: string, core: string): boolean {
   if (!core) return false;
-  return new RegExp(`(?<![\\d.])${core.replace(/\./g, "\\.")}(?![\\d])`).test(
-    haystackNorm,
-  );
+  // full regex-meta escape (incl. backslash) — a partial escape is an
+  // incomplete sanitization (CodeQL js/incomplete-sanitization)
+  const escaped = core.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  return new RegExp(`(?<![\\d.])${escaped}(?![\\d])`).test(haystackNorm);
 }
 
 function containsEntity(haystackNorm: string, token: string): boolean {
