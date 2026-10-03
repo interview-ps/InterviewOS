@@ -1,9 +1,10 @@
 "use client";
 
+import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { api, type PrepAction } from "@/lib/api";
-import { Button, Card, CardTitle, ErrorNote, Pill, Spinner, skillLabel } from "@/components/ui";
+import { Button, Card, CardTitle, EmptyState, ErrorNote, PageHeader, Pill, SkeletonCard, skillLabel, toast } from "@/components/ui";
 
 const ACTION_STATUS: Record<string, string> = {
   open: "open",
@@ -38,7 +39,12 @@ function ActionCard({
     });
 
   const markDone = () =>
-    run(a.id, () => api.completeAction(a.id, [...checked]).then(onChanged));
+    run(a.id, () =>
+      api.completeAction(a.id, [...checked]).then(() => {
+        toast("Action marked done");
+        onChanged();
+      }),
+    );
 
   const verify = () =>
     run(a.id, () =>
@@ -112,7 +118,15 @@ export default function PrepPlan() {
     fn().catch((e) => setError(e)).finally(() => setBusy(null));
   };
 
-  if (!actions && !error) return <Spinner label="Loading prep plan…" />;
+  if (!actions && !error) {
+    return (
+      <div className="space-y-5">
+        <PageHeader title="Prep Plan" />
+        <SkeletonCard />
+        <SkeletonCard />
+      </div>
+    );
+  }
 
   const open = (actions ?? [])
     .filter((a) => a.status === "open" || a.status === "in_progress")
@@ -123,16 +137,29 @@ export default function PrepPlan() {
 
   return (
     <div className="space-y-5">
-      <div className="flex items-center justify-between">
-        <h1 className="text-xl font-bold text-navy">Prep Plan</h1>
-        <Button variant="secondary" onClick={recalc} disabled={busy === "recalc"}>
-          {busy === "recalc" ? "Recalculating…" : "Recalculate"}
-        </Button>
-      </div>
+      <PageHeader
+        title="Prep Plan"
+        subtitle="Actions generated from your gaps — finish one, then verify with a question."
+        actions={
+          <Button variant="secondary" onClick={recalc} disabled={busy === "recalc"}>
+            {busy === "recalc" ? "Recalculating…" : "Recalculate"}
+          </Button>
+        }
+      />
       <ErrorNote error={error} />
 
       {open.length === 0 && !error && (
-        <Card><p className="text-sm text-muted">No open actions. Set a target role or recalculate the plan.</p></Card>
+        <Card>
+          <EmptyState
+            title="No open actions"
+            description="Set a target role or recalculate the plan."
+            action={
+              <Link href="/target">
+                <Button variant="secondary">Open target</Button>
+              </Link>
+            }
+          />
+        </Card>
       )}
 
       {open.map((a) => (

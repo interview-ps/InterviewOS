@@ -20,7 +20,7 @@ export const QuestionSchema = z.object({
   subSkills: z.array(SkillIdSchema).default([]),
   expectedConcepts: z.array(ExpectedConceptSchema).default([]),
   difficulty: QuestionDifficultySchema,
-  followUpOf: z.string().optional(),
+  followUpOf: z.string().nullish(),
   createdAt: z.string().optional(),
 });
 export type Question = z.infer<typeof QuestionSchema>;
@@ -70,10 +70,18 @@ export const InterviewStateSliceSchema = z.object({
 });
 export type InterviewStateSlice = z.infer<typeof InterviewStateSliceSchema>;
 
-export { selectNextSkill } from "./prioritize.js";
-export type { SkillCandidate, SelectNextSkillInput, SelectNextSkillResult } from "./prioritize.js";
+export { selectNextSkill, difficultyFor } from "./prioritize.js";
+export type {
+  LoopWeakSkill,
+  SelectionFactors,
+  SkillCandidate,
+  SelectNextSkillInput,
+  SelectNextSkillResult,
+} from "./prioritize.js";
 export { RoundTypeSchema, inRound, roundFallbackRequirements } from "./rounds.js";
 export type { RoundType } from "./rounds.js";
+export * from "./loop.js";
+export * from "./modes/index.js";
 export {
   INTERVIEW_STATES,
   InterviewEventSchema,

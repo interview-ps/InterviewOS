@@ -477,3 +477,149 @@ describe("runStructured retries", () => {
     ).rejects.toBeInstanceOf(SkillRuntimeError);
   });
 });
+
+describe("W1 fixes (§9.1)", () => {
+  const baseInput = {
+    skillId: "distributed-systems.caching.cache-invalidation",
+    label: "Cache Invalidation",
+    role: "Backend Engineer",
+    level: "senior" as const,
+    company: "Acme",
+    reason: "test",
+    previousQuestions: [] as string[],
+    candidateSummary: "cand",
+    roundType: "system_design" as const,
+    mode: "system_design" as const,
+    modeState: {},
+    companyGuidance: "",
+    companyThemes: [] as string[],
+    storyTitles: [] as string[],
+    priorRoundObservations: [] as string[],
+  };
+
+  it("system_design turn 1 always presents a design problem even for a non-SD skill", async () => {
+    const { ctx } = makeCtx();
+    const out = await interviewer.execute(
+      { ...baseInput, modeState: { problem: null } },
+      ctx,
+    );
+    expect(out.problem).not.toBeNull();
+    expect(String(out.problem)).toMatch(/^Design (a|an)/);
+    expect(out.question).toContain("Design");
+  });
+
+  it("generic fallback questions are well-formed sentences", async () => {
+    const { ctx } = makeCtx();
+    const out = await interviewer.execute(
+      {
+        ...baseInput,
+        skillId: "infrastructure.kubernetes",
+        label: "Kubernetes",
+        mode: "technical",
+        roundType: "technical",
+      },
+      ctx,
+    );
+    expect(out.question).toMatch(/Kubernetes/);
+    expect(out.question).not.toMatch(/applied in practice|— applied/);
+    expect(/[.?]$/.test(out.question)).toBe(true);
+  });
+
+  it("evaluator output is normalized: one entry per skill", async () => {
+    const runtime = new MockRuntime();
+    runtime.register("answer-evaluator.technical", () => ({
+      summary: "dup",
+      dimensions: {
+        correctness: { score: 0.5, rationale: "" },
+        technicalDepth: { score: 0.5, rationale: "" },
+        reasoning: { score: 0.5, rationale: "" },
+        structure: { score: 0.5, rationale: "" },
+        communication: { score: 0.5, rationale: "" },
+        evidence: { score: 0.5, rationale: "" },
+        roleRelevance: { score: 0.5, rationale: "" },
+      },
+      strengths: [],
+      weaknesses: [
+        { skill: "sql", severity: "low", evidence: "a" },
+        { skill: "sql", severity: "high", evidence: "b" },
+      ],
+      scores: [
+        { skill: "sql", score: 0.2, confidence: 0.4 },
+        { skill: "sql", score: 0.6, confidence: 0.8 },
+      ],
+      missingConcepts: ["x", "x"],
+      betterApproach: "",
+      followUpTopics: [],
+      star: null,
+      rubric: [
+        { id: "correctness", label: "Correctness", score: 0.5, rationale: "" },
+        { id: "technicalDepth", label: "Technical depth", score: 0.5, rationale: "" },
+        { id: "reasoning", label: "Reasoning", score: 0.5, rationale: "" },
+        { id: "communication", label: "Communication", score: 0.5, rationale: "" },
+        { id: "roleRelevance", label: "Role relevance", score: 0.5, rationale: "" },
+      ],
+      designUpdates: null,
+    }));
+    const ctx: SkillContext = { runtime, logger, now: () => new Date() };
+    const out = await answerEvaluator.execute(
+      {
+        question: { text: "q", topic: "t", skillId: "sql", expectedConcepts: [], difficulty: "medium" },
+        answer: "a",
+        role: "BE",
+        level: "senior",
+        roundType: "technical",
+        mode: "technical",
+      },
+      ctx,
+    );
+    expect(out.weaknesses.filter((w) => w.skill === "sql")).toHaveLength(1);
+    expect(out.weaknesses[0]!.severity).toBe("high");
+    expect(out.scores.filter((s) => s.skill === "sql")).toHaveLength(1);
+    expect(out.missingConcepts).toEqual(["x"]);
+  });
+});
+
+describe("loop-debrief (§9.4)", () => {
+  it("signals each round and never renders a hire verdict", async () => {
+    const { ctx } = makeCtx();
+    const { loopDebrief } = await import("../src/evaluate/loop-debrief/index.js");
+    const out = await loopDebrief.execute(
+      {
+        role: "BE",
+        company: "Acme",
+        rounds: [
+          {
+            mode: "coding",
+            label: "Coding",
+            summaries: ["missed edge cases"],
+            rubricAverages: { complexity: 0.2, correctness: 0.3 },
+            handoff: {
+              weakSkills: [{ skillId: "coding.edge-cases", score: 0.2, observation: "missed" }],
+              strongSkills: [],
+              observations: ["missed edge cases"],
+            },
+          },
+          {
+            mode: "behavioral",
+            label: "Behavioral",
+            summaries: ["clear STAR story"],
+            rubricAverages: { clarity: 0.85, relevance: 0.8 },
+            handoff: {
+              weakSkills: [],
+              strongSkills: [{ skillId: "behavioral.ownership", score: 0.85 }],
+              observations: ["clear STAR story"],
+            },
+          },
+        ],
+        readinessChange: { before: 0.4, after: 0.52 },
+      },
+      ctx,
+    );
+    expect(out.rounds).toHaveLength(2);
+    expect(out.rounds[0]!.signal).toBe("weak");
+    expect(out.rounds[1]!.signal).toBe("strong");
+    expect(out.readinessChange).toEqual({ before: 0.4, after: 0.52 });
+    expect(out.summary).not.toMatch(/no-hire|would hire|recommend hiring/i);
+    expect(out.topActions.length).toBeGreaterThan(0);
+  });
+});

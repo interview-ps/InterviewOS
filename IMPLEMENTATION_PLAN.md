@@ -26,12 +26,19 @@ Vertical slices; each phase ends green (`pnpm typecheck && pnpm test`).
       mode), live-Codex E2E pass.
 - [x] **V3 Interview breadth** — round types, STAR evaluation + story bank + coach, company profile.
 
-## v0.3
-- [x] **V4 Multi-provider runtimes** — `ClaudeCodeRuntime` (`@anthropic-ai/claude-agent-sdk`) and
-      `OpencodeRuntime` (one-shot `opencode run --format json` CLI, stdin prompt; no `serve`/SDK)
-      beside Codex; dynamic model discovery with provider-default fallback; `codexModel` → `model`
-      settings migration; repo agent tooling (`CLAUDE.md`, `.claude/`, `.opencode/`) with
-      read/shell permission hardening.
+## v0.3 (see ARCHITECTURE §9)
+- [x] **W1 Modes + engine** — per-mode modules (technical, coding, system design, behavioral, hiring manager, HR),
+      rubrics, mode state, follow-ups, adaptive engine v3, company profiles, new navigation.
+- [x] **W2 Loops + history** — full loops with cross-round handoff, loop debrief, enriched history, metrics.
+- [x] **W3 Resume + plugins** — ATS checks, resume coach with no-new-facts guard, manifests/permissions/host,
+      plugin loader + sample plugin, command palette.
+- [x] **W4 Polish** — app-grade UI pass, E2E, live Codex verification, docs.
+- [x] **Multi-provider runtimes** (merged on main) — `ClaudeCodeRuntime` (`@anthropic-ai/claude-agent-sdk`)
+      and `OpencodeRuntime` (one-shot `opencode run --format json` CLI, stdin prompt) beside Codex;
+      dynamic model discovery with provider-default fallback; `codexModel` → `model` settings
+      migration; repo agent tooling (`CLAUDE.md`, `.claude/`, `.opencode/`).
+
+Non-goals v0.3: voice/video, application automation, recruiter CRM, marketplace, billing, enterprise, mobile.
 
 Deferred to v0.4+: cover letters, LinkedIn, job search, offer comparison, salary negotiation,
 company profile library/web research, large question banks, multi-user, collaboration.

@@ -1,4 +1,5 @@
 import type { AIRuntime } from "@interview-os/runtime";
+import type { SkillManifest } from "@interview-os/core";
 import { AppError, type Logger } from "@interview-os/shared";
 import type { z } from "zod";
 
@@ -27,6 +28,8 @@ export interface SkillContext {
 
 export interface InterviewSkill<I, O> {
   readonly id: string;
+  /** §9.6 manifest: declared inputs, outputs and permissions. */
+  readonly manifest: SkillManifest;
   readonly inputSchema: z.ZodType<I>;
   readonly outputSchema: z.ZodType<O>;
   execute(input: I, ctx: SkillContext): Promise<O>;

@@ -1,8 +1,8 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { api, streamPost, type SetupResult, type TargetListItem } from "@/lib/api";
-import { Bar, Button, Card, CardTitle, ErrorNote, Pill, skillLabel } from "@/components/ui";
+import { api, streamPost, type CompanyProfileInfo, type SetupResult, type TargetListItem } from "@/lib/api";
+import { Bar, Button, Card, CardTitle, ErrorNote, PageHeader, Pill, skillLabel, toast } from "@/components/ui";
 
 const LEVELS = ["junior", "mid", "senior", "staff"];
 const ACCEPT = ".pdf,.docx,.txt,.md";
@@ -82,6 +82,7 @@ export default function TargetRole() {
   const [form, setForm] = useState({ resumeText: "", jobDescription: "", company: "", role: "", level: "senior", companyNotes: "" });
   const [meta, setMeta] = useState<{ resumeText?: FileMeta; jobDescription?: FileMeta }>({});
   const [targets, setTargets] = useState<TargetListItem[]>([]);
+  const [profiles, setProfiles] = useState<CompanyProfileInfo[]>([]);
   const [addForm, setAddForm] = useState({ jobDescription: "", company: "", role: "", level: "mid", companyNotes: "" });
   const [addMeta, setAddMeta] = useState<FileMeta | undefined>();
   const [addBusy, setAddBusy] = useState(false);
@@ -100,6 +101,7 @@ export default function TargetRole() {
 
   useEffect(() => {
     api.examples().then(setExamples).catch(() => {});
+    api.companies().then(setProfiles).catch(() => setProfiles([]));
     loadTargets();
     return () => { if (timer.current) clearInterval(timer.current); };
   }, [loadTargets]);
@@ -145,7 +147,11 @@ export default function TargetRole() {
     streamPost<SetupResult>("/api/workspace/setup", form, {
       onStage: (name) => setStages((s) => [...s, name]),
     })
-      .then((r) => { setResult(r); loadTargets(); })
+      .then((r) => {
+        setResult(r);
+        loadTargets();
+        toast("Workspace saved");
+      })
       .catch((e) => setError(e))
       .finally(() => {
         setBusy(false);
@@ -178,35 +184,75 @@ export default function TargetRole() {
 
   return (
     <div className="space-y-5">
-      <h1 className="text-xl font-bold text-navy">Target Role</h1>
+      <PageHeader
+        title="Target Role"
+        subtitle="The job description and resume that drive your readiness model."
+      />
       <ErrorNote error={error} />
 
       {targets.length > 0 && (
         <Card>
           <CardTitle>Your targets</CardTitle>
           {(() => {
-            const profile = targets.find((t) => t.active)?.companyProfile;
-            if (!profile) return null;
+            const activeTarget = targets.find((t) => t.active);
+            if (!activeTarget) return null;
+            const info =
+              profiles.find((p) => p.id === activeTarget.companyProfileId) ??
+              profiles.find((p) => p.id === "generic") ??
+              null;
+            const profile = activeTarget.companyProfile;
             return (
               <div className="mb-3 rounded-[0.6rem] border border-line bg-page p-3 text-sm" data-testid="company-profile">
-                <p className="font-medium text-navy">Company profile</p>
-                {profile.values.length > 0 && (
+                <label className="flex flex-wrap items-center gap-2">
+                  <span className="font-medium text-navy">Company profile</span>
+                  <select
+                    aria-label="Company profile"
+                    value={info?.id ?? "generic"}
+                    onChange={(e) =>
+                      api
+                        .updateTargetProfile(activeTarget.id, e.target.value)
+                        .then(() => window.location.reload())
+                        .catch(setError)
+                    }
+                    className="rounded-[0.6rem] border border-line bg-surface px-2 py-1 text-sm"
+                  >
+                    {profiles.map((p) => (
+                      <option key={p.id} value={p.id}>{p.name}</option>
+                    ))}
+                  </select>
+                </label>
+                {info && (
+                  <div className="mt-2 text-xs text-muted">
+                    <p>
+                      Typical loop: {info.typicalLoop.map((s) => s.label).join(" → ")}
+                      {" · "}follow-up depth {info.followUpDepth}
+                    </p>
+                    {info.behavioralFramework && (
+                      <p className="mt-0.5">
+                        {info.behavioralFramework.name}:{" "}
+                        {info.behavioralFramework.themes.join(", ")}
+                      </p>
+                    )}
+                    <p className="mt-1 italic">{info.disclaimer}</p>
+                  </div>
+                )}
+                {profile && profile.values.length > 0 && (
                   <p className="mt-1 text-muted">
                     <span className="text-ink">Values:</span> {profile.values.join(" · ")}
                   </p>
                 )}
-                {profile.interviewStyle && (
+                {profile?.interviewStyle && (
                   <p className="mt-1 text-muted">
                     <span className="text-ink">Interview style:</span> {profile.interviewStyle}
                   </p>
                 )}
-                {profile.focusSkillIds.length > 0 && (
+                {profile && profile.focusSkillIds.length > 0 && (
                   <p className="mt-1 text-muted">
                     <span className="text-ink">Focus areas:</span>{" "}
                     {profile.focusSkillIds.map((id) => skillLabel(id)).join(", ")}
                   </p>
                 )}
-                {profile.behavioralThemes.length > 0 && (
+                {profile && profile.behavioralThemes.length > 0 && (
                   <p className="mt-1 text-muted">
                     <span className="text-ink">Behavioral themes:</span>{" "}
                     {profile.behavioralThemes.join(", ")}
@@ -240,7 +286,7 @@ export default function TargetRole() {
       )}
 
       {hasCandidate && (
-        <Card>
+        <Card id="add-target">
           <CardTitle>Add another target role</CardTitle>
           <p className="mt-1 text-xs text-muted">
             Uses your current resume. The new target becomes active.

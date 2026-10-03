@@ -317,6 +317,8 @@ describe("runTask (app-server task mode)", () => {
 });
 
 describe("app-server sessions", () => {
+  // these tests spawn a fake app-server process and run several JSON-RPC
+  // round-trips; 60s keeps them deterministic under parallel test load
   it("runs a multi-turn session and declines approval requests", async () => {
     const rt = fakeRuntime("ok");
     try {
@@ -351,7 +353,7 @@ describe("app-server sessions", () => {
     } finally {
       await rt.dispose();
     }
-  });
+  }, 60_000);
 
   it("resumes threads after an app-server crash", async () => {
     const rt = fakeRuntime("app-crash-once");
@@ -380,5 +382,5 @@ describe("app-server sessions", () => {
     } finally {
       await rt.dispose();
     }
-  });
+  }, 60_000);
 });

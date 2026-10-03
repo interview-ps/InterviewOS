@@ -15,6 +15,13 @@ const nextConfig: NextConfig = {
     };
     return config;
   },
+  // §9.7: old routes moved under /prepare
+  async redirects() {
+    return [
+      { source: "/prep", destination: "/prepare", permanent: false },
+      { source: "/stories", destination: "/prepare/stories", permanent: false },
+    ];
+  },
   async rewrites() {
     return [
       {

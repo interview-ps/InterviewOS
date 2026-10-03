@@ -22,6 +22,12 @@ interview-question generator. See `ARCHITECTURE.md` for the full design.
    shell to the browser.
 7. Never log or return secrets/tokens. Provider auth is handled by the provider's own local
    install (`codex login`, `claude`, `opencode auth login`).
+8. **All skill calls go through `SkillHost`.** Never call `skill.execute` from orchestrator or
+   server code. Manifests declare inputs/permissions; the host rejects undeclared input keys,
+   gates `ctx.runtime` behind `runtime.invoke`, and `host.assertCan(id, "<x>.write")` must pass
+   before persisting a skill's outputs. Plugins are read-only local code: manifests requesting
+   `*.write` are rejected at load, and a plugin only ever receives the state slices it declares —
+   it cannot mutate application state.
 
 ## Repository map
 ```
@@ -31,10 +37,11 @@ packages/shared     logger (redacting), ids, errors
 packages/core       schemas, taxonomy, readiness, gaps, prioritize, state machine
 packages/runtime    AIRuntime, MockRuntime, codex/, claude/, opencode/
 packages/skills     resume-analyzer, jd-analyzer, gap-analyzer, company-profiler,
-                    prep-planner, star-coach, interviewer, answer-evaluator,
-                    interview-debrief
+                    prep-planner, star-coach, resume-coach, interviewer,
+                    answer-evaluator, interview-debrief, loop-debrief, host/SkillHost
 packages/orchestrator InterviewOrchestrator + SQLite store (drizzle/better-sqlite3)
 examples/           seed resumes + JDs (backend-engineer is canonical)
+plugins/            local read-only plugins (INTERVIEW_OS_PLUGINS_DIR overrides)
 tests/              integration (canonical feedback loop), fixtures/fake-codex.mjs, e2e
 CLAUDE.md           Claude Code entrypoint (imports @AGENTS.md)
 .claude/            Claude Code settings, agents, commands, skills

@@ -1,15 +1,26 @@
 import {
   AnswerEvaluationSchema,
+  atsCheck,
   buildReadinessGraph,
   calculateGaps,
   CandidateProfileSchema,
+  COMPANY_PROFILES,
+  getCompanyProfile,
+  getMode,
+  isModeId,
+  guardSuggestion,
   InterviewOSStateSchema,
-  selectNextSkill,
+  LoopRoundSchema,
+  matchCompanyProfile,
+  nextUncoveredDimension,
+  normalizeEvaluation,
+  ResumeReviewSchema,
+  selectWeakestBullets,
   inRound,
   taxonomy,
   TargetRoleSchema,
   transition,
-  type CompanyProfile,
+  type CompanyNotesProfile,
   type RoundType,
   type AnswerEvaluation,
   type CandidateProfile,
@@ -19,10 +30,19 @@ import {
   type InterviewOSState,
   type InterviewStatus,
   type Level,
+  type LoopDebrief,
+  type LoopRound,
+  type ModeState,
   type Question,
   type ReadinessGraph,
+  type ReadinessSnapshot,
   type Requirement,
+  type ResumeReview,
+  type ResumeSuggestion,
+  type RoundHandoff,
+  type SkillDelta,
   type SkillId,
+  type SystemDesignState,
   type TargetRole,
 } from "@interview-os/core";
 import { RuntimeError, type AIRuntime } from "@interview-os/runtime";
@@ -31,21 +51,31 @@ import {
   answerEvaluator,
   companyProfiler,
   interviewDebrief,
+  interviewPlanner,
   interviewer,
   jdAnalyzer,
+  loopDebrief,
   prepPlanner,
+  registerBuiltinSkills,
   resumeAnalyzer,
+  resumeCoach,
+  SkillHost,
   SkillRuntimeError,
   starCoach,
   taxonomyEntries,
   type JdAnalyzerOutput,
+  type PluginExecutor,
+  type PluginStateSlices,
   type PrepPlannerOutput,
   type ProgressUpdate,
   type ResumeAnalyzerOutput,
+  type ResumeCoachBulletsOutput,
   type SkillContext,
   type StarCoachReviewOutput,
 } from "@interview-os/skills";
+import type { ResumeTailoring, SkillManifest } from "@interview-os/core";
 import { Store } from "./store/index.js";
+import type { LoopRow, SessionRow } from "./store/index.js";
 
 const OVERALL_SKILL_ID = "__overall__";
 
@@ -81,6 +111,25 @@ export interface StartInterviewInput {
   actionId?: string;
   /** §8.4 round type; practice sessions ignore it (focus skill wins). */
   roundType?: RoundType;
+}
+
+/** §9.4: one round spec when starting a loop. */
+export interface LoopRoundInput {
+  mode: string;
+  label?: string;
+  plannedQuestions?: number;
+}
+
+interface InternalStartInput extends StartInterviewInput {
+  loopId?: string;
+  loopRound?: number;
+}
+
+export interface SubmitAnswerInput {
+  text: string;
+  /** §9.1 coding rounds: optional submitted code (reviewed, not executed). */
+  code?: string;
+  language?: string;
 }
 
 export interface SubmitAnswerResult {
@@ -124,6 +173,8 @@ export class InterviewOrchestrator {
   private readonly runtime: AIRuntime;
   private readonly logger: Logger;
   private readonly now: () => Date;
+  /** §9.6: every skill call goes through this host. */
+  readonly host: SkillHost;
   private queue: Promise<unknown> = Promise.resolve();
 
   constructor(deps: OrchestratorDeps) {
@@ -131,6 +182,8 @@ export class InterviewOrchestrator {
     this.runtime = deps.runtime;
     this.logger = deps.logger;
     this.now = deps.now ?? (() => new Date());
+    this.host = new SkillHost({ logger: deps.logger });
+    registerBuiltinSkills(this.host);
   }
 
   private withLock<T>(fn: () => Promise<T>): Promise<T> {
@@ -256,7 +309,8 @@ export class InterviewOrchestrator {
         onProgress?.({ stage: "analyzing job description" });
         const profileCompany = input.companyNotes?.trim()
           ? (onProgress?.({ stage: "profiling company" }),
-            companyProfiler.execute(
+            this.host.invoke(
+              companyProfiler,
               {
                 company: input.company,
                 companyNotes: input.companyNotes,
@@ -266,11 +320,13 @@ export class InterviewOrchestrator {
             ))
           : Promise.resolve(null);
         const [candidateOut, targetOut, companyProfile] = await Promise.all([
-          resumeAnalyzer.execute(
+          this.host.invoke(
+            resumeAnalyzer,
             { resumeText: input.resumeText, taxonomy: taxonomyEntries() },
             this.ctx({ onProgress }),
           ),
-          jdAnalyzer.execute(
+          this.host.invoke(
+            jdAnalyzer,
             {
               jobDescription: input.jobDescription,
               company: input.company,
@@ -311,7 +367,8 @@ export class InterviewOrchestrator {
   }
 
   private async analyzeCandidateInternal(resumeText: string): Promise<CandidateProfile> {
-    const output = await resumeAnalyzer.execute(
+    const output = await this.host.invoke(
+      resumeAnalyzer,
       { resumeText, taxonomy: taxonomyEntries() },
       this.ctx(),
     );
@@ -322,6 +379,10 @@ export class InterviewOrchestrator {
     resumeText: string,
     output: ResumeAnalyzerOutput,
   ): CandidateProfile {
+    // §9.6: the skill's outputs persist candidate profile + evidence + stories.
+    this.host.assertCan("resume-analyzer", "candidate.write");
+    this.host.assertCan("resume-analyzer", "evidence.write");
+    this.host.assertCan("resume-analyzer", "stories.write");
     const candidate: CandidateProfile = {
       id: newId("cand"),
       name: output.name ?? undefined,
@@ -381,9 +442,10 @@ export class InterviewOrchestrator {
   }
 
   /** §8.4: profile the company when untrusted notes were supplied. */
-  private profileCompany(input: TargetInput): Promise<CompanyProfile | null> {
+  private profileCompany(input: TargetInput): Promise<CompanyNotesProfile | null> {
     if (!input.companyNotes?.trim()) return Promise.resolve(null);
-    return companyProfiler.execute(
+    return this.host.invoke(
+      companyProfiler,
       {
         company: input.company,
         companyNotes: input.companyNotes,
@@ -395,27 +457,61 @@ export class InterviewOrchestrator {
 
   private async analyzeTargetInternal(input: TargetInput): Promise<TargetRole> {
     const [output, profile] = await Promise.all([
-      jdAnalyzer.execute({ ...input, taxonomy: taxonomyEntries() }, this.ctx()),
+      this.host.invoke(
+        jdAnalyzer,
+        { ...input, taxonomy: taxonomyEntries() },
+        this.ctx(),
+      ),
       this.profileCompany(input),
     ]);
     return this.persistTarget(input, output, profile);
   }
 
+  /**
+   * §9.3 importance: recompute from `baseImportance` (the JD-analyzer value)
+   * so boosts never compound. Built-in profile emphasis applies
+   * `boostedBy: "company-profile:<id>"`; the pasted-notes overlay keeps the
+   * v0.2 `+0.05` / `"company-profile"` semantics.
+   */
+  private applyRequirementBoosts(
+    req: Requirement,
+    companyProfileId: string | undefined,
+    notesFocus: Set<string>,
+  ): Requirement {
+    const base = req.baseImportance ?? req.importance;
+    const profile = companyProfileId ? getCompanyProfile(companyProfileId) : null;
+    let importance = base;
+    let boostedBy: string | undefined;
+    const emphasis = profile?.emphasis.find((e) => e.skillId === req.skillId);
+    if (emphasis && profile && profile.id !== "generic") {
+      importance = Math.min(0.95, importance + emphasis.weight);
+      boostedBy = `company-profile:${profile.id}`;
+    }
+    if (notesFocus.has(req.skillId)) {
+      importance = Math.min(0.95, importance + 0.05);
+      boostedBy = boostedBy ?? "company-profile";
+    }
+    return {
+      ...req,
+      baseImportance: base,
+      importance: Math.round(importance * 100) / 100,
+      boostedBy,
+    };
+  }
+
   private persistTarget(
     input: TargetInput,
     output: JdAnalyzerOutput,
-    companyProfile: CompanyProfile | null = null,
+    companyProfile: CompanyNotesProfile | null = null,
   ): TargetRole {
-    // §8.4: company focus skills boost requirement importance (+0.05, cap 0.95)
-    const focus = new Set<string>(companyProfile?.focusSkillIds ?? []);
+    // §9.6: skill outputs persist the target row (+ its notes-derived profile).
+    this.host.assertCan("jd-analyzer", "target.write");
+    if (companyProfile) this.host.assertCan("company-profiler", "target.write");
+    // §9.3: auto-match a built-in profile; §8.4 notes profile stays an overlay
+    const profileId = matchCompanyProfile(input.company).id;
+    const notesFocus = new Set<string>(companyProfile?.focusSkillIds ?? []);
     const boost = (r: Requirement): Requirement =>
-      focus.has(r.skillId)
-        ? {
-            ...r,
-            importance: Math.min(0.95, Math.round((r.importance + 0.05) * 100) / 100),
-            boostedBy: "company-profile",
-          }
-        : r;
+      this.applyRequirementBoosts(r, profileId, notesFocus);
     const target: TargetRole = {
       id: newId("target"),
       company: input.company,
@@ -426,6 +522,7 @@ export class InterviewOrchestrator {
       requirements: output.requirements.map(boost),
       preferredSkills: output.preferredSkills.map(boost),
       companyProfile: companyProfile ?? undefined,
+      companyProfileId: profileId,
     };
     this.store.deactivateTargets();
     this.store.insertTarget({
@@ -466,6 +563,7 @@ export class InterviewOrchestrator {
         active: t.active === 1,
         createdAt: t.createdAt,
         companyProfile: data?.companyProfile ?? null,
+        companyProfileId: data?.companyProfileId ?? "generic",
         boostedSkillIds: data
           ? [...data.requirements, ...data.preferredSkills]
               .filter((r) => r.boostedBy)
@@ -484,7 +582,8 @@ export class InterviewOrchestrator {
       }
       opts?.onProgress?.({ stage: "analyzing job description" });
       const [output, profile] = await Promise.all([
-        jdAnalyzer.execute(
+        this.host.invoke(
+          jdAnalyzer,
           { ...input, taxonomy: taxonomyEntries() },
           this.ctx({ onProgress: opts?.onProgress }),
         ),
@@ -504,6 +603,7 @@ export class InterviewOrchestrator {
       const row = this.store.getTarget(id);
       if (!row) throw new AppError("NOT_FOUND", `no target ${id}`);
       this.store.activateTarget(id);
+      this.recordUsageEvent("target.switched");
       this.logger.info("state.mutated", { entity: "target", id, active: true });
       const openActions = this.store.listActions("open", id);
       let actions: PrepActionRowLike[] = openActions.map(rowToAction);
@@ -512,6 +612,44 @@ export class InterviewOrchestrator {
         actions = plan.actions;
       }
       const target = TargetRoleSchema.parse(row.data);
+      return { target, actions };
+    });
+  }
+
+  /** §9.3: all built-in company profiles (each carries the disclaimer). */
+  listCompanyProfiles() {
+    return COMPANY_PROFILES;
+  }
+
+  /**
+   * §9.3: change a target's company profile. Importances are recomputed from
+   * the JD-analyzer `baseImportance` so boosts never compound; the notes
+   * overlay (§8.4) re-applies on top. Then readiness + plan rebuild.
+   */
+  async updateTargetCompanyProfile(targetId: string, companyProfileId: string) {
+    return this.withLock(async () => {
+      const row = this.store.getTarget(targetId);
+      if (!row) throw new AppError("NOT_FOUND", `no target ${targetId}`);
+      if (!COMPANY_PROFILES.some((p) => p.id === companyProfileId)) {
+        throw new AppError("VALIDATION", `unknown company profile "${companyProfileId}"`);
+      }
+      const target = TargetRoleSchema.parse(row.data);
+      target.companyProfileId = companyProfileId;
+      const notesFocus = new Set<string>(target.companyProfile?.focusSkillIds ?? []);
+      target.requirements = target.requirements.map((r) =>
+        this.applyRequirementBoosts(r, companyProfileId, notesFocus),
+      );
+      target.preferredSkills = target.preferredSkills.map((r) =>
+        this.applyRequirementBoosts(r, companyProfileId, notesFocus),
+      );
+      this.store.updateTargetData(targetId, target as unknown as object);
+      this.logger.info("state.mutated", {
+        entity: "target",
+        id: targetId,
+        companyProfileId,
+      });
+      this.recomputeReadinessInternal("company-profile");
+      const { actions } = await this.buildPreparationPlanInternal();
       return { target, actions };
     });
   }
@@ -666,7 +804,8 @@ export class InterviewOrchestrator {
 
     const created: PrepActionRowLike[] = [];
     if (targets.length > 0) {
-      const plan: PrepPlannerOutput = await prepPlanner.execute(
+      const plan: PrepPlannerOutput = await this.host.invoke(
+        prepPlanner,
         { targets, role: target.role, level: target.level },
         this.ctx(),
       );
@@ -696,6 +835,8 @@ export class InterviewOrchestrator {
     severity: "low" | "medium" | "high" = "medium",
     targetId?: string,
   ): PrepActionRowLike {
+    // §9.6: planned actions persist prep-planner output.
+    this.host.assertCan("prep-planner", "preparation.write");
     const existing = this.store.openActionForSkill(skillId, targetId);
     if (existing) this.store.updateActionStatus(existing.id, "superseded");
     const sourceEvidenceIds = this.store
@@ -770,7 +911,10 @@ export class InterviewOrchestrator {
   // ---------------------------------------------------------------- interviews
 
   async startInterview(input: StartInterviewInput = {}, opts?: ProgressOptions) {
-    return this.withLock(async () => {
+    return this.withLock(() => this.startInterviewInternal(input, opts));
+  }
+
+  private async startInterviewInternal(input: InternalStartInput, opts?: ProgressOptions) {
       const { candidate, target } = this.requireActive();
       const mode = input.mode ?? "interview";
       if (mode === "practice" && !input.focusSkillId) {
@@ -782,6 +926,7 @@ export class InterviewOrchestrator {
       }
       // practice sessions are single-question verifications
       const plannedQuestions = mode === "practice" ? 1 : (input.plannedQuestions ?? 4);
+      const roundType = input.roundType ?? "mixed";
       const sessionId = newId("int");
       const createdAt = this.iso();
       this.store.insertSession({
@@ -791,9 +936,12 @@ export class InterviewOrchestrator {
         status: "created",
         plannedQuestions,
         mode,
-        roundType: input.roundType ?? "mixed",
+        roundType,
         focusSkillId: input.focusSkillId ?? null,
         actionId: input.actionId ?? null,
+        modeState: getMode(roundType).initialState(),
+        loopId: input.loopId ?? null,
+        loopRound: input.loopRound ?? null,
         createdAt,
       });
       this.transitionSession(sessionId, "analyzing", "analyze");
@@ -814,7 +962,6 @@ export class InterviewOrchestrator {
       });
       this.logger.info("workflow.completed", { workflow: "startInterview", sessionId });
       return this.nextQuestionInternal(sessionId, opts);
-    });
   }
 
   private transitionSession(
@@ -842,10 +989,24 @@ export class InterviewOrchestrator {
     const questions = this.store.listQuestions(sessionId);
     const status = session.status as InterviewStatus;
 
+    const roundType = (session.roundType ?? "mixed") as RoundType;
+    const modeState: ModeState =
+      typeof session.modeState === "object" && session.modeState !== null
+        ? { ...(session.modeState as ModeState) }
+        : {};
+    // §9.1: a decided follow-up is asked next (same skill, not counted).
+    const pendingFollowUp = modeState.__pendingFollowUp as
+      | { parentQuestionId: string; parentText: string; focus: string }
+      | undefined;
+    delete modeState.__pendingFollowUp;
+    if (pendingFollowUp) this.store.updateSession(sessionId, { modeState });
+
+    // §9.1: follow-ups don't count toward plannedQuestions — count mains only
+    const mainCount = questions.filter((q) => !q.followUpOf).length;
     if (status === "ready") {
       this.transitionSession(sessionId, "question", "ask");
     } else if (status === "follow_up") {
-      if (questions.length >= session.plannedQuestions) {
+      if (!pendingFollowUp && mainCount >= session.plannedQuestions) {
         this.transitionSession(sessionId, "complete", "complete");
         return { session: this.store.getSession(sessionId), question: null };
       }
@@ -868,45 +1029,102 @@ export class InterviewOrchestrator {
       .listSessions()
       .flatMap((s) => this.store.listQuestions(s.id).map((q) => q.text));
 
-    const roundType = (session.roundType ?? "mixed") as RoundType;
-    opts?.onProgress?.({ stage: "selecting skill" });
-    const selection =
-      session.mode === "practice" && session.focusSkillId
-        ? {
-            skillId: session.focusSkillId as SkillId,
-            reason: `practice: verifying ${taxonomy.labelFor(session.focusSkillId as SkillId)}`,
-            priority: 99,
-          }
-        : selectNextSkill({
-            requirements: this.allRequirements(target),
-            readiness: graph.dimensions,
-            evidence,
-            askedThisSession: questions.map((q) => q.skillId as SkillId),
-            askedPreviousSession,
-            questionIndex: questions.length,
-            roundType,
-          });
-    if (!selection) {
-      this.transitionSession(sessionId, "complete", "complete");
-      return { session: this.store.getSession(sessionId), question: null };
+    // §9.4: loop sessions carry prior rounds' weak skills + observations forward
+    const { priorWeakSkills, priorRoundObservations } = this.loopContextFor(session);
+
+    let skillId: SkillId;
+    let questionReason: string;
+    let questionPriority: number | null;
+    let questionDifficulty: "easy" | "medium" | "hard" | undefined;
+    let selectionFactors: Record<string, number> | null = null;
+    let followUpOf: string | null = null;
+    let followUpFocus: string | null = null;
+
+    if (pendingFollowUp) {
+      const parent = this.store.getQuestion(pendingFollowUp.parentQuestionId);
+      skillId = (parent?.skillId ?? "communication") as SkillId;
+      questionReason = `follow-up on "${pendingFollowUp.focus}"`;
+      questionPriority = null;
+      questionDifficulty = (parent?.difficulty as "easy" | "medium" | "hard" | undefined) ?? "medium";
+      followUpOf = pendingFollowUp.parentQuestionId;
+      followUpFocus = pendingFollowUp.focus;
+    } else {
+      opts?.onProgress?.({ stage: "selecting skill" });
+      const askCounts: Record<SkillId, number> = {};
+      for (const s of this.store.listSessions()) {
+        for (const q of this.store.listQuestions(s.id)) {
+          const id = q.skillId as SkillId;
+          askCounts[id] = (askCounts[id] ?? 0) + 1;
+        }
+      }
+      const selection =
+        session.mode === "practice" && session.focusSkillId
+          ? {
+              skillId: session.focusSkillId as SkillId,
+              reason: `practice: verifying ${taxonomy.labelFor(session.focusSkillId as SkillId)}`,
+              priority: 99,
+              difficulty: "medium" as const,
+              factors: null as Record<string, number> | null,
+            }
+          : await this.host.invoke(
+              interviewPlanner,
+              {
+                requirements: this.allRequirements(target),
+                readiness: graph.dimensions,
+                evidence,
+                askedThisSession: questions.map((q) => q.skillId as SkillId),
+                askedPreviousSession,
+                questionIndex: mainCount,
+                roundType,
+                mode: roundType,
+                level: target.level,
+                askCounts,
+                loopWeakSkills: priorWeakSkills,
+              },
+              this.ctx({ sessionId }),
+            );
+      if (!selection) {
+        this.transitionSession(sessionId, "complete", "complete");
+        return { session: this.store.getSession(sessionId), question: null };
+      }
+      skillId = selection.skillId;
+      questionReason = selection.reason;
+      questionPriority = selection.priority;
+      questionDifficulty = selection.difficulty;
+      selectionFactors = selection.factors as unknown as Record<string, number>;
     }
 
-    // §8.4: behavioral/hr interviewers get company themes + story titles
-    const behavioralRound = roundType === "behavioral" || roundType === "hr";
+    // §8.4: behavioral/hr (+§9.1 hiring manager) get company themes + story titles
+    const narrativeRound =
+      roundType === "behavioral" || roundType === "hr" || roundType === "hiring_manager";
     const interviewerInput = {
-      skillId: selection.skillId,
-      label: taxonomy.labelFor(selection.skillId),
+      skillId,
+      label: taxonomy.labelFor(skillId),
       role: target.role,
       level: target.level,
       company: target.company,
-      reason: selection.reason,
+      reason: questionReason,
       previousQuestions: [...allPreviousTexts],
       candidateSummary: `${candidate.name ?? "candidate"} — ${candidate.headline ?? ""}`.trim(),
       roundType,
-      companyThemes: behavioralRound ? (target.companyProfile?.behavioralThemes ?? []) : [],
-      storyTitles: behavioralRound
+      mode: roundType,
+      modeState,
+      followUp: pendingFollowUp
+        ? { parentQuestion: pendingFollowUp.parentText, focus: pendingFollowUp.focus }
+        : null,
+      companyGuidance: this.companyGuidanceFor(target, roundType),
+      difficulty: questionDifficulty,
+      focusDimension:
+        roundType === "system_design"
+          ? pendingFollowUp
+            ? null
+            : (nextUncoveredDimension(modeState as SystemDesignState) ?? null)
+          : null,
+      companyThemes: narrativeRound ? (target.companyProfile?.behavioralThemes ?? []) : [],
+      storyTitles: narrativeRound
         ? this.store.listStories(candidate.id).map((s) => s.title).slice(0, 10)
         : [],
+      priorRoundObservations,
     };
 
     const runtimeSessionId = await this.ensureRuntimeSession(sessionId);
@@ -918,7 +1136,7 @@ export class InterviewOrchestrator {
     opts?.onProgress?.({ stage: "writing question" });
     let produced;
     try {
-      produced = await interviewer.execute(interviewerInput, interviewCtx);
+      produced = await this.host.invoke(interviewer, interviewerInput, interviewCtx);
     } catch (err) {
       // in-memory runtime session gone (server restart): resume by thread and retry once
       if (
@@ -926,7 +1144,8 @@ export class InterviewOrchestrator {
         /unknown (mock )?session/.test(err.message)
       ) {
         const rid = await this.resumeRuntimeSession(sessionId);
-        produced = await interviewer.execute(
+        produced = await this.host.invoke(
+          interviewer,
           interviewerInput,
           this.ctx({ sessionId, runtimeSessionId: rid }),
         );
@@ -935,7 +1154,13 @@ export class InterviewOrchestrator {
       }
     }
 
+    // §9.6: the interviewer skill writes question rows.
+    this.host.assertCan("interviewer", "interview.write");
     const questionId = newId("q");
+    const extra: Record<string, unknown> = {};
+    if (produced.problem !== null && produced.problem !== undefined)
+      extra.problem = produced.problem;
+    if (produced.focusDimension) extra.focusDimension = produced.focusDimension;
     this.store.insertQuestion({
       id: questionId,
       sessionId,
@@ -945,14 +1170,39 @@ export class InterviewOrchestrator {
       subSkills: produced.subSkills,
       expectedConcepts: produced.expectedConcepts,
       difficulty: produced.difficulty,
-      selectionPriority: selection.priority,
-      selectionReason: selection.reason,
+      selectionPriority: questionPriority,
+      selectionReason: questionReason,
+      selectionFactors: selectionFactors ?? {},
+      followUpOf,
+      followUpFocus,
+      extra,
       position: questions.length + 1,
       createdAt: this.iso(),
     });
     this.store.updateSession(sessionId, { currentRound: questions.length + 1 });
     const row = this.store.getQuestion(questionId)!;
     return { session: this.store.getSession(sessionId), question: rowToQuestion(row) };
+  }
+
+  /** §9.3: rendered profile guidance fed to interviewer/evaluator prompts. */
+  private companyGuidanceFor(target: TargetRole, roundType: RoundType): string {
+    const profile = getCompanyProfile(target.companyProfileId ?? "generic");
+    const lines = [
+      `Interview profile: ${profile.name} (${profile.id}). Typical loop: ${profile.typicalLoop
+        .map((l) => l.label)
+        .join(" → ")}.`,
+      `Behavioral framework: ${profile.behavioralFramework.name} — ${profile.behavioralFramework.guidance}`,
+      `Follow-up depth: ${profile.followUpDepth}. ${profile.disclaimer}`,
+    ];
+    const expectations = profile.roleExpectations[target.level];
+    if (expectations?.length) {
+      lines.push(`Level expectations (${target.level}): ${expectations.join("; ")}.`);
+    }
+    if (roundType !== "mixed") {
+      const loopStage = profile.typicalLoop.find((l) => l.mode === roundType);
+      if (loopStage) lines.push(`This round plays the "${loopStage.label}" part of the loop.`);
+    }
+    return lines.join("\n");
   }
 
   private async ensureRuntimeSession(sessionId: string): Promise<string | undefined> {
@@ -982,9 +1232,11 @@ export class InterviewOrchestrator {
 
   async submitAnswer(
     sessionId: string,
-    answerText: string,
+    answer: string | SubmitAnswerInput,
     opts?: ProgressOptions,
   ): Promise<SubmitAnswerResult> {
+    const { text: answerText, code = null, language = null } =
+      typeof answer === "string" ? { text: answer } : answer;
     return this.withLock(async () => {
       const session = this.store.getSession(sessionId);
       if (!session) throw new AppError("NOT_FOUND", `no session ${sessionId}`);
@@ -1003,17 +1255,28 @@ export class InterviewOrchestrator {
         questionId: active.id,
         sessionId,
         text: answerText,
+        code,
+        language,
         createdAt: this.iso(),
       });
       this.transitionSession(sessionId, "evaluating", "evaluate");
 
+      const roundType = (session.roundType ?? "mixed") as RoundType;
+      const modeDef = getMode(roundType);
+      const preModeState: ModeState =
+        typeof session.modeState === "object" && session.modeState !== null
+          ? { ...(session.modeState as ModeState) }
+          : {};
+
       const { candidate, target } = this.requireActive();
       let evaluation: AnswerEvaluation;
       let skillImpact: SubmitAnswerResult["skillImpact"];
+      let followUpPending = false;
       const newActions: PrepActionRowLike[] = [];
       opts?.onProgress?.({ stage: "evaluating answer" });
       try {
-        evaluation = await answerEvaluator.execute(
+        evaluation = await this.host.invoke(
+          answerEvaluator,
           {
             question: {
               text: active.text,
@@ -1023,15 +1286,24 @@ export class InterviewOrchestrator {
               difficulty: active.difficulty as "easy" | "medium" | "hard",
             },
             answer: answerText,
+            code,
+            language,
             role: target.role,
             level: target.level,
-            roundType: (session.roundType ?? "mixed") as RoundType,
+            roundType,
+            mode: roundType,
+            modeState: preModeState,
           },
           this.ctx({ sessionId, onProgress: opts?.onProgress }),
         );
-        AnswerEvaluationSchema.parse(evaluation);
+        // defensive: merge duplicate per-skill entries before persisting
+        evaluation = normalizeEvaluation(AnswerEvaluationSchema.parse(evaluation));
+        // §9.6: the evaluator's outputs persist evaluation + evidence rows.
+        this.host.assertCan("answer-evaluator", "interview.write");
+        this.host.assertCan("answer-evaluator", "evidence.write");
+        const evalId = newId("eval");
         this.store.insertEvaluation({
-          id: newId("eval"),
+          id: evalId,
           answerId,
           questionId: active.id,
           sessionId,
@@ -1072,23 +1344,44 @@ export class InterviewOrchestrator {
 
         opts?.onProgress?.({ stage: "updating readiness" });
         const after = this.recomputeReadinessInternal("answer");
-        skillImpact = evaluation.scores.map((s) => ({
-          skillId: s.skill,
-          before: before.dimensions[s.skill]?.score ?? null,
-          after: after.dimensions[s.skill]?.score ?? null,
-        }));
+        skillImpact = [...new Map(
+          evaluation.scores.map((s) => [
+            s.skill,
+            {
+              skillId: s.skill,
+              before: before.dimensions[s.skill]?.score ?? null,
+              after: after.dimensions[s.skill]?.score ?? null,
+            },
+          ]),
+        ).values()];
+        // §9.7: the skillImpact list is persisted on the evaluation as its
+        // readiness delta for the History view.
+        this.store.updateEvaluationDelta(
+          evalId,
+          skillImpact.map((i) => ({ skillId: i.skillId, before: i.before, after: i.after })),
+        );
 
-        // plan update for medium+ weaknesses
-        const weakTargets = evaluation.weaknesses.filter((w) => w.severity !== "low");
+        // plan update for medium+ weaknesses, one target per skill
+        const weakTargets = [...new Map(
+          evaluation.weaknesses
+            .filter((w) => w.severity !== "low")
+            .map((w) => [w.skill, w]),
+        ).values()];
         if (weakTargets.length > 0) {
           opts?.onProgress?.({ stage: "updating prep plan" });
-          const plan = await prepPlanner.execute(
+          const concepts = active.expectedConcepts as ExpectedConcept[];
+          const plan = await this.host.invoke(
+            prepPlanner,
             {
               targets: weakTargets.map((w) => ({
                 skillId: w.skill,
                 label: taxonomy.labelFor(w.skill),
                 reason: `weak answer: ${w.evidence}`,
-                missingConcepts: evaluation.missingConcepts,
+                // only the missed concepts the question mapped to this skill
+                missingConcepts: concepts
+                  .filter((c) => c.skillId === w.skill)
+                  .map((c) => c.concept)
+                  .filter((c) => evaluation.missingConcepts.includes(c)),
                 severity: w.severity,
               })),
               role: target.role,
@@ -1132,6 +1425,41 @@ export class InterviewOrchestrator {
             }
           }
         }
+
+        // §9.1: reduce mode state, then decide whether to dig deeper.
+        let modeState = modeDef.reduce(preModeState, evaluation, {
+          skillId: active.skillId as SkillId,
+          topic: active.topic,
+          extra:
+            typeof active.extra === "object" && active.extra !== null
+              ? (active.extra as Record<string, unknown>)
+              : {},
+        });
+        if (session.mode !== "practice" && roundType !== "mixed") {
+          const mainId = active.followUpOf ?? active.id;
+          const chainDepth = questions.filter((q) => q.followUpOf === mainId).length;
+          const maxDepth = getCompanyProfile(
+            target.companyProfileId ?? "generic",
+          ).followUpDepth;
+          const decision = modeDef.followUp(evaluation, modeState, chainDepth, maxDepth);
+          if (decision.ask) {
+            followUpPending = true;
+            modeState = {
+              ...modeState,
+              __pendingFollowUp: {
+                parentQuestionId: mainId,
+                parentText: active.text,
+                focus: decision.focus ?? "the weakest dimension",
+              },
+            };
+            this.logger.info("interview.follow_up", {
+              sessionId,
+              questionId: mainId,
+              depth: chainDepth + 1,
+            });
+          }
+        }
+        this.store.updateSession(sessionId, { modeState });
       } catch (err) {
         // keep the session usable: mark the stored answer failed and roll the
         // session back to QUESTION so the answer can be resubmitted.
@@ -1146,7 +1474,8 @@ export class InterviewOrchestrator {
       }
 
       this.transitionSession(sessionId, "follow_up", "follow_up");
-      const remaining = questions.length < session.plannedQuestions;
+      const mainCount = questions.filter((q) => !q.followUpOf).length;
+      const remaining = followUpPending || mainCount < session.plannedQuestions;
       return {
         evaluation,
         skillImpact,
@@ -1166,7 +1495,24 @@ export class InterviewOrchestrator {
         this.store.updateSession(sessionId, { completedAt: this.iso() });
       }
       const debrief = await this.createDebriefInternal(sessionId, opts);
-      return { session: this.store.getSession(sessionId), debrief };
+      // §9.4: completing a loop session writes its handoff and either opens
+      // the next round's session or finishes the loop with a loop debrief.
+      let loop = null;
+      let nextSession = null;
+      let nextQuestion = null;
+      if (session.loopId) {
+        const adv = await this.advanceLoopInternal(sessionId, opts);
+        loop = adv.loop;
+        nextSession = adv.nextSession ?? null;
+        nextQuestion = adv.nextQuestion ?? null;
+      }
+      return {
+        session: this.store.getSession(sessionId),
+        debrief,
+        loop,
+        nextSession,
+        nextQuestion,
+      };
     });
   }
 
@@ -1209,7 +1555,8 @@ export class InterviewOrchestrator {
       output = existing.data;
     } else {
       opts?.onProgress?.({ stage: "writing debrief" });
-      output = await interviewDebrief.execute(
+      output = await this.host.invoke(
+        interviewDebrief,
         {
           role: target.role,
           questions: questions.map((q) => ({
@@ -1226,6 +1573,7 @@ export class InterviewOrchestrator {
         },
         this.ctx({ sessionId, onProgress: opts?.onProgress }),
       );
+      this.host.assertCan("interview-debrief", "interview.write");
       this.store.insertDebrief({
         id: newId("debrief"),
         sessionId,
@@ -1234,6 +1582,327 @@ export class InterviewOrchestrator {
       });
     }
     return output;
+  }
+
+  // --------------------------------------------------------- §9.4 loops
+
+  /**
+   * Start a full interview loop. `rounds` defaults to the active target's
+   * company-profile `typicalLoop`; custom rounds are validated (2–7 rounds,
+   * mode ∈ ModeId, plannedQuestions 1–6). Round 1's session is created and
+   * its first question generated.
+   */
+  async startLoop(input: { rounds?: LoopRoundInput[] } = {}, opts?: ProgressOptions) {
+    return this.withLock(async () => {
+      const { target } = this.requireActive();
+      const profile = getCompanyProfile(target.companyProfileId ?? "generic");
+      const defs: LoopRoundInput[] =
+        input.rounds ??
+        profile.typicalLoop.map((s) => ({ mode: s.mode, label: s.label }));
+      if (!Array.isArray(defs) || defs.length < 2 || defs.length > 7) {
+        throw new AppError("VALIDATION", "a loop needs between 2 and 7 rounds");
+      }
+      const rounds: LoopRound[] = defs.map((d) => {
+        const parsed = LoopRoundSchema.safeParse({
+          mode: d.mode,
+          label: d.label ?? "",
+          plannedQuestions: d.plannedQuestions ?? 4,
+        });
+        if (!parsed.success) {
+          throw new AppError(
+            "VALIDATION",
+            `invalid loop round (mode "${d.mode}", plannedQuestions ${d.plannedQuestions})`,
+          );
+        }
+        const r = parsed.data;
+        if (!r.label) r.label = getMode(r.mode).label;
+        return r;
+      });
+      const loopId = newId("loop");
+      this.store.insertLoop({
+        id: loopId,
+        targetId: target.id,
+        companyProfileId: profile.id,
+        rounds,
+        status: "in_progress",
+        currentRound: 1,
+        createdAt: this.iso(),
+      });
+      this.logger.info("state.mutated", { entity: "loop", id: loopId, rounds: rounds.length });
+      const first = await this.openLoopRound(loopId, 0, opts);
+      return { loop: this.viewLoop(loopId), session: first.session, question: first.question };
+    });
+  }
+
+  /** Create the session for loop round `idx` and generate its first question. */
+  private async openLoopRound(loopId: string, idx: number, opts?: ProgressOptions) {
+    const loop = this.store.getLoop(loopId);
+    if (!loop) throw new AppError("NOT_FOUND", `no loop ${loopId}`);
+    const rounds = [...(loop.rounds as LoopRound[])];
+    const round = rounds[idx];
+    if (!round) throw new AppError("INTERNAL", `loop ${loopId} has no round ${idx + 1}`);
+    round.status = "in_progress";
+    round.readinessBefore = this.readinessSnapshot();
+    const created = await this.startInterviewInternal(
+      {
+        roundType: round.mode,
+        plannedQuestions: round.plannedQuestions,
+        loopId,
+        loopRound: idx + 1,
+      },
+      opts,
+    );
+    if (!created.session) {
+      throw new AppError("INTERNAL", `loop ${loopId} round ${idx + 1} produced no session`);
+    }
+    round.sessionId = created.session.id;
+    this.store.updateLoop(loopId, { rounds, currentRound: idx + 1, status: "in_progress" });
+    return created;
+  }
+
+  /** Overall + per-requirement readiness snapshot at a round boundary. */
+  private readinessSnapshot(): ReadinessSnapshot {
+    const { target } = this.requireActive();
+    const graph = this.graphForActive();
+    const requirements: Record<string, number | null> = {};
+    for (const req of this.allRequirements(target)) {
+      requirements[req.skillId] = graph.dimensions[req.skillId]?.score ?? null;
+    }
+    return { overall: graph.overall, requirements };
+  }
+
+  /** Prior rounds' weak skills (for the engine) + observations (for prompts). */
+  private loopContextFor(session: SessionRow): {
+    priorWeakSkills: { skillId: SkillId; round: number; mode: RoundType }[];
+    priorRoundObservations: string[];
+  } {
+    const empty = { priorWeakSkills: [], priorRoundObservations: [] };
+    if (!session.loopId || !session.loopRound) return empty;
+    const loop = this.store.getLoop(session.loopId);
+    if (!loop) return empty;
+    const earlier = (loop.rounds as LoopRound[]).slice(0, session.loopRound - 1);
+    const priorWeakSkills = earlier.flatMap((r, i) =>
+      (r.handoff?.weakSkills ?? []).map((w) => ({
+        skillId: w.skillId,
+        round: i + 1,
+        mode: r.mode as RoundType,
+      })),
+    );
+    const priorRoundObservations = earlier
+      .flatMap((r) => [
+        ...(r.handoff?.observations ?? []),
+        ...(r.handoff?.weakSkills ?? []).map(
+          (w) => `weak: ${taxonomy.labelFor(w.skillId)}`,
+        ),
+      ])
+      .slice(0, 12);
+    return { priorWeakSkills, priorRoundObservations };
+  }
+
+  /** Deterministic cross-round handoff from a round's evaluations (§9.4). */
+  private computeHandoff(evaluations: AnswerEvaluation[]): RoundHandoff {
+    const weak = new Map<
+      string,
+      { skillId: SkillId; label: string; score: number; observation: string }
+    >();
+    const strong = new Map<
+      string,
+      { skillId: SkillId; label: string; score: number }
+    >();
+    for (const e of evaluations) {
+      for (const s of e.scores) {
+        if (s.score < 0.5 && !weak.has(s.skill)) {
+          weak.set(s.skill, {
+            skillId: s.skill,
+            label: taxonomy.labelFor(s.skill),
+            score: s.score,
+            observation: (
+              e.weaknesses.find((w) => w.skill === s.skill)?.evidence ?? e.summary
+            ).slice(0, 200),
+          });
+        } else if (s.score >= 0.75 && !strong.has(s.skill)) {
+          strong.set(s.skill, {
+            skillId: s.skill,
+            label: taxonomy.labelFor(s.skill),
+            score: s.score,
+          });
+        }
+      }
+    }
+    return {
+      weakSkills: [...weak.values()],
+      strongSkills: [...strong.values()],
+      observations: evaluations.slice(0, 3).map((e) => e.summary.slice(0, 200)),
+    };
+  }
+
+  /**
+   * §9.4: per-skill readiness movement evidenced by a round — for each skill in
+   * the round's evaluations' readinessDelta, first `before` → last `after`.
+   */
+  private computeSkillDeltas(
+    evaluationRows: { readinessDelta: unknown }[],
+  ): SkillDelta[] {
+    const first = new Map<string, number | null>();
+    const last = new Map<string, number | null>();
+    for (const row of evaluationRows) {
+      for (const d of (row.readinessDelta ?? []) as {
+        skillId: string;
+        before: number | null;
+        after: number | null;
+      }[]) {
+        if (!first.has(d.skillId)) first.set(d.skillId, d.before);
+        last.set(d.skillId, d.after);
+      }
+    }
+    return [...last.keys()].map((skillId) => ({
+      skillId: skillId as SkillId,
+      label: taxonomy.labelFor(skillId as SkillId),
+      before: first.get(skillId) ?? null,
+      after: last.get(skillId) ?? null,
+    }));
+  }
+
+  /**
+   * Finish the loop round a session belongs to: store its handoff +
+   * readinessAfter, then open the next round or run the loop debrief.
+   */
+  private async advanceLoopInternal(sessionId: string, opts?: ProgressOptions) {
+    const session = this.store.getSession(sessionId);
+    const loop = session?.loopId ? this.store.getLoop(session.loopId) : undefined;
+    if (!session || !loop) return { loop: null, nextSession: null, nextQuestion: null };
+    const rounds = [...(loop.rounds as LoopRound[])];
+    const idx = (session.loopRound ?? 1) - 1;
+    const round = rounds[idx];
+    if (!round || round.status === "complete") {
+      return { loop: this.viewLoopRow(loop), nextSession: null, nextQuestion: null };
+    }
+    const evaluationRows = this.store.listEvaluations(sessionId);
+    const evaluations = evaluationRows.map(
+      (r) => r.data as unknown as AnswerEvaluation,
+    );
+    round.handoff = this.computeHandoff(evaluations);
+    round.skillDeltas = this.computeSkillDeltas(evaluationRows);
+    round.readinessAfter = this.readinessSnapshot();
+    round.status = "complete";
+    this.store.updateLoop(loop.id, { rounds });
+
+    if (idx + 1 < rounds.length) {
+      const next = await this.openLoopRound(loop.id, idx + 1, opts);
+      return {
+        loop: this.viewLoop(loop.id),
+        nextSession: next.session,
+        nextQuestion: next.question,
+      };
+    }
+
+    opts?.onProgress?.({ stage: "writing loop debrief" });
+    const debrief = await this.createLoopDebrief(rounds, opts);
+    this.host.assertCan("loop-debrief", "interview.write");
+    this.store.updateLoop(loop.id, {
+      rounds,
+      status: "complete",
+      completedAt: this.iso(),
+      debrief: debrief as unknown as object,
+    });
+    return { loop: this.viewLoop(loop.id), nextSession: null, nextQuestion: null };
+  }
+
+  /** The loop-debrief skill call (§9.4) — never produces a hire/no-hire verdict. */
+  private async createLoopDebrief(
+    rounds: LoopRound[],
+    opts?: ProgressOptions,
+  ): Promise<LoopDebrief> {
+    const { target } = this.requireActive();
+    return this.host.invoke(
+      loopDebrief,
+      {
+        role: target.role,
+        company: target.company,
+        rounds: rounds.map((r) => {
+          const evals = r.sessionId
+            ? this.store
+                .listEvaluations(r.sessionId)
+                .map((e) => e.data as unknown as AnswerEvaluation)
+            : [];
+          const acc = new Map<string, { sum: number; n: number }>();
+          for (const e of evals) {
+            for (const d of e.rubric ?? []) {
+              const a = acc.get(d.id) ?? { sum: 0, n: 0 };
+              a.sum += d.score;
+              a.n += 1;
+              acc.set(d.id, a);
+            }
+          }
+          return {
+            mode: r.mode,
+            label: r.label,
+            summaries: evals.map((e) => e.summary),
+            rubricAverages: Object.fromEntries(
+              [...acc].map(([k, v]) => [k, v.sum / v.n]),
+            ),
+            handoff: r.handoff,
+          };
+        }),
+        readinessChange: {
+          before: rounds[0]?.readinessBefore?.overall ?? null,
+          after: rounds[rounds.length - 1]?.readinessAfter?.overall ?? null,
+        },
+      },
+      this.ctx({ onProgress: opts?.onProgress }),
+    );
+  }
+
+  private viewLoop(id: string) {
+    const loop = this.store.getLoop(id);
+    return loop ? this.viewLoopRow(loop) : null;
+  }
+
+  private viewLoopRow(loop: LoopRow) {
+    return {
+      ...loop,
+      rounds: loop.rounds as LoopRound[],
+      abandoned: loop.abandoned === 1,
+      debrief: (loop.debrief as LoopDebrief | null) ?? null,
+    };
+  }
+
+  getLoop(id: string) {
+    const loop = this.viewLoop(id);
+    if (!loop) throw new AppError("NOT_FOUND", `no loop ${id}`);
+    return loop;
+  }
+
+  listLoops() {
+    return this.store.listLoops().map((l) => this.viewLoopRow(l));
+  }
+
+  /** Abandon an in-progress loop: current session completed, loop closed. */
+  async abandonLoop(id: string) {
+    return this.withLock(async () => {
+      const loop = this.store.getLoop(id);
+      if (!loop) throw new AppError("NOT_FOUND", `no loop ${id}`);
+      if (loop.status === "complete") return this.viewLoopRow(loop);
+      const rounds = [...(loop.rounds as LoopRound[])];
+      const current = rounds[loop.currentRound - 1];
+      if (current?.sessionId) {
+        const s = this.store.getSession(current.sessionId);
+        if (s?.status === "ready") this.transitionSession(s.id, "question", "ask");
+        const s2 = this.store.getSession(current.sessionId);
+        if (s2 && (s2.status === "question" || s2.status === "follow_up")) {
+          this.transitionSession(s2.id, "complete", "complete");
+          this.store.updateSession(s2.id, { completedAt: this.iso() });
+        }
+      }
+      this.store.updateLoop(id, {
+        rounds,
+        status: "complete",
+        abandoned: 1,
+        completedAt: this.iso(),
+      });
+      this.logger.info("state.mutated", { entity: "loop", id, abandoned: true });
+      return this.viewLoop(id);
+    });
   }
 
   // ---------------------------------------------------------------- queries
@@ -1387,12 +2056,272 @@ export class InterviewOrchestrator {
   getInterview(id: string) {
     const session = this.store.getSession(id);
     if (!session) throw new AppError("NOT_FOUND", `no session ${id}`);
+    const target = session.targetId ? this.store.getTarget(session.targetId) : undefined;
+    const targetData = target?.data ? TargetRoleSchema.safeParse(target.data) : null;
+    const companyProfile = getCompanyProfile(
+      targetData?.success ? (targetData.data.companyProfileId ?? "generic") : "generic",
+    );
     return {
-      session,
+      session: { ...session, modeLabel: getMode(session.roundType as RoundType).label },
       questions: this.store.listQuestions(id).map(rowToQuestion),
       answers: this.store.listAnswers(id),
       evaluations: this.store.listEvaluations(id).map((r) => r.data),
       debrief: this.store.getDebrief(id)?.data ?? null,
+      companyProfile: { id: companyProfile.id, name: companyProfile.name, disclaimer: companyProfile.disclaimer },
+    };
+  }
+
+  // ------------------------------------------------- §9.7 history / metrics
+
+  /**
+   * §9.7: event names the API accepts. Events carry a name + timestamp only —
+   * never content (resumes, answers, notes).
+   */
+  static readonly USAGE_EVENTS = [
+    "history.viewed",
+    "target.switched",
+    "resume.coach.used",
+    "palette.used",
+  ] as const;
+
+  recordUsageEvent(event: string) {
+    if (!InterviewOrchestrator.USAGE_EVENTS.includes(event as never)) {
+      throw new AppError("VALIDATION", `unknown usage event "${event}"`);
+    }
+    this.store.insertUsageEvent({ id: newId("evt"), event, createdAt: this.iso() });
+  }
+
+  /**
+   * §9.7: session list for the History view. `weakOnly` keeps sessions that
+   * contain at least one answer whose mean rubric (or primary score) < 0.5.
+   */
+  getHistory(filters: {
+    mode?: string;
+    targetId?: string;
+    loopId?: string;
+    weakOnly?: boolean;
+  } = {}) {
+    return this.store
+      .listSessions()
+      .filter((s) => !filters.mode || s.roundType === filters.mode)
+      .filter((s) => !filters.targetId || s.targetId === filters.targetId)
+      .filter((s) => !filters.loopId || s.loopId === filters.loopId)
+      .map((s) => this.sessionHistoryEntry(s))
+      .filter((e) => !filters.weakOnly || e.hasWeakAnswer);
+  }
+
+  getSessionHistory(id: string) {
+    const s = this.store.getSession(id);
+    if (!s) throw new AppError("NOT_FOUND", `no session ${id}`);
+    return this.sessionHistoryEntry(s);
+  }
+
+  /** Mean of rubric scores when present, else mean of per-skill scores. */
+  private answerMeanScore(ev: AnswerEvaluation): number {
+    // evaluations persisted before §9.1 may lack `rubric`/`scores` in stored
+    // JSON even though the current schema defaults them — guard both
+    const vals =
+      (ev.rubric?.length ?? 0) > 0
+        ? ev.rubric.map((d) => d.score)
+        : (ev.scores ?? []).map((s) => s.score);
+    return vals.length ? vals.reduce((a, b) => a + b, 0) / vals.length : 0;
+  }
+
+  private sessionHistoryEntry(s: SessionRow) {
+    const target = s.targetId ? this.store.getTarget(s.targetId) : undefined;
+    const targetData = target?.data ? TargetRoleSchema.safeParse(target.data) : null;
+    const loop = s.loopId ? this.store.getLoop(s.loopId) : undefined;
+    const loopRounds = loop ? (loop.rounds as LoopRound[]) : [];
+    const questions = this.store.listQuestions(s.id).map(rowToQuestion);
+    const answers = this.store.listAnswers(s.id);
+    const evals = this.store.listEvaluations(s.id);
+    const sessionEvidenceIds = new Set(
+      this.store
+        .listEvidence(s.candidateId ?? undefined)
+        .filter((e) => e.sessionId === s.id)
+        .map((e) => e.id),
+    );
+    const actionsCreated = this.store
+      .listActions()
+      .filter((a) =>
+        ((a.sourceEvidenceIds as string[]) ?? []).some((id) =>
+          sessionEvidenceIds.has(id),
+        ),
+      )
+      .map(rowToAction);
+
+    const node = (q: Question) => {
+      const answer =
+        answers.find((a) => a.questionId === q.id && a.status === "evaluated") ??
+        answers.find((a) => a.questionId === q.id) ??
+        null;
+      const evRow = evals.find((e) => e.questionId === q.id) ?? null;
+      const ev = (evRow?.data ?? null) as AnswerEvaluation | null;
+      const mean = ev ? this.answerMeanScore(ev) : null;
+      return {
+        question: q,
+        answer: answer
+          ? {
+              id: answer.id,
+              text: answer.text,
+              code: answer.code,
+              language: answer.language,
+              createdAt: answer.createdAt,
+            }
+          : null,
+        evaluation: ev,
+        readinessDelta: (evRow?.readinessDelta as unknown[]) ?? [],
+        weak: mean !== null && mean < 0.5,
+      };
+    };
+    const mains = questions
+      .filter((q) => !q.followUpOf)
+      .map((q) => ({
+        ...node(q),
+        followUps: questions.filter((f) => f.followUpOf === q.id).map(node),
+      }));
+    const hasWeakAnswer = mains.some(
+      (m) => m.weak || m.followUps.some((f) => f.weak),
+    );
+    return {
+      session: {
+        ...s,
+        // sessions persisted before modes existed may carry a roundType with
+        // no registered mode — fall back to mixed instead of crashing history
+        modeLabel: getMode(isModeId(s.roundType) ? s.roundType : "mixed").label,
+      },
+      target: target
+        ? {
+            id: target.id,
+            role: target.role,
+            company: target.company,
+            companyProfileId: targetData?.success
+              ? (targetData.data.companyProfileId ?? "generic")
+              : "generic",
+          }
+        : null,
+      loop: loop
+        ? {
+            id: loop.id,
+            round: s.loopRound,
+            totalRounds: loopRounds.length,
+            label: loopRounds[(s.loopRound ?? 1) - 1]?.label ?? null,
+          }
+        : null,
+      questions: mains,
+      actionsCreated,
+      debrief: this.store.getDebrief(s.id)?.data ?? null,
+      hasWeakAnswer,
+    };
+  }
+
+  /**
+   * §9.7 metrics. Definitions:
+   * - loopsStarted / loopsCompleted: loops created / status 'complete' and not
+   *   abandoned.
+   * - sessionsPerMode: interview sessions grouped by roundType.
+   * - weaknessRetestRate: a weak skill is one with interview evidence < 0.5;
+   *   it is "retested" when a later question (later createdAt) targets the
+   *   same skill or a `relatedTo` skill. rate = retested / weak skills
+   *   (null when there are no weak skills yet).
+   * - improvementAfterPrep: for each done action, first non-self_report
+   *   evidence score for its skill after the action was created minus the
+   *   latest score at/before creation; the metric is the mean delta
+   *   (null when no action has both sides).
+   * - prepCompletionRate: done ÷ non-superseded actions.
+   * - readinessCoverage: requirements whose latest readiness snapshot has
+   *   confidence ≥ 0.4 ÷ total requirements of the active target.
+   * - usage counters: counts of the allowed usage events by name.
+   */
+  getMetrics() {
+    const sessions = this.store.listSessions();
+    const loops = this.store.listLoops();
+    const actions = this.store.listActions();
+    const evidence = this.store.listEvidence();
+    const allQuestions = sessions.flatMap((s) => this.store.listQuestions(s.id));
+
+    const sessionsPerMode: Record<string, number> = {};
+    for (const s of sessions) {
+      const m = s.roundType ?? "mixed";
+      sessionsPerMode[m] = (sessionsPerMode[m] ?? 0) + 1;
+    }
+
+    const weakSkills = new Set(
+      evidence
+        .filter((e) => e.type === "interview_answer" && e.score < 0.5)
+        .map((e) => e.skillId),
+    );
+    let retested = 0;
+    for (const skillId of weakSkills) {
+      const firstWeak = evidence
+        .filter(
+          (e) =>
+            e.skillId === skillId && e.type === "interview_answer" && e.score < 0.5,
+        )
+        .map((e) => e.createdAt)
+        .sort()[0];
+      if (!firstWeak) continue;
+      const rel = new Set<string>([skillId, ...taxonomy.relatedTo(skillId as SkillId)]);
+      if (allQuestions.some((q) => rel.has(q.skillId) && q.createdAt > firstWeak)) {
+        retested += 1;
+      }
+    }
+
+    const deltas: number[] = [];
+    for (const a of actions.filter((x) => x.status === "done")) {
+      const evs = this.store
+        .evidenceForSkill(a.skillId)
+        .filter((e) => e.type !== "self_report")
+        .sort((x, y) => x.createdAt.localeCompare(y.createdAt));
+      const before = [...evs].reverse().find((e) => e.createdAt <= a.createdAt);
+      const after = evs.find((e) => e.createdAt > a.createdAt);
+      if (before && after) deltas.push(after.score - before.score);
+    }
+
+    const activeTarget = this.store.getActiveTarget();
+    const targetData = activeTarget?.data
+      ? TargetRoleSchema.safeParse(activeTarget.data)
+      : null;
+    const requirements = targetData?.success ? targetData.data.requirements : [];
+    const latest = this.store.latestReadinessBySkill();
+    const covered = requirements.filter(
+      (r) => (latest.get(r.skillId)?.confidence ?? 0) >= 0.4,
+    ).length;
+
+    return {
+      loopsStarted: loops.length,
+      loopsCompleted: loops.filter((l) => l.status === "complete" && !l.abandoned)
+        .length,
+      sessionsPerMode,
+      weaknessRetestRate: {
+        weakSkills: weakSkills.size,
+        retested,
+        rate: weakSkills.size ? retested / weakSkills.size : null,
+      },
+      improvementAfterPrep:
+        deltas.length > 0
+          ? deltas.reduce((a, b) => a + b, 0) / deltas.length
+          : null,
+      prepCompletionRate: {
+        done: actions.filter((a) => a.status === "done").length,
+        total: actions.filter((a) => a.status !== "superseded").length,
+        rate:
+          actions.filter((a) => a.status !== "superseded").length > 0
+            ? actions.filter((a) => a.status === "done").length /
+              actions.filter((a) => a.status !== "superseded").length
+            : null,
+      },
+      readinessCoverage: {
+        covered,
+        total: requirements.length,
+        rate: requirements.length ? covered / requirements.length : null,
+      },
+      usage: Object.fromEntries(
+        InterviewOrchestrator.USAGE_EVENTS.map((e) => [
+          e,
+          this.store.countUsageEvents(e),
+        ]),
+      ),
     };
   }
 
@@ -1462,9 +2391,10 @@ export class InterviewOrchestrator {
         .map((r) => r.skillId)
         .filter((id) => inRound(id, "behavioral") || inRound(id, "hr"));
       const existing = this.store.listStories(candidate.id);
-      const out = (await starCoach.execute(
+      const out = (await this.host.invoke(
+        starCoach,
         {
-          mode: "generate",
+          mode: "generate" as const,
           experience: candidate.experience,
           achievements: candidate.achievements,
           projects: candidate.projects,
@@ -1473,6 +2403,8 @@ export class InterviewOrchestrator {
         },
         this.ctx({ onProgress: opts?.onProgress }),
       )) as { stories: Array<{ title: string; situation: string; task: string; action: string; result: string; skillIds: SkillId[] }> };
+      // §9.6: star-coach output persists generated stories.
+      this.host.assertCan("star-coach", "stories.write");
       const taken = new Set(existing.map((s) => s.title.toLowerCase()));
       const created = [];
       for (const s of out.stories) {
@@ -1538,9 +2470,10 @@ export class InterviewOrchestrator {
       const row = this.store.getStory(id);
       if (!row) throw new AppError("NOT_FOUND", `no story ${id}`);
       opts?.onProgress?.({ stage: "coaching story" });
-      return (await starCoach.execute(
+      return (await this.host.invoke(
+        starCoach,
         {
-          mode: "review",
+          mode: "review" as const,
           story: {
             title: row.title,
             situation: row.situation,
@@ -1557,6 +2490,169 @@ export class InterviewOrchestrator {
     });
   }
 
+  // ------------------------------------------------------------- §9.5 resume coach
+
+  /**
+   * Deterministic ATS check + resume-coach bullets/tailor (run concurrently).
+   * Every suggestion passes guardSuggestion before persisting — the coach
+   * never creates evidence and never changes readiness.
+   */
+  async reviewResume(opts?: ProgressOptions): Promise<ResumeReview> {
+    return this.withLock(async () => {
+      const { candidate, target } = this.requireActive();
+      const candidateRow = this.store.getActiveCandidate()!;
+      const resumeText = candidateRow.resumeText;
+      if (!resumeText.trim()) {
+        throw new AppError(
+          "VALIDATION",
+          "no resume on file — set up the workspace first",
+        );
+      }
+
+      opts?.onProgress?.({ stage: "checking ATS" });
+      const requirements = this.allRequirements(target);
+      const ats = atsCheck(resumeText, requirements);
+      const weakBullets = selectWeakestBullets(resumeText, 8);
+
+      opts?.onProgress?.({ stage: "improving bullets" });
+      opts?.onProgress?.({ stage: "tailoring to role" });
+      const [bulletsOut, tailorOut] = await Promise.all([
+        weakBullets.length > 0
+          ? this.host.invoke(
+              resumeCoach,
+              { mode: "bullets", resumeText, bullets: weakBullets },
+              this.ctx({ onProgress: opts?.onProgress }),
+            )
+          : Promise.resolve({ suggestions: [] }),
+        this.host.invoke(
+          resumeCoach,
+          {
+            mode: "tailor",
+            resumeText,
+            requirements,
+            role: target.role,
+            level: target.level,
+          },
+          this.ctx({ onProgress: opts?.onProgress }),
+        ),
+      ]);
+      const bulletSuggestions =
+        (bulletsOut as ResumeCoachBulletsOutput).suggestions ?? [];
+      const tailoring = (tailorOut as ResumeTailoring) ?? null;
+
+      // §9.5 guard: substitute invented numbers, drop invented entities.
+      const substitutions: string[] = [];
+      let dropped = 0;
+      const suggestions: ResumeSuggestion[] = bulletSuggestions.map((s) => {
+        const g = guardSuggestion(s.original, s.improved, resumeText);
+        substitutions.push(...g.substitutions);
+        if (!g.ok) {
+          dropped += 1;
+          return { ...s, improved: g.improved, dropped: g.dropped };
+        }
+        return { ...s, improved: g.improved };
+      });
+      this.logger.info("resume.guard", {
+        substitutions: substitutions.length,
+        dropped,
+      });
+
+      // §9.5: link prepGaps to real requirement gaps — no evidence, no
+      // readiness change.
+      const gaps = this.calculateGapsInternal();
+      const linkedGapSkillIds = [...new Set(
+        (tailoring?.prepGaps ?? [])
+          .map((pg) => {
+            const normalized = taxonomy.normalizeSkillId(pg);
+            const hit = gaps.find(
+              (g) =>
+                g.skillId === normalized ||
+                g.label.toLowerCase() === pg.toLowerCase(),
+            );
+            return hit?.skillId ?? null;
+          })
+          .filter((id): id is SkillId => id !== null),
+      )];
+
+      const review: ResumeReview = {
+        id: newId("rev"),
+        candidateId: candidate.id,
+        targetId: target.id,
+        ats,
+        suggestions,
+        tailoring,
+        linkedGapSkillIds,
+        guard: { substitutions: substitutions.length, dropped },
+        createdAt: this.iso(),
+      };
+      this.host.assertCan("resume-coach", "resume.write");
+      this.store.insertResumeReview(ResumeReviewSchema.parse(review));
+      this.recordUsageEvent("resume.coach.used");
+      this.logger.info("state.mutated", { entity: "resume_review", id: review.id });
+      return review;
+    });
+  }
+
+  /** Most recent persisted resume review, or null. */
+  latestResumeReview(): ResumeReview | null {
+    const row = this.store.latestResumeReview();
+    if (!row) return null;
+    const parsed = ResumeReviewSchema.safeParse({
+      id: row.id,
+      candidateId: row.candidateId,
+      targetId: row.targetId,
+      ats: row.ats,
+      suggestions: row.suggestions,
+      tailoring: row.tailoring,
+      linkedGapSkillIds: row.linkedGapSkillIds,
+      guard: row.guard,
+      createdAt: row.createdAt,
+    });
+    return parsed.success ? parsed.data : null;
+  }
+
+  // ------------------------------------------------------------- §9.6 plugins
+
+  /** Register a plugin skill on the host (the server-side loader validates first). */
+  registerPlugin(manifest: SkillManifest, executor: PluginExecutor): void {
+    this.host.registerPlugin(manifest, executor);
+  }
+
+  /** All registered manifests — built-ins and loaded plugins. */
+  listSkillManifests(): SkillManifest[] {
+    return this.host.manifests();
+  }
+
+  /**
+   * §9.6: run a registered plugin. Input is assembled from state, only for
+   * the slices its manifest declares.
+   */
+  async runPlugin(id: string): Promise<unknown> {
+    return this.withLock(async () => {
+      const candidateRow = this.store.getActiveCandidate();
+      const targetRow = this.store.getActiveTarget();
+      const slices: PluginStateSlices = {};
+      if (candidateRow) {
+        const parsed = CandidateProfileSchema.safeParse(candidateRow.data);
+        if (parsed.success) slices.candidate = parsed.data;
+        slices.stories = this.store.listStories(candidateRow.id);
+      }
+      if (targetRow) {
+        const parsed = TargetRoleSchema.safeParse(targetRow.data);
+        if (parsed.success) slices.target = parsed.data;
+      }
+      if (candidateRow && targetRow) {
+        slices.readiness = this.graphForActive().dimensions;
+        slices.gaps = this.calculateGapsInternal();
+      }
+      slices.recentEvaluations = this.store
+        .listAllEvaluations()
+        .slice(-20)
+        .map((e) => e.data);
+      return this.host.invokePlugin(id, slices, this.ctx());
+    });
+  }
+
   updateActionStatus(actionId: string, status: "open" | "in_progress" | "done" | "superseded") {
     return this.withLock(async () => {
       this.store.updateActionStatus(actionId, status);
@@ -1566,6 +2662,11 @@ export class InterviewOrchestrator {
 
   getRuntimeSessionRow(sessionId: string) {
     return this.store.getRuntimeSession(sessionId);
+  }
+
+  /** Test-mode only: wipe all persisted state (server gates the route). */
+  resetAll(): void {
+    this.store.resetAll();
   }
 }
 
@@ -1597,9 +2698,16 @@ function rowToAction(row: {
   };
 }
 
-export type OrchestratorQuestion = Question & {
+export type OrchestratorQuestion = Omit<Question, "followUpOf"> & {
   selectionReason: string | null;
   selectionPriority: number | null;
+  /** §9.2 engine factor breakdown (null for practice/follow-up questions). */
+  selectionFactors: Record<string, number> | null;
+  /** §9.1 follow-up linkage. */
+  followUpOf: string | null;
+  followUpFocus: string | null;
+  /** §9.1 mode payload (coding problem, design focus dimension). */
+  extra: Record<string, unknown>;
 };
 
 function rowToQuestion(row: {
@@ -1613,10 +2721,21 @@ function rowToQuestion(row: {
   difficulty: string;
   selectionReason?: string | null;
   selectionPriority?: number | null;
+  selectionFactors?: unknown;
+  followUpOf?: string | null;
+  followUpFocus?: string | null;
+  extra?: unknown;
   createdAt: string;
 }): OrchestratorQuestion {
   const parseList = <T>(v: unknown): T[] =>
     Array.isArray(v) ? (v as T[]) : JSON.parse(String(v ?? "[]"));
+  const parseObj = (v: unknown): Record<string, unknown> | null => {
+    if (v === null || v === undefined) return null;
+    if (typeof v === "object") return v as Record<string, unknown>;
+    const s = String(v);
+    return s === "" ? null : (JSON.parse(s) as Record<string, unknown>);
+  };
+  const factors = parseObj(row.selectionFactors);
   return {
     id: row.id,
     sessionId: row.sessionId,
@@ -1628,6 +2747,10 @@ function rowToQuestion(row: {
     difficulty: row.difficulty as Question["difficulty"],
     selectionReason: row.selectionReason ?? null,
     selectionPriority: row.selectionPriority ?? null,
+    selectionFactors: factors && Object.keys(factors).length > 0 ? (factors as Record<string, number>) : null,
+    followUpOf: row.followUpOf ?? null,
+    followUpFocus: row.followUpFocus ?? null,
+    extra: parseObj(row.extra) ?? {},
     createdAt: row.createdAt,
   };
 }

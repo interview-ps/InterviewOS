@@ -8,7 +8,7 @@ import {
   type RuntimeStatus,
 } from "@/lib/api";
 import { runtimeLabel } from "@/lib/runtime";
-import { Button, Card, CardTitle, ErrorNote, Pill, Spinner } from "@/components/ui";
+import { Button, Card, CardTitle, ErrorNote, PageHeader, Pill, SkeletonCard, Spinner, toast } from "@/components/ui";
 
 const EFFORTS = ["low", "medium", "high"] as const;
 
@@ -57,6 +57,7 @@ export default function Settings() {
         setSettings(s);
         setDraft(s);
         setSaved(s);
+        toast("Settings saved");
       })
       .catch((e) => setError(e))
       .finally(() => setSaving(false));
@@ -64,11 +65,18 @@ export default function Settings() {
 
   const dirty = draft && saved && JSON.stringify(draft) !== JSON.stringify(saved);
 
-  if (!status && !error) return <Spinner label="Loading settings…" />;
+  if (!status && !error) {
+    return (
+      <div className="space-y-5">
+        <PageHeader title="Settings" />
+        <SkeletonCard lines={5} />
+      </div>
+    );
+  }
 
   return (
     <div className="max-w-2xl space-y-5">
-      <h1 className="text-xl font-bold text-navy">Settings</h1>
+      <PageHeader title="Settings" subtitle="Runtime connection and model preferences." />
       <ErrorNote error={error} />
 
       <Card>

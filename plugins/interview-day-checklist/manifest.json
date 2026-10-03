@@ -1,0 +1,13 @@
+{
+  "id": "interview-day-checklist",
+  "version": "1.0.0",
+  "kind": "plugin",
+  "description": "A short checklist for interview day: the weakest requirement areas to skim, a STAR reminder, and logistics.",
+  "inputs": [
+    { "key": "target", "permission": "target.read" },
+    { "key": "readiness", "permission": "readiness.read" },
+    { "key": "gaps", "permission": "readiness.read" }
+  ],
+  "outputs": ["checklist"],
+  "permissions": ["target.read", "readiness.read"]
+}

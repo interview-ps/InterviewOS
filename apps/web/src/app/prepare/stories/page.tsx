@@ -7,7 +7,7 @@ import {
   type StarStory,
   type StoryCoachResult,
 } from "@/lib/api";
-import { Button, Card, CardTitle, ErrorNote, Pill, Spinner, skillLabel } from "@/components/ui";
+import { Button, Card, CardTitle, EmptyState, ErrorNote, PageHeader, Pill, Spinner, skillLabel } from "@/components/ui";
 
 const STAR_FIELDS = ["situation", "task", "action", "result"] as const;
 type StarField = (typeof STAR_FIELDS)[number];
@@ -91,16 +91,15 @@ export default function Stories() {
 
   return (
     <div className="max-w-4xl space-y-5">
-      <div className="flex items-center justify-between">
-        <h1 className="text-xl font-bold text-navy">STAR Stories</h1>
-        <Button onClick={generate} disabled={generating}>
-          {generating ? "Generating…" : "Generate from resume"}
-        </Button>
-      </div>
-      <p className="text-sm text-muted">
-        Your story bank for behavioral and HR interviews. Stories are grounded in your resume —
-        fill in <code className="text-xs">[add …]</code> placeholders with real details.
-      </p>
+      <PageHeader
+        title="STAR Stories"
+        subtitle="Your story bank for behavioral and HR interviews. Stories are grounded in your resume — fill in [add …] placeholders with real details."
+        actions={
+          <Button onClick={generate} disabled={generating}>
+            {generating ? "Generating…" : "Generate from resume"}
+          </Button>
+        }
+      />
       {generating && (
         <p role="status" aria-live="polite" className="text-sm text-muted">
           <span className="mr-2 inline-block h-3.5 w-3.5 animate-spin rounded-full border-2 border-line border-t-blue align-middle" aria-hidden />
@@ -111,10 +110,15 @@ export default function Stories() {
       {!stories && !error && <Spinner label="Loading stories…" />}
       {stories?.length === 0 && (
         <Card>
-          <p className="text-sm text-muted">
-            No stories yet. Generate from your resume or set up your workspace first — stories
-            extracted during resume analysis appear here.
-          </p>
+          <EmptyState
+            title="No stories yet"
+            description="Generate from your resume or set up your workspace first — stories extracted during resume analysis appear here."
+            action={
+              <Button variant="secondary" onClick={generate} disabled={generating}>
+                Generate from resume
+              </Button>
+            }
+          />
         </Card>
       )}
 

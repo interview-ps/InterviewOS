@@ -129,3 +129,148 @@ describe("selectNextSkill", () => {
     expect(result!.candidates.map((c) => c.skillId)).toEqual(["alpha", "zeta"]);
   });
 });
+
+describe("§9.2 engine v3", () => {
+  it("novelty factor 0.85 applies after 3 asks — but not when the skill is weak", () => {
+    const res = selectNextSkill({
+      ...baseInput,
+      requirements: [req("seen"), req("fresh")],
+      readiness: {
+        seen: dim("seen", 0.4, 0.9),
+        fresh: dim("fresh", 0.4, 0.9),
+      },
+      askCounts: { seen: 3 } as Record<SkillId, number>,
+    });
+    const seen = res!.candidates.find((c) => c.skillId === "seen")!;
+    const fresh = res!.candidates.find((c) => c.skillId === "fresh")!;
+    expect(seen.factors.noveltyFactor).toBe(0.85);
+    expect(fresh.factors.noveltyFactor).toBe(1);
+    expect(res!.skillId).toBe("fresh");
+
+    // weak evidence keeps novelty at 1 (weak skills still get retested)
+    const weakRes = selectNextSkill({
+      ...baseInput,
+      requirements: [req("seen"), req("fresh")],
+      readiness: {
+        seen: dim("seen", 0.4, 0.9),
+        fresh: dim("fresh", 0.4, 0.9),
+      },
+      evidence: [interviewEvidence("seen", 0.3)],
+      askCounts: { seen: 3 } as Record<SkillId, number>,
+    });
+    const weakSeen = weakRes!.candidates.find((c) => c.skillId === "seen")!;
+    expect(weakSeen.factors.noveltyFactor).toBe(1);
+    expect(weakSeen.factors.weaknessBoost).toBe(1.6);
+    expect(weakRes!.skillId).toBe("seen"); // 1.6 boost beats 0.85 savings on fresh
+  });
+
+  it("loop-weak sql.transactions pulls in related distributed-systems.consistency at ×1.4", () => {
+    const res = selectNextSkill({
+      ...baseInput,
+      mode: "system_design",
+      requirements: [
+        req("system-design", 0.9),
+        req("system-design.scalability", 0.9),
+      ],
+      readiness: {
+        "system-design": dim("system-design", 0.4, 0.9),
+        "system-design.scalability": dim("system-design.scalability", 0.4, 0.9),
+      },
+      loopWeakSkills: [
+        { skillId: "sql.transactions" as SkillId, round: 2, mode: "coding" as const },
+      ],
+    });
+    const consistency = res!.candidates.find(
+      (c) => c.skillId === "distributed-systems.consistency",
+    );
+    expect(consistency).toBeDefined();
+    expect(consistency!.factors.weaknessBoost).toBe(1.4);
+    expect(consistency!.reason).toMatch(
+      /Round 2 \(Coding\) showed weak SQL Transactions → testing Consistency/,
+    );
+    // pulled in by the loop signal — outranks the unboosted requirements
+    expect(consistency!.priority).toBeGreaterThan(
+      res!.candidates.find((c) => c.skillId === "system-design")!.priority,
+    );
+  });
+
+  it("a direct loop-weak skill in scope gets ×1.4 with a 'retesting' reason", () => {
+    const res = selectNextSkill({
+      ...baseInput,
+      mode: "system_design",
+      requirements: [req("system-design", 0.9)],
+      readiness: { "system-design": dim("system-design", 0.5, 0.9) },
+      loopWeakSkills: [
+        { skillId: "system-design" as SkillId, round: 1, mode: "technical" as const },
+      ],
+    });
+    const c = res!.candidates.find((x) => x.skillId === "system-design")!;
+    expect(c.factors.weaknessBoost).toBe(1.4);
+    expect(c.reason).toContain("retesting");
+  });
+
+  it("out-of-scope loop-weak skills don't enter the pool", () => {
+    const res = selectNextSkill({
+      ...baseInput,
+      mode: "hr",
+      requirements: [req("hr.motivation", 0.9)],
+      readiness: { "hr.motivation": dim("hr.motivation", 0.4, 0.9) },
+      loopWeakSkills: [
+        { skillId: "sql.transactions" as SkillId, round: 2, mode: "coding" as const },
+      ],
+    });
+    expect(res!.candidates.every((c) => c.skillId.startsWith("hr"))).toBe(true);
+  });
+
+  it("difficulty steps by level and readiness score", () => {
+    const sel = (level: "junior" | "mid" | "senior" | "staff", score: number | null) =>
+      selectNextSkill({
+        ...baseInput,
+        level,
+        requirements: [req("x")],
+        readiness: { x: dim("x", score, 0.9) },
+      })!.difficulty;
+    expect(sel("junior", null)).toBe("easy");
+    expect(sel("mid", null)).toBe("medium");
+    expect(sel("senior", null)).toBe("medium");
+    expect(sel("staff", null)).toBe("hard");
+    expect(sel("mid", 0.9)).toBe("hard"); // strong → +1 step
+    expect(sel("senior", 0.3)).toBe("easy"); // weak → −1 step
+    expect(sel("junior", 0.3)).toBe("easy"); // floor
+    expect(sel("staff", 0.9)).toBe("hard"); // ceiling
+  });
+
+  it("factor breakdown multiplies to the reported priority", () => {
+    const res = selectNextSkill({
+      ...baseInput,
+      requirements: [req("x", 0.8), req("y", 0.6)],
+      readiness: { x: dim("x", 0.4, 0.7), y: dim("y", 0.3, 0.5) },
+      evidence: [interviewEvidence("y", 0.2)],
+    });
+    for (const c of res!.candidates) {
+      const f = c.factors;
+      const expected =
+        f.roleImportance *
+        Math.max(f.readinessGap, 0.1) *
+        (0.5 + f.uncertainty) *
+        f.weaknessBoost *
+        f.recencyFactor *
+        f.noveltyFactor;
+      expect(c.priority).toBeCloseTo(expected, 6);
+    }
+    // weak evidence on y wins over a stronger-importance x
+    expect(res!.skillId).toBe("y");
+  });
+
+  it("preserves the v0.2 result when novelty=1 and no loop signals", () => {
+    const input = {
+      ...baseInput,
+      requirements: [req("a", 0.9), req("b", 0.7)],
+      readiness: { a: dim("a", 0.4, 0.8), b: dim("b", 0.2, 0.6) },
+    };
+    const v3 = selectNextSkill({ ...input, mode: "mixed", level: "senior", askCounts: {} });
+    const v2 = selectNextSkill(input);
+    expect(v3!.skillId).toBe(v2!.skillId);
+    expect(v3!.priority).toBeCloseTo(v2!.priority, 10);
+  });
+});

@@ -31,8 +31,10 @@ function ensureNode(id: SkillId): TaxonomyNode {
   return created;
 }
 
+const seededIds = new Set<SkillId>();
 for (const seed of TAXONOMY_SEED as TaxonomyNodeSeed[]) {
   register({ id: seed.id, label: seed.label, keywords: seed.keywords });
+  seededIds.add(seed.id);
 }
 
 const EXTRA_ALIASES: Record<string, SkillId> = {
@@ -103,6 +105,38 @@ export function childrenOf(id: SkillId): SkillId[] {
   return [...(childrenIndex.get(id) ?? [])].sort();
 }
 
+/**
+ * §9.1: cross-branch "related" edges — symmetric by construction. A skill weak
+ * in one round pulls its related skills into scope for later rounds (§9.2).
+ */
+export const RELATED_EDGES: ReadonlyArray<readonly [SkillId, SkillId]> = [
+  ["sql.transactions", "distributed-systems.consistency"],
+  ["sql.transactions", "system-design.data-modeling"],
+  [
+    "distributed-systems.caching.cache-invalidation",
+    "distributed-systems.consistency",
+  ],
+  ["distributed-systems.message-queues", "system-design.async-processing"],
+  ["coding.complexity", "system-design.scalability"],
+];
+
+const relatedIndex = new Map<SkillId, Set<SkillId>>();
+for (const [a, b] of RELATED_EDGES) {
+  for (const [x, y] of [
+    [a, b],
+    [b, a],
+  ] as const) {
+    const set = relatedIndex.get(x) ?? new Set<SkillId>();
+    set.add(y);
+    relatedIndex.set(x, set);
+  }
+}
+
+/** Skills related to `id` via §9.1 cross-branch edges (both directions). */
+export function relatedTo(id: SkillId): SkillId[] {
+  return [...(relatedIndex.get(id) ?? [])].sort();
+}
+
 export function labelFor(id: SkillId): string {
   const node = nodes.get(id);
   if (node) return node.label;
@@ -147,5 +181,13 @@ export function normalizeSkillId(raw: string): SkillId | null {
   const alias = getAliasIndex().get(normalized);
   if (alias) return alias;
   if (!isSkillId(normalized)) return null;
+  if (seededIds.has(normalized)) return normalized;
+  // models sometimes guess a branch prefix ("coding.complexity-analysis");
+  // snap the last segment to a canonical node when it is a known alias
+  const last = normalized.split(".").pop()!;
+  if (last !== normalized) {
+    const lastAlias = getAliasIndex().get(last);
+    if (lastAlias) return lastAlias;
+  }
   return normalized;
 }

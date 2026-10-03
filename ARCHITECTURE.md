@@ -330,3 +330,156 @@ text normalised and truncated to 50 000 chars (warning when truncated or empty, 
   `{values[], interviewStyle, focusSkillIds[], behavioralThemes[]}` stored in target data. Requirements whose
   skill is in `focusSkillIds` get +0.05 importance (cap 0.95); themes feed behavioral/HR interviewer prompts.
   No web research.
+
+## 9. v0.3 — Complete interview preparation platform
+
+Theme: simulate the real, multi-stage interview process and carry evidence across rounds.
+
+### 9.1 Interview modes (one module per mode — no giant interviewer)
+`ModeId = 'technical'|'coding'|'system_design'|'behavioral'|'hiring_manager'|'hr'`; `RoundType = ModeId | 'mixed'`
+(`mixed` kept for v0.2 sessions). Pure mode definitions live in `core/interview/modes/<mode>.ts`:
+```ts
+ModeDefinition {
+  id, label, description,
+  inScope(skillId): boolean,  fallbackSkills: SkillId[],
+  rubric: {id, label, description}[],               // evaluated independently
+  initialState(): ModeState,  reduce(state, evaluation, question): ModeState,
+  followUp(evaluation, state, depth, maxDepth): {ask: boolean, focus?: string, reason: string},
+}
+```
+Scopes: technical = everything except system-design/behavioral/communication/hr/coding/hiring-manager subtrees;
+coding = `coding.*`; system_design = `system-design.*` + `distributed-systems.*`; behavioral = `behavioral.*` +
+`communication`; hiring_manager = `hiring-manager.*` + `behavioral.leadership` + `communication`; hr = `hr.*`.
+(Deviation worth noting: coding scope cannot reach `sql.transactions`, so a loop that needs to seed a
+transactions weakness must open with a `technical` round — the canonical loop test does exactly that.)
+Taxonomy adds `coding` (`.algorithms`, `.data-structures`, `.complexity`, `.edge-cases`, `.code-quality`),
+`hiring-manager` (`.role-fit`, `.scope-impact`, `.prioritization`, `.leadership-style`), `sql.transactions`,
+`system-design.data-modeling`, `system-design.async-processing`, and **`related` edges** (symmetric), e.g.
+`sql.transactions↔distributed-systems.consistency`, `sql.transactions↔system-design.data-modeling`,
+`distributed-systems.caching.cache-invalidation↔distributed-systems.consistency`,
+`distributed-systems.message-queues↔system-design.async-processing`, `coding.complexity↔system-design.scalability`.
+
+Rubrics (ids): technical `correctness, technicalDepth, reasoning, communication, roleRelevance`;
+coding `problemUnderstanding, approach, correctness, complexity, edgeCases, codeQuality, communication`;
+system_design `requirements, constraints, scaleAssumptions, architecture, dataModel, apis, storage, caching,
+reliability, scalability, tradeOffs`; behavioral `situationClarity, ownership, actions, decisionMaking, impact,
+results, reflection, communication`; hiring_manager `roleFit, scopeImpact, prioritization, leadership,
+collaboration, motivation`; hr `motivation, careerGoals, cultureFit, workStyle, communication`.
+`AnswerEvaluation.rubric: {id, label, score, rationale}[]` must contain exactly the mode's rubric ids (validated;
+mismatch = malformed → retry). Generic `dimensions` stays for compatibility.
+
+Mode state (session column `mode_state` JSON):
+- system_design: one design problem per session; `{problem, dimensions: Record<rubricId(excluding
+  communication), {status:'not_covered'|'partial'|'covered', notes}>}`. Turn 1 = design prompt; later turns probe
+  the first not_covered/partial dimension in rubric order. Evaluator returns `designUpdates[{dimension, status,
+  notes}]`; `reduce` applies them (status never downgrades).
+- coding: `{problem: {title, statement, constraints[], examples[{input, output, explanation}]}, phase}`;
+  answers carry `{text, code?, language?}` (answers table gains `code`, `language`). **No code execution in
+  v0.3** — code is reviewed, not run (UI says so); execution sandboxing is v0.4.
+- behavioral: `{storyIdsUsed[], competenciesCovered[]}`; hiring_manager / hr: `{themesCovered[]}`; technical `{}`.
+
+Skills: interviewer and answer-evaluator dispatch to per-mode modules `skills/src/interview/modes/<mode>/`
+(`interviewerPrompt`, `evaluatorPrompt`, mock templates, mock rubric scorer) with taskIds
+`interviewer.<mode>` / `answer-evaluator.<mode>`; `mixed` uses the v0.2 prompts.
+
+Follow-ups: after each evaluation the mode's `followUp` decides. technical/behavioral/hiring_manager/hr: ask when
+missingConcepts is non-empty and any rubric score < 0.6 and depth < maxDepth; coding: when complexity or
+edgeCases < 0.6; system_design: the session itself walks uncovered dimensions (not counted as depth).
+Follow-up questions are persisted with `followUpOf` + `followUpFocus`, asked in the same Codex thread with
+`followUp: {parentQuestion, focus}`, and do **not** count toward `plannedQuestions`.
+`maxDepth` = company profile `followUpDepth` (default 1).
+
+### 9.2 Adaptive question engine v3 (`core/interview/prioritize`)
+```
+priority = roleImportance × max(readinessGap, 0.1) × (0.5 + uncertainty)
+         × weaknessBoost × recencyFactor × noveltyFactor
+weaknessBoost: 1.6 weak interview evidence (<0.5) on the skill; 1.4 related to (or equal to) a skill flagged weak
+               in an earlier round of the current loop; else 1.0
+recencyFactor: 0.15 asked this session (and then weaknessBoost = 1.0); 0.6 asked in previous session & not weak; else 1.0
+noveltyFactor: 0.85 if asked ≥ 3 times across all sessions and not weak; else 1.0
+```
+Pool = in-scope requirements + in-scope evidenced descendants + low-confidence skills + in-scope
+loop-weak skills and their in-scope `related` skills; empty → mode fallbackSkills at importance 0.6. Every 4th
+main question is a strong-area confirmation (in scope). Difficulty: base by level (junior easy, mid medium,
+senior medium, staff hard), +1 step if score ≥ 0.75, −1 if score < 0.4. Selection returns
+`factors {roleImportance, readinessGap, uncertainty, weaknessBoost, recencyFactor, noveltyFactor}`, `difficulty`
+and a human reason (e.g. "Round 1 (Coding) showed weak Transactions → testing Consistency"); stored on the
+question (`selection_factors`) and shown in the UI. With no loop and novelty 1.0 this equals the v0.2 formula.
+
+### 9.3 Company profiles (`core/companies/`)
+Built-in, originally-written data: `generic, google, meta, amazon, microsoft`.
+```ts
+CompanyProfile { id, name, aliases[], disclaimer, typicalLoop: {mode, label, plannedQuestions}[],
+  emphasis: {skillId, weight ≤ 0.1}[], behavioralFramework: {name, themes[], guidance},
+  followUpDepth: 1|2|3, rubricEmphasis: Partial<Record<rubricId, number>>, roleExpectations: Record<Level, string[]> }
+```
+Disclaimer on every profile: "Based on commonly reported public interview patterns; real loops vary by team, role
+and level." Targets get `companyProfileId` (auto by alias match on company name, else `generic`; user can
+change). Emphasis boosts requirement importance (cap 0.95, `boostedBy: 'company-profile:<id>'`); the v0.2
+pasted-notes profile remains an overlay. Profile guidance feeds interviewer/evaluator prompts.
+
+### 9.4 Full interview loops
+Table `interview_loops {id, target_id, company_profile_id, rounds JSON [{mode, label, plannedQuestions,
+sessionId|null, status, readinessBefore, readinessAfter, handoff, skillDeltas}], status 'planned'|'in_progress'|
+'complete', current_round, created_at, completed_at, debrief JSON}`; sessions gain `loop_id`, `loop_round`.
+`startLoop({rounds?})` (default = company typicalLoop) creates round 1's session; completing a round's session
+writes its debrief, a deterministic **handoff** `{weakSkills[{skillId,label,score,observation}],
+strongSkills[{skillId,label,score}], observations[]}` (from that round's evaluations — labels resolve via the
+taxonomy so UI/prompts never show raw ids), **skillDeltas** `[{skillId, label, before, after}]` — first-before /
+last-after per skill across the round's evaluations' `readinessDelta` — and readiness before/after, then
+`advanceLoop` creates the next round's session. Later rounds get `loopWeakSkills` (selection, §9.2) and
+`priorRoundObservations` (interviewer prompt). Final round → skill `loop-debrief` → `{summary, rounds[{mode,
+signal:'strong'|'mixed'|'weak', evidence[]}], readinessChange, topActions[]}` — signals with evidence, never a
+hire/no-hire verdict.
+
+### 9.5 Resume coach
+- Deterministic `core/resume/ats.ts` `atsCheck(resumeText, requirements)` → `{score 0–100, checks[{id, label,
+  status:'pass'|'warn'|'fail', detail, weight}], keywordCoverage {present[], missing[]}}`: contact info, section
+  headings, length (300–900 words), bullet count, quantified-bullet ratio (≥30%), action-verb starts, first-person
+  pronouns, dates present, required-skill keyword coverage (taxonomy `matchSkills`). Score = weighted pass ratio.
+- Skill `resume-coach` (`resume-coach.bullets`, `resume-coach.tailor`): bullets → `{suggestions[{original,
+  improved, rationale, skillIds}]}`; tailor → `{summary, emphasize[], deEmphasize[], alignment[{requirement,
+  resumeEvidence|null, suggestion}], prepGaps[]}`. Bullet selection is section-aware: only bullets inside
+  experience/projects-style sections are candidates — education, skills, contact, summary etc. are never
+  rewritten as achievements (`core/resume/bullets.ts`).
+- **No invented facts** guard `core/resume/guard.ts` `guardSuggestion(original, improved, resumeText)`: numbers /
+  percentages / currency not present in the resume are replaced with `[add metric]`; capitalised multi-letter
+  tokens (entities) absent from the resume and from a small common-word allowlist → suggestion dropped. Applied
+  to every AI suggestion before persisting.
+- `resume_reviews {id, candidate_id, target_id, ats, suggestions, tailoring, created_at}`.
+
+### 9.6 Skill manifests, plugins, permissions
+`Permission = candidate.read|candidate.write|target.read|target.write|readiness.read|evidence.write|
+interview.read|interview.write|stories.read|stories.write|resume.read|resume.write|preparation.write|
+taxonomy.read|runtime.invoke`.
+`SkillManifest {id, version, kind:'builtin'|'plugin', description, inputs[{key, permission}], outputs[],
+permissions[]}` (Zod). Every built-in skill exports one. `SkillHost` (`skills/src/host/`):
+`invoke(id, input, ctx)` rejects (PermissionError) any top-level input key not declared in `inputs` or whose
+permission isn't granted; `ctx.runtime` is a proxy that throws unless `runtime.invoke`; the orchestrator calls
+`host.assertCan(id, '<x>.write')` before persisting a skill's outputs. All orchestrator skill calls go through the
+host.
+Plugins: `plugins/<name>/{manifest.json, index.ts}` loaded at server start from `INTERVIEW_OS_PLUGINS_DIR`
+(default `<repo>/plugins`); kind forced to `plugin`; v0.3 plugins may hold only read permissions +
+`runtime.invoke` (write permissions → plugin skipped with a logged warning). `GET /api/skills` lists manifests;
+`POST /api/plugins/:id/run` builds the plugin input **from state, only for declared input slices**; runs are
+time-boxed at 30 s and output is capped at 100 KB. Plugins are trusted local code (documented).
+Sample: `plugins/interview-day-checklist` (target.read + readiness.read, no runtime).
+
+### 9.7 History, metrics, command palette, UI
+- Evaluations store `readinessDelta[{skillId, before, after}]`; History shows mode, company profile, target,
+  loop/round, questions (+follow-ups), answers (+code), rubric, readiness changes, prep actions created (actions
+  whose sourceEvidenceIds intersect the session's evidence). Filters: mode, target, loop, weak answers.
+- Local `usage_events {id, event, created_at}` (no content). `GET /api/metrics`: loops started/completed,
+  modes used, weakness retest rate (weak skills later asked again ÷ weak skills), improvement after prep (mean
+  per-skill score delta between evidence before and after a done action), prep completion rate (done ÷ non-
+  superseded), history reviews, target switches, resume coach uses, readiness coverage (% requirements with
+  confidence ≥ 0.4).
+- Command palette (Ctrl/Cmd+K): static + dynamic commands (start <mode> interview, start full loop, practice
+  <skill>, view <skill> readiness, analyze new JD, switch target, review weak answers, open resume coach).
+- Navigation: Home, Target, Prepare (Plan | Stories), Interview (Single round | Full loop), Readiness, Resume,
+  History, Settings (+ Skills & plugins). Old routes redirect. UI polish: shared PageHeader (title, subtitle,
+  actions) on every page, consistent empty states with a primary CTA, loading skeletons, non-blocking toasts,
+  visible focus rings, consistent pill tones for status/severity/signal, and a sidebar that collapses to a menu
+  button below 900px.
+- Test-only endpoint: `POST /api/test/reset` wipes all state — it returns 404 unless
+  `INTERVIEW_OS_TEST_MODE=1` (e2e isolation; never enabled in dev/prod).

@@ -104,4 +104,48 @@ describe("InterviewOrchestrator", () => {
     expect(open[0]!.skillId).toBe("distributed-systems.caching.cache-invalidation");
     expect(open.map((a) => a.priority)).toEqual(open.map((_, i) => i + 1));
   });
+
+  it("history survives legacy rows: evaluation without rubric, unknown roundType", async () => {
+    const { orch, store } = makeOrchestrator();
+    await orch.setupWorkspace(SETUP);
+    const { session } = await orch.startInterview({ plannedQuestions: 1 });
+    if (!session) throw new Error("no session");
+    const q = store.listQuestions(session.id)[0]!;
+
+    // rows shaped like pre-§9.1 storage: no `rubric` in evaluation JSON, and
+    // a roundType no registered mode knows
+    store.updateSession(session.id, { roundType: "legacy-round" });
+    store.insertAnswer({
+      id: "ans_legacy",
+      questionId: q.id,
+      sessionId: session.id,
+      text: "Some answer",
+      status: "evaluated",
+      createdAt: new Date().toISOString(),
+    });
+    store.insertEvaluation({
+      id: "ev_legacy",
+      answerId: "ans_legacy",
+      questionId: q.id,
+      sessionId: session.id,
+      data: {
+        summary: "old eval",
+        dimensions: {},
+        strengths: [],
+        weaknesses: [],
+        scores: [{ skill: "distributed-systems.caching", score: 0.2, confidence: 0.5 }],
+        missingConcepts: [],
+        betterApproach: "",
+        followUpTopics: [],
+      },
+      readinessDelta: [],
+      createdAt: new Date().toISOString(),
+    });
+
+    const entry = orch.getSessionHistory(session.id);
+    expect(entry.session.modeLabel).toBe("Mixed");
+    expect(entry.questions[0]!.weak).toBe(true); // mean of scores = 0.2 < 0.5
+    expect(entry.questions[0]!.evaluation).not.toBeNull();
+    expect(() => orch.getHistory({})).not.toThrow();
+  });
 });

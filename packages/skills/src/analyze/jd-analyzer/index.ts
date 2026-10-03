@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { LevelSchema, RequirementSchema, type Requirement } from "@interview-os/core";
+import { LevelSchema, RequirementSchema, type Requirement, type SkillManifest } from "@interview-os/core";
 import { runStructured } from "../../framework/runStructured.js";
 import type { InterviewSkill } from "../../framework/skill.js";
 import { normalizeSkillIdValue, TaxonomyEntrySchema } from "../../framework/common.js";
@@ -32,8 +32,31 @@ export const JdAnalyzerOutputSchema = z.object({
 });
 export type JdAnalyzerOutput = z.infer<typeof JdAnalyzerOutputSchema>;
 
+const manifest: SkillManifest = {
+  id: "jd-analyzer",
+  version: "1.0.0",
+  kind: "builtin",
+  description:
+    "Extracts a TargetRole's requirements (required/preferred, importance) from a job description.",
+  inputs: [
+    { key: "jobDescription", permission: "target.read" },
+    { key: "company", permission: "target.read" },
+    { key: "role", permission: "target.read" },
+    { key: "level", permission: "target.read" },
+    { key: "taxonomy", permission: "taxonomy.read" },
+  ],
+  outputs: ["requirements", "preferredSkills"],
+  permissions: [
+    "target.read",
+    "taxonomy.read",
+    "runtime.invoke",
+    "target.write",
+  ],
+};
+
 export const jdAnalyzer: InterviewSkill<JdAnalyzerInput, JdAnalyzerOutput> = {
   id: "jd-analyzer",
+  manifest,
   inputSchema: JdAnalyzerInputSchema,
   outputSchema: JdAnalyzerOutputSchema,
   async execute(input, ctx) {
