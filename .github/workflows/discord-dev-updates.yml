@@ -1,0 +1,65 @@
+name: Discord dev updates
+
+on:
+  release:
+    types: [published]
+  pull_request_target:
+    types: [closed]
+
+permissions: {}
+
+jobs:
+  notify:
+    if: github.event_name == 'release' || github.event.pull_request.merged == true
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Set up Node.js
+        uses: actions/setup-node@v7
+        with:
+          node-version: '24'
+
+      - name: Post update to Discord
+        env:
+          DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_DEV_UPDATES_WEBHOOK }}
+          GITHUB_EVENT_NAME: ${{ github.event_name }}
+          GITHUB_EVENT_PATH: ${{ github.event_path }}
+        run: |
+          node <<'NODE'
+          const fs = require('node:fs');
+
+          async function main() {
+            const webhookUrl = process.env.DISCORD_WEBHOOK_URL;
+            if (!webhookUrl) {
+              throw new Error('DISCORD_DEV_UPDATES_WEBHOOK is not configured');
+            }
+
+            const event = JSON.parse(fs.readFileSync(process.env.GITHUB_EVENT_PATH, 'utf8'));
+            let content;
+
+            if (process.env.GITHUB_EVENT_NAME === 'release') {
+              const release = event.release;
+              const title = (release.name || release.tag_name).replace(/[\r\n]/g, ' ').slice(0, 200);
+              content = `🚀 InterviewOS release: **${title}**\n${release.html_url}`;
+            } else {
+              const pr = event.pull_request;
+              if (!pr?.merged) return;
+              const title = pr.title.replace(/[\r\n]/g, ' ').slice(0, 200);
+              content = `✅ Merged PR #${pr.number}: **${title}**\n${pr.html_url}`;
+            }
+
+            const response = await fetch(webhookUrl, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ content, allowed_mentions: { parse: [] } }),
+            });
+            if (!response.ok) {
+              throw new Error(`Discord webhook failed (${response.status})`);
+            }
+          }
+
+          main().catch((error) => {
+            console.error(error.message);
+            process.exitCode = 1;
+          });
+          NODE
