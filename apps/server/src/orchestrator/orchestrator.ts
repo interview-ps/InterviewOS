@@ -76,6 +76,15 @@ import {
 import type { ResumeTailoring, SkillManifest } from "@interview-os/core";
 import { Store } from "./store/index.js";
 import type { LoopRow, SessionRow } from "./store/index.js";
+import { WorkflowContext, type ProgressOptions } from "./context.js";
+import {
+  rowToAction,
+  rowToQuestion,
+  type OrchestratorQuestion,
+  type PrepActionRowLike,
+} from "./projection.js";
+
+export type { OrchestratorQuestion, PrepActionRowLike } from "./projection.js";
 
 const OVERALL_SKILL_ID = "__overall__";
 
@@ -139,25 +148,9 @@ export interface SubmitAnswerResult {
   nextAvailable: "question" | "complete";
 }
 
-interface PrepActionRowLike {
-  id: string;
-  skillId: string;
-  priority: number;
-  reason: string;
-  action: string;
-  successCriteria: string[];
-  status: string;
-  severity: string;
-  createdAt: string;
-  sourceEvidenceIds: string[];
-}
-
 const INTERVIEWER_SESSION_INSTRUCTIONS = `You are the interviewer thread for Interview OS, a mock-interview tool. Each message asks you to produce ONE interview question as JSON matching the provided schema. Never repeat earlier questions.`;
 
-/** Streaming progress pushed to SSE/API callers during long AI operations. */
-export interface ProgressOptions {
-  onProgress?: (p: ProgressUpdate) => void;
-}
+export type { ProgressOptions } from "./context.js";
 
 const TASK_MODES = ["app-server", "exec"] as const;
 export type TaskMode = (typeof TASK_MODES)[number];
@@ -175,6 +168,7 @@ export class InterviewOrchestrator {
   private readonly now: () => Date;
   /** §9.6: every skill call goes through this host. */
   readonly host: SkillHost;
+  private readonly workflow: WorkflowContext;
   private queue: Promise<unknown> = Promise.resolve();
 
   constructor(deps: OrchestratorDeps) {
@@ -184,6 +178,13 @@ export class InterviewOrchestrator {
     this.now = deps.now ?? (() => new Date());
     this.host = new SkillHost({ logger: deps.logger });
     registerBuiltinSkills(this.host);
+    this.workflow = new WorkflowContext(
+      this.store,
+      this.host,
+      this.runtime,
+      this.logger,
+      this.now,
+    );
   }
 
   private withLock<T>(fn: () => Promise<T>): Promise<T> {
@@ -194,13 +195,7 @@ export class InterviewOrchestrator {
 
   /** Settings-backed runtime overrides, read at call time (§8.3). */
   private runtimeOptions(): SkillContext["runtimeOptions"] {
-    const effort = this.store.getSetting("reasoningEffort");
-    const taskMode = this.store.getSetting("taskMode");
-    return {
-      model: this.store.getSetting("model") ?? null,
-      effort: effort === "low" || effort === "medium" || effort === "high" ? effort : null,
-      taskMode: taskMode === "exec" ? "exec" : "app-server",
-    };
+    return this.workflow.runtimeOptions();
   }
 
   getSettings(): OrchestratorSettings {
@@ -268,32 +263,15 @@ export class InterviewOrchestrator {
   }
 
   private ctx(extra?: Partial<SkillContext>): SkillContext {
-    return {
-      runtime: this.runtime,
-      logger: this.logger,
-      now: this.now,
-      runtimeOptions: this.runtimeOptions(),
-      ...extra,
-    };
+    return this.workflow.ctx(extra);
   }
 
   private iso(): string {
-    return this.now().toISOString();
+    return this.workflow.iso();
   }
 
   private requireActive(): { candidate: CandidateProfile; target: TargetRole } {
-    const candidateRow = this.store.getActiveCandidate();
-    const targetRow = this.store.getActiveTarget();
-    if (!candidateRow || !targetRow) {
-      throw new AppError(
-        "NO_ACTIVE_PROFILE",
-        "no active candidate/target — call /api/workspace/setup first",
-      );
-    }
-    return {
-      candidate: CandidateProfileSchema.parse(candidateRow.data),
-      target: TargetRoleSchema.parse(targetRow.data),
-    };
+    return this.workflow.requireActive();
   }
 
   // ---------------------------------------------------------------- pipeline
@@ -543,10 +521,7 @@ export class InterviewOrchestrator {
   }
 
   private registerSkillNode(skillId: SkillId): void {
-    for (const id of [skillId, ...taxonomy.ancestors(skillId)]) {
-      const node = taxonomy.getNode(id);
-      this.store.upsertSkillNode(id, node?.label ?? taxonomy.labelFor(id), taxonomy.parentOf(id));
-    }
+    this.workflow.registerSkillNode(skillId);
   }
 
   // ---------------------------------------------------------------- targets
@@ -657,33 +632,15 @@ export class InterviewOrchestrator {
   // ---------------------------------------------------------------- readiness
 
   private allRequirements(target: TargetRole): Requirement[] {
-    return [...target.requirements, ...target.preferredSkills];
+    return this.workflow.allRequirements(target);
   }
 
   private evidenceForActive(candidateId: string): Evidence[] {
-    return this.store
-      .listEvidence(candidateId)
-      .map((r) => ({
-        id: r.id,
-        skillId: r.skillId as SkillId,
-        type: r.type as Evidence["type"],
-        score: r.score,
-        confidence: r.confidence,
-        observation: r.observation,
-        sessionId: r.sessionId ?? undefined,
-        questionId: r.questionId ?? undefined,
-        createdAt: r.createdAt,
-      }));
+    return this.workflow.evidenceForActive(candidateId);
   }
 
   private graphForActive(): ReadinessGraph {
-    const { candidate, target } = this.requireActive();
-    return buildReadinessGraph({
-      evidence: this.evidenceForActive(candidate.id),
-      requirements: this.allRequirements(target),
-      taxonomy,
-      now: this.now(),
-    });
+    return this.workflow.graphForActive();
   }
 
   recomputeReadiness(reason: string): Promise<ReadinessGraph> {
@@ -969,14 +926,7 @@ export class InterviewOrchestrator {
     next: InterviewStatus,
     event: Parameters<typeof transition>[1],
   ): void {
-    const row = this.store.getSession(sessionId);
-    if (!row) throw new AppError("NOT_FOUND", `no session ${sessionId}`);
-    const from = row.status as InterviewStatus;
-    const to = transition(from, event); // throws InvalidTransitionError
-    if (to !== next) {
-      throw new AppError("INTERNAL", `unexpected transition ${event}: ${from}→${to}`);
-    }
-    this.store.updateSession(sessionId, { status: to });
+    this.workflow.transitionSession(sessionId, next, event);
   }
 
   async nextQuestion(sessionId: string, opts?: ProgressOptions) {
@@ -2668,89 +2618,4 @@ export class InterviewOrchestrator {
   resetAll(): void {
     this.store.resetAll();
   }
-}
-
-function rowToAction(row: {
-  id: string;
-  skillId: string;
-  priority: number;
-  reason: string;
-  action: string;
-  successCriteria: unknown;
-  status: string;
-  severity?: string;
-  createdAt: string;
-  sourceEvidenceIds: unknown;
-}): PrepActionRowLike {
-  const parseList = (v: unknown): string[] =>
-    Array.isArray(v) ? (v as string[]) : JSON.parse(String(v ?? "[]"));
-  return {
-    id: row.id,
-    skillId: row.skillId,
-    priority: row.priority,
-    reason: row.reason,
-    action: row.action,
-    successCriteria: parseList(row.successCriteria),
-    status: row.status,
-    severity: row.severity ?? "medium",
-    createdAt: row.createdAt,
-    sourceEvidenceIds: parseList(row.sourceEvidenceIds),
-  };
-}
-
-export type OrchestratorQuestion = Omit<Question, "followUpOf"> & {
-  selectionReason: string | null;
-  selectionPriority: number | null;
-  /** §9.2 engine factor breakdown (null for practice/follow-up questions). */
-  selectionFactors: Record<string, number> | null;
-  /** §9.1 follow-up linkage. */
-  followUpOf: string | null;
-  followUpFocus: string | null;
-  /** §9.1 mode payload (coding problem, design focus dimension). */
-  extra: Record<string, unknown>;
-};
-
-function rowToQuestion(row: {
-  id: string;
-  sessionId: string;
-  skillId: string;
-  topic: string;
-  text: string;
-  subSkills: unknown;
-  expectedConcepts: unknown;
-  difficulty: string;
-  selectionReason?: string | null;
-  selectionPriority?: number | null;
-  selectionFactors?: unknown;
-  followUpOf?: string | null;
-  followUpFocus?: string | null;
-  extra?: unknown;
-  createdAt: string;
-}): OrchestratorQuestion {
-  const parseList = <T>(v: unknown): T[] =>
-    Array.isArray(v) ? (v as T[]) : JSON.parse(String(v ?? "[]"));
-  const parseObj = (v: unknown): Record<string, unknown> | null => {
-    if (v === null || v === undefined) return null;
-    if (typeof v === "object") return v as Record<string, unknown>;
-    const s = String(v);
-    return s === "" ? null : (JSON.parse(s) as Record<string, unknown>);
-  };
-  const factors = parseObj(row.selectionFactors);
-  return {
-    id: row.id,
-    sessionId: row.sessionId,
-    skillId: row.skillId as SkillId,
-    topic: row.topic,
-    text: row.text,
-    subSkills: parseList<string>(row.subSkills) as SkillId[],
-    expectedConcepts: parseList(row.expectedConcepts),
-    difficulty: row.difficulty as Question["difficulty"],
-    selectionReason: row.selectionReason ?? null,
-    selectionPriority: row.selectionPriority ?? null,
-    selectionFactors: factors && Object.keys(factors).length > 0 ? (factors as Record<string, number>) : null,
-    followUpOf: row.followUpOf ?? null,
-    followUpFocus: row.followUpFocus ?? null,
-    extra: parseObj(row.extra) ?? {},
-    createdAt: row.createdAt,
-  };
 }
