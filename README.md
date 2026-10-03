@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="docs/assets/banner.png" alt="Interview OS — Open-Source AI Interview Preparation System" width="640" />
+</p>
+
 # Interview OS is interview preparation that learns from your answers.
 
 **A local-first, open-source workspace for turning a resume and job description into a targeted prep plan, realistic mock interviews, and an evidence-backed view of your readiness.**
