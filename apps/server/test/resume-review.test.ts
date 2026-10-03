@@ -5,7 +5,8 @@ import { InterviewOrchestrator, openStore } from "@interview-os/orchestrator";
 import { MockRuntime } from "@interview-os/runtime";
 import { createLogger } from "@interview-os/shared";
 import { registerMockHandlers } from "@interview-os/skills";
-import { createApp, REPO_ROOT } from "../src/app.js";
+import { createApp } from "../src/http/app.js";
+import { REPO_ROOT } from "../src/paths.js";
 
 const example = JSON.parse(
   fs.readFileSync(path.join(REPO_ROOT, "examples/backend-engineer/meta.json"), "utf8"),

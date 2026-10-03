@@ -4,7 +4,7 @@ import { InterviewOrchestrator, openStore } from "@interview-os/orchestrator";
 import { MockRuntime } from "@interview-os/runtime";
 import { createLogger } from "@interview-os/shared";
 import { registerMockHandlers } from "@interview-os/skills";
-import { createApp } from "../src/app.js";
+import { createApp } from "../src/http/app.js";
 
 function makeServer() {
   const logger = createLogger({ level: "error", sink: () => {} });

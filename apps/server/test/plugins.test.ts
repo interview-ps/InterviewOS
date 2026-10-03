@@ -5,8 +5,9 @@ import { InterviewOrchestrator, openStore } from "@interview-os/orchestrator";
 import { MockRuntime } from "@interview-os/runtime";
 import { createLogger } from "@interview-os/shared";
 import { registerMockHandlers } from "@interview-os/skills";
-import { createApp, REPO_ROOT } from "../src/app.js";
-import { loadPlugins } from "../src/plugins.js";
+import { createApp } from "../src/http/app.js";
+import { REPO_ROOT } from "../src/paths.js";
+import { loadPlugins } from "../src/startup/plugins.js";
 
 const logger = createLogger({ level: "error", sink: () => {} });
 const fixtureDir = path.join(REPO_ROOT, "tests/fixtures/plugins");
