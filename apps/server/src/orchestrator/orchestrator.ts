@@ -86,6 +86,8 @@ import { StoryService } from "./story-service.js";
 import { PluginService } from "./plugin-service.js";
 import { DebriefService } from "./debrief-service.js";
 import { HistoryService } from "./history-service.js";
+import { ReadinessService } from "./readiness-service.js";
+import { PreparationService } from "./preparation-service.js";
 import {
   rowToAction,
   rowToQuestion,
@@ -178,6 +180,8 @@ export class InterviewOrchestrator {
   private readonly plugins: PluginService;
   private readonly debrief: DebriefService;
   private readonly history: HistoryService;
+  private readonly readiness: ReadinessService;
+  private readonly preparation: PreparationService;
   private queue: Promise<unknown> = Promise.resolve();
 
   constructor(deps: OrchestratorDeps) {
@@ -212,6 +216,8 @@ export class InterviewOrchestrator {
       graphForActive: () => this.graphForActive(),
       calculateGaps: () => this.calculateGapsInternal(),
     });
+    this.readiness = new ReadinessService(this.workflow);
+    this.preparation = new PreparationService(this.workflow, this.readiness);
   }
 
   private withLock<T>(fn: () => Promise<T>): Promise<T> {
@@ -611,7 +617,7 @@ export class InterviewOrchestrator {
   }
 
   private graphForActive(): ReadinessGraph {
-    return this.workflow.graphForActive();
+    return this.readiness.graphForActive();
   }
 
   recomputeReadiness(reason: string): Promise<ReadinessGraph> {
@@ -619,45 +625,7 @@ export class InterviewOrchestrator {
   }
 
   private recomputeReadinessInternal(reason: string): ReadinessGraph {
-    const graph = this.graphForActive();
-    const latest = this.store.latestReadinessBySkill();
-    const computedAt = this.iso();
-    const changed = (
-      skillId: string,
-      score: number | null,
-      confidence: number,
-    ): boolean => {
-      const prev = latest.get(skillId);
-      if (!prev) return true;
-      const prevScore = prev.score;
-      return prevScore !== score || Math.abs(prev.confidence - confidence) > 1e-9;
-    };
-    let appended = 0;
-    for (const dim of Object.values(graph.dimensions)) {
-      if (!changed(dim.skillId, dim.score, dim.confidence)) continue;
-      this.store.appendReadinessSnapshot({
-        skillId: dim.skillId,
-        score: dim.score,
-        confidence: dim.confidence,
-        evidenceIds: dim.evidenceIds as unknown,
-        reason,
-        computedAt,
-      });
-      appended += 1;
-    }
-    if (changed(OVERALL_SKILL_ID, graph.overall, graph.overallConfidence)) {
-      this.store.appendReadinessSnapshot({
-        skillId: OVERALL_SKILL_ID,
-        score: graph.overall,
-        confidence: graph.overallConfidence,
-        evidenceIds: [],
-        reason,
-        computedAt,
-      });
-      appended += 1;
-    }
-    this.logger.info("readiness.updated", { reason, nodesChanged: appended });
-    return graph;
+    return this.readiness.recomputeReadinessInternal(reason);
   }
 
   // ---------------------------------------------------------------- gaps + plan
@@ -667,13 +635,7 @@ export class InterviewOrchestrator {
   }
 
   private calculateGapsInternal(): Gap[] {
-    const { target } = this.requireActive();
-    const graph = this.graphForActive();
-    return calculateGaps({
-      requirements: this.allRequirements(target),
-      readiness: graph.dimensions,
-      level: target.level,
-    });
+    return this.readiness.calculateGapsInternal();
   }
 
   async buildPreparationPlan(): Promise<PrepActionRowLike[]> {
@@ -681,79 +643,8 @@ export class InterviewOrchestrator {
     return actions;
   }
 
-  private async buildPreparationPlanInternal(): Promise<{
-    actions: PrepActionRowLike[];
-    created: PrepActionRowLike[];
-  }> {
-    const { target, candidate } = this.requireActive();
-    const gaps = this.calculateGapsInternal();
-    const evidence = this.evidenceForActive(candidate.id);
-    const openSkills = new Set(
-      this.store.listActions("open", target.id).map((a) => a.skillId),
-    );
-
-    const targets: Array<{
-      skillId: SkillId;
-      label: string;
-      reason: string;
-      missingConcepts: string[];
-      severity: "low" | "medium" | "high";
-    }> = [];
-    const seen = new Set<string>();
-
-    for (const gap of gaps.filter((g) => g.severity !== "low").slice(0, 5)) {
-      seen.add(gap.skillId);
-      targets.push({
-        skillId: gap.skillId,
-        label: gap.label,
-        reason: gap.reason,
-        missingConcepts: [],
-        severity: gap.severity,
-      });
-    }
-
-    const weakSkillIds = new Set<SkillId>();
-    for (const e of evidence) {
-      if (e.type === "interview_answer" && e.score < 0.5) weakSkillIds.add(e.skillId);
-    }
-    for (const skillId of [...weakSkillIds].sort()) {
-      if (seen.has(skillId) || openSkills.has(skillId)) continue;
-      const obs = evidence.find(
-        (e) => e.skillId === skillId && e.type === "interview_answer" && e.score < 0.5,
-      );
-      targets.push({
-        skillId,
-        label: taxonomy.labelFor(skillId),
-        reason: `weak interview evidence: ${obs?.observation ?? ""}`.trim(),
-        missingConcepts: [],
-        severity: "medium",
-      });
-    }
-
-    const created: PrepActionRowLike[] = [];
-    if (targets.length > 0) {
-      const plan: PrepPlannerOutput = await this.host.invoke(
-        prepPlanner,
-        { targets, role: target.role, level: target.level },
-        this.ctx(),
-      );
-      const bySkill = new Map(plan.actions.map((a) => [a.skillId, a]));
-      targets.forEach((t) => {
-        const action = bySkill.get(t.skillId) ?? bySkill.get(t.skillId as string);
-        if (!action) return;
-        created.push(
-          this.insertPlannedAction(t.skillId, action, candidate.id, t.severity, target.id),
-        );
-      });
-    }
-
-    this.renumberActionPriorities(this.allRequirements(target), target.id);
-
-    const actions = this.store
-      .listActions(undefined, target.id)
-      .filter((a) => a.status === "open" || a.status === "in_progress")
-      .map(rowToAction);
-    return { actions, created };
+  private buildPreparationPlanInternal() {
+    return this.preparation.buildPreparationPlanInternal();
   }
 
   private insertPlannedAction(
@@ -763,77 +654,11 @@ export class InterviewOrchestrator {
     severity: "low" | "medium" | "high" = "medium",
     targetId?: string,
   ): PrepActionRowLike {
-    // §9.6: planned actions persist prep-planner output.
-    this.host.assertCan("prep-planner", "preparation.write");
-    const existing = this.store.openActionForSkill(skillId, targetId);
-    if (existing) this.store.updateActionStatus(existing.id, "superseded");
-    const sourceEvidenceIds = this.store
-      .evidenceForSkill(skillId, candidateId)
-      .map((e) => e.id);
-    const row = {
-      id: newId("action"),
-      skillId,
-      targetId: targetId ?? null,
-      priority: 0, // renumbered by renumberActionPriorities
-      reason: action.reason,
-      action: action.action,
-      successCriteria: action.successCriteria,
-      status: "open",
-      severity,
-      createdAt: this.iso(),
-      sourceEvidenceIds,
-    };
-    this.store.insertAction(row);
-    this.logger.info("state.mutated", { entity: "prep_action", id: row.id, skillId });
-    return rowToAction({ ...row, successCriteria: action.successCriteria, sourceEvidenceIds });
+    return this.preparation.insertPlannedAction(skillId, action, candidateId, severity, targetId);
   }
 
-  /**
-   * Renumber all open/in_progress actions 1..n. Interview-evidenced actions
-   * outrank generic gap actions: severityWeight × 1.5(if interview evidence)
-   * × nearest requirement importance; ties by createdAt desc then skillId.
-   */
   private renumberActionPriorities(requirements: Requirement[], targetId?: string): void {
-    const reqMap = new Map(requirements.map((r) => [r.skillId, r]));
-    const nearestReq = (skillId: string): Requirement | undefined => {
-      let cur: string | null = skillId;
-      while (cur !== null) {
-        const hit = reqMap.get(cur);
-        if (hit) return hit;
-        cur = taxonomy.parentOf(cur as SkillId);
-      }
-      return undefined;
-    };
-    const interviewEvidenceIds = new Set(
-      this.store
-        .listEvidence()
-        .filter((e) => e.type === "interview_answer")
-        .map((e) => e.id),
-    );
-    const sevW = { high: 3, medium: 2, low: 1 } as Record<string, number>;
-    const open = this.store
-      .listActions(undefined, targetId)
-      .filter((a) => a.status === "open" || a.status === "in_progress");
-    const scored = open.map((a) => {
-      const sourceIds = (a.sourceEvidenceIds ?? []) as string[];
-      const hasInterviewEvidence = sourceIds.some((id) =>
-        interviewEvidenceIds.has(id),
-      );
-      const score =
-        (sevW[a.severity] ?? 2) *
-        (hasInterviewEvidence ? 1.5 : 1) *
-        (nearestReq(a.skillId)?.importance ?? 0.5);
-      return { action: a, score };
-    });
-    scored.sort(
-      (x, y) =>
-        y.score - x.score ||
-        y.action.createdAt.localeCompare(x.action.createdAt) ||
-        x.action.skillId.localeCompare(y.action.skillId),
-    );
-    scored.forEach(({ action }, i) =>
-      this.store.updateActionPriority(action.id, i + 1),
-    );
+    this.preparation.renumberActionPriorities(requirements, targetId);
   }
 
   // ---------------------------------------------------------------- interviews
@@ -1808,7 +1633,7 @@ export class InterviewOrchestrator {
   }
 
   listPreparationActions(): PrepActionRowLike[] {
-    return this.store.listActions().map(rowToAction);
+    return this.preparation.listPreparationActions();
   }
 
   /**
@@ -1817,41 +1642,7 @@ export class InterviewOrchestrator {
    * recomputes readiness and rebuilds the plan.
    */
   async completeAction(actionId: string, opts: { checkedCriteria?: string[] } = {}) {
-    return this.withLock(async () => {
-      const action = this.store.getAction(actionId);
-      if (!action) throw new AppError("NOT_FOUND", `no prep action ${actionId}`);
-      const { candidate } = this.requireActive();
-      const criteria =
-        (Array.isArray(action.successCriteria)
-          ? action.successCriteria
-          : JSON.parse(String(action.successCriteria ?? "[]"))) as string[];
-
-      let evidenceId: string | null = null;
-      if (opts.checkedCriteria !== undefined) {
-        const bad = opts.checkedCriteria.filter((cc) => !criteria.includes(cc));
-        if (bad.length > 0) {
-          throw new AppError("VALIDATION", `unknown success criteria: ${bad.join("; ")}`);
-        }
-        const checked = opts.checkedCriteria;
-        evidenceId = newId("ev");
-        this.store.insertEvidence({
-          id: evidenceId,
-          candidateId: candidate.id,
-          skillId: action.skillId,
-          type: "self_report",
-          score: criteria.length === 0 ? 0 : checked.length / criteria.length,
-          confidence: 0.5,
-          observation: `Self-check: met ${checked.length}/${criteria.length} criteria — ${checked.join("; ")}`,
-          createdAt: this.iso(),
-        });
-      }
-
-      this.store.updateActionStatus(actionId, "done");
-      this.logger.info("state.mutated", { entity: "prep_action", id: actionId, status: "done" });
-      this.recomputeReadinessInternal("practice");
-      const { actions } = await this.buildPreparationPlanInternal();
-      return { ok: true, evidenceId, actions };
-    });
+    return this.withLock(async () => this.preparation.completeAction(actionId, opts));
   }
 
   // ---------------------------------------------------------------- STAR stories (§8.4)
@@ -1916,10 +1707,7 @@ export class InterviewOrchestrator {
   }
 
   updateActionStatus(actionId: string, status: "open" | "in_progress" | "done" | "superseded") {
-    return this.withLock(async () => {
-      this.store.updateActionStatus(actionId, status);
-      this.logger.info("state.mutated", { entity: "prep_action", id: actionId, status });
-    });
+    return this.withLock(async () => this.preparation.updateActionStatus(actionId, status));
   }
 
   getRuntimeSessionRow(sessionId: string) {
