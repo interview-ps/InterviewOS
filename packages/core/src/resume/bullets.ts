@@ -11,7 +11,11 @@ export function bulletLines(resumeText: string): string[] {
     .map((l) => l.trim());
 }
 
-const HEADING_RE = /^\s*#{1,6}\s*(.+?)\s*$|^\s*([A-Z][A-Za-z &/]{2,40})\s*:?\s*$/;
+// Bounded quantifiers throughout (CodeQL js/polynomial-redos): the lazy group
+// may end at any space, so every `\s` run must be bounded to keep each
+// backtracking step O(1). \S forces the heading text to start non-space.
+const HEADING_RE =
+  /^\s{0,4}#{1,6}\s{0,4}(\S.{0,120}?)\s{0,4}$|^\s{0,4}([A-Z][A-Za-z &/]{2,40})\s{0,4}:?\s{0,4}$/;
 /** Sections whose bullets are experience signals worth coaching. */
 const EXPERIENCE_SECTION_RE =
   /experience|work|employment|professional|career|projects?|history/i;

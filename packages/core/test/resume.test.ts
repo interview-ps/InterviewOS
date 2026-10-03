@@ -271,4 +271,20 @@ describe("selectWeakestBullets (§9.5)", () => {
     expect(picked.some((b) => b.includes("Acme"))).toBe(true);
     expect(picked.some((b) => b.includes("LedgerSync"))).toBe(true);
   });
+
+  it("finishes quickly on pathological space runs (CodeQL js/polynomial-redos)", () => {
+    // HEADING_RE used to be O(n²) on space runs: the lazy (.+?) could end at
+    // every space, each check rescanning the rest of the run.
+    const resume = [
+      "## Experience",
+      "#" + " ".repeat(200_000) + "x",
+      "A" + " ".repeat(200_000) + "B",
+      "- Built Python REST APIs",
+    ].join("\n");
+    const start = performance.now();
+    const picked = selectWeakestBullets(resume, 8);
+    const elapsed = performance.now() - start;
+    expect(elapsed).toBeLessThan(2_000);
+    expect(picked.some((b) => b.includes("REST APIs"))).toBe(true);
+  });
 });
