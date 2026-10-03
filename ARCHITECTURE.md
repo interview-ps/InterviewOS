@@ -1,4 +1,4 @@
-# Interview OS — Architecture (v0.1)
+# Interview OS — Architecture
 
 Interview OS keeps a **continuously updated, evidence-backed model of a candidate's interview
 readiness** and drives preparation and interviews from it. Everything below serves that loop:
@@ -13,23 +13,25 @@ Resume + JD → resume-analyzer → jd-analyzer → gap-analyzer → prep-planne
 
 ```
 apps/
-  server/      Hono HTTP API (port 4100). Owns SQLite + the provider child process.
+  server/      Hono HTTP API (port 4100). Owns SQLite + the provider child process, the
+               InterviewOrchestrator, and the skill implementations
+               (src/orchestrator/, src/skills/).
   web/         Next.js (App Router) + Tailwind UI (port 3000). /api/* rewritten to server.
 packages/
-  shared/      logger (redacting, JSON lines), ids, errors, clock
   core/        Zod schemas = canonical shared state; taxonomy; readiness math; gaps;
-               question prioritisation; interview state machine. Pure + deterministic.
+               question prioritisation; interview state machine; companies; resume
+               checks; skill manifests; shared logger (redacting, JSON lines), ids,
+               errors. Pure + deterministic.
   runtime/     AIRuntime interface; MockRuntime; CodexRuntime, ClaudeCodeRuntime,
-               OpencodeRuntime (one provider per directory).
-  skills/      The 7 v0.1 skills. Each = typed input → typed output (Zod-validated).
-  orchestrator/ InterviewOrchestrator (workflow only) + SQLite store (drizzle + better-sqlite3).
+               OpencodeRuntime, DevinRuntime (one provider per directory).
 examples/      backend-engineer (canonical), product-manager, data-engineer: resume.md + job.md
 tests/         cross-package integration (canonical loop), fake-codex fixture, e2e (Playwright)
-data/          interview-os.db (gitignored), codex-workspace/ (empty, sandbox cwd for Codex)
+data/          interview-os.db (gitignored), <provider>-workspace/ (empty, sandbox cwd per provider)
 ```
 
-Package names: `@interview-os/{shared,core,runtime,skills,orchestrator,server,web}`.
-Dependency direction (strict): `shared ← core ← runtime ← skills ← orchestrator ← server`; `web`
+Package names: `@interview-os/{core,runtime,server,web}` (the repo root is the private
+`interview-os` workspace).
+Dependency direction (strict): `core ← runtime ← server`; `web`
 talks to `server` only over HTTP and may import **types/schemas** from `core`.
 
 ## 2. Shared state (packages/core)
@@ -137,6 +139,9 @@ interface AIRuntime {
   resumeSession(threadId: string, input: SessionInput): Promise<RuntimeSession>;
   sendMessage(sessionId: string, msg: RuntimeMessage): AsyncIterable<RuntimeEvent>;
   closeSession(sessionId: string): Promise<void>;
+  listModels(): Promise<ModelInfo[]>;              // {id, displayName,
+                                                   //  supportedReasoningEfforts,
+                                                   //  defaultReasoningEffort, isDefault?}
   dispose(): Promise<void>;
 }
 AgentTask   = { taskId: string /* skill id */, instructions: string, input: unknown,
@@ -148,11 +153,13 @@ RuntimeEvent = {type:'started'} | {type:'delta', text} | {type:'message', text}
              | {type:'completed', output?: unknown, raw: string} | {type:'error', error}
 RuntimeError.code: 'UNAVAILABLE'|'SPAWN_FAILED'|'CRASHED'|'TIMEOUT'|'MALFORMED_EVENT'|'MALFORMED_OUTPUT'|'PROTOCOL'
 ```
-Factory `createRuntime(env)`: `INTERVIEW_OS_RUNTIME=codex|mock|claude|opencode|devin` (default `codex`;
+Factory `createRuntime(opts)` (`{env?, workspaceDir?, logger?, preferredKind?, onSwitch?}`):
+`INTERVIEW_OS_RUNTIME=codex|mock|claude|opencode|devin` (default `codex`;
 if the selected runtime is unavailable at startup the server logs it, reports status, and falls
 back to mock **only** when `INTERVIEW_OS_RUNTIME_FALLBACK=mock`; otherwise AI actions return 503
 with setup instructions). Each provider defaults to its own workspace dir
-(`data/<provider>-workspace`, overridable with `INTERVIEW_OS_<PROVIDER>_WORKSPACE`).
+(`data/<provider>-workspace`, overridable with `INTERVIEW_OS_<PROVIDER>_WORKSPACE`; mock shares
+`data/codex-workspace`).
 
 `createRuntime` returns a **`RuntimeManager`** — an `AIRuntime` that delegates to the active
 provider and can swap it without a restart. Selection precedence: the env var > the persisted
@@ -249,6 +256,9 @@ delimited data blocks with an instruction to treat it as data, never instruction
 | interviewer | yes (session thread when available) | selected skill + context + previous questions → {question, topic, skillId, subSkills[], expectedConcepts[], difficulty} |
 | answer-evaluator | yes (independent one-shot) | question + expectedConcepts + answer → evaluation (below) |
 | interview-debrief | yes | session Q/A/evaluations + readiness delta → {summary, wentWell[], toImprove[], nextActions[]} |
+
+§8–§9 add `company-profiler`, `star-coach`, `resume-coach`, `interview-planner`, and
+`loop-debrief`; see those sections for their inputs/outputs.
 
 Evaluation output: `{ summary, dimensions: {correctness, technicalDepth, reasoning, structure,
 communication, evidence, roleRelevance} each {score 0..1, rationale}, strengths[{skill,
@@ -400,7 +410,7 @@ Mode state (session column `mode_state` JSON):
   v0.3** — code is reviewed, not run (UI says so); execution sandboxing is v0.4.
 - behavioral: `{storyIdsUsed[], competenciesCovered[]}`; hiring_manager / hr: `{themesCovered[]}`; technical `{}`.
 
-Skills: interviewer and answer-evaluator dispatch to per-mode modules `skills/src/interview/modes/<mode>/`
+Skills: interviewer and answer-evaluator dispatch to per-mode modules `apps/server/src/skills/interview/modes/<mode>/`
 (`interviewerPrompt`, `evaluatorPrompt`, mock templates, mock rubric scorer) with taskIds
 `interviewer.<mode>` / `answer-evaluator.<mode>`; `mixed` uses the v0.2 prompts.
 
@@ -458,7 +468,7 @@ hire/no-hire verdict.
 - Deterministic `core/resume/ats.ts` `atsCheck(resumeText, requirements)` → `{score 0–100, checks[{id, label,
   status:'pass'|'warn'|'fail', detail, weight}], keywordCoverage {present[], missing[]}}`: contact info, section
   headings, length (300–900 words), bullet count, quantified-bullet ratio (≥30%), action-verb starts, first-person
-  pronouns, dates present, required-skill keyword coverage (taxonomy `matchSkills`). Score = weighted pass ratio.
+  pronouns, dates present, required-skill keyword coverage (taxonomy keywords for each required skill). Score = weighted pass ratio.
 - Skill `resume-coach` (`resume-coach.bullets`, `resume-coach.tailor`): bullets → `{suggestions[{original,
   improved, rationale, skillIds}]}`; tailor → `{summary, emphasize[], deEmphasize[], alignment[{requirement,
   resumeEvidence|null, suggestion}], prepGaps[]}`. Bullet selection is section-aware: only bullets inside
@@ -475,7 +485,7 @@ hire/no-hire verdict.
 interview.read|interview.write|stories.read|stories.write|resume.read|resume.write|preparation.write|
 taxonomy.read|runtime.invoke`.
 `SkillManifest {id, version, kind:'builtin'|'plugin', description, inputs[{key, permission}], outputs[],
-permissions[]}` (Zod). Every built-in skill exports one. `SkillHost` (`skills/src/host/`):
+permissions[]}` (Zod). Every built-in skill exports one. `SkillHost` (`apps/server/src/skills/host/`):
 `invoke(id, input, ctx)` rejects (PermissionError) any top-level input key not declared in `inputs` or whose
 permission isn't granted; `ctx.runtime` is a proxy that throws unless `runtime.invoke`; the orchestrator calls
 `host.assertCan(id, '<x>.write')` before persisting a skill's outputs. All orchestrator skill calls go through the

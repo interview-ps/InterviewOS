@@ -19,8 +19,8 @@ Tests import through `@interview-os/server/orchestrator` and `@interview-os/serv
 
 ## Layout
 ```
-src/index.ts          bootstrap: store, runtime, Plugins, app; SIGINT/SIGTERM shutdown
-src/paths.ts          data dirs derived from repo root (workspaces, DB path)
+src/index.ts          bootstrap: store, runtime, plugin loading, app; SIGINT/SIGTERM shutdown
+src/paths.ts          repo-root paths (DB path, plugins dir, examples dir)
 src/http/             Hono API
   app.ts              route mounting + middleware wiring (thin)
   context.ts          typed c.var (orchestrator, runtime, logger, store) + DI middleware
@@ -45,7 +45,7 @@ src/skills/           skill implementations
   evaluate/           answer-evaluator, interview-debrief, loop-debrief
   mock/               shared mock helpers
 src/adapters/         documents (PDF/DOCX text extraction), examples loader
-src/startup/plugin.ts plugin directory loading
+src/startup/plugins.ts plugin directory loading
 test/                 colocated vitest suites (orchestrator, skills, http, plugins, resume)
 ```
 
