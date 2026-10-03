@@ -39,7 +39,10 @@ packages/runtime    AIRuntime, MockRuntime, codex/, claude/, opencode/, devin/
 apps/server/src/skills        resume-analyzer, jd-analyzer, gap-analyzer, company-profiler,
                               prep-planner, star-coach, resume-coach, interviewer,
                               answer-evaluator, interview-debrief, loop-debrief, host/SkillHost
-apps/server/src/orchestrator  InterviewOrchestrator + SQLite store (drizzle/better-sqlite3)
+apps/server/src/orchestrator  InterviewOrchestrator facade (withLock + composition) delegating
+                              to domain services (settings, workspace, targets, readiness,
+                              preparation, interview, loop, debrief, history, story, resume,
+                              plugin) over a shared WorkflowContext + SQLite store
 examples/           seed resumes + JDs (backend-engineer is canonical)
 plugins/            local read-only plugins (INTERVIEW_OS_PLUGINS_DIR overrides)
 tests/              integration (canonical feedback loop), fixtures/fake-codex.mjs, e2e

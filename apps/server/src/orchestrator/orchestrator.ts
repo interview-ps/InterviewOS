@@ -1,81 +1,24 @@
 import {
-  AnswerEvaluationSchema,
-  atsCheck,
-  buildReadinessGraph,
-  calculateGaps,
-  CandidateProfileSchema,
-  COMPANY_PROFILES,
-  getCompanyProfile,
-  getMode,
-  isModeId,
-  guardSuggestion,
-  InterviewOSStateSchema,
-  LoopRoundSchema,
-  matchCompanyProfile,
-  nextUncoveredDimension,
-  normalizeEvaluation,
-  ResumeReviewSchema,
-  selectWeakestBullets,
-  inRound,
-  taxonomy,
-  TargetRoleSchema,
   transition,
-  type CompanyNotesProfile,
-  type RoundType,
-  type AnswerEvaluation,
   type CandidateProfile,
-  type Evidence,
-  type ExpectedConcept,
   type Gap,
   type InterviewOSState,
   type InterviewStatus,
-  type Level,
-  type LoopDebrief,
-  type LoopRound,
-  type ModeState,
-  type Question,
   type ReadinessGraph,
-  type ReadinessSnapshot,
-  type Requirement,
   type ResumeReview,
-  type ResumeSuggestion,
-  type RoundHandoff,
-  type SkillDelta,
   type SkillId,
-  type SystemDesignState,
+  type SkillManifest,
   type TargetRole,
 } from "@interview-os/core";
-import { RuntimeError, type AIRuntime } from "@interview-os/runtime";
-import { AppError, newId, type Logger } from "@interview-os/core";
+import { AppError, type Logger } from "@interview-os/core";
+import type { AIRuntime } from "@interview-os/runtime";
 import {
-  answerEvaluator,
-  companyProfiler,
-  interviewDebrief,
-  interviewPlanner,
-  interviewer,
-  jdAnalyzer,
-  loopDebrief,
-  prepPlanner,
   registerBuiltinSkills,
-  resumeAnalyzer,
-  resumeCoach,
   SkillHost,
-  SkillRuntimeError,
-  starCoach,
-  taxonomyEntries,
-  type JdAnalyzerOutput,
   type PluginExecutor,
-  type PluginStateSlices,
-  type PrepPlannerOutput,
-  type ProgressUpdate,
-  type ResumeAnalyzerOutput,
-  type ResumeCoachBulletsOutput,
-  type SkillContext,
   type StarCoachReviewOutput,
 } from "../skills/index.js";
-import type { ResumeTailoring, SkillManifest } from "@interview-os/core";
 import { Store } from "./store/index.js";
-import type { LoopRow, SessionRow } from "./store/index.js";
 import { WorkflowContext, type ProgressOptions } from "./context.js";
 import {
   SettingsService,
@@ -101,11 +44,9 @@ import {
   type SubmitAnswerResult,
 } from "./interview-service.js";
 import { LoopService, type LoopRoundInput } from "./loop-service.js";
-import {
-  rowToAction,
-  rowToQuestion,
-  type OrchestratorQuestion,
-  type PrepActionRowLike,
+import type {
+  OrchestratorQuestion,
+  PrepActionRowLike,
 } from "./projection.js";
 
 export type { OrchestratorQuestion, PrepActionRowLike } from "./projection.js";
@@ -116,8 +57,6 @@ export type {
   SubmitAnswerResult,
 } from "./interview-service.js";
 export type { LoopRoundInput } from "./loop-service.js";
-
-const OVERALL_SKILL_ID = "__overall__";
 
 export interface OrchestratorDeps {
   store: Store;
@@ -218,11 +157,6 @@ export class InterviewOrchestrator {
     return run;
   }
 
-  /** Settings-backed runtime overrides, read at call time (§8.3). */
-  private runtimeOptions(): SkillContext["runtimeOptions"] {
-    return this.workflow.runtimeOptions();
-  }
-
   getSettings(): OrchestratorSettings {
     return this.settings.getSettings();
   }
@@ -231,20 +165,8 @@ export class InterviewOrchestrator {
     return this.withLock(async () => this.settings.updateSettings(patch));
   }
 
-  private ctx(extra?: Partial<SkillContext>): SkillContext {
-    return this.workflow.ctx(extra);
-  }
-
   private iso(): string {
     return this.workflow.iso();
-  }
-
-  private requireActive(): { candidate: CandidateProfile; target: TargetRole } {
-    return this.workflow.requireActive();
-  }
-
-  private registerSkillNode(skillId: SkillId): void {
-    this.workflow.registerSkillNode(skillId);
   }
 
   private transitionSession(
@@ -284,7 +206,7 @@ export class InterviewOrchestrator {
     return this.withLock(async () => this.targets.activateTarget(id));
   }
 
-  /** Â§9.3: all built-in company profiles (each carries the disclaimer). */
+  /** §9.3: all built-in company profiles (each carries the disclaimer). */
   listCompanyProfiles() {
     return this.targets.listCompanyProfiles();
   }
@@ -301,14 +223,6 @@ export class InterviewOrchestrator {
   }
 
   // ---------------------------------------------------------------- readiness
-
-  private allRequirements(target: TargetRole): Requirement[] {
-    return this.workflow.allRequirements(target);
-  }
-
-  private evidenceForActive(candidateId: string): Evidence[] {
-    return this.workflow.evidenceForActive(candidateId);
-  }
 
   private graphForActive(): ReadinessGraph {
     return this.readiness.graphForActive();
@@ -339,20 +253,6 @@ export class InterviewOrchestrator {
 
   private buildPreparationPlanInternal() {
     return this.preparation.buildPreparationPlanInternal();
-  }
-
-  private insertPlannedAction(
-    skillId: SkillId,
-    action: { action: string; successCriteria: string[]; reason: string },
-    candidateId: string,
-    severity: "low" | "medium" | "high" = "medium",
-    targetId?: string,
-  ): PrepActionRowLike {
-    return this.preparation.insertPlannedAction(skillId, action, candidateId, severity, targetId);
-  }
-
-  private renumberActionPriorities(requirements: Requirement[], targetId?: string): void {
-    this.preparation.renumberActionPriorities(requirements, targetId);
   }
 
   // ---------------------------------------------------------------- interviews
