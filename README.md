@@ -160,7 +160,7 @@ Planned work includes sandboxed execution for coding answers, voice interviews, 
 
 Contributions are welcome. Start with [CONTRIBUTING.md](CONTRIBUTING.md) and the invariants in [AGENTS.md](AGENTS.md).
 
-Interview OS is [MIT licensed](LICENSE). Ideas were inspired by [ResumeSkills](https://github.com/Paramchoudhary/ResumeSkills) and [interview-skills](https://github.com/jennifer88huang/interview-skills); no code was copied.
+Interview OS is [MIT licensed](LICENSE).
 
 ## Star History
 
