@@ -136,7 +136,7 @@ Interview OS keeps application state in a local SQLite database (`data/interview
 
 | Variable | Default | Purpose |
 | --- | --- | --- |
-| `INTERVIEW_OS_RUNTIME` | `codex` | `codex`, `claude`, `opencode`, `devin`, or `mock` |
+| `INTERVIEW_OS_RUNTIME` | `codex` | `codex`, `claude`, `opencode`, `devin`, or `mock`; overrides the runtime picked in Settings |
 | `INTERVIEW_OS_RUNTIME_FALLBACK` | none | Set to `mock` to use mock mode if the selected runtime is unavailable |
 | `INTERVIEW_OS_PORT` | `4100` | API server port |
 | `INTERVIEW_OS_DB` | `data/interview-os.db` | SQLite database path |

@@ -1,9 +1,9 @@
 import fs from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import type { InterviewOrchestrator } from "@interview-os/orchestrator";
-import type { AIRuntime } from "@interview-os/runtime";
-import { RuntimeError } from "@interview-os/runtime";
+import type { InterviewOrchestrator, Store } from "@interview-os/orchestrator";
+import type { AIRuntime, RuntimeManager } from "@interview-os/runtime";
+import { RUNTIME_KINDS, RuntimeError } from "@interview-os/runtime";
 import { AppError, createLogger, type Logger } from "@interview-os/shared";
 import { RoundTypeSchema, SkillIdSchema, MODE_IDS } from "@interview-os/core";
 import {
@@ -26,6 +26,10 @@ export const REPO_ROOT = path.resolve(
 export interface AppDeps {
   orchestrator: InterviewOrchestrator;
   runtime: AIRuntime;
+  /** When present, enables runtime probing (`GET /api/runtime/available`) and
+   * hot-switching (`PUT /api/runtime`); `store` persists the selection. */
+  runtimes?: RuntimeManager;
+  store?: Store;
   examplesDir?: string;
   logger?: Logger;
   /** §9.6: plugin directories that failed validation/import at startup. */
@@ -114,6 +118,7 @@ const SettingsSchema = z.object({
   reasoningEffort: z.enum(["low", "medium", "high"]).nullable().optional(),
   taskMode: z.enum(["app-server", "exec"]).optional(),
 });
+const RuntimeSwitchSchema = z.object({ kind: z.enum(RUNTIME_KINDS) });
 
 async function parseBody<S extends z.ZodType>(c: Context, schema: S): Promise<z.infer<S>> {
   let raw: unknown;
@@ -215,6 +220,10 @@ function streamOrJson<T>(
         .then(() => stream.writeSSE({ event, data: JSON.stringify(data) }))
         .catch(() => {});
     };
+    // heartbeat while the operation runs: keeps dev proxies flushing (the
+    // Next.js rewrite proxy otherwise intermittently holds the tail bytes)
+    // and gives clients a liveness signal during long silent stretches.
+    const heartbeat = setInterval(() => enqueue("ping", {}), 10_000);
     try {
       const result = await run((p) => {
         if ("stage" in p) enqueue("stage", { name: p.stage });
@@ -233,12 +242,14 @@ function streamOrJson<T>(
           data: JSON.stringify({ code: mapped.code, message: mapped.message }),
         })
         .catch(() => {});
+    } finally {
+      clearInterval(heartbeat);
     }
   });
 }
 
 export function createApp(deps: AppDeps) {
-  const { orchestrator, runtime } = deps;
+  const { orchestrator, runtime, runtimes, store } = deps;
   const logger = deps.logger ?? createLogger({ level: "error", sink: () => {} });
   const examplesDir = deps.examplesDir ?? path.join(REPO_ROOT, "examples");
   const app = new Hono();
@@ -552,6 +563,30 @@ export function createApp(deps: AppDeps) {
   app.post("/api/runtime/check", async (c) => {
     const status = await runtime.healthCheck();
     return c.json({ ...status, mode: runtime.kind });
+  });
+
+  app.get("/api/runtime/available", async (c) => {
+    const providers = runtimes ? await runtimes.probeAll() : [];
+    return c.json({ active: runtime.kind, providers });
+  });
+
+  app.put("/api/runtime", async (c) => {
+    if (!runtimes) {
+      throw new AppError(
+        "VALIDATION",
+        "runtime switching is not enabled on this server",
+      );
+    }
+    const { kind } = await parseBody(c, RuntimeSwitchSchema);
+    const status = await runtimes.switchTo(kind);
+    store?.setSetting("runtimeKind", runtimes.kind);
+    // Re-resolve the saved model against the new provider's catalog so a stale
+    // id falls back to that provider's default instead of erroring later.
+    const current = orchestrator.getSettings();
+    if (current.model) {
+      await orchestrator.updateSettings({ model: current.model });
+    }
+    return c.json({ ...status, mode: runtimes.kind });
   });
 
   app.get("/api/examples", async (c) => {

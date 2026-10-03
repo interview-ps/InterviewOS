@@ -66,6 +66,9 @@ CLAUDE.md           Claude Code entrypoint (imports @AGENTS.md)
   workspace temp file (never argv/stdin); sessions are local one-shot wrappers
   (`data/devin-workspace`).
 - **MockRuntime**: deterministic; `INTERVIEW_OS_RUNTIME=mock`. Must support the whole flow.
+- **RuntimeManager**: `createRuntime` returns a switchable `AIRuntime`; Settings can probe
+  (`GET /api/runtime/available`) and hot-swap (`PUT /api/runtime`) providers. The saved
+  `runtimeKind` setting applies on restart only when `INTERVIEW_OS_RUNTIME` is unset.
 
 ## Commands
 ```
