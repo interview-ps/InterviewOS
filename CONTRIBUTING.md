@@ -46,7 +46,7 @@ Read [AGENTS.md](AGENTS.md) first. The load-bearing rules:
 3. Readiness stays evidence-backed; snapshots are append-only; exposed scores
    carry evidence ids.
 4. Only `packages/runtime` knows about a provider (Codex, Claude Code,
-   opencode). Everything else talks to `AIRuntime`.
+   opencode, Devin). Everything else talks to `AIRuntime`.
 5. The orchestrator holds workflow, not domain intelligence.
 6. Resume/JD/answer text is untrusted: never in argv, shell strings, or logs.
 7. Never log or return secrets.

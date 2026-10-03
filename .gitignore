@@ -93,6 +93,7 @@ data/*.db*
 data/codex-workspace/
 data/claude-workspace/
 data/opencode-workspace/
+data/devin-workspace/
 test-results/
 playwright-report/
 

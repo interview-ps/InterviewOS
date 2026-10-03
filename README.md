@@ -71,7 +71,7 @@ Browse interview history, answer feedback, per-skill readiness changes, prep act
 
 ### 🔌 Local runtimes and plugins
 
-Use a locally installed Codex CLI by default, choose Claude Code or opencode, or use the deterministic mock runtime. Skills declare their inputs and permissions; local plugins can read declared state slices and cannot write application state. Only install plugin code you trust, because plugins run in the server process.
+Use a locally installed Codex CLI by default, choose Claude Code, opencode, or Devin, or use the deterministic mock runtime. Skills declare their inputs and permissions; local plugins can read declared state slices and cannot write application state. Only install plugin code you trust, because plugins run in the server process.
 
 ## Screenshots
 
@@ -126,6 +126,7 @@ The mock runtime makes this walkthrough repeatable without AI calls. For your ow
 | Codex (default) | `codex` or unset | Install and sign in to the Codex CLI, then run `pnpm dev`. |
 | Claude Code | `claude` | Sign in with the Claude Code CLI, then run `INTERVIEW_OS_RUNTIME=claude pnpm dev`. |
 | opencode | `opencode` | Sign in with `opencode auth login`, then run `INTERVIEW_OS_RUNTIME=opencode pnpm dev`. |
+| Devin | `devin` | Sign in with `devin auth login`, then run `INTERVIEW_OS_RUNTIME=devin pnpm dev`. |
 | Mock | `mock` | Run `INTERVIEW_OS_RUNTIME=mock pnpm dev`; no AI provider required. |
 
 Interview OS keeps application state in a local SQLite database (`data/interview-os.db` by default). When you select a real AI runtime, the content needed for analysis and interviewing is sent through that provider's local tooling. The app does not ask you to paste an API key into Interview OS. See [Architecture](ARCHITECTURE.md) for the runtime and data flow.
@@ -134,7 +135,7 @@ Interview OS keeps application state in a local SQLite database (`data/interview
 
 | Variable | Default | Purpose |
 | --- | --- | --- |
-| `INTERVIEW_OS_RUNTIME` | `codex` | `codex`, `claude`, `opencode`, or `mock` |
+| `INTERVIEW_OS_RUNTIME` | `codex` | `codex`, `claude`, `opencode`, `devin`, or `mock` |
 | `INTERVIEW_OS_RUNTIME_FALLBACK` | none | Set to `mock` to use mock mode if the selected runtime is unavailable |
 | `INTERVIEW_OS_PORT` | `4100` | API server port |
 | `INTERVIEW_OS_DB` | `data/interview-os.db` | SQLite database path |
@@ -153,7 +154,7 @@ packages/orchestrator   Interview and preparation workflows
         ↓
 packages/core        Shared schemas, readiness, gaps, prioritization
 packages/skills      Analyzers, planner, interviewer, evaluator, coaches
-packages/runtime     Codex, Claude Code, opencode, and mock adapters
+packages/runtime     Codex, Claude Code, opencode, Devin, and mock adapters
 ```
 
 AI-generated state is schema-validated before it is saved. Readiness scores come from stored evidence, and snapshots are appended so changes can be inspected later. The [architecture guide](ARCHITECTURE.md) explains the design in detail; [AGENTS.md](AGENTS.md) records the project's core invariants.

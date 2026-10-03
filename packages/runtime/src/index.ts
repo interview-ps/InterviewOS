@@ -6,6 +6,7 @@ import { MockRuntime } from "./mock/MockRuntime.js";
 import { CodexRuntime } from "./codex/CodexRuntime.js";
 import { ClaudeCodeRuntime } from "./claude/ClaudeCodeRuntime.js";
 import { OpencodeRuntime } from "./opencode/OpencodeRuntime.js";
+import { DevinRuntime } from "./devin/DevinRuntime.js";
 
 export * from "./interface/index.js";
 export { MockRuntime } from "./mock/MockRuntime.js";
@@ -27,6 +28,11 @@ export { opencodeHealthCheck, findOpencodeExecutable, getOpencodeVersion } from 
 export { buildOpencodeChildEnv } from "./opencode/childEnv.js";
 export { runOpencodeCli } from "./opencode/cli.js";
 export type { OpencodeRunner, OpencodeRunResult } from "./opencode/cli.js";
+export { DevinRuntime } from "./devin/DevinRuntime.js";
+export { devinHealthCheck, findDevinExecutable, getDevinVersion } from "./devin/detect.js";
+export { buildDevinChildEnv } from "./devin/childEnv.js";
+export { runDevinCli } from "./devin/cli.js";
+export type { DevinRunner, DevinRunResult } from "./devin/cli.js";
 
 export interface CreateRuntimeOptions {
   env?: NodeJS.ProcessEnv;
@@ -36,7 +42,7 @@ export interface CreateRuntimeOptions {
 
 export const DEFAULT_WORKSPACE_DIR = path.resolve("data/codex-workspace");
 
-const RUNTIME_KINDS: readonly RuntimeKind[] = ["codex", "mock", "claude", "opencode"];
+const RUNTIME_KINDS: readonly RuntimeKind[] = ["codex", "mock", "claude", "opencode", "devin"];
 
 function workspaceDirFor(kind: RuntimeKind, env: NodeJS.ProcessEnv, override?: string): string {
   if (override) return path.resolve(override);
@@ -47,7 +53,7 @@ function workspaceDirFor(kind: RuntimeKind, env: NodeJS.ProcessEnv, override?: s
 }
 
 /**
- * INTERVIEW_OS_RUNTIME=codex|mock|claude|opencode (default codex). When the
+ * INTERVIEW_OS_RUNTIME=codex|mock|claude|opencode|devin (default codex). When the
  * selected provider is unavailable the runtime still reports via healthCheck;
  * it falls back to mock only when INTERVIEW_OS_RUNTIME_FALLBACK=mock.
  */
@@ -73,7 +79,9 @@ export async function createRuntime(opts: CreateRuntimeOptions = {}): Promise<AI
       ? new ClaudeCodeRuntime({ env, workspaceDir, logger })
       : kind === "opencode"
         ? new OpencodeRuntime({ env, workspaceDir, logger })
-        : new CodexRuntime({ env, workspaceDir, logger });
+        : kind === "devin"
+          ? new DevinRuntime({ env, workspaceDir, logger })
+          : new CodexRuntime({ env, workspaceDir, logger });
 
   const status = await runtime.healthCheck();
   if (!status.available) {

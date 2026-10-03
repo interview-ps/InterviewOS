@@ -130,7 +130,7 @@ the source of truth; a session has `plannedQuestions` (default 4).
 
 ```ts
 interface AIRuntime {
-  readonly kind: 'codex' | 'mock' | 'claude' | 'opencode';
+  readonly kind: 'codex' | 'mock' | 'claude' | 'opencode' | 'devin';
   healthCheck(): Promise<RuntimeStatus>;          // {runtime, available, version?, executable?, status, message?, workspace?}
   runTask(task: AgentTask): Promise<AgentResult>; // one-shot
   createSession(input: SessionInput): Promise<RuntimeSession>;      // {id, threadId}
@@ -148,7 +148,7 @@ RuntimeEvent = {type:'started'} | {type:'delta', text} | {type:'message', text}
              | {type:'completed', output?: unknown, raw: string} | {type:'error', error}
 RuntimeError.code: 'UNAVAILABLE'|'SPAWN_FAILED'|'CRASHED'|'TIMEOUT'|'MALFORMED_EVENT'|'MALFORMED_OUTPUT'|'PROTOCOL'
 ```
-Factory `createRuntime(env)`: `INTERVIEW_OS_RUNTIME=codex|mock|claude|opencode` (default `codex`;
+Factory `createRuntime(env)`: `INTERVIEW_OS_RUNTIME=codex|mock|claude|opencode|devin` (default `codex`;
 if the selected runtime is unavailable at startup the server logs it, reports status, and falls
 back to mock **only** when `INTERVIEW_OS_RUNTIME_FALLBACK=mock`; otherwise AI actions return 503
 with setup instructions). Each provider defaults to its own workspace dir
@@ -201,6 +201,19 @@ per-task timeout (`INTERVIEW_OS_OPENCODE_TIMEOUT_MS`) kills the process. Session
 `createSession` returns a local opaque `threadId` and `sendMessage` runs a fresh task. Model ids
 are provider-qualified (`provider/model`) from `opencode models`. Child env allowlist excludes
 provider API keys (opencode reads them from its own auth store).
+
+### DevinRuntime (`runtime/devin/`)
+`AIRuntime` over one-shot `devin -p --prompt-file <file>` CLI invocations. The prompt — including
+the JSON Schema and input — is written to a temp file inside the workspace and passed by path
+(never argv or stdin: untrusted text is never shell-interpreted, and the CLI's `-p` mode does not
+read a piped prompt); the assistant's stdout is parsed as structured output. A per-task timeout
+(`INTERVIEW_OS_DEVIN_TIMEOUT_MS`) kills the process. Sessions are one-shot: `createSession`
+returns a local opaque `threadId` and `sendMessage` runs a fresh task (no server-side resume).
+`listModels()` tries `devin models list --format json` (newer CLI versions) and falls back to
+static family aliases (`adaptive`, `swe`, `opus`, `sonnet`, `gpt`, `codex`, `gemini`). Child env
+allowlist adds the Windows config roots (`APPDATA`, `LOCALAPPDATA`, `USERPROFILE`, `HOMEDRIVE`,
+`HOMEPATH`) and `DEVIN_*`/`WINDSURF_API_KEY` — credentials stay in the CLI's own auth store
+(`devin auth login`).
 
 ## 4. Skills (packages/skills)
 

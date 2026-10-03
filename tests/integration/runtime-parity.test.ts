@@ -2,7 +2,7 @@ import os from "node:os";
 import path from "node:path";
 import fs from "node:fs/promises";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
-import { MockRuntime, OpencodeRuntime } from "@interview-os/runtime";
+import { DevinRuntime, MockRuntime, OpencodeRuntime } from "@interview-os/runtime";
 import type { AIRuntime } from "@interview-os/runtime";
 
 /**
@@ -21,6 +21,7 @@ afterAll(async () => {
 });
 
 const opencodeRunner = async () => ({ stdout: "", stderr: "", code: 0 });
+const devinRunner = async () => ({ stdout: "", stderr: "", code: 0 });
 
 function runtimes(): Array<{ name: string; make: () => AIRuntime }> {
   return [
@@ -32,6 +33,15 @@ function runtimes(): Array<{ name: string; make: () => AIRuntime }> {
           env: { PATH: process.env.PATH ?? "", INTERVIEW_OS_OPENCODE_BIN: process.execPath },
           workspaceDir,
           runner: opencodeRunner,
+        }),
+    },
+    {
+      name: "devin",
+      make: () =>
+        new DevinRuntime({
+          env: { PATH: process.env.PATH ?? "", INTERVIEW_OS_DEVIN_BIN: process.execPath },
+          workspaceDir,
+          runner: devinRunner,
         }),
     },
   ];
