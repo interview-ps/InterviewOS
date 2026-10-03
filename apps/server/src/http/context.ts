@@ -1,6 +1,6 @@
-import type { InterviewOrchestrator, Store } from "@interview-os/orchestrator";
+import type { InterviewOrchestrator, Store } from "../orchestrator/index.js";
 import type { AIRuntime, RuntimeManager } from "@interview-os/runtime";
-import type { Logger } from "@interview-os/shared";
+import type { Logger } from "@interview-os/core";
 import type { Context } from "hono";
 
 export interface AppVariables {

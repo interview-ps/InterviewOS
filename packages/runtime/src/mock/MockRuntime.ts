@@ -1,4 +1,4 @@
-import { newId } from "@interview-os/shared";
+import { newId } from "@interview-os/core";
 import {
   RuntimeError,
   type AgentResult,
@@ -39,7 +39,7 @@ const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
 /**
  * Deterministic, network-free runtime. Task handlers are registered per taskId;
- * default handlers ship with packages/skills.
+ * default handlers ship with apps/server (src/skills).
  */
 export class MockRuntime implements AIRuntime {
   readonly kind = "mock" as const;

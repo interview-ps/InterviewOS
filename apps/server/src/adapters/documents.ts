@@ -1,4 +1,4 @@
-import { AppError } from "@interview-os/shared";
+import { AppError } from "@interview-os/core";
 
 export type DocumentFormat = "pdf" | "docx" | "txt" | "md";
 

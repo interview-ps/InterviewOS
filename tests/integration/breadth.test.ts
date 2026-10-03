@@ -3,11 +3,11 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
 import { inRound } from "@interview-os/core";
-import { InterviewOrchestrator, openStore } from "@interview-os/orchestrator";
+import { InterviewOrchestrator, openStore } from "@interview-os/server/orchestrator";
 import { MockRuntime } from "@interview-os/runtime";
-import { createLogger } from "@interview-os/shared";
-import { jdAnalyzer, registerMockHandlers, taxonomyEntries } from "@interview-os/skills";
-import type { SkillContext } from "@interview-os/skills";
+import { createLogger } from "@interview-os/core";
+import { jdAnalyzer, registerMockHandlers, taxonomyEntries } from "@interview-os/server/skills";
+import type { SkillContext } from "@interview-os/server/skills";
 
 const REPO_ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../..");
 

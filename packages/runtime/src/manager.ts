@@ -1,5 +1,5 @@
 import fs from "node:fs/promises";
-import { createLogger, type Logger } from "@interview-os/shared";
+import { createLogger, type Logger } from "@interview-os/core";
 import {
   RuntimeError,
   type AgentResult,

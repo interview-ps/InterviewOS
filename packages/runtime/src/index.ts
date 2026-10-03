@@ -1,4 +1,4 @@
-import type { Logger } from "@interview-os/shared";
+import type { Logger } from "@interview-os/core";
 import type { AIRuntime } from "./interface/index.js";
 import {
   RuntimeManager,

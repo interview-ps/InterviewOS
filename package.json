@@ -19,11 +19,8 @@
   },
   "devDependencies": {
     "@interview-os/core": "workspace:*",
-    "@interview-os/orchestrator": "workspace:*",
     "@interview-os/runtime": "workspace:*",
     "@interview-os/server": "workspace:*",
-    "@interview-os/shared": "workspace:*",
-    "@interview-os/skills": "workspace:*",
     "@playwright/test": "^1.63.0",
     "@types/node": "24.13.6",
     "@vitest/coverage-v8": "5.0.1",

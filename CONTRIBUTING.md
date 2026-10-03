@@ -53,7 +53,7 @@ Read [AGENTS.md](AGENTS.md) first. The load-bearing rules:
 
 ## Adding a skill
 
-Skills live in `packages/skills/src/<phase>/<skill-name>/`:
+Skills live in `apps/server/src/skills/<phase>/<skill-name>/`:
 
 1. `index.ts` — `InterviewSkill<I,O>` with `id`, `inputSchema`,
    `outputSchema`, `execute(input, ctx)`. Input/output types come from
@@ -64,7 +64,7 @@ Skills live in `packages/skills/src/<phase>/<skill-name>/`:
 3. `mock.ts` — a deterministic `MockRuntime` handler registered in
    `src/mock/index.ts` under the same `taskId`. The mock must support the
    whole canonical flow.
-4. Tests in `packages/skills/test/` covering success, malformed-output retry,
+4. Tests in `apps/server/test/skills/` covering success, malformed-output retry,
    and typed failure.
 5. If the skill needs new AI output fields, they must satisfy the core schemas
    (use `.nullable()` instead of `.optional()` — strict JSON schemas require
@@ -73,7 +73,7 @@ Skills live in `packages/skills/src/<phase>/<skill-name>/`:
 ## Adding an interview mode
 
 Modes live in two places — the definition in `packages/core` and the
-interviewer/evaluator wiring in `packages/skills`:
+interviewer/evaluator wiring in `apps/server/src/skills`:
 
 1. `packages/core/src/interview/modes/<mode>.ts` — a `ModeDefinition`: `id`,
    `label`, `description`, `scope` (taxonomy subtrees the mode may ask about),
@@ -81,12 +81,12 @@ interviewer/evaluator wiring in `packages/skills`:
    `answer-evaluator`), follow-up policy (`followUpDepth` default comes from
    the company profile), and `modeState` reducer if the mode tracks state
    across turns (see `system-design.ts`). Register it in `modes/index.ts`.
-2. `packages/skills/src/interview/modes/<mode>/` — `prompt.ts` (persona +
+2. `apps/server/src/skills/interview/modes/<mode>/` — `prompt.ts` (persona +
    turn rules; turn 1 contract, e.g. system design always opens with a design
    problem), `mock.ts` (`<mode>InterviewerMock` + `<mode>EvaluatorMock`
    producing a rubric with exactly the mode's dimension ids), and register
    both under `interviewer.<mode>` / `answer-evaluator.<mode>` in
-   `packages/skills/src/mock/index.ts`. Evaluator prompts go in
+   `apps/server/src/skills/mock/index.ts`. Evaluator prompts go in
    `answer-evaluator/prompt.ts` + `MODE_PROMPTS`.
 3. Tests: `tests/integration/modes.test.ts` covers scope/rubric per mode;
    mocks must produce a rubric containing exactly the declared dimension ids

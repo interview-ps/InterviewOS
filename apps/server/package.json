@@ -4,7 +4,9 @@
   "private": true,
   "type": "module",
   "exports": {
-    ".": "./src/index.ts"
+    ".": "./src/index.ts",
+    "./orchestrator": "./src/orchestrator/index.ts",
+    "./skills": "./src/skills/index.ts"
   },
   "scripts": {
     "typecheck": "tsc --noEmit -p tsconfig.json",
@@ -14,16 +16,16 @@
   "dependencies": {
     "@hono/node-server": "2.1.1",
     "@interview-os/core": "workspace:*",
-    "@interview-os/orchestrator": "workspace:*",
     "@interview-os/runtime": "workspace:*",
-    "@interview-os/shared": "workspace:*",
-    "@interview-os/skills": "workspace:*",
+    "better-sqlite3": "13.0.3",
+    "drizzle-orm": "0.45.3",
     "hono": "4.13.9",
     "mammoth": "1.13.0",
     "unpdf": "1.8.1",
     "zod": "4.6.5"
   },
   "devDependencies": {
+    "@types/better-sqlite3": "9.6.0",
     "fflate": "0.8.3"
   }
 }

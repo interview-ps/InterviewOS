@@ -1,9 +1,9 @@
 import path from "node:path";
 import { serve } from "@hono/node-server";
-import { openStore, InterviewOrchestrator } from "@interview-os/orchestrator";
+import { openStore, InterviewOrchestrator } from "./orchestrator/index.js";
 import { createRuntime, MockRuntime } from "@interview-os/runtime";
-import { createLogger } from "@interview-os/shared";
-import { registerMockHandlers } from "@interview-os/skills";
+import { createLogger } from "@interview-os/core";
+import { registerMockHandlers } from "./skills/index.js";
 import { createApp } from "./http/app.js";
 import { loadPlugins } from "./startup/plugins.js";
 import { DEFAULT_DB_PATH, DEFAULT_PLUGINS_DIR } from "./paths.js";

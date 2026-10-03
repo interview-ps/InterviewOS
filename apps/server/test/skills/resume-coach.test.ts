@@ -1,12 +1,12 @@
 import { describe, expect, it } from "vitest";
 import { MockRuntime } from "@interview-os/runtime";
-import { createLogger } from "@interview-os/shared";
+import { createLogger } from "@interview-os/core";
 import type { Requirement } from "@interview-os/core";
 import {
   registerMockHandlers,
   resumeCoach,
   type SkillContext,
-} from "../src/index.js";
+} from "../../src/skills/index.js";
 
 const logger = createLogger({ level: "error", sink: () => {} });
 

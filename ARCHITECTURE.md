@@ -224,7 +224,7 @@ allowlist adds the Windows config roots (`APPDATA`, `LOCALAPPDATA`, `USERPROFILE
 `HOMEPATH`) and `DEVIN_*`/`WINDSURF_API_KEY` — credentials stay in the CLI's own auth store
 (`devin auth login`).
 
-## 4. Skills (packages/skills)
+## 4. Skills (apps/server/src/skills)
 
 ```ts
 interface InterviewSkill<I, O> {
@@ -255,7 +255,7 @@ communication, evidence, roleRelevance} each {score 0..1, rationale}, strengths[
 evidence}], weaknesses[{skill, severity, evidence}], scores[{skill, score, confidence}],
 missingConcepts[], betterApproach, followUpTopics[] }`.
 
-## 5. Orchestrator + persistence (packages/orchestrator)
+## 5. Orchestrator + persistence (apps/server/src/orchestrator)
 
 `InterviewOrchestrator` holds workflow only: `setupWorkspace`, `analyzeCandidate`,
 `analyzeTarget`, `calculateGaps`, `buildPreparationPlan`, `startInterview`, `nextQuestion`,
@@ -284,7 +284,7 @@ GET  /api/runtime/status  POST /api/runtime/check
 Errors: JSON `{error:{code,message}}`. Request bodies validated with Zod; body size limit 200 KB.
 
 ## 7. Observability
-`@interview-os/shared` logger emits JSON lines `{ts, level, event, ...fields}` for:
+`@interview-os/core` logger (core/src/shared) emits JSON lines `{ts, level, event, ...fields}` for:
 `workflow.started|completed|failed, skill.invoked, runtime.invoked (latencyMs), output.validated
 |invalid, state.mutated, evaluation.recorded, readiness.updated`. Redacts keys matching
 `/token|key|secret|password|authorization|cookie/i`; resume/JD/answer text is logged only as length.

@@ -1,6 +1,6 @@
 import type { AIRuntime } from "@interview-os/runtime";
 import type { SkillManifest } from "@interview-os/core";
-import { AppError, type Logger } from "@interview-os/shared";
+import { AppError, type Logger } from "@interview-os/core";
 import type { z } from "zod";
 
 /** Progress update pushed by skills during long-running AI calls (§8.3). */

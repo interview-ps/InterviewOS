@@ -6,9 +6,9 @@ import {
   SkillManifestSchema,
   type SkillManifest,
 } from "@interview-os/core";
-import type { InterviewOrchestrator } from "@interview-os/orchestrator";
-import type { PluginExecutor } from "@interview-os/skills";
-import type { Logger } from "@interview-os/shared";
+import type { InterviewOrchestrator } from "../orchestrator/index.js";
+import type { PluginExecutor } from "../skills/index.js";
+import type { Logger } from "@interview-os/core";
 
 export interface PluginLoadError {
   dir: string;

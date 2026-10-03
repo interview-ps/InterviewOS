@@ -1,6 +1,6 @@
 import { RuntimeError } from "@interview-os/runtime";
-import { AppError } from "@interview-os/shared";
-import { SkillRuntimeError, SkillOutputError } from "@interview-os/skills";
+import { AppError } from "@interview-os/core";
+import { SkillRuntimeError, SkillOutputError } from "../../skills/index.js";
 import type { Context } from "hono";
 
 export interface HttpError {

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { createLogger, newId, redact, textMeta } from "../src/index.js";
+import { createLogger, newId, redact, textMeta } from "../../src/shared/index.js";
 
 function capture() {
   const lines: string[] = [];

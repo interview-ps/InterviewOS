@@ -150,11 +150,10 @@ Runtime model, reasoning effort, and task mode can be changed in **Settings**. F
 apps/web             Next.js interface (port 3000)
         ↓
 apps/server          Hono API (port 4100) + local SQLite
-        ↓
-packages/orchestrator   Interview and preparation workflows
+                     src/orchestrator — Interview and preparation workflows
+                     src/skills       — Analyzers, planner, interviewer, evaluator, coaches
         ↓
 packages/core        Shared schemas, readiness, gaps, prioritization
-packages/skills      Analyzers, planner, interviewer, evaluator, coaches
 packages/runtime     Codex, Claude Code, opencode, Devin, and mock adapters
 ```
 

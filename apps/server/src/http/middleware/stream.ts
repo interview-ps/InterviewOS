@@ -1,4 +1,4 @@
-import type { ProgressUpdate } from "@interview-os/skills";
+import type { ProgressUpdate } from "../../skills/index.js";
 import type { Context } from "hono";
 import { streamSSE } from "hono/streaming";
 import { errorStatus } from "./error.js";

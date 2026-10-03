@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { openStore } from "../src/index.js";
+import { openStore } from "../../src/orchestrator/index.js";
 
 describe("store", () => {
   it("persists entities and keeps readiness snapshots append-only", () => {

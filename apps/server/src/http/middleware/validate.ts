@@ -1,4 +1,4 @@
-import { AppError } from "@interview-os/shared";
+import { AppError } from "@interview-os/core";
 import type { Context } from "hono";
 import { z } from "zod";
 

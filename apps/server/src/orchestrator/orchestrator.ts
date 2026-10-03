@@ -46,7 +46,7 @@ import {
   type TargetRole,
 } from "@interview-os/core";
 import { RuntimeError, type AIRuntime } from "@interview-os/runtime";
-import { AppError, newId, type Logger } from "@interview-os/shared";
+import { AppError, newId, type Logger } from "@interview-os/core";
 import {
   answerEvaluator,
   companyProfiler,
@@ -72,7 +72,7 @@ import {
   type ResumeCoachBulletsOutput,
   type SkillContext,
   type StarCoachReviewOutput,
-} from "@interview-os/skills";
+} from "../skills/index.js";
 import type { ResumeTailoring, SkillManifest } from "@interview-os/core";
 import { Store } from "./store/index.js";
 import type { LoopRow, SessionRow } from "./store/index.js";

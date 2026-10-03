@@ -1,12 +1,12 @@
 import { describe, expect, it } from "vitest";
 import { z } from "zod";
 import { SkillManifestSchema } from "@interview-os/core";
-import { BUILTIN_SKILLS } from "../src/host/builtins.js";
-import { SkillHost, PermissionError } from "../src/host/SkillHost.js";
-import { registerBuiltinSkills } from "../src/host/builtins.js";
-import type { SkillContext } from "../src/framework/skill.js";
+import { BUILTIN_SKILLS } from "../../src/skills/host/builtins.js";
+import { SkillHost, PermissionError } from "../../src/skills/host/SkillHost.js";
+import { registerBuiltinSkills } from "../../src/skills/host/builtins.js";
+import type { SkillContext } from "../../src/skills/framework/skill.js";
 import { MockRuntime } from "@interview-os/runtime";
-import { createLogger } from "@interview-os/shared";
+import { createLogger } from "@interview-os/core";
 
 /** Top-level input keys of a schema (objects + discriminated unions). */
 function topLevelKeys(schema: z.ZodType): string[] {

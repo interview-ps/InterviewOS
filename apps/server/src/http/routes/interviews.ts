@@ -4,7 +4,7 @@ import { streamOrJson } from "../middleware/stream.js";
 import { parseBody, parseOptionalBody } from "../middleware/validate.js";
 import { AnswerSchema, InterviewCreateSchema } from "../schemas.js";
 import { RoundTypeSchema, MODE_IDS } from "@interview-os/core";
-import { AppError } from "@interview-os/shared";
+import { AppError } from "@interview-os/core";
 
 export const interviewsRoutes = new Hono<AppEnv>();
 

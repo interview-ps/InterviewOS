@@ -1,6 +1,6 @@
 import { Hono } from "hono";
 import type { AppEnv } from "../context.js";
-import { AppError } from "@interview-os/shared";
+import { AppError } from "@interview-os/core";
 import { parseBody } from "../middleware/validate.js";
 import { RuntimeSwitchSchema } from "../schemas.js";
 

@@ -1,8 +1,8 @@
 import { describe, expect, it } from "vitest";
 import { MockRuntime } from "@interview-os/runtime";
-import { createLogger } from "@interview-os/shared";
-import { registerMockHandlers } from "@interview-os/skills";
-import { InterviewOrchestrator, openStore } from "../src/index.js";
+import { createLogger } from "@interview-os/core";
+import { registerMockHandlers } from "../../src/skills/index.js";
+import { InterviewOrchestrator, openStore } from "../../src/orchestrator/index.js";
 
 const logger = createLogger({ level: "error", sink: () => {} });
 

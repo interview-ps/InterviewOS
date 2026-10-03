@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { AppError, type Logger } from "@interview-os/shared";
+import { AppError, type Logger } from "@interview-os/core";
 import {
   PLUGIN_INPUT_KEYS,
   SkillManifestSchema,

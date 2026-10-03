@@ -1,4 +1,4 @@
-import { createLogger } from "@interview-os/shared";
+import { createLogger } from "@interview-os/core";
 import { Hono } from "hono";
 import { DEFAULT_EXAMPLES_DIR } from "../paths.js";
 import type { AppDeps, AppEnv } from "./context.js";

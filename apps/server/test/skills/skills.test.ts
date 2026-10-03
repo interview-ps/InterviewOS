@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { MockRuntime } from "@interview-os/runtime";
-import { createLogger } from "@interview-os/shared";
+import { createLogger } from "@interview-os/core";
 import {
   answerEvaluator,
   companyProfiler,
@@ -18,7 +18,7 @@ import {
   starCoach,
   taxonomyEntries,
   type SkillContext,
-} from "../src/index.js";
+} from "../../src/skills/index.js";
 import { z } from "zod";
 
 const logger = createLogger({ level: "error", sink: () => {} });
@@ -582,7 +582,7 @@ describe("W1 fixes (§9.1)", () => {
 describe("loop-debrief (§9.4)", () => {
   it("signals each round and never renders a hire verdict", async () => {
     const { ctx } = makeCtx();
-    const { loopDebrief } = await import("../src/evaluate/loop-debrief/index.js");
+    const { loopDebrief } = await import("../../src/skills/evaluate/loop-debrief/index.js");
     const out = await loopDebrief.execute(
       {
         role: "BE",

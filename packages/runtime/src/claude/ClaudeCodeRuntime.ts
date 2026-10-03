@@ -1,5 +1,5 @@
 import { randomUUID } from "node:crypto";
-import type { Logger } from "@interview-os/shared";
+import type { Logger } from "@interview-os/core";
 import {
   RuntimeError,
   validateModelAndEffort,

@@ -1,5 +1,5 @@
 import path from "node:path";
-import type { Logger } from "@interview-os/shared";
+import type { Logger } from "@interview-os/core";
 import type { AIRuntime, RuntimeKind, RuntimeStatus } from "./interface/index.js";
 import { MockRuntime } from "./mock/MockRuntime.js";
 import { CodexRuntime } from "./codex/CodexRuntime.js";
