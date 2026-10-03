@@ -21,6 +21,9 @@ const fmtScore = (n: number | null | undefined) =>
 
 function QuestionNode({ node, depth = 0 }: { node: HistoryQuestion; depth?: number }) {
   const ev = node.evaluation;
+  // evaluations saved before modes existed can lack `rubric` / `readinessDelta`
+  const rubric = ev?.rubric ?? [];
+  const readinessDelta = node.readinessDelta ?? [];
   return (
     <div
       className={`rounded-[0.6rem] p-3 text-sm ${node.weak ? "bg-red-50/60 border border-red-200" : "bg-page"} ${depth > 0 ? "ml-5 border-l-2 border-l-line" : ""}`}
@@ -53,9 +56,9 @@ function QuestionNode({ node, depth = 0 }: { node: HistoryQuestion; depth?: numb
       {ev && (
         <div className="mt-2">
           <p className="text-xs text-muted">{ev.summary}</p>
-          {ev.rubric.length > 0 && (
+          {rubric.length > 0 && (
             <dl className="mt-2 space-y-1">
-              {ev.rubric.map((d) => (
+              {rubric.map((d) => (
                 <div key={d.id} className="flex items-center gap-2">
                   <dt className="w-36 shrink-0 truncate text-xs text-muted">{d.label}</dt>
                   <dd className="w-24 shrink-0">
@@ -66,10 +69,10 @@ function QuestionNode({ node, depth = 0 }: { node: HistoryQuestion; depth?: numb
               ))}
             </dl>
           )}
-          {node.readinessDelta.length > 0 && (
+          {readinessDelta.length > 0 && (
             <p className="mt-2 text-xs text-muted">
               Readiness:{" "}
-              {node.readinessDelta
+              {readinessDelta
                 .map((d) => `${skillLabel(d.skillId)} ${fmtScore(d.before)}→${fmtScore(d.after)}`)
                 .join(" · ")}
             </p>
@@ -216,28 +219,28 @@ export default function History() {
               )}
               {e.hasWeakAnswer && <Pill tone="red">weak answer</Pill>}
               <Pill tone={e.session.status === "debrief" ? "green" : "muted"}>{e.session.status}</Pill>
-              <span className="text-sm text-muted">{e.questions.length} questions</span>
+              <span className="text-sm text-muted">{(e.questions ?? []).length} questions</span>
               <span className="ml-auto text-muted" aria-hidden>{expanded === e.session.id ? "▾" : "▸"}</span>
             </div>
           </button>
           {expanded === e.session.id && (
             <div className="mt-3 space-y-3 border-t border-line pt-3">
               {expanded === e.session.id && !detail && <Spinner />}
-              {detail?.questions.map((m) => (
+              {(detail?.questions ?? []).map((m) => (
                 <div key={m.question.id}>
                   <QuestionNode node={m} />
-                  {m.followUps.map((f) => (
+                  {(m.followUps ?? []).map((f) => (
                     <div key={f.question.id} className="mt-1.5">
                       <QuestionNode node={f} depth={1} />
                     </div>
                   ))}
                 </div>
               ))}
-              {detail && detail.actionsCreated.length > 0 && (
+              {detail && (detail.actionsCreated ?? []).length > 0 && (
                 <div className="rounded-[0.6rem] bg-page p-3 text-sm">
                   <p className="font-medium text-ink">Prep actions created</p>
                   <ul className="mt-1 list-disc pl-5 text-xs text-muted">
-                    {detail.actionsCreated.map((a) => (
+                    {(detail.actionsCreated ?? []).map((a) => (
                       <li key={a.id}>
                         {a.action} <span className="text-blue">({skillLabel(a.skillId)})</span>
                       </li>
