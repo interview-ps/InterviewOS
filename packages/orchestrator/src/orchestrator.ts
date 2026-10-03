@@ -7,6 +7,7 @@ import {
   COMPANY_PROFILES,
   getCompanyProfile,
   getMode,
+  isModeId,
   guardSuggestion,
   InterviewOSStateSchema,
   LoopRoundSchema,
@@ -2117,10 +2118,12 @@ export class InterviewOrchestrator {
 
   /** Mean of rubric scores when present, else mean of per-skill scores. */
   private answerMeanScore(ev: AnswerEvaluation): number {
+    // evaluations persisted before §9.1 may lack `rubric`/`scores` in stored
+    // JSON even though the current schema defaults them — guard both
     const vals =
-      ev.rubric.length > 0
+      (ev.rubric?.length ?? 0) > 0
         ? ev.rubric.map((d) => d.score)
-        : ev.scores.map((s) => s.score);
+        : (ev.scores ?? []).map((s) => s.score);
     return vals.length ? vals.reduce((a, b) => a + b, 0) / vals.length : 0;
   }
 
@@ -2183,7 +2186,9 @@ export class InterviewOrchestrator {
     return {
       session: {
         ...s,
-        modeLabel: getMode(s.roundType as RoundType).label,
+        // sessions persisted before modes existed may carry a roundType with
+        // no registered mode — fall back to mixed instead of crashing history
+        modeLabel: getMode(isModeId(s.roundType) ? s.roundType : "mixed").label,
       },
       target: target
         ? {
