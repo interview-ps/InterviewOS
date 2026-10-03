@@ -19,7 +19,16 @@ export interface ExpectedConcept {
   keywords: string[];
 }
 
-export type RoundType = "mixed" | "technical" | "system_design" | "behavioral" | "hr";
+export type RoundType =
+  | "mixed"
+  | "technical"
+  | "coding"
+  | "system_design"
+  | "behavioral"
+  | "hiring_manager"
+  | "hr";
+
+export type DesignDimensionStatus = "not_covered" | "partial" | "covered";
 
 export interface SessionRow {
   id: string;
@@ -30,15 +39,45 @@ export interface SessionRow {
   plannedQuestions: number;
   mode: "interview" | "practice";
   roundType: RoundType;
+  modeLabel?: string;
+  modeState: Record<string, unknown>;
   focusSkillId: string | null;
   actionId: string | null;
+  /** §9.4: set when this session is a loop round (1-based). */
+  loopId: string | null;
+  loopRound: number | null;
   createdAt: string;
   completedAt: string | null;
+}
+
+export interface SelectionFactors {
+  roleImportance: number;
+  readinessGap: number;
+  uncertainty: number;
+  weaknessBoost: number;
+  recencyFactor: number;
+  noveltyFactor: number;
+}
+
+export interface CodingProblem {
+  title: string;
+  statement: string;
+  constraints: string[];
+  examples: { input: string; output: string; explanation?: string }[];
+}
+
+export interface QuestionExtra {
+  problem?: CodingProblem | string;
+  focusDimension?: string;
 }
 
 export interface SessionQuestion extends Question {
   selectionReason: string | null;
   selectionPriority: number | null;
+  selectionFactors: SelectionFactors | null;
+  followUpOf: string | null;
+  followUpFocus: string | null;
+  extra: QuestionExtra | null;
 }
 
 export interface AnswerRow {
@@ -46,6 +85,8 @@ export interface AnswerRow {
   questionId: string;
   sessionId: string;
   text: string;
+  code: string | null;
+  language: string | null;
   status: string;
   createdAt: string;
 }
@@ -55,9 +96,18 @@ export interface DimensionScore {
   rationale: string;
 }
 
+export interface RubricDimension {
+  id: string;
+  label: string;
+  score: number;
+  rationale: string;
+}
+
 export interface Evaluation {
   summary: string;
   dimensions: Record<string, DimensionScore>;
+  rubric: RubricDimension[];
+  designUpdates: { dimension: string; status: DesignDimensionStatus; notes: string }[] | null;
   strengths: { skill: string; evidence: string }[];
   weaknesses: { skill: string; severity: string; evidence: string }[];
   scores: { skill: string; score: number; confidence: number }[];
@@ -86,6 +136,7 @@ export interface SessionDetail {
   answers: AnswerRow[];
   evaluations: Evaluation[];
   debrief: Debrief | null;
+  companyProfile: { id: string; name: string; disclaimer: string } | null;
 }
 
 export interface InterviewListItem extends SessionRow {
@@ -101,6 +152,20 @@ export interface CompanyProfile {
   behavioralThemes: string[];
 }
 
+/** §9.3 built-in company profile (GET /api/companies). */
+export interface CompanyProfileInfo {
+  id: string;
+  name: string;
+  aliases: string[];
+  disclaimer: string;
+  typicalLoop: { mode: string; label: string }[];
+  emphasis: Partial<Record<string, number>>;
+  behavioralFramework: { name: string; themes: string[]; guidance: string } | null;
+  followUpDepth: number;
+  rubricEmphasis: string[];
+  roleExpectations: string;
+}
+
 export interface TargetListItem {
   id: string;
   company: string;
@@ -109,6 +174,7 @@ export interface TargetListItem {
   active: boolean;
   createdAt: string;
   companyProfile: CompanyProfile | null;
+  companyProfileId: string | null;
   boostedSkillIds: string[];
 }
 
@@ -186,6 +252,187 @@ export interface SetupResult {
   target: TargetRole;
   gaps: Gap[];
   actions: PrepAction[];
+}
+
+// --- §9.4 interview loops ---------------------------------------------------
+
+export interface ReadinessSnapshot {
+  overall: number | null;
+  requirements: Record<string, number | null>;
+}
+
+export interface RoundHandoff {
+  weakSkills: { skillId: string; label: string; score: number; observation: string }[];
+  strongSkills: { skillId: string; label: string; score: number }[];
+  observations: string[];
+}
+
+export interface SkillDelta {
+  skillId: string;
+  label: string;
+  before: number | null;
+  after: number | null;
+}
+
+export interface LoopRound {
+  mode: RoundType;
+  label: string;
+  plannedQuestions: number;
+  sessionId: string | null;
+  status: "pending" | "in_progress" | "complete";
+  readinessBefore: ReadinessSnapshot | null;
+  readinessAfter: ReadinessSnapshot | null;
+  handoff: RoundHandoff | null;
+  skillDeltas: SkillDelta[];
+}
+
+export interface LoopRoundSignal {
+  mode: string;
+  label: string;
+  signal: "strong" | "mixed" | "weak";
+  evidence: string[];
+}
+
+export interface LoopDebrief {
+  summary: string;
+  rounds: LoopRoundSignal[];
+  readinessChange: { before: number | null; after: number | null };
+  topActions: string[];
+}
+
+export interface InterviewLoop {
+  id: string;
+  targetId: string | null;
+  companyProfileId: string;
+  rounds: LoopRound[];
+  status: "planned" | "in_progress" | "complete";
+  currentRound: number;
+  abandoned: boolean;
+  debrief: LoopDebrief | null;
+  createdAt: string;
+  completedAt: string | null;
+}
+
+export interface StartLoopResult {
+  loop: InterviewLoop;
+  session: SessionRow;
+  question: SessionQuestion | null;
+}
+
+export interface CompleteInterviewResult {
+  session: SessionRow;
+  debrief: Debrief;
+  loop: InterviewLoop | null;
+  nextSession: SessionRow | null;
+  nextQuestion: SessionQuestion | null;
+}
+
+// --- §9.7 history / metrics -------------------------------------------------
+
+export interface HistoryQuestion {
+  question: SessionQuestion;
+  answer: {
+    id: string;
+    text: string;
+    code: string | null;
+    language: string | null;
+    createdAt: string;
+  } | null;
+  evaluation: Evaluation | null;
+  readinessDelta: { skillId: string; before: number | null; after: number | null }[];
+  weak: boolean;
+}
+
+export interface HistoryEntry {
+  session: SessionRow;
+  target: {
+    id: string;
+    role: string;
+    company: string;
+    companyProfileId: string;
+  } | null;
+  loop: { id: string; round: number | null; totalRounds: number; label: string | null } | null;
+  questions: (HistoryQuestion & { followUps: HistoryQuestion[] })[];
+  actionsCreated: PrepAction[];
+  debrief: Debrief | null;
+  hasWeakAnswer: boolean;
+}
+
+export interface Metrics {
+  loopsStarted: number;
+  loopsCompleted: number;
+  sessionsPerMode: Record<string, number>;
+  weaknessRetestRate: { weakSkills: number; retested: number; rate: number | null };
+  improvementAfterPrep: number | null;
+  prepCompletionRate: { done: number; total: number; rate: number | null };
+  readinessCoverage: { covered: number; total: number; rate: number | null };
+  usage: Record<string, number>;
+}
+
+// --- §9.5 resume coach / §9.6 skills & plugins -------------------------------
+
+export interface AtsCheck {
+  id: string;
+  label: string;
+  status: "pass" | "warn" | "fail";
+  detail: string;
+  weight: number;
+}
+
+export interface AtsResult {
+  score: number;
+  checks: AtsCheck[];
+  keywordCoverage: {
+    present: { skillId: string; label: string; snippet: string }[];
+    missing: { skillId: string; label: string }[];
+  };
+}
+
+export interface ResumeSuggestion {
+  original: string;
+  improved: string;
+  rationale: string;
+  skillIds: string[];
+  dropped?: string;
+}
+
+export interface ResumeTailoring {
+  summary: string;
+  emphasize: string[];
+  deEmphasize: string[];
+  alignment: {
+    requirement: string;
+    resumeEvidence: string | null;
+    suggestion: string;
+  }[];
+  prepGaps: string[];
+}
+
+export interface ResumeReview {
+  id: string;
+  candidateId: string;
+  targetId: string;
+  ats: AtsResult;
+  suggestions: ResumeSuggestion[];
+  tailoring: ResumeTailoring | null;
+  linkedGapSkillIds: string[];
+  guard: { substitutions: number; dropped: number };
+  createdAt: string;
+}
+
+export interface SkillInfo {
+  id: string;
+  version: string;
+  kind: "builtin" | "plugin";
+  description: string;
+  inputs: { key: string; permission: string }[];
+  outputs: string[];
+  permissions: string[];
+}
+
+export interface SkillsList {
+  skills: SkillInfo[];
+  pluginErrors: { dir: string; file: string; error: string }[];
 }
 
 export class ApiError extends Error {
@@ -269,6 +516,13 @@ export async function streamPost<T>(
   };
 
   for (;;) {
+    // `result`/`error` are terminal frames — resolve on the frame itself
+    // rather than waiting for stream close: the Next.js rewrite proxy
+    // intermittently holds the final bytes of a long-lived SSE response.
+    if (result !== undefined || streamError) {
+      void reader.cancel().catch(() => {});
+      break;
+    }
     const { done, value } = await reader.read();
     if (done) break;
     buf += decoder.decode(value, { stream: true });
@@ -401,6 +655,13 @@ export const api = {
       `/api/targets/${id}/activate`,
       { method: "POST" },
     ),
+  companies: () => request<CompanyProfileInfo[]>("/api/companies"),
+  updateTargetProfile: (id: string, companyProfileId: string) =>
+    request<{ target: TargetRole }>(`/api/targets/${id}`, {
+      method: "PATCH",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ companyProfileId }),
+    }),
   extractDocument: (file: File) => {
     const form = new FormData();
     form.append("file", file);
@@ -425,19 +686,51 @@ export const api = {
     }),
   listInterviews: () => request<InterviewListItem[]>("/api/interviews"),
   interview: (id: string) => request<SessionDetail>(`/api/interviews/${id}`),
-  submitAnswer: (sessionId: string, answer: string) =>
+  submitAnswer: (sessionId: string, body: { answer: string; code?: string; language?: string }) =>
     request<SubmitAnswerResult>(`/api/interviews/${sessionId}/answer`, {
       method: "POST",
       headers: { "content-type": "application/json" },
-      body: JSON.stringify({ answer }),
+      body: JSON.stringify(body),
     }),
   nextQuestion: (sessionId: string) =>
     request<StartInterviewResult>(`/api/interviews/${sessionId}/next`, { method: "POST" }),
   completeInterview: (sessionId: string) =>
-    request<{ session: SessionRow; debrief: Debrief }>(
+    request<CompleteInterviewResult>(
       `/api/interviews/${sessionId}/complete`,
       { method: "POST" },
     ),
+  startLoop: (rounds?: { mode: RoundType; label?: string; plannedQuestions?: number }[]) =>
+    request<StartLoopResult>("/api/loops", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify(rounds ? { rounds } : {}),
+    }),
+  loops: () => request<InterviewLoop[]>("/api/loops"),
+  loop: (id: string) => request<InterviewLoop>(`/api/loops/${id}`),
+  abandonLoop: (id: string) =>
+    request<InterviewLoop>(`/api/loops/${id}/abandon`, { method: "POST" }),
+  history: (filters: {
+    mode?: string;
+    targetId?: string;
+    loopId?: string;
+    weakOnly?: boolean;
+  } = {}) => {
+    const params = new URLSearchParams();
+    if (filters.mode) params.set("mode", filters.mode);
+    if (filters.targetId) params.set("targetId", filters.targetId);
+    if (filters.loopId) params.set("loopId", filters.loopId);
+    if (filters.weakOnly) params.set("weakOnly", "1");
+    const qs = params.toString();
+    return request<HistoryEntry[]>(`/api/history${qs ? `?${qs}` : ""}`);
+  },
+  sessionHistory: (id: string) => request<HistoryEntry>(`/api/history/${id}`),
+  recordEvent: (event: string) =>
+    request<{ ok: boolean }>("/api/events", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ event }),
+    }),
+  metrics: () => request<Metrics>("/api/metrics"),
   debrief: (sessionId: string) => request<Debrief>(`/api/interviews/${sessionId}/debrief`),
   stories: () => request<StarStory[]>("/api/stories"),
   updateStory: (id: string, patch: Partial<Omit<StarStory, "id" | "candidateId" | "source" | "updatedAt">>) =>
@@ -445,5 +738,14 @@ export const api = {
       method: "PATCH",
       headers: { "content-type": "application/json" },
       body: JSON.stringify(patch),
+    }),
+  reviewResume: (handlers: StreamHandlers<ResumeReview> = {}) =>
+    streamPost<ResumeReview>("/api/resume/review", {}, handlers),
+  latestResumeReview: () =>
+    request<ResumeReview | null>("/api/resume/reviews/latest"),
+  skills: () => request<SkillsList>("/api/skills"),
+  runPlugin: (id: string) =>
+    request<{ output: unknown }>(`/api/plugins/${encodeURIComponent(id)}/run`, {
+      method: "POST",
     }),
 };

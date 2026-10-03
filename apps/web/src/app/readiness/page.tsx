@@ -1,9 +1,10 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useSearchParams } from "next/navigation";
+import { Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { api, type SkillDetail, type SkillReadiness } from "@/lib/api";
 import { Sparkline } from "@/components/sparkline";
-import { Bar, Card, CardTitle, ErrorNote, Pill, Spinner, StatusPill } from "@/components/ui";
+import { Bar, Card, CardTitle, ErrorNote, PageHeader, Pill, Skeleton, SkeletonCard, Spinner, StatusPill, skillLabel } from "@/components/ui";
 
 function scoreTone(s: SkillReadiness): "green" | "blue" | "amber" | "muted" {
   return s.status === "strong" ? "green" : s.status === "developing" ? "blue" : s.status === "weak" ? "amber" : "muted";
@@ -62,11 +63,13 @@ function TreeNode({
   );
 }
 
-export default function Readiness() {
+function ReadinessPage() {
+  const params = useSearchParams();
   const [graph, setGraph] = useState<Record<string, SkillReadiness> | null>(null);
   const [selected, setSelected] = useState<string | null>(null);
   const [detail, setDetail] = useState<SkillDetail | null>(null);
   const [error, setError] = useState<unknown>(null);
+  const preselected = useRef(false);
 
   useEffect(() => {
     api.readiness().then((g) => setGraph(g.dimensions)).catch((e) => setError(e));
@@ -84,11 +87,34 @@ export default function Readiness() {
     api.skillDetail(id).then(setDetail).catch((e) => setError(e));
   }, []);
 
-  if (!graph && !error) return <Spinner label="Loading readiness…" />;
+  // §9.7: ?skill=<id> (e.g. from the command palette) preselects the panel.
+  useEffect(() => {
+    if (preselected.current || !graph) return;
+    const skill = params.get("skill");
+    if (skill && graph[skill]) {
+      preselected.current = true;
+      select(skill);
+    }
+  }, [graph, params, select]);
+
+  if (!graph && !error) {
+    return (
+      <div className="space-y-5">
+        <PageHeader title="Readiness" />
+        <div className="grid gap-5 lg:grid-cols-2">
+          <SkeletonCard lines={5} />
+          <SkeletonCard lines={5} />
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-5">
-      <h1 className="text-xl font-bold text-navy">Readiness</h1>
+      <PageHeader
+        title="Readiness"
+        subtitle="Every score below is backed by evidence — click a skill to see why."
+      />
       <ErrorNote error={error} />
       {graph && (
         <div className="grid gap-5 lg:grid-cols-2">
@@ -103,9 +129,15 @@ export default function Readiness() {
 
           <Card>
             <CardTitle>
-              {selected ? (detail?.readiness?.label ?? selected) : "Select a skill"}
+              {selected ? (detail?.readiness?.label ?? skillLabel(selected)) : "Select a skill"}
             </CardTitle>
-            {selected && !detail && <Spinner label="Loading detail…" />}
+            {selected && !detail && (
+              <div className="space-y-2">
+                <Skeleton className="h-4 w-24" />
+                <Skeleton className="h-3.5" />
+                <Skeleton className="h-3.5 w-3/4" />
+              </div>
+            )}
             {detail && (
               <div className="space-y-4">
                 <div className="flex items-center gap-3">
@@ -166,5 +198,13 @@ export default function Readiness() {
         </div>
       )}
     </div>
+  );
+}
+
+export default function Readiness() {
+  return (
+    <Suspense fallback={<Spinner label="Loading readiness…" />}>
+      <ReadinessPage />
+    </Suspense>
   );
 }

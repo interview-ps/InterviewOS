@@ -32,6 +32,25 @@ export const interviewSessions = sqliteTable("interview_sessions", {
   roundType: text("round_type").notNull().default("mixed"), // §8.4 round type
   focusSkillId: text("focus_skill_id"),
   actionId: text("action_id"),
+  /** §9.1: per-mode session state (JSON). */
+  modeState: text("mode_state", { mode: "json" }).notNull().default("{}"),
+  /** §9.4: owning loop + 1-based round index (null for standalone sessions). */
+  loopId: text("loop_id"),
+  loopRound: integer("loop_round"),
+  createdAt: text("created_at").notNull(),
+  completedAt: text("completed_at"),
+});
+
+/** §9.4: a multi-round interview loop; `rounds` holds LoopRound[] JSON. */
+export const interviewLoops = sqliteTable("interview_loops", {
+  id: text("id").primaryKey(),
+  targetId: text("target_id"),
+  companyProfileId: text("company_profile_id").notNull().default("generic"),
+  rounds: text("rounds", { mode: "json" }).notNull().default("[]"),
+  status: text("status").notNull().default("planned"), // planned | in_progress | complete
+  currentRound: integer("current_round").notNull().default(0),
+  abandoned: integer("abandoned").notNull().default(0),
+  debrief: text("debrief", { mode: "json" }),
   createdAt: text("created_at").notNull(),
   completedAt: text("completed_at"),
 });
@@ -47,6 +66,13 @@ export const interviewQuestions = sqliteTable("interview_questions", {
   difficulty: text("difficulty").notNull().default("medium"),
   selectionPriority: real("selection_priority"),
   selectionReason: text("selection_reason"),
+  /** §9.2: engine factor breakdown (JSON). */
+  selectionFactors: text("selection_factors", { mode: "json" }).notNull().default("{}"),
+  /** §9.1: parent question id when this is a follow-up (doesn't count toward plan). */
+  followUpOf: text("follow_up_of"),
+  followUpFocus: text("follow_up_focus"),
+  /** §9.1: mode payload — coding problem object / design problem text / focusDimension. */
+  extra: text("extra", { mode: "json" }).notNull().default("{}"),
   position: integer("position").notNull().default(0),
   createdAt: text("created_at").notNull(),
 });
@@ -56,6 +82,9 @@ export const candidateAnswers = sqliteTable("candidate_answers", {
   questionId: text("question_id").notNull(),
   sessionId: text("session_id").notNull(),
   text: text("text").notNull(),
+  /** §9.1: optional submitted code + language (coding rounds; reviewed, not executed). */
+  code: text("code"),
+  language: text("language"),
   status: text("status").notNull().default("evaluated"), // evaluated | failed
   createdAt: text("created_at").notNull(),
 });
@@ -66,6 +95,8 @@ export const answerEvaluations = sqliteTable("answer_evaluations", {
   questionId: text("question_id").notNull(),
   sessionId: text("session_id").notNull(),
   data: text("data", { mode: "json" }).notNull(),
+  /** §9.7: per-skill readiness before→after for this evaluation. */
+  readinessDelta: text("readiness_delta", { mode: "json" }).notNull().default("[]"),
   createdAt: text("created_at").notNull(),
 });
 
@@ -145,4 +176,26 @@ export const starStories = sqliteTable("star_stories", {
 export const settings = sqliteTable("settings", {
   key: text("key").primaryKey(),
   value: text("value").notNull(),
+});
+
+/** §9.5: resume-coach reviews (ATS result + guarded suggestions + tailoring). */
+export const resumeReviews = sqliteTable("resume_reviews", {
+  id: text("id").primaryKey(),
+  candidateId: text("candidate_id"),
+  targetId: text("target_id"),
+  ats: text("ats", { mode: "json" }).notNull(),
+  suggestions: text("suggestions", { mode: "json" }).notNull().default("[]"),
+  tailoring: text("tailoring", { mode: "json" }),
+  linkedGapSkillIds: text("linked_gap_skill_ids", { mode: "json" })
+    .notNull()
+    .default("[]"),
+  guard: text("guard", { mode: "json" }).notNull().default("{}"),
+  createdAt: text("created_at").notNull(),
+});
+
+/** §9.7: local usage counters — event names only, never content. */
+export const usageEvents = sqliteTable("usage_events", {
+  id: text("id").primaryKey(),
+  event: text("event").notNull(),
+  createdAt: text("created_at").notNull(),
 });

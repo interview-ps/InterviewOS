@@ -140,48 +140,16 @@ export class CodexSessionManager {
     const timeoutMs = task.timeoutMs ?? this.opts.turnTimeoutMs;
     emit({ type: "started" });
 
-    let threadId: string | undefined;
-    let turnId: string | undefined;
-    for (let attempt = 0; attempt < 2; attempt++) {
-      try {
-        await this.proc.ensureReady();
-        const thread = await this.protocol.threadStart({
-          cwd: this.opts.workspaceDir,
-          sandbox: "read-only",
-          approvalPolicy: "never",
-          ephemeral: true,
-          developerInstructions: task.instructions,
-          model: task.model ?? undefined,
-        });
-        threadId = thread.thread.id;
-        const turn = await this.protocol.turnStart({
-          threadId,
-          input: [
-            {
-              type: "text",
-              text: `Input (JSON):\n${JSON.stringify(task.input, null, 2)}\n`,
-              text_elements: [],
-            },
-          ],
-          outputSchema: task.outputSchema,
-          model: task.model ?? undefined,
-          effort: task.effort ?? undefined,
-        });
-        turnId = turn.turn.id;
-        break;
-      } catch (err) {
-        const retryable =
-          err instanceof RuntimeError &&
-          (err.code === "CRASHED" || err.code === "SPAWN_FAILED");
-        if (attempt === 1 || !retryable) {
-          return fail(asRuntimeError(err));
-        }
-      }
-    }
-
     return new Promise<AgentResult>((resolve) => {
       let lastText = "";
       let settled = false;
+      let threadId: string | undefined;
+      let turnId: string | undefined;
+      // the notification listener must be registered before turn/start is
+      // sent — a fast turn can emit turn/completed before the turn/start
+      // response is awaited, which would otherwise drop the whole turn.
+      // Notifications are buffered until turnId is known, then replayed.
+      const queued: Array<{ method: string; params: TurnParams }> = [];
       const finish = (result: AgentResult) => {
         if (settled) return;
         settled = true;
@@ -191,8 +159,7 @@ export class CodexSessionManager {
         resolve(result);
       };
 
-      const offNotification = this.proc.onNotification((method, rawParams) => {
-        const params = (rawParams ?? {}) as TurnParams;
+      const dispatch = (method: string, params: TurnParams) => {
         if (params.threadId !== undefined && params.threadId !== threadId) return;
         if (params.turnId !== undefined && turnId !== undefined && params.turnId !== turnId)
           return;
@@ -276,26 +243,85 @@ export class CodexSessionManager {
             );
             break;
         }
+      };
+
+      const offNotification = this.proc.onNotification((method, rawParams) => {
+        const params = (rawParams ?? {}) as TurnParams;
+        if (turnId === undefined) {
+          queued.push({ method, params });
+          return;
+        }
+        dispatch(method, params);
       });
 
       const offExit = this.proc.onExit(() => {
+        // exits before our turn started belong to an older (or never-spawned)
+        // process — the pending turn/start request is rejected with CRASHED
+        // and retried, so only report once this turn is actually in flight
+        if (turnId === undefined) return;
         finish(fail(new RuntimeError("CRASHED", "codex app-server exited mid-turn")));
       });
 
       const timer = setTimeout(() => {
-        if (threadId && turnId) {
-          this.protocol.turnInterrupt(threadId, turnId).catch(() => {});
-        }
-        finish(
-          fail(
-            new RuntimeError(
-              "TIMEOUT",
-              `codex task timed out after ${timeoutMs}ms`,
-            ),
-            lastText,
+        const timedOut = fail(
+          new RuntimeError(
+            "TIMEOUT",
+            `codex task timed out after ${timeoutMs}ms`,
           ),
+          lastText,
         );
+        // await the interrupt (bounded by its own request timeout) so the
+        // turn is actually cancelled before the caller sees TIMEOUT
+        if (threadId && turnId) {
+          void this.protocol
+            .turnInterrupt(threadId, turnId)
+            .catch(() => {})
+            .then(() => finish(timedOut));
+        } else {
+          finish(timedOut);
+        }
       }, timeoutMs);
+
+      void (async () => {
+        for (let attempt = 0; attempt < 2; attempt++) {
+          try {
+            await this.proc.ensureReady();
+            const thread = await this.protocol.threadStart({
+              cwd: this.opts.workspaceDir,
+              sandbox: "read-only",
+              approvalPolicy: "never",
+              ephemeral: true,
+              developerInstructions: task.instructions,
+              model: task.model ?? undefined,
+            });
+            threadId = thread.thread.id;
+            const turn = await this.protocol.turnStart({
+              threadId,
+              input: [
+                {
+                  type: "text",
+                  text: `Input (JSON):\n${JSON.stringify(task.input, null, 2)}\n`,
+                  text_elements: [],
+                },
+              ],
+              outputSchema: task.outputSchema,
+              model: task.model ?? undefined,
+              effort: task.effort ?? undefined,
+            });
+            turnId = turn.turn.id;
+            for (const n of queued.splice(0)) dispatch(n.method, n.params);
+            return;
+          } catch (err) {
+            const retryable =
+              err instanceof RuntimeError &&
+              (err.code === "CRASHED" || err.code === "SPAWN_FAILED");
+            if (attempt === 1 || !retryable) {
+              finish(fail(asRuntimeError(err)));
+              return;
+            }
+          }
+        }
+      })();
     });
   }
 
@@ -318,45 +344,16 @@ export class CodexSessionManager {
     }
     yield { type: "started" };
 
-    // The app-server may emit turn notifications before the turn/start response
-    // has been consumed. Capture them until the turn listener is installed.
-    const earlyNotifications: Array<[string, unknown]> = [];
-    const offEarly = this.proc.onNotification((method, params) => {
-      earlyNotifications.push([method, params]);
-    });
-
-    let turnId: string | undefined;
-    for (let attempt = 0; attempt < 2; attempt++) {
-      try {
-        await this.ensureThreadCurrent(session);
-        const result = await this.protocol.turnStart({
-          threadId: session.threadId,
-          input: [{ type: "text", text: msg.text, text_elements: [] }],
-          outputSchema: msg.outputSchema,
-          model: msg.model ?? undefined,
-          effort: msg.effort ?? undefined,
-        });
-        turnId = result.turn?.id;
-        break;
-      } catch (err) {
-        const retryable =
-          err instanceof RuntimeError &&
-          (err.code === "CRASHED" || err.code === "SPAWN_FAILED");
-        if (attempt === 1 || !retryable) {
-          offEarly();
-          yield { type: "error", error: asRuntimeError(err) };
-          return;
-        }
-        // process died between health check and request: force resume + retry once
-        session.generation = -1;
-      }
-    }
-
     const queue = new EventQueue();
     let lastMessageText = "";
+    let turnId: string | undefined;
+    let turnEnded = false;
+    // the notification listener is registered before turn/start so a fast
+    // turn cannot emit turn/completed before the response is awaited;
+    // notifications buffer until turnId is known, then replay.
+    const queued: Array<{ method: string; params: TurnParams }> = [];
 
-    const handleNotification = (method: string, rawParams: unknown) => {
-      const params = (rawParams ?? {}) as TurnParams;
+    const dispatch = (method: string, params: TurnParams) => {
       if (params.threadId !== undefined && params.threadId !== session.threadId) return;
       if (params.turnId !== undefined && turnId !== undefined && params.turnId !== turnId)
         return;
@@ -409,6 +406,7 @@ export class CodexSessionManager {
               ),
             });
           }
+          turnEnded = true;
           queue.finish();
           break;
         }
@@ -421,17 +419,26 @@ export class CodexSessionManager {
               `codex turn error: ${params.message ?? JSON.stringify(params)}`,
             ),
           });
+          turnEnded = true;
           queue.finish();
           break;
       }
     };
-    const offNotification = this.proc.onNotification(handleNotification);
-    offEarly();
-    for (const [method, params] of earlyNotifications) {
-      handleNotification(method, params);
-    }
+
+    const offNotification = this.proc.onNotification((method, rawParams) => {
+      const params = (rawParams ?? {}) as TurnParams;
+      if (turnId === undefined) {
+        queued.push({ method, params });
+        return;
+      }
+      dispatch(method, params);
+    });
 
     const offExit = this.proc.onExit(() => {
+      // same guard as runTask: a stale process exit before turn/start resolves
+      // is retried by the attempt loop, and an exit after turn/completed (the
+      // fixture's crash-after-turn modes) is not a mid-turn crash
+      if (turnId === undefined || turnEnded) return;
       queue.push({
         type: "error",
         error: new RuntimeError("CRASHED", "codex app-server exited mid-turn"),
@@ -449,6 +456,37 @@ export class CodexSessionManager {
       });
       queue.finish();
     }, this.opts.turnTimeoutMs);
+
+    let startError: RuntimeError | null = null;
+    for (let attempt = 0; attempt < 2; attempt++) {
+      try {
+        await this.ensureThreadCurrent(session);
+        const result = await this.protocol.turnStart({
+          threadId: session.threadId,
+          input: [{ type: "text", text: msg.text, text_elements: [] }],
+          outputSchema: msg.outputSchema,
+          model: msg.model ?? undefined,
+          effort: msg.effort ?? undefined,
+        });
+        turnId = result.turn?.id;
+        for (const n of queued.splice(0)) dispatch(n.method, n.params);
+        break;
+      } catch (err) {
+        const retryable =
+          err instanceof RuntimeError &&
+          (err.code === "CRASHED" || err.code === "SPAWN_FAILED");
+        if (attempt === 1 || !retryable) {
+          startError = asRuntimeError(err);
+          break;
+        }
+        // process died between health check and request: force resume + retry once
+        session.generation = -1;
+      }
+    }
+    if (startError) {
+      queue.push({ type: "error", error: startError });
+      queue.finish();
+    }
 
     try {
       yield* queue;

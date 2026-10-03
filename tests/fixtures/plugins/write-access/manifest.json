@@ -1,0 +1,9 @@
+{
+  "id": "write-access",
+  "version": "1.0.0",
+  "kind": "plugin",
+  "description": "Fixture: requests evidence.write — must be rejected at load.",
+  "inputs": [],
+  "outputs": [],
+  "permissions": ["evidence.write"]
+}

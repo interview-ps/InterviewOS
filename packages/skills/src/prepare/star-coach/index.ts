@@ -4,6 +4,7 @@ import {
   LevelSchema,
   ProjectSchema,
   type SkillId,
+  type SkillManifest,
 } from "@interview-os/core";
 import { runStructured } from "../../framework/runStructured.js";
 import type { InterviewSkill } from "../../framework/skill.js";
@@ -79,8 +80,36 @@ const StarCoachOutputSchema = z.union([
   StarCoachReviewOutputSchema,
 ]);
 
+const manifest: SkillManifest = {
+  id: "star-coach",
+  version: "1.0.0",
+  kind: "builtin",
+  description:
+    "Generates resume-grounded STAR story drafts and reviews user stories against the STAR shape.",
+  inputs: [
+    { key: "mode", permission: "stories.read" },
+    { key: "experience", permission: "candidate.read" },
+    { key: "achievements", permission: "candidate.read" },
+    { key: "projects", permission: "candidate.read" },
+    { key: "behavioralSkillIds", permission: "target.read" },
+    { key: "existingTitles", permission: "stories.read" },
+    { key: "story", permission: "stories.read" },
+    { key: "role", permission: "target.read" },
+    { key: "level", permission: "target.read" },
+  ],
+  outputs: ["stories", "review"],
+  permissions: [
+    "candidate.read",
+    "target.read",
+    "stories.read",
+    "runtime.invoke",
+    "stories.write",
+  ],
+};
+
 export const starCoach: InterviewSkill<StarCoachInput, StarCoachOutput> = {
   id: "star-coach",
+  manifest,
   inputSchema: StarCoachInputSchema,
   outputSchema: StarCoachOutputSchema as z.ZodType<StarCoachOutput>,
   async execute(input, ctx) {

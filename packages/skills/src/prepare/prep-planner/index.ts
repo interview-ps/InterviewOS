@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { LevelSchema } from "@interview-os/core";
+import { LevelSchema, type SkillManifest } from "@interview-os/core";
 import { runStructured } from "../../framework/runStructured.js";
 import type { InterviewSkill } from "../../framework/skill.js";
 import { normalizeSkillIdValue } from "../../framework/common.js";
@@ -32,8 +32,29 @@ export const PrepPlannerOutputSchema = z.object({
 });
 export type PrepPlannerOutput = z.infer<typeof PrepPlannerOutputSchema>;
 
+const manifest: SkillManifest = {
+  id: "prep-planner",
+  version: "1.0.0",
+  kind: "builtin",
+  description:
+    "Turns ranked gaps into concrete preparation actions with success criteria.",
+  inputs: [
+    { key: "targets", permission: "readiness.read" },
+    { key: "role", permission: "target.read" },
+    { key: "level", permission: "target.read" },
+  ],
+  outputs: ["actions"],
+  permissions: [
+    "target.read",
+    "readiness.read",
+    "runtime.invoke",
+    "preparation.write",
+  ],
+};
+
 export const prepPlanner: InterviewSkill<PrepPlannerInput, PrepPlannerOutput> = {
   id: "prep-planner",
+  manifest,
   inputSchema: PrepPlannerInputSchema,
   outputSchema: PrepPlannerOutputSchema,
   async execute(input, ctx) {

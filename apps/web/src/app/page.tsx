@@ -3,36 +3,55 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
-import { api, type AppState, type InterviewListItem } from "@/lib/api";
-import { Bar, Button, Card, CardTitle, ErrorNote, Pill, Spinner, StatusPill, skillLabel } from "@/components/ui";
+import { api, type AppState, type InterviewListItem, type Metrics } from "@/lib/api";
+import { Bar, Button, Card, CardTitle, EmptyState, ErrorNote, PageHeader, Pill, SkeletonCard, StatusPill, skillLabel } from "@/components/ui";
+
+/** One metric in the Progress card; `title` carries the explanation. */
+function Metric({ label, value, title }: { label: string; value: string; title: string }) {
+  return (
+    <div title={title} className="rounded-[0.5rem] border border-line p-2.5">
+      <dt className="text-xs text-muted">{label}</dt>
+      <dd className="mt-0.5 text-lg font-semibold text-navy">{value}</dd>
+    </div>
+  );
+}
 
 export default function Dashboard() {
   const router = useRouter();
   const [state, setState] = useState<AppState | null>(null);
   const [sessions, setSessions] = useState<InterviewListItem[]>([]);
+  const [metrics, setMetrics] = useState<Metrics | null>(null);
   const [error, setError] = useState<unknown>(null);
   const [starting, setStarting] = useState(false);
 
   const load = useCallback(() => {
     api.state().then(setState).catch((e) => setError(e));
     api.listInterviews().then(setSessions).catch(() => {});
+    api.metrics().then(setMetrics).catch(() => {});
   }, []);
   useEffect(load, [load]);
 
   if (error && !state) return <ErrorNote error={error} />;
-  if (!state) return <Spinner label="Loading state…" />;
+  if (!state) {
+    return (
+      <div className="space-y-5">
+        <SkeletonCard lines={1} />
+        <div className="grid gap-5 md:grid-cols-2">
+          <SkeletonCard />
+          <SkeletonCard />
+        </div>
+      </div>
+    );
+  }
 
   if (state.candidate.id === "none" || state.target.id === "none") {
     return (
-      <Card className="mx-auto mt-16 max-w-xl text-center">
-        <CardTitle>Welcome to Interview OS</CardTitle>
-        <p className="text-sm text-muted">
-          Set a target role — a job description plus your resume — to build an evidence-backed
-          readiness model and start preparing.
-        </p>
-        <div className="mt-4">
-          <Link href="/target"><Button>Define Target Role</Button></Link>
-        </div>
+      <Card className="mx-auto mt-16 max-w-xl">
+        <EmptyState
+          title="Welcome to Interview OS"
+          description="Set a target role — a job description plus your resume — to build an evidence-backed readiness model and start preparing."
+          action={<Link href="/target"><Button>Define Target Role</Button></Link>}
+        />
       </Card>
     );
   }
@@ -66,12 +85,15 @@ export default function Dashboard() {
 
   return (
     <div className="space-y-5">
-      <div className="flex flex-wrap items-baseline justify-between gap-2">
-        <h1 className="text-xl font-bold text-navy">
-          {target.role} <span className="font-normal text-muted">— {target.company}</span>
-        </h1>
-        <Pill tone="blue">{target.level}</Pill>
-      </div>
+      <PageHeader
+        title={
+          <>
+            {target.role} <span className="font-normal text-muted">— {target.company}</span>
+          </>
+        }
+        subtitle="Evidence-backed readiness for your target role."
+        actions={<Pill tone="blue">{target.level}</Pill>}
+      />
 
       <Card>
         <CardTitle>Overall readiness</CardTitle>
@@ -139,6 +161,31 @@ export default function Dashboard() {
           </ul>
         )}
       </Card>
+
+      {metrics && (
+        <Card data-testid="progress-card">
+          <CardTitle>Progress</CardTitle>
+          <dl className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+            <Metric label="Loops completed" value={`${metrics.loopsCompleted}/${metrics.loopsStarted}`}
+              title="Interview loops finished (abandoned loops don't count as completed)." />
+            <Metric label="Modes used"
+              value={Object.keys(metrics.sessionsPerMode).filter((m) => metrics.sessionsPerMode[m] > 0).length.toString()}
+              title={`Sessions per mode: ${Object.entries(metrics.sessionsPerMode).map(([m, n]) => `${m} ×${n}`).join(", ") || "none"}`} />
+            <Metric label="Weakness retest"
+              value={metrics.weaknessRetestRate.rate === null ? "—" : `${Math.round(metrics.weaknessRetestRate.rate * 100)}%`}
+              title={`Skills that scored weak in an interview and were asked again later (same or related skill): ${metrics.weaknessRetestRate.retested}/${metrics.weaknessRetestRate.weakSkills}.`} />
+            <Metric label="Improvement after prep"
+              value={metrics.improvementAfterPrep === null ? "—" : `${metrics.improvementAfterPrep >= 0 ? "+" : ""}${Math.round(metrics.improvementAfterPrep * 100)}%`}
+              title="Mean change in evidence scores for a skill after finishing its prep action." />
+            <Metric label="Prep completion"
+              value={metrics.prepCompletionRate.rate === null ? "—" : `${Math.round(metrics.prepCompletionRate.rate * 100)}%`}
+              title={`Prep actions marked done: ${metrics.prepCompletionRate.done}/${metrics.prepCompletionRate.total}.`} />
+            <Metric label="Readiness coverage"
+              value={metrics.readinessCoverage.rate === null ? "—" : `${Math.round(metrics.readinessCoverage.rate * 100)}%`}
+              title={`Required skills with an evidence-backed readiness score (confidence ≥ 40%): ${metrics.readinessCoverage.covered}/${metrics.readinessCoverage.total}.`} />
+          </dl>
+        </Card>
+      )}
 
       {lastSession && (
         <Card>

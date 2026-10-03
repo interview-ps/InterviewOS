@@ -15,5 +15,8 @@ export * from "./preparation/index.js";
 export * from "./gaps/index.js";
 export * from "./interview/index.js";
 export * as taxonomy from "./taxonomy/index.js";
+export * from "./companies/index.js";
+export * from "./resume/index.js";
+export * from "./skills/index.js";
 export { InterviewOSStateSchema } from "./state.js";
 export type { InterviewOSState } from "./state.js";
