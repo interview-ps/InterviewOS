@@ -3,7 +3,8 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
 import { InterviewOrchestrator, openStore } from "@interview-os/orchestrator";
-import { MockRuntime } from "@interview-os/runtime";
+import { MockRuntime, RuntimeManager } from "@interview-os/runtime";
+import type { AIRuntime, RuntimeKind } from "@interview-os/runtime";
 import { createLogger } from "@interview-os/shared";
 import { registerMockHandlers } from "@interview-os/skills";
 import { createApp, REPO_ROOT } from "../src/app.js";
@@ -30,6 +31,43 @@ function makeServer() {
   const store = openStore(":memory:");
   const orchestrator = new InterviewOrchestrator({ store, runtime, logger });
   return createApp({ orchestrator, runtime });
+}
+
+/** A MockRuntime posing as another provider kind (kind + healthCheck swapped). */
+function fakeRuntime(kind: RuntimeKind, available = true): AIRuntime {
+  const rt = new MockRuntime() as AIRuntime & { kind: RuntimeKind };
+  rt.kind = kind;
+  rt.healthCheck = async () => ({
+    runtime: kind,
+    available,
+    status: available ? "ready" : "unavailable",
+    version: "9.9-test",
+  });
+  return rt;
+}
+
+async function makeManagedServer() {
+  const logger = createLogger({ level: "error", sink: () => {} });
+  const store = openStore(":memory:");
+  const manager = await RuntimeManager.create({
+    env: { INTERVIEW_OS_RUNTIME: "mock" },
+    logger,
+    factory: (kind) => fakeRuntime(kind),
+    healthCheckers: {
+      codex: async () => ({
+        runtime: "codex",
+        available: false,
+        status: "unavailable",
+        message: "codex not found",
+      }),
+      claude: async () => ({ runtime: "claude", available: true, status: "ready" }),
+      opencode: async () => ({ runtime: "opencode", available: true, status: "ready" }),
+      devin: async () => ({ runtime: "devin", available: true, status: "ready" }),
+    },
+  });
+  const orchestrator = new InterviewOrchestrator({ store, runtime: manager, logger });
+  const app = createApp({ orchestrator, runtime: manager, runtimes: manager, store });
+  return { app, store, manager };
 }
 
 const setupBody = JSON.stringify({
@@ -223,5 +261,66 @@ describe("server api", () => {
       body: hugeBody,
     });
     expect(huge.status).toBe(413);
+  });
+});
+
+describe("runtime detection + switching", () => {
+  it("lists detected providers with the active kind", async () => {
+    const { app } = await makeManagedServer();
+    const res = await app.request("/api/runtime/available");
+    expect(res.status).toBe(200);
+    const body = await json(res);
+    expect(body.active).toBe("mock");
+    expect(body.providers).toHaveLength(5);
+    const codex = body.providers.find((p: { runtime: string }) => p.runtime === "codex");
+    expect(codex.available).toBe(false);
+    const mock = body.providers.find((p: { runtime: string }) => p.runtime === "mock");
+    expect(mock.available).toBe(true);
+  });
+
+  it("returns an empty provider list without a manager", async () => {
+    const app = makeServer();
+    const body = await json(await app.request("/api/runtime/available"));
+    expect(body.active).toBe("mock");
+    expect(body.providers).toEqual([]);
+  });
+
+  it("switches the active runtime and persists the selection", async () => {
+    const { app, store, manager } = await makeManagedServer();
+    const res = await app.request("/api/runtime", {
+      method: "PUT",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ kind: "claude" }),
+    });
+    expect(res.status).toBe(200);
+    const body = await json(res);
+    expect(body.mode).toBe("claude");
+    expect(manager.kind).toBe("claude");
+    expect(store.getSetting("runtimeKind")).toBe("claude");
+
+    const status = await json(await app.request("/api/runtime/status"));
+    expect(status.mode).toBe("claude");
+  });
+
+  it("rejects an unknown runtime kind", async () => {
+    const { app } = await makeManagedServer();
+    const res = await app.request("/api/runtime", {
+      method: "PUT",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ kind: "gemini" }),
+    });
+    expect(res.status).toBe(400);
+    expect((await json(res)).error.code).toBe("VALIDATION");
+  });
+
+  it("rejects switching when no manager is wired", async () => {
+    const app = makeServer();
+    const res = await app.request("/api/runtime", {
+      method: "PUT",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ kind: "codex" }),
+    });
+    expect(res.status).toBe(400);
+    expect((await json(res)).error.code).toBe("VALIDATION");
   });
 });

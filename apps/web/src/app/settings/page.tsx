@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import {
   api,
   type AppSettings,
+  type RuntimeAvailability,
   type RuntimeModel,
   type RuntimeStatus,
 } from "@/lib/api";
@@ -18,6 +19,8 @@ export default function Settings() {
   const [settings, setSettings] = useState<AppSettings | null>(null);
   const [draft, setDraft] = useState<AppSettings | null>(null);
   const [saved, setSaved] = useState<AppSettings | null>(null);
+  const [avail, setAvail] = useState<RuntimeAvailability | null>(null);
+  const [switching, setSwitching] = useState<string | null>(null);
   const [error, setError] = useState<unknown>(null);
   const [checking, setChecking] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -25,6 +28,7 @@ export default function Settings() {
   const load = () => api.runtimeStatus().then(setStatus).catch((e) => setError(e));
   useEffect(() => {
     load();
+    api.runtimeAvailable().then(setAvail).catch(() => setAvail(null));
     api.runtimeModels().then(setModels).catch(() => setModels([]));
     api
       .settings()
@@ -39,6 +43,30 @@ export default function Settings() {
   const check = () => {
     setChecking(true);
     api.runtimeCheck().then(setStatus).catch((e) => setError(e)).finally(() => setChecking(false));
+    api.runtimeAvailable().then(setAvail).catch(() => {});
+  };
+
+  const switchRuntime = (kind: string) => {
+    setSwitching(kind);
+    setError(null);
+    api
+      .switchRuntime(kind)
+      .then((s) => {
+        setStatus(s);
+        toast(`Switched to ${runtimeLabel(kind)}`);
+        api.runtimeModels().then(setModels).catch(() => setModels([]));
+        api.runtimeAvailable().then(setAvail).catch(() => {});
+        api
+          .settings()
+          .then((s2) => {
+            setSettings(s2);
+            setDraft(s2);
+            setSaved(s2);
+          })
+          .catch(() => {});
+      })
+      .catch((e) => setError(e))
+      .finally(() => setSwitching(null));
   };
 
   const selectedModel = models.find((m) => m.id === draft?.model) ?? null;
@@ -81,8 +109,45 @@ export default function Settings() {
 
       <Card>
         <CardTitle>AI Runtime — {status ? runtimeLabel(status.mode) : "…"}</CardTitle>
+        {avail && avail.providers.length > 0 && (
+          <div className="mt-3 space-y-1.5">
+            {avail.providers.map((p) => {
+              const active = p.runtime === avail.active;
+              return (
+                <button
+                  key={p.runtime}
+                  type="button"
+                  disabled={switching !== null || active}
+                  onClick={() => switchRuntime(p.runtime)}
+                  className={`flex w-full items-center justify-between rounded-[0.6rem] border px-3 py-2 text-left text-sm transition disabled:cursor-default ${
+                    active
+                      ? "border-accent bg-surface"
+                      : "border-line bg-surface hover:border-accent disabled:opacity-60"
+                  }`}
+                >
+                  <span className="font-medium">{runtimeLabel(p.runtime)}</span>
+                  <span className="flex items-center gap-2">
+                    {switching === p.runtime && (
+                      <span className="text-xs text-muted">switching…</span>
+                    )}
+                    {p.version && (
+                      <span className="text-xs text-muted">{p.version}</span>
+                    )}
+                    <Pill tone={active ? "blue" : p.available ? "green" : "muted"}>
+                      {active ? "active" : p.available ? "ready" : p.status}
+                    </Pill>
+                  </span>
+                </button>
+              );
+            })}
+            <p className="pt-1 text-xs text-muted">
+              Applies immediately and persists across restarts. The
+              INTERVIEW_OS_RUNTIME env var overrides the saved choice.
+            </p>
+          </div>
+        )}
         {status && (
-          <dl className="grid grid-cols-[8rem_1fr] gap-y-2 text-sm">
+          <dl className="mt-3 grid grid-cols-[8rem_1fr] gap-y-2 text-sm">
             <dt className="text-muted">Status</dt>
             <dd>
               <Pill tone={status.available ? "green" : "amber"}>{status.status}</Pill>

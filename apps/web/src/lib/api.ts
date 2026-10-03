@@ -217,6 +217,21 @@ export interface RuntimeStatus {
   mode: "codex" | "mock" | "claude" | "opencode" | "devin";
 }
 
+export interface RuntimeProbe {
+  runtime: string;
+  available: boolean;
+  version?: string;
+  executable?: string;
+  workspace?: string;
+  status: string;
+  message?: string;
+}
+
+export interface RuntimeAvailability {
+  active: string;
+  providers: RuntimeProbe[];
+}
+
 export interface ExampleMeta {
   name: string;
   resumeText: string;
@@ -595,6 +610,13 @@ export const api = {
   runtimeStatus: () => request<RuntimeStatus>("/api/runtime/status"),
   runtimeCheck: () =>
     request<RuntimeStatus>("/api/runtime/check", { method: "POST" }),
+  runtimeAvailable: () => request<RuntimeAvailability>("/api/runtime/available"),
+  switchRuntime: (kind: string) =>
+    request<RuntimeStatus>("/api/runtime", {
+      method: "PUT",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ kind }),
+    }),
   runtimeModels: () => request<RuntimeModel[]>("/api/runtime/models"),
   settings: () => request<AppSettings>("/api/settings"),
   saveSettings: (body: Partial<AppSettings>) =>

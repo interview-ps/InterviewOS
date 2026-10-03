@@ -154,6 +154,15 @@ back to mock **only** when `INTERVIEW_OS_RUNTIME_FALLBACK=mock`; otherwise AI ac
 with setup instructions). Each provider defaults to its own workspace dir
 (`data/<provider>-workspace`, overridable with `INTERVIEW_OS_<PROVIDER>_WORKSPACE`).
 
+`createRuntime` returns a **`RuntimeManager`** — an `AIRuntime` that delegates to the active
+provider and can swap it without a restart. Selection precedence: the env var > the persisted
+`runtimeKind` setting (chosen in Settings) > `codex`. `GET /api/runtime/available` probes every
+provider's detect path (PATH scan + `--version`) in parallel; `PUT /api/runtime {kind}` switches,
+persists `runtimeKind`, and re-resolves the saved model against the new provider's catalog.
+Switching disposes the old delegate — its live sessions die and rehydrate via `resumeSession`
+on the new provider. `onSwitch` fires for the initial runtime and every switch (the server uses
+it to register mock handlers).
+
 ### MockRuntime
 Deterministic, no network. Dispatches on `task.taskId` to handlers that use taxonomy keyword
 matching over the provided input (resume text, JD text, answer text vs `expectedConcepts`).

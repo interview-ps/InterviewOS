@@ -13,10 +13,15 @@ const dbPath = process.env.INTERVIEW_OS_DB ?? path.join(REPO_ROOT, "data/intervi
 const port = Number(process.env.INTERVIEW_OS_PORT ?? 4100);
 
 const store = openStore(dbPath);
-const runtime = await createRuntime({ env: process.env, logger });
-if (runtime.kind === "mock") {
-  registerMockHandlers(runtime as MockRuntime);
-}
+// Saved UI selection wins only when INTERVIEW_OS_RUNTIME is unset.
+const runtime = await createRuntime({
+  env: process.env,
+  logger,
+  preferredKind: store.getSetting("runtimeKind"),
+  onSwitch: (rt) => {
+    if (rt instanceof MockRuntime) registerMockHandlers(rt);
+  },
+});
 
 const orchestrator = new InterviewOrchestrator({ store, runtime, logger });
 
@@ -25,7 +30,7 @@ const pluginsDir =
   process.env.INTERVIEW_OS_PLUGINS_DIR ?? path.join(REPO_ROOT, "plugins");
 const pluginErrors = await loadPlugins(pluginsDir, orchestrator, logger);
 
-const app = createApp({ orchestrator, runtime, logger, pluginErrors });
+const app = createApp({ orchestrator, runtime, runtimes: runtime, store, logger, pluginErrors });
 
 serve({ fetch: app.fetch, port }, (info) => {
   logger.info("server.listening", {
