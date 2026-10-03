@@ -2,9 +2,9 @@ import { describe, expect, it } from "vitest";
 import { openStore } from "../../src/orchestrator/index.js";
 
 describe("store", () => {
-  it("persists entities and keeps readiness snapshots append-only", () => {
+  it("persists entities and keeps readiness snapshots append-only", async () => {
     const store = openStore(":memory:");
-    store.insertCandidate({
+    await store.insertCandidate({
       id: "c1",
       active: 1,
       name: "Test",
@@ -13,7 +13,7 @@ describe("store", () => {
       data: { id: "c1", name: "Test", skills: [] },
       createdAt: "2026-01-01T00:00:00Z",
     });
-    store.insertCandidate({
+    await store.insertCandidate({
       id: "c2",
       active: 1,
       name: "New",
@@ -22,8 +22,8 @@ describe("store", () => {
       data: { id: "c2", name: "New", skills: [] },
       createdAt: "2026-01-02T00:00:00Z",
     });
-    store.deactivateCandidates();
-    store.insertCandidate({
+    await store.deactivateCandidates();
+    await store.insertCandidate({
       id: "c3",
       active: 1,
       name: "Active",
@@ -32,9 +32,9 @@ describe("store", () => {
       data: { id: "c3", name: "Active", skills: [] },
       createdAt: "2026-01-03T00:00:00Z",
     });
-    expect(store.getActiveCandidate()!.id).toBe("c3");
+    expect((await store.getActiveCandidate())!.id).toBe("c3");
 
-    store.insertEvidence({
+    await store.insertEvidence({
       id: "e1",
       candidateId: "c3",
       skillId: "python",
@@ -46,7 +46,7 @@ describe("store", () => {
       questionId: null,
       createdAt: "2026-01-03T00:00:00Z",
     });
-    store.insertEvidence({
+    await store.insertEvidence({
       id: "e2",
       candidateId: "c3",
       skillId: "python",
@@ -58,11 +58,11 @@ describe("store", () => {
       questionId: "q1",
       createdAt: "2026-01-04T00:00:00Z",
     });
-    expect(store.listEvidence("c3")).toHaveLength(2);
-    expect(store.evidenceForSkill("python", "c3")[1]!.sessionId).toBe("s1");
+    expect(await store.listEvidence("c3")).toHaveLength(2);
+    expect((await store.evidenceForSkill("python", "c3"))[1]!.sessionId).toBe("s1");
 
     for (const [i, score] of [0.9, 0.5, 0.4].entries()) {
-      store.appendReadinessSnapshot({
+      await store.appendReadinessSnapshot({
         skillId: "python",
         score,
         confidence: 0.5,
@@ -71,17 +71,17 @@ describe("store", () => {
         computedAt: `2026-01-0${i + 3}T00:00:00Z`,
       });
     }
-    expect(store.countReadinessSnapshots()).toBe(3);
-    const hist = store.readinessHistory("python");
+    expect(await store.countReadinessSnapshots()).toBe(3);
+    const hist = await store.readinessHistory("python");
     expect(hist.map((h) => h.score)).toEqual([0.4, 0.5, 0.9]); // newest first
-    expect(store.latestReadinessBySkill().get("python")!.score).toBe(0.4);
+    expect((await store.latestReadinessBySkill()).get("python")!.score).toBe(0.4);
 
     store.close();
   });
 
-  it("tracks action status transitions without deleting rows", () => {
+  it("tracks action status transitions without deleting rows", async () => {
     const store = openStore(":memory:");
-    store.insertAction({
+    await store.insertAction({
       id: "a1",
       skillId: "sql",
       priority: 1,
@@ -92,9 +92,9 @@ describe("store", () => {
       createdAt: "2026-01-01T00:00:00Z",
       sourceEvidenceIds: [],
     });
-    store.updateActionStatus("a1", "superseded");
-    expect(store.listActions("open")).toHaveLength(0);
-    expect(store.actionsForSkill("sql")[0]!.status).toBe("superseded");
+    await store.updateActionStatus("a1", "superseded");
+    expect(await store.listActions("open")).toHaveLength(0);
+    expect((await store.actionsForSkill("sql"))[0]!.status).toBe("superseded");
     store.close();
   });
 });

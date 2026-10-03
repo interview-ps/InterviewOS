@@ -17,8 +17,8 @@ export class SettingsService {
     private readonly runtime: AIRuntime,
   ) {}
 
-  getSettings(): OrchestratorSettings {
-    const opts = this.ctx.runtimeOptions();
+  async getSettings(): Promise<OrchestratorSettings> {
+    const opts = await this.ctx.runtimeOptions();
     return {
       model: opts?.model ?? null,
       reasoningEffort: opts?.effort ?? null,
@@ -38,7 +38,7 @@ export class SettingsService {
     if (saved && models.some((m) => m.id === saved)) return saved;
     const fallback = models.find((m) => m.isDefault) ?? models[0];
     const next = fallback?.id ?? null;
-    if (next !== saved) this.ctx.store.setSetting("model", next);
+    if (next !== saved) await this.ctx.store.setSetting("model", next);
     return next;
   }
 
@@ -48,15 +48,15 @@ export class SettingsService {
     if ("model" in patch) {
       const model = patch.model ?? null;
       if (model !== null) {
-        this.ctx.store.setSetting("model", await this.resolveModelOrDefault(model));
+        await this.ctx.store.setSetting("model", await this.resolveModelOrDefault(model));
       } else {
-        this.ctx.store.setSetting("model", null);
+        await this.ctx.store.setSetting("model", null);
       }
     }
     if ("reasoningEffort" in patch) {
       const effort = patch.reasoningEffort ?? null;
       if (effort !== null) {
-        const model = patch.model ?? this.ctx.store.getSetting("model") ?? null;
+        const model = patch.model ?? (await this.ctx.store.getSetting("model")) ?? null;
         if (model !== null) {
           const models = await this.runtime.listModels();
           const m = models.find((x) => x.id === model);
@@ -69,14 +69,14 @@ export class SettingsService {
           }
         }
       }
-      this.ctx.store.setSetting("reasoningEffort", effort);
+      await this.ctx.store.setSetting("reasoningEffort", effort);
     }
     // taskMode is a Codex-only execution detail; ignore it for other runtimes.
     if ("taskMode" in patch && patch.taskMode !== undefined && this.runtime.kind === "codex") {
       if (!TASK_MODES.includes(patch.taskMode)) {
         throw new AppError("VALIDATION", `invalid taskMode "${patch.taskMode}"`);
       }
-      this.ctx.store.setSetting("taskMode", patch.taskMode);
+      await this.ctx.store.setSetting("taskMode", patch.taskMode);
     }
     return this.getSettings();
   }

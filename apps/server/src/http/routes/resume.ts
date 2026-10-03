@@ -10,6 +10,6 @@ resumeRoutes.post("/review", async (c) => {
   );
 });
 
-resumeRoutes.get("/reviews/latest", (c) =>
-  c.json(c.var.orchestrator.latestResumeReview()),
+resumeRoutes.get("/reviews/latest", async (c) =>
+  c.json(await c.var.orchestrator.latestResumeReview()),
 );

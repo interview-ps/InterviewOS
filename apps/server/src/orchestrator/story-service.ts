@@ -6,19 +6,19 @@ import type { WorkflowContext, ProgressOptions } from "./context.js";
 export class StoryService {
   constructor(private readonly ctx: WorkflowContext) {}
 
-  listStories() {
-    const { candidate } = this.ctx.requireActive();
+  async listStories() {
+    const { candidate } = await this.ctx.requireActive();
     return this.ctx.store.listStories(candidate.id);
   }
 
   /** Generate resume-grounded STAR stories via star-coach; dedupe by title. */
   async generateStories(opts?: ProgressOptions) {
-    const { candidate, target } = this.ctx.requireActive();
+    const { candidate, target } = await this.ctx.requireActive();
     opts?.onProgress?.({ stage: "drafting stories" });
     const behavioralSkillIds = [...target.requirements, ...target.preferredSkills]
       .map((r) => r.skillId)
       .filter((id) => inRound(id, "behavioral") || inRound(id, "hr"));
-    const existing = this.ctx.store.listStories(candidate.id);
+    const existing = await this.ctx.store.listStories(candidate.id);
     const out = (await this.ctx.host.invoke(
       starCoach,
       {
@@ -29,7 +29,7 @@ export class StoryService {
         behavioralSkillIds,
         existingTitles: existing.map((s) => s.title),
       },
-      this.ctx.ctx({ onProgress: opts?.onProgress }),
+      await this.ctx.ctx({ onProgress: opts?.onProgress }),
     )) as { stories: Array<{ title: string; situation: string; task: string; action: string; result: string; skillIds: SkillId[] }> };
     // §9.6: star-coach output persists generated stories.
     this.ctx.host.assertCan("star-coach", "stories.write");
@@ -39,7 +39,7 @@ export class StoryService {
       if (taken.has(s.title.toLowerCase())) continue;
       taken.add(s.title.toLowerCase());
       const id = newId("story");
-      this.ctx.store.insertStory({
+      await this.ctx.store.insertStory({
         id,
         candidateId: candidate.id,
         title: s.title,
@@ -51,13 +51,13 @@ export class StoryService {
         source: "generated",
         updatedAt: this.ctx.iso(),
       });
-      created.push(this.ctx.store.getStory(id)!);
+      created.push((await this.ctx.store.getStory(id))!);
     }
     this.ctx.logger.info("state.mutated", {
       entity: "star_story",
       id: `${created.length} generated`,
     });
-    return { stories: this.ctx.store.listStories(candidate.id), created: created.length };
+    return { stories: await this.ctx.store.listStories(candidate.id), created: created.length };
   }
 
   /** User edits mark the story as theirs (source 'user'). */
@@ -72,9 +72,9 @@ export class StoryService {
       skillIds?: SkillId[];
     },
   ) {
-    const row = this.ctx.store.getStory(id);
+    const row = await this.ctx.store.getStory(id);
     if (!row) throw new AppError("NOT_FOUND", `no story ${id}`);
-    this.ctx.store.updateStory(id, {
+    await this.ctx.store.updateStory(id, {
       ...(patch.title !== undefined && { title: patch.title }),
       ...(patch.situation !== undefined && { situation: patch.situation }),
       ...(patch.task !== undefined && { task: patch.task }),
@@ -90,8 +90,8 @@ export class StoryService {
 
   /** Coach review of one story (star-coach.review); streams `feedback`. */
   async coachStory(id: string, opts?: ProgressOptions): Promise<StarCoachReviewOutput> {
-    const { target } = this.ctx.requireActive();
-    const row = this.ctx.store.getStory(id);
+    const { target } = await this.ctx.requireActive();
+    const row = await this.ctx.store.getStory(id);
     if (!row) throw new AppError("NOT_FOUND", `no story ${id}`);
     opts?.onProgress?.({ stage: "coaching story" });
     return (await this.ctx.host.invoke(
@@ -109,7 +109,7 @@ export class StoryService {
         role: target.role,
         level: target.level,
       },
-      this.ctx.ctx({ onProgress: opts?.onProgress }),
+      await this.ctx.ctx({ onProgress: opts?.onProgress }),
     )) as StarCoachReviewOutput;
   }
 }

@@ -10,8 +10,8 @@ import type { WorkflowContext } from "./context.js";
 
 export interface PluginServiceDeps {
   ctx: WorkflowContext;
-  graphForActive(): ReadinessGraph;
-  calculateGaps(): Gap[];
+  graphForActive(): Promise<ReadinessGraph>;
+  calculateGaps(): Promise<Gap[]>;
 }
 
 export class PluginService {
@@ -36,26 +36,25 @@ export class PluginService {
    * the slices its manifest declares.
    */
   async runPlugin(id: string): Promise<unknown> {
-    const candidateRow = this.ctx.store.getActiveCandidate();
-    const targetRow = this.ctx.store.getActiveTarget();
+    const candidateRow = await this.ctx.store.getActiveCandidate();
+    const targetRow = await this.ctx.store.getActiveTarget();
     const slices: PluginStateSlices = {};
     if (candidateRow) {
       const parsed = CandidateProfileSchema.safeParse(candidateRow.data);
       if (parsed.success) slices.candidate = parsed.data;
-      slices.stories = this.ctx.store.listStories(candidateRow.id);
+      slices.stories = await this.ctx.store.listStories(candidateRow.id);
     }
     if (targetRow) {
       const parsed = TargetRoleSchema.safeParse(targetRow.data);
       if (parsed.success) slices.target = parsed.data;
     }
     if (candidateRow && targetRow) {
-      slices.readiness = this.deps.graphForActive().dimensions;
-      slices.gaps = this.deps.calculateGaps();
+      slices.readiness = (await this.deps.graphForActive()).dimensions;
+      slices.gaps = await this.deps.calculateGaps();
     }
-    slices.recentEvaluations = this.ctx.store
-      .listAllEvaluations()
+    slices.recentEvaluations = (await this.ctx.store.listAllEvaluations())
       .slice(-20)
       .map((e) => e.data);
-    return this.ctx.host.invokePlugin(id, slices, this.ctx.ctx());
+    return this.ctx.host.invokePlugin(id, slices, await this.ctx.ctx());
   }
 }

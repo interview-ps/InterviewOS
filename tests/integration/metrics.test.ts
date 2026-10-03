@@ -51,11 +51,11 @@ async function answerAll(
 describe("§9.7 metrics + usage events + history", () => {
   it("counts events and rejects unknown names", async () => {
     const { orch } = makeOrchestrator();
-    orch.recordUsageEvent("palette.used");
-    orch.recordUsageEvent("palette.used");
-    orch.recordUsageEvent("history.viewed");
-    expect(() => orch.recordUsageEvent("rm -rf /")).toThrow(/unknown usage event/);
-    const m = orch.getMetrics();
+    await orch.recordUsageEvent("palette.used");
+    await orch.recordUsageEvent("palette.used");
+    await orch.recordUsageEvent("history.viewed");
+    await expect(orch.recordUsageEvent("rm -rf /")).rejects.toThrow(/unknown usage event/);
+    const m = await orch.getMetrics();
     expect(m.usage["palette.used"]).toBe(2);
     expect(m.usage["history.viewed"]).toBe(1);
     expect(m.usage["target.switched"]).toBe(0);
@@ -70,7 +70,7 @@ describe("§9.7 metrics + usage events + history", () => {
       role: "Senior Backend Engineer",
       level: "senior",
     });
-    const before = orch.getMetrics();
+    const before = await orch.getMetrics();
     expect(before.loopsStarted).toBe(0);
     expect(before.weaknessRetestRate.weakSkills).toBe(0);
     expect(before.weaknessRetestRate.rate).toBeNull();
@@ -82,7 +82,7 @@ describe("§9.7 metrics + usage events + history", () => {
     // readinessDelta persisted on the evaluation
     expect(r.skillImpact.length).toBeGreaterThan(0);
 
-    let m = orch.getMetrics();
+    let m = await orch.getMetrics();
     expect(m.weaknessRetestRate.weakSkills).toBeGreaterThanOrEqual(1);
     // a same-session follow-up on the weak skill is already a "later question"
     // under the metric's definition
@@ -95,7 +95,7 @@ describe("§9.7 metrics + usage events + history", () => {
     const related = taxonomy.relatedTo("sql.transactions" as SkillId);
     const retested =
       s2.question && (s2.question.skillId === "sql.transactions" || related.includes(s2.question.skillId));
-    m = orch.getMetrics();
+    m = await orch.getMetrics();
     if (retested) {
       expect(m.weaknessRetestRate.retested).toBeGreaterThanOrEqual(retestedAfterS1);
       expect(m.weaknessRetestRate.rate).toBeGreaterThan(0);
@@ -115,7 +115,7 @@ describe("§9.7 metrics + usage events + history", () => {
     const s = await orch.startInterview({ plannedQuestions: 1, roundType: "technical" });
     await answerAll(orch, s.session.id, WEAK);
 
-    const all = orch.getHistory();
+    const all = await orch.getHistory();
     expect(all.length).toBe(1);
     const entry = all[0]!;
     expect(entry.session.modeLabel).toBe("Technical");
@@ -132,13 +132,13 @@ describe("§9.7 metrics + usage events + history", () => {
     // a prep action was created from this session's evidence
     expect(entry.actionsCreated.length).toBeGreaterThanOrEqual(0);
 
-    const weak = orch.getHistory({ weakOnly: true });
+    const weak = await orch.getHistory({ weakOnly: true });
     expect(weak.map((e) => e.session.id)).toContain(s.session.id);
-    const byMode = orch.getHistory({ mode: "technical" });
+    const byMode = await orch.getHistory({ mode: "technical" });
     expect(byMode).toHaveLength(1);
-    expect(orch.getHistory({ mode: "hr" })).toHaveLength(0);
+    expect(await orch.getHistory({ mode: "hr" })).toHaveLength(0);
 
-    const detail = orch.getSessionHistory(s.session.id);
+    const detail = await orch.getSessionHistory(s.session.id);
     expect(detail.session.id).toBe(s.session.id);
   });
 });

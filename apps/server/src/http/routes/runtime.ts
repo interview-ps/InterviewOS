@@ -34,10 +34,10 @@ runtimeRoutes.put("/", async (c) => {
   }
   const { kind } = await parseBody(c, RuntimeSwitchSchema);
   const status = await runtimes.switchTo(kind);
-  c.var.store?.setSetting("runtimeKind", runtimes.kind);
+  await c.var.store?.setSetting("runtimeKind", runtimes.kind);
   // Re-resolve the saved model against the new provider's catalog so a stale
   // id falls back to that provider's default instead of erroring later.
-  const current = c.var.orchestrator.getSettings();
+  const current = await c.var.orchestrator.getSettings();
   if (current.model) {
     await c.var.orchestrator.updateSettings({ model: current.model });
   }

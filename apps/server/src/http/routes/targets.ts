@@ -6,7 +6,7 @@ import { TargetCreateSchema, TargetPatchSchema } from "../schemas.js";
 
 export const targetsRoutes = new Hono<AppEnv>();
 
-targetsRoutes.get("/", (c) => c.json(c.var.orchestrator.listTargets()));
+targetsRoutes.get("/", async (c) => c.json(await c.var.orchestrator.listTargets()));
 
 targetsRoutes.post("/", async (c) => {
   const body = await parseBody(c, TargetCreateSchema);

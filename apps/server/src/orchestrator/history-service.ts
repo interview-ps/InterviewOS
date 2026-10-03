@@ -27,8 +27,8 @@ import { rowToAction, rowToQuestion, type PrepActionRowLike } from "./projection
 
 export interface HistoryServiceDeps {
   ctx: WorkflowContext;
-  graphForActive(): ReadinessGraph;
-  calculateGaps(): Gap[];
+  graphForActive(): Promise<ReadinessGraph>;
+  calculateGaps(): Promise<Gap[]>;
 }
 
 export class HistoryService {
@@ -52,8 +52,8 @@ export class HistoryService {
   }
 
   async getState(): Promise<InterviewOSState> {
-    const candidateRow = this.store.getActiveCandidate();
-    const targetRow = this.store.getActiveTarget();
+    const candidateRow = await this.store.getActiveCandidate();
+    const targetRow = await this.store.getActiveTarget();
     const candidate: CandidateProfile = candidateRow
       ? CandidateProfileSchema.parse(candidateRow.data)
       : CandidateProfileSchema.parse({ id: "none" });
@@ -67,13 +67,13 @@ export class HistoryService {
           jobDescription: "",
         });
 
-    const evidence = candidateRow ? this.ctx.evidenceForActive(candidate.id) : [];
+    const evidence = candidateRow ? await this.ctx.evidenceForActive(candidate.id) : [];
     const requirements = targetRow ? this.ctx.allRequirements(target) : [];
     const graph =
       evidence.length || requirements.length
         ? buildReadinessGraph({ evidence, requirements, taxonomy })
         : { dimensions: {}, overall: 0, overallConfidence: 0, lastUpdated: this.ctx.iso() };
-    const latest = this.store.latestReadinessBySkill();
+    const latest = await this.store.latestReadinessBySkill();
     const lastUpdated =
       [...latest.values()].sort((a, b) => b.computedAt.localeCompare(a.computedAt))[0]
         ?.computedAt ?? graph.lastUpdated;
@@ -87,23 +87,26 @@ export class HistoryService {
           })
         : [];
 
-    const openActions = this.store.listActions("open", target.id).map(rowToAction);
-    const inProgress = this.store.listActions("in_progress", target.id).map(rowToAction);
-    const doneActions = this.store.listActions("done");
+    const openActions = (await this.store.listActions("open", target.id)).map(rowToAction);
+    const inProgress = (await this.store.listActions("in_progress", target.id)).map(rowToAction);
+    const doneActions = await this.store.listActions("done");
 
-    const sessions = this.store.listSessions();
+    const sessions = await this.store.listSessions();
     const activeSession = sessions[0];
     const sessionQuestions = activeSession
-      ? this.store.listQuestions(activeSession.id).map(rowToQuestion)
+      ? (await this.store.listQuestions(activeSession.id)).map(rowToQuestion)
       : [];
     const sessionAnswers = activeSession
-      ? this.store
-          .listAnswers(activeSession.id)
-          .map((a) => ({ id: a.id, questionId: a.questionId, sessionId: a.sessionId, text: a.text, createdAt: a.createdAt }))
+      ? (await this.store.listAnswers(activeSession.id)).map((a) => ({
+          id: a.id,
+          questionId: a.questionId,
+          sessionId: a.sessionId,
+          text: a.text,
+          createdAt: a.createdAt,
+        }))
       : [];
     const answeredIds = new Set(
-      this.store
-        .listAnswers(activeSession?.id ?? "")
+      (await this.store.listAnswers(activeSession?.id ?? ""))
         .filter((a) => a.status !== "failed")
         .map((a) => a.questionId),
     );
@@ -115,7 +118,7 @@ export class HistoryService {
     const weakEvid = evidence.filter((e) => e.type === "interview_answer" && e.score < 0.5);
     const strongEvid = evidence.filter((e) => e.type === "interview_answer" && e.score >= 0.75);
     const sessionEvaluations = activeSession
-      ? this.store.listEvaluations(activeSession.id)
+      ? await this.store.listEvaluations(activeSession.id)
       : [];
 
     const state = {
@@ -168,13 +171,13 @@ export class HistoryService {
   }
 
   async getSkillDetail(skillId: string) {
-    const graph = this.deps.graphForActive();
-    const candidate = this.store.getActiveCandidate()!;
-    const target = this.store.getActiveTarget();
-    const evidence = this.store.evidenceForSkill(skillId, candidate.id);
-    const history = this.store.readinessHistory(skillId);
-    const actions = this.store.actionsForSkill(skillId, target?.id).map(rowToAction);
-    const openAction = this.store.openActionForSkill(skillId, target?.id);
+    const graph = await this.deps.graphForActive();
+    const candidate = (await this.store.getActiveCandidate())!;
+    const target = await this.store.getActiveTarget();
+    const evidence = await this.store.evidenceForSkill(skillId, candidate.id);
+    const history = await this.store.readinessHistory(skillId);
+    const actions = (await this.store.actionsForSkill(skillId, target?.id)).map(rowToAction);
+    const openAction = await this.store.openActionForSkill(skillId, target?.id);
     return {
       skillId,
       readiness: graph.dimensions[skillId] ?? null,
@@ -185,64 +188,68 @@ export class HistoryService {
     };
   }
 
-  listInterviews() {
-    return this.store.listSessions().map((s) => {
-      const target = s.targetId ? this.store.getTarget(s.targetId) : undefined;
-      return {
+  async listInterviews() {
+    const sessions = await this.store.listSessions();
+    const entries = [];
+    for (const s of sessions) {
+      const target = s.targetId ? await this.store.getTarget(s.targetId) : undefined;
+      entries.push({
         ...s,
         target: target ? { id: target.id, role: target.role, company: target.company } : null,
-        questions: this.store.listQuestions(s.id).length,
-        debrief: this.store.getDebrief(s.id)?.data ?? null,
-      };
-    });
+        questions: (await this.store.listQuestions(s.id)).length,
+        debrief: (await this.store.getDebrief(s.id))?.data ?? null,
+      });
+    }
+    return entries;
   }
 
-  getInterview(id: string) {
-    const session = this.store.getSession(id);
+  async getInterview(id: string) {
+    const session = await this.store.getSession(id);
     if (!session) throw new AppError("NOT_FOUND", `no session ${id}`);
-    const target = session.targetId ? this.store.getTarget(session.targetId) : undefined;
+    const target = session.targetId ? await this.store.getTarget(session.targetId) : undefined;
     const targetData = target?.data ? TargetRoleSchema.safeParse(target.data) : null;
     const companyProfile = getCompanyProfile(
       targetData?.success ? (targetData.data.companyProfileId ?? "generic") : "generic",
     );
     return {
       session: { ...session, modeLabel: getMode(session.roundType as RoundType).label },
-      questions: this.store.listQuestions(id).map(rowToQuestion),
-      answers: this.store.listAnswers(id),
-      evaluations: this.store.listEvaluations(id).map((r) => r.data),
-      debrief: this.store.getDebrief(id)?.data ?? null,
+      questions: (await this.store.listQuestions(id)).map(rowToQuestion),
+      answers: await this.store.listAnswers(id),
+      evaluations: (await this.store.listEvaluations(id)).map((r) => r.data),
+      debrief: (await this.store.getDebrief(id))?.data ?? null,
       companyProfile: { id: companyProfile.id, name: companyProfile.name, disclaimer: companyProfile.disclaimer },
     };
   }
 
-  recordUsageEvent(event: string) {
+  async recordUsageEvent(event: string): Promise<void> {
     if (!HistoryService.USAGE_EVENTS.includes(event as never)) {
       throw new AppError("VALIDATION", `unknown usage event "${event}"`);
     }
-    this.store.insertUsageEvent({ id: newId("evt"), event, createdAt: this.ctx.iso() });
+    await this.store.insertUsageEvent({ id: newId("evt"), event, createdAt: this.ctx.iso() });
   }
 
   /**
    * §9.7: session list for the History view. `weakOnly` keeps sessions that
    * contain at least one answer whose mean rubric (or primary score) < 0.5.
    */
-  getHistory(filters: {
+  async getHistory(filters: {
     mode?: string;
     targetId?: string;
     loopId?: string;
     weakOnly?: boolean;
   } = {}) {
-    return this.store
-      .listSessions()
+    const sessions = (await this.store.listSessions())
       .filter((s) => !filters.mode || s.roundType === filters.mode)
       .filter((s) => !filters.targetId || s.targetId === filters.targetId)
-      .filter((s) => !filters.loopId || s.loopId === filters.loopId)
-      .map((s) => this.sessionHistoryEntry(s))
-      .filter((e) => !filters.weakOnly || e.hasWeakAnswer);
+      .filter((s) => !filters.loopId || s.loopId === filters.loopId);
+    const entries = await Promise.all(
+      sessions.map((s) => this.sessionHistoryEntry(s)),
+    );
+    return entries.filter((e) => !filters.weakOnly || e.hasWeakAnswer);
   }
 
-  getSessionHistory(id: string) {
-    const s = this.store.getSession(id);
+  async getSessionHistory(id: string) {
+    const s = await this.store.getSession(id);
     if (!s) throw new AppError("NOT_FOUND", `no session ${id}`);
     return this.sessionHistoryEntry(s);
   }
@@ -258,22 +265,20 @@ export class HistoryService {
     return vals.length ? vals.reduce((a, b) => a + b, 0) / vals.length : 0;
   }
 
-  private sessionHistoryEntry(s: SessionRow) {
-    const target = s.targetId ? this.store.getTarget(s.targetId) : undefined;
+  private async sessionHistoryEntry(s: SessionRow) {
+    const target = s.targetId ? await this.store.getTarget(s.targetId) : undefined;
     const targetData = target?.data ? TargetRoleSchema.safeParse(target.data) : null;
-    const loop = s.loopId ? this.store.getLoop(s.loopId) : undefined;
+    const loop = s.loopId ? await this.store.getLoop(s.loopId) : undefined;
     const loopRounds = loop ? (loop.rounds as LoopRound[]) : [];
-    const questions = this.store.listQuestions(s.id).map(rowToQuestion);
-    const answers = this.store.listAnswers(s.id);
-    const evals = this.store.listEvaluations(s.id);
+    const questions = (await this.store.listQuestions(s.id)).map(rowToQuestion);
+    const answers = await this.store.listAnswers(s.id);
+    const evals = await this.store.listEvaluations(s.id);
     const sessionEvidenceIds = new Set(
-      this.store
-        .listEvidence(s.candidateId ?? undefined)
+      (await this.store.listEvidence(s.candidateId ?? undefined))
         .filter((e) => e.sessionId === s.id)
         .map((e) => e.id),
     );
-    const actionsCreated = this.store
-      .listActions()
+    const actionsCreated = (await this.store.listActions())
       .filter((a) =>
         ((a.sourceEvidenceIds as string[]) ?? []).some((id) =>
           sessionEvidenceIds.has(id),
@@ -341,7 +346,7 @@ export class HistoryService {
         : null,
       questions: mains,
       actionsCreated,
-      debrief: this.store.getDebrief(s.id)?.data ?? null,
+      debrief: (await this.store.getDebrief(s.id))?.data ?? null,
       hasWeakAnswer,
     };
   }
@@ -364,12 +369,14 @@ export class HistoryService {
    *   confidence ≥ 0.4 ÷ total requirements of the active target.
    * - usage counters: counts of the allowed usage events by name.
    */
-  getMetrics() {
-    const sessions = this.store.listSessions();
-    const loops = this.store.listLoops();
-    const actions = this.store.listActions();
-    const evidence = this.store.listEvidence();
-    const allQuestions = sessions.flatMap((s) => this.store.listQuestions(s.id));
+  async getMetrics() {
+    const sessions = await this.store.listSessions();
+    const loops = await this.store.listLoops();
+    const actions = await this.store.listActions();
+    const evidence = await this.store.listEvidence();
+    const allQuestions = (
+      await Promise.all(sessions.map((s) => this.store.listQuestions(s.id)))
+    ).flat();
 
     const sessionsPerMode: Record<string, number> = {};
     for (const s of sessions) {
@@ -400,8 +407,7 @@ export class HistoryService {
 
     const deltas: number[] = [];
     for (const a of actions.filter((x) => x.status === "done")) {
-      const evs = this.store
-        .evidenceForSkill(a.skillId)
+      const evs = (await this.store.evidenceForSkill(a.skillId))
         .filter((e) => e.type !== "self_report")
         .sort((x, y) => x.createdAt.localeCompare(y.createdAt));
       const before = [...evs].reverse().find((e) => e.createdAt <= a.createdAt);
@@ -409,12 +415,12 @@ export class HistoryService {
       if (before && after) deltas.push(after.score - before.score);
     }
 
-    const activeTarget = this.store.getActiveTarget();
+    const activeTarget = await this.store.getActiveTarget();
     const targetData = activeTarget?.data
       ? TargetRoleSchema.safeParse(activeTarget.data)
       : null;
     const requirements = targetData?.success ? targetData.data.requirements : [];
-    const latest = this.store.latestReadinessBySkill();
+    const latest = await this.store.latestReadinessBySkill();
     const covered = requirements.filter(
       (r) => (latest.get(r.skillId)?.confidence ?? 0) >= 0.4,
     ).length;
@@ -448,10 +454,12 @@ export class HistoryService {
         rate: requirements.length ? covered / requirements.length : null,
       },
       usage: Object.fromEntries(
-        HistoryService.USAGE_EVENTS.map((e) => [
-          e,
-          this.store.countUsageEvents(e),
-        ]),
+        await Promise.all(
+          HistoryService.USAGE_EVENTS.map(async (e) => [
+            e,
+            await this.store.countUsageEvents(e),
+          ]),
+        ),
       ),
     };
   }

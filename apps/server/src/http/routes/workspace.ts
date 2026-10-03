@@ -34,8 +34,8 @@ workspaceRoutes.post("/analysis/gaps", async (c) =>
 workspaceRoutes.get("/state", async (c) => c.json(await c.var.orchestrator.getState()));
 
 // test-mode only: reset endpoint for e2e isolation — 404 unless enabled
-workspaceRoutes.post("/test/reset", (c) => {
+workspaceRoutes.post("/test/reset", async (c) => {
   if (process.env.INTERVIEW_OS_TEST_MODE !== "1") return c.notFound();
-  c.var.orchestrator.resetAll();
+  await c.var.orchestrator.resetAll();
   return c.json({ ok: true });
 });

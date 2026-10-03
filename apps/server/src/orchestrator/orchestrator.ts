@@ -157,7 +157,7 @@ export class InterviewOrchestrator {
     return run;
   }
 
-  getSettings(): OrchestratorSettings {
+  getSettings(): Promise<OrchestratorSettings> {
     return this.settings.getSettings();
   }
 
@@ -169,12 +169,12 @@ export class InterviewOrchestrator {
     return this.workflow.iso();
   }
 
-  private transitionSession(
+  private async transitionSession(
     sessionId: string,
     next: InterviewStatus,
     event: Parameters<typeof transition>[1],
-  ): void {
-    this.workflow.transitionSession(sessionId, next, event);
+  ): Promise<void> {
+    await this.workflow.transitionSession(sessionId, next, event);
   }
 
   // ---------------------------------------------------------------- pipeline
@@ -224,7 +224,7 @@ export class InterviewOrchestrator {
 
   // ---------------------------------------------------------------- readiness
 
-  private graphForActive(): ReadinessGraph {
+  private graphForActive(): Promise<ReadinessGraph> {
     return this.readiness.graphForActive();
   }
 
@@ -232,7 +232,7 @@ export class InterviewOrchestrator {
     return this.withLock(async () => this.recomputeReadinessInternal(reason));
   }
 
-  private recomputeReadinessInternal(reason: string): ReadinessGraph {
+  private recomputeReadinessInternal(reason: string): Promise<ReadinessGraph> {
     return this.readiness.recomputeReadinessInternal(reason);
   }
 
@@ -242,7 +242,7 @@ export class InterviewOrchestrator {
     return this.withLock(async () => this.calculateGapsInternal());
   }
 
-  private calculateGapsInternal(): Gap[] {
+  private calculateGapsInternal(): Promise<Gap[]> {
     return this.readiness.calculateGapsInternal();
   }
 
@@ -274,12 +274,12 @@ export class InterviewOrchestrator {
   }
   async completeInterview(sessionId: string, opts?: ProgressOptions) {
     return this.withLock(async () => {
-      const session = this.store.getSession(sessionId);
+      const session = await this.store.getSession(sessionId);
       if (!session) throw new AppError("NOT_FOUND", `no session ${sessionId}`);
       const status = session.status as InterviewStatus;
       if (status === "follow_up" || status === "question") {
-        this.transitionSession(sessionId, "complete", "complete");
-        this.store.updateSession(sessionId, { completedAt: this.iso() });
+        await this.transitionSession(sessionId, "complete", "complete");
+        await this.store.updateSession(sessionId, { completedAt: this.iso() });
       }
       const debrief = await this.createDebriefInternal(sessionId, opts);
       // §9.4: completing a loop session writes its handoff and either opens
@@ -294,7 +294,7 @@ export class InterviewOrchestrator {
         nextQuestion = adv.nextQuestion ?? null;
       }
       return {
-        session: this.store.getSession(sessionId),
+        session: await this.store.getSession(sessionId),
         debrief,
         loop,
         nextSession,
@@ -381,7 +381,7 @@ export class InterviewOrchestrator {
     return this.history.getMetrics();
   }
 
-  listPreparationActions(): PrepActionRowLike[] {
+  listPreparationActions(): Promise<PrepActionRowLike[]> {
     return this.preparation.listPreparationActions();
   }
 
@@ -431,7 +431,7 @@ export class InterviewOrchestrator {
     return this.withLock(async () => this.resume.reviewResume(opts));
   }
 
-  latestResumeReview(): ResumeReview | null {
+  latestResumeReview() {
     return this.resume.latestResumeReview();
   }
 
@@ -464,7 +464,7 @@ export class InterviewOrchestrator {
   }
 
   /** Test-mode only: wipe all persisted state (server gates the route). */
-  resetAll(): void {
-    this.store.resetAll();
+  async resetAll(): Promise<void> {
+    await this.store.resetAll();
   }
 }

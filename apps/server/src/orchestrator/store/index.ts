@@ -1,5 +1,9 @@
-import Database from "better-sqlite3";
-import { drizzle, type BetterSQLite3Database } from "drizzle-orm/better-sqlite3";
+import { DatabaseSync } from "node:sqlite";
+import {
+  drizzle,
+  type RemoteCallback,
+  type SqliteRemoteDatabase,
+} from "drizzle-orm/sqlite-proxy";
 import { and, desc, eq, sql } from "drizzle-orm";
 import * as schema from "./schema.js";
 import {
@@ -131,7 +135,7 @@ CREATE TABLE IF NOT EXISTS settings (
 );
 `;
 
-type Db = BetterSQLite3Database<typeof schema>;
+type Db = SqliteRemoteDatabase<typeof schema>;
 
 export type CandidateRow = typeof candidateProfiles.$inferSelect;
 export type TargetRow = typeof targetRoles.$inferSelect;
@@ -149,27 +153,62 @@ export type LoopRow = typeof interviewLoops.$inferSelect;
 export type UsageEventRow = typeof usageEvents.$inferSelect;
 export type ResumeReviewRow = typeof resumeReviews.$inferSelect;
 
+function makeSqliteProxy(client: DatabaseSync): RemoteCallback {
+  return async (sqlText, params, method) => {
+    const stmt = client.prepare(sqlText);
+    if (method === "run") {
+      stmt.run(...params);
+      return { rows: [] };
+    }
+    stmt.setReturnArrays(true);
+    if (method === "get") {
+      return { rows: stmt.get(...params) as unknown as any[] };
+    }
+    return { rows: stmt.all(...params) as any[] };
+  };
+}
+
 export class Store {
   readonly db: Db;
-  private readonly client: Database.Database;
+  private readonly client: DatabaseSync | null;
 
-  constructor(pathOrMemory: string) {
-    this.client = new Database(pathOrMemory);
-    this.client.pragma("journal_mode = WAL");
-    this.client.exec(DDL);
-    this.migrate();
-    this.db = drizzle(this.client, { schema });
+  constructor(pathOrMemory: string);
+  constructor(db: Db);
+  constructor(source: string | Db) {
+    if (typeof source === "string") {
+      const client = new DatabaseSync(source);
+      client.exec("PRAGMA journal_mode = WAL");
+      client.exec(DDL);
+      this.client = client;
+      this.db = drizzle(makeSqliteProxy(client), { schema });
+      this.migrate(client);
+    } else {
+      this.client = null;
+      this.db = source;
+    }
   }
 
   close(): void {
-    this.client.close();
+    this.client?.close();
+  }
+
+  /**
+   * Run `fn` in a single SQLite transaction. The callback receives a store bound
+   * to the transaction connection so every write it makes commits or rolls back
+   * together. Nested calls use savepoints (sqlite-proxy). Reads taken through the
+   * transaction store see that connection's snapshot.
+   */
+  async transaction<T>(fn: (tx: Store) => Promise<T>): Promise<T> {
+    return this.db.transaction(async (txDb) => fn(new Store(txDb as unknown as Db)));
   }
 
   /** Idempotent column additions for databases created by older versions. */
-  private migrate(): void {
+  private migrate(client: DatabaseSync): void {
     const addColumn = (table: string, column: string, ddl: string) => {
-      const cols = this.client.pragma(`table_info(${table})`) as { name: string }[];
-      if (!cols.some((c) => c.name === column)) this.client.exec(ddl);
+      const cols = client.prepare(`PRAGMA table_info(${table})`).all() as {
+        name: string;
+      }[];
+      if (!cols.some((c) => c.name === column)) client.exec(ddl);
     };
     addColumn(
       "candidate_answers",
@@ -257,7 +296,7 @@ export class Store {
       "ALTER TABLE answer_evaluations ADD COLUMN readiness_delta TEXT NOT NULL DEFAULT '[]'",
     );
     // backfill: existing actions belong to whichever target was active at upgrade time
-    this.client.exec(
+    client.exec(
       `UPDATE preparation_actions SET target_id = (
          SELECT id FROM target_roles WHERE active = 1 LIMIT 1
        ) WHERE target_id IS NULL`,
@@ -265,7 +304,7 @@ export class Store {
     // settings: copy legacy codexModel → model when model is absent (leave the
     // old key so the migration is idempotent and reversible; both can coexist
     // because `settings.key` is the PK, so never blind-INSERT the old key).
-    this.client.exec(
+    client.exec(
       `INSERT INTO settings (key, value)
          SELECT 'model', value FROM settings
          WHERE key = 'codexModel'
@@ -274,61 +313,68 @@ export class Store {
   }
 
   // --- candidates / targets -------------------------------------------------
-  insertCandidate(row: typeof candidateProfiles.$inferInsert): void {
-    this.db.insert(candidateProfiles).values(row).run();
+  async insertCandidate(row: typeof candidateProfiles.$inferInsert): Promise<void> {
+    await this.db.insert(candidateProfiles).values(row).run();
   }
-  deactivateCandidates(): void {
-    this.db.update(candidateProfiles).set({ active: 0 }).run();
+  async deactivateCandidates(): Promise<void> {
+    await this.db.update(candidateProfiles).set({ active: 0 }).run();
   }
-  getActiveCandidate(): CandidateRow | undefined {
+  async getActiveCandidate(): Promise<CandidateRow | undefined> {
     return this.db
       .select()
       .from(candidateProfiles)
       .where(eq(candidateProfiles.active, 1))
       .get();
   }
-  insertTarget(row: typeof targetRoles.$inferInsert): void {
-    this.db.insert(targetRoles).values(row).run();
+  async insertTarget(row: typeof targetRoles.$inferInsert): Promise<void> {
+    await this.db.insert(targetRoles).values(row).run();
   }
-  deactivateTargets(): void {
-    this.db.update(targetRoles).set({ active: 0 }).run();
+  async deactivateTargets(): Promise<void> {
+    await this.db.update(targetRoles).set({ active: 0 }).run();
   }
-  getActiveTarget(): TargetRow | undefined {
+  async getActiveTarget(): Promise<TargetRow | undefined> {
     return this.db.select().from(targetRoles).where(eq(targetRoles.active, 1)).get();
   }
-  listTargets(): TargetRow[] {
+  async listTargets(): Promise<TargetRow[]> {
     return this.db
       .select()
       .from(targetRoles)
       .orderBy(desc(targetRoles.createdAt))
       .all();
   }
-  getTarget(id: string): TargetRow | undefined {
+  async getTarget(id: string): Promise<TargetRow | undefined> {
     return this.db.select().from(targetRoles).where(eq(targetRoles.id, id)).get();
   }
-  activateTarget(id: string): void {
-    this.db.update(targetRoles).set({ active: 0 }).run();
-    this.db.update(targetRoles).set({ active: 1 }).where(eq(targetRoles.id, id)).run();
+  async activateTarget(id: string): Promise<void> {
+    // Atomic deactivate-all + activate-one: a mid-sequence failure must never
+    // leave the workspace with no active target.
+    await this.transaction(async (tx) => {
+      await tx.db.update(targetRoles).set({ active: 0 }).run();
+      await tx.db.update(targetRoles).set({ active: 1 }).where(eq(targetRoles.id, id)).run();
+    });
   }
-  updateTargetData(id: string, data: object): void {
-    this.db.update(targetRoles).set({ data }).where(eq(targetRoles.id, id)).run();
+  async updateTargetData(id: string, data: object): Promise<void> {
+    await this.db.update(targetRoles).set({ data }).where(eq(targetRoles.id, id)).run();
   }
 
   // --- sessions ---------------------------------------------------------------
-  insertSession(row: typeof interviewSessions.$inferInsert): void {
-    this.db.insert(interviewSessions).values(row).run();
+  async insertSession(row: typeof interviewSessions.$inferInsert): Promise<void> {
+    await this.db.insert(interviewSessions).values(row).run();
   }
-  getSession(id: string): SessionRow | undefined {
+  async getSession(id: string): Promise<SessionRow | undefined> {
     return this.db
       .select()
       .from(interviewSessions)
       .where(eq(interviewSessions.id, id))
       .get();
   }
-  updateSession(id: string, patch: Partial<typeof interviewSessions.$inferInsert>): void {
-    this.db.update(interviewSessions).set(patch).where(eq(interviewSessions.id, id)).run();
+  async updateSession(
+    id: string,
+    patch: Partial<typeof interviewSessions.$inferInsert>,
+  ): Promise<void> {
+    await this.db.update(interviewSessions).set(patch).where(eq(interviewSessions.id, id)).run();
   }
-  listSessions(): SessionRow[] {
+  async listSessions(): Promise<SessionRow[]> {
     return this.db
       .select()
       .from(interviewSessions)
@@ -337,10 +383,10 @@ export class Store {
   }
 
   // --- questions / answers / evaluations --------------------------------------
-  insertQuestion(row: typeof interviewQuestions.$inferInsert): void {
-    this.db.insert(interviewQuestions).values(row).run();
+  async insertQuestion(row: typeof interviewQuestions.$inferInsert): Promise<void> {
+    await this.db.insert(interviewQuestions).values(row).run();
   }
-  listQuestions(sessionId: string): QuestionRow[] {
+  async listQuestions(sessionId: string): Promise<QuestionRow[]> {
     return this.db
       .select()
       .from(interviewQuestions)
@@ -348,69 +394,74 @@ export class Store {
       .orderBy(interviewQuestions.position)
       .all();
   }
-  getQuestion(id: string): QuestionRow | undefined {
+  async getQuestion(id: string): Promise<QuestionRow | undefined> {
     return this.db
       .select()
       .from(interviewQuestions)
       .where(eq(interviewQuestions.id, id))
       .get();
   }
-  insertAnswer(row: typeof candidateAnswers.$inferInsert): void {
-    this.db.insert(candidateAnswers).values(row).run();
+  async insertAnswer(row: typeof candidateAnswers.$inferInsert): Promise<void> {
+    await this.db.insert(candidateAnswers).values(row).run();
   }
-  listAnswers(sessionId: string): AnswerRow[] {
+  async listAnswers(sessionId: string): Promise<AnswerRow[]> {
     return this.db
       .select()
       .from(candidateAnswers)
       .where(eq(candidateAnswers.sessionId, sessionId))
       .all();
   }
-  getAnswerForQuestion(questionId: string): AnswerRow | undefined {
+  async getAnswerForQuestion(questionId: string): Promise<AnswerRow | undefined> {
     return this.db
       .select()
       .from(candidateAnswers)
       .where(eq(candidateAnswers.questionId, questionId))
       .get();
   }
-  getEvaluatedAnswerForQuestion(questionId: string): AnswerRow | undefined {
+  async getEvaluatedAnswerForQuestion(questionId: string): Promise<AnswerRow | undefined> {
     return this.db
       .select()
       .from(candidateAnswers)
-      .where(and(eq(candidateAnswers.questionId, questionId), eq(candidateAnswers.status, "evaluated")))
+      .where(
+        and(
+          eq(candidateAnswers.questionId, questionId),
+          eq(candidateAnswers.status, "evaluated"),
+        ),
+      )
       .get();
   }
-  updateAnswerStatus(id: string, status: "evaluated" | "failed"): void {
-    this.db.update(candidateAnswers).set({ status }).where(eq(candidateAnswers.id, id)).run();
+  async updateAnswerStatus(id: string, status: "evaluated" | "failed"): Promise<void> {
+    await this.db.update(candidateAnswers).set({ status }).where(eq(candidateAnswers.id, id)).run();
   }
-  insertEvaluation(row: typeof answerEvaluations.$inferInsert): void {
-    this.db.insert(answerEvaluations).values(row).run();
+  async insertEvaluation(row: typeof answerEvaluations.$inferInsert): Promise<void> {
+    await this.db.insert(answerEvaluations).values(row).run();
   }
-  updateEvaluationDelta(
+  async updateEvaluationDelta(
     id: string,
     delta: { skillId: string; before: number | null; after: number | null }[],
-  ): void {
-    this.db
+  ): Promise<void> {
+    await this.db
       .update(answerEvaluations)
       .set({ readinessDelta: delta })
       .where(eq(answerEvaluations.id, id))
       .run();
   }
-  listEvaluations(sessionId: string): EvaluationRow[] {
+  async listEvaluations(sessionId: string): Promise<EvaluationRow[]> {
     return this.db
       .select()
       .from(answerEvaluations)
       .where(eq(answerEvaluations.sessionId, sessionId))
       .all();
   }
-  listAllEvaluations(): EvaluationRow[] {
+  async listAllEvaluations(): Promise<EvaluationRow[]> {
     return this.db.select().from(answerEvaluations).all();
   }
 
   // --- evidence -----------------------------------------------------------------
-  insertEvidence(row: typeof skillEvidence.$inferInsert): void {
-    this.db.insert(skillEvidence).values(row).run();
+  async insertEvidence(row: typeof skillEvidence.$inferInsert): Promise<void> {
+    await this.db.insert(skillEvidence).values(row).run();
   }
-  listEvidence(candidateId?: string): EvidenceRow[] {
+  async listEvidence(candidateId?: string): Promise<EvidenceRow[]> {
     if (candidateId) {
       return this.db
         .select()
@@ -420,7 +471,7 @@ export class Store {
     }
     return this.db.select().from(skillEvidence).all();
   }
-  evidenceForSkill(skillId: string, candidateId?: string): EvidenceRow[] {
+  async evidenceForSkill(skillId: string, candidateId?: string): Promise<EvidenceRow[]> {
     const clauses = [eq(skillEvidence.skillId, skillId)];
     if (candidateId) clauses.push(eq(skillEvidence.candidateId, candidateId));
     return this.db
@@ -431,11 +482,11 @@ export class Store {
   }
 
   // --- readiness snapshots -------------------------------------------------------
-  appendReadinessSnapshot(row: typeof readinessScores.$inferInsert): void {
-    this.db.insert(readinessScores).values(row).run();
+  async appendReadinessSnapshot(row: typeof readinessScores.$inferInsert): Promise<void> {
+    await this.db.insert(readinessScores).values(row).run();
   }
-  latestReadinessBySkill(): Map<string, ReadinessRow> {
-    const rows = this.db
+  async latestReadinessBySkill(): Promise<Map<string, ReadinessRow>> {
+    const rows = await this.db
       .select()
       .from(readinessScores)
       .orderBy(desc(readinessScores.id))
@@ -446,7 +497,7 @@ export class Store {
     }
     return map;
   }
-  readinessHistory(skillId: string): ReadinessRow[] {
+  async readinessHistory(skillId: string): Promise<ReadinessRow[]> {
     return this.db
       .select()
       .from(readinessScores)
@@ -454,8 +505,8 @@ export class Store {
       .orderBy(desc(readinessScores.id))
       .all();
   }
-  countReadinessSnapshots(): number {
-    const row = this.db
+  async countReadinessSnapshots(): Promise<number> {
+    const row = await this.db
       .select({ n: sql<number>`count(*)` })
       .from(readinessScores)
       .get();
@@ -463,46 +514,46 @@ export class Store {
   }
 
   // --- prep actions ----------------------------------------------------------------
-  insertAction(row: typeof preparationActions.$inferInsert): void {
-    this.db.insert(preparationActions).values(row).run();
+  async insertAction(row: typeof preparationActions.$inferInsert): Promise<void> {
+    await this.db.insert(preparationActions).values(row).run();
   }
-  updateActionStatus(id: string, status: string): void {
-    this.db
+  async updateActionStatus(id: string, status: string): Promise<void> {
+    await this.db
       .update(preparationActions)
       .set({ status })
       .where(eq(preparationActions.id, id))
       .run();
   }
-  getAction(id: string): PrepActionRow | undefined {
+  async getAction(id: string): Promise<PrepActionRow | undefined> {
     return this.db
       .select()
       .from(preparationActions)
       .where(eq(preparationActions.id, id))
       .get();
   }
-  updateActionPriority(id: string, priority: number): void {
-    this.db
+  async updateActionPriority(id: string, priority: number): Promise<void> {
+    await this.db
       .update(preparationActions)
       .set({ priority })
       .where(eq(preparationActions.id, id))
       .run();
   }
-  updateActionSourceEvidence(id: string, sourceEvidenceIds: string[]): void {
-    this.db
+  async updateActionSourceEvidence(id: string, sourceEvidenceIds: string[]): Promise<void> {
+    await this.db
       .update(preparationActions)
       .set({ sourceEvidenceIds })
       .where(eq(preparationActions.id, id))
       .run();
   }
-  listActions(status?: string, targetId?: string): PrepActionRow[] {
+  async listActions(status?: string, targetId?: string): Promise<PrepActionRow[]> {
     const clauses = [];
     if (status) clauses.push(eq(preparationActions.status, status));
     if (targetId) clauses.push(eq(preparationActions.targetId, targetId));
     const q = this.db.select().from(preparationActions);
-    const rows = clauses.length > 0 ? q.where(and(...clauses)).all() : q.all();
+    const rows = clauses.length > 0 ? await q.where(and(...clauses)).all() : await q.all();
     return rows.sort((a, b) => a.priority - b.priority);
   }
-  openActionForSkill(skillId: string, targetId?: string): PrepActionRow | undefined {
+  async openActionForSkill(skillId: string, targetId?: string): Promise<PrepActionRow | undefined> {
     const clauses = [
       eq(preparationActions.skillId, skillId),
       eq(preparationActions.status, "open"),
@@ -514,7 +565,7 @@ export class Store {
       .where(and(...clauses))
       .get();
   }
-  actionsForSkill(skillId: string, targetId?: string): PrepActionRow[] {
+  async actionsForSkill(skillId: string, targetId?: string): Promise<PrepActionRow[]> {
     const clauses = [eq(preparationActions.skillId, skillId)];
     if (targetId) clauses.push(eq(preparationActions.targetId, targetId));
     return this.db
@@ -525,8 +576,8 @@ export class Store {
   }
 
   // --- skill nodes ------------------------------------------------------------------
-  upsertSkillNode(id: string, label: string, parentId: string | null): void {
-    this.db
+  async upsertSkillNode(id: string, label: string, parentId: string | null): Promise<void> {
+    await this.db
       .insert(skillNodes)
       .values({ id, label, parentId })
       .onConflictDoUpdate({ target: skillNodes.id, set: { label, parentId } })
@@ -534,10 +585,10 @@ export class Store {
   }
 
   // --- runtime sessions ----------------------------------------------------------------
-  insertRuntimeSession(row: typeof runtimeSessions.$inferInsert): void {
-    this.db.insert(runtimeSessions).values(row).run();
+  async insertRuntimeSession(row: typeof runtimeSessions.$inferInsert): Promise<void> {
+    await this.db.insert(runtimeSessions).values(row).run();
   }
-  getRuntimeSession(sessionId: string): RuntimeSessionRow | undefined {
+  async getRuntimeSession(sessionId: string): Promise<RuntimeSessionRow | undefined> {
     return this.db
       .select()
       .from(runtimeSessions)
@@ -545,8 +596,8 @@ export class Store {
       .orderBy(desc(runtimeSessions.createdAt))
       .get();
   }
-  updateRuntimeSessionStatus(id: string, status: string): void {
-    this.db
+  async updateRuntimeSessionStatus(id: string, status: string): Promise<void> {
+    await this.db
       .update(runtimeSessions)
       .set({ status })
       .where(eq(runtimeSessions.id, id))
@@ -554,10 +605,10 @@ export class Store {
   }
 
   // --- debriefs --------------------------------------------------------------------------
-  insertDebrief(row: typeof interviewDebriefs.$inferInsert): void {
-    this.db.insert(interviewDebriefs).values(row).run();
+  async insertDebrief(row: typeof interviewDebriefs.$inferInsert): Promise<void> {
+    await this.db.insert(interviewDebriefs).values(row).run();
   }
-  getDebrief(sessionId: string): DebriefRow | undefined {
+  async getDebrief(sessionId: string): Promise<DebriefRow | undefined> {
     return this.db
       .select()
       .from(interviewDebriefs)
@@ -567,10 +618,10 @@ export class Store {
   }
 
   // --- star stories (§8.4) ----------------------------------------------------
-  insertStory(row: typeof starStories.$inferInsert): void {
-    this.db.insert(starStories).values(row).run();
+  async insertStory(row: typeof starStories.$inferInsert): Promise<void> {
+    await this.db.insert(starStories).values(row).run();
   }
-  listStories(candidateId: string): StarStoryRow[] {
+  async listStories(candidateId: string): Promise<StarStoryRow[]> {
     return this.db
       .select()
       .from(starStories)
@@ -578,36 +629,39 @@ export class Store {
       .orderBy(desc(starStories.updatedAt))
       .all();
   }
-  getStory(id: string): StarStoryRow | undefined {
+  async getStory(id: string): Promise<StarStoryRow | undefined> {
     return this.db.select().from(starStories).where(eq(starStories.id, id)).get();
   }
-  updateStory(id: string, patch: Partial<typeof starStories.$inferInsert>): void {
-    this.db.update(starStories).set(patch).where(eq(starStories.id, id)).run();
+  async updateStory(
+    id: string,
+    patch: Partial<typeof starStories.$inferInsert>,
+  ): Promise<void> {
+    await this.db.update(starStories).set(patch).where(eq(starStories.id, id)).run();
   }
 
   // --- settings (key/value) --------------------------------------------------
-  getSetting(key: string): string | undefined {
-    return this.db.select().from(settings).where(eq(settings.key, key)).get()?.value;
+  async getSetting(key: string): Promise<string | undefined> {
+    const row = await this.db.select().from(settings).where(eq(settings.key, key)).get();
+    return row?.value;
   }
-  setSetting(key: string, value: string | null): void {
+  async setSetting(key: string, value: string | null): Promise<void> {
     if (value === null) {
-      this.db.delete(settings).where(eq(settings.key, key)).run();
+      await this.db.delete(settings).where(eq(settings.key, key)).run();
       return;
     }
-    this.db
+    await this.db
       .insert(settings)
       .values({ key, value })
       .onConflictDoUpdate({ target: settings.key, set: { value } })
       .run();
   }
-  allSettings(): Record<string, string> {
-    return Object.fromEntries(
-      this.db.select().from(settings).all().map((r) => [r.key, r.value]),
-    );
+  async allSettings(): Promise<Record<string, string>> {
+    const rows = await this.db.select().from(settings).all();
+    return Object.fromEntries(rows.map((r) => [r.key, r.value]));
   }
 
   /** Test-mode only (server gates on INTERVIEW_OS_TEST_MODE): wipe all state. */
-  resetAll(): void {
+  async resetAll(): Promise<void> {
     for (const t of [
       candidateProfiles,
       targetRoles,
@@ -627,48 +681,51 @@ export class Store {
       resumeReviews,
       usageEvents,
     ]) {
-      this.db.delete(t).run();
+      await this.db.delete(t).run();
     }
   }
 
   // --- loops (§9.4) ----------------------------------------------------------
-  insertLoop(row: typeof interviewLoops.$inferInsert): void {
-    this.db.insert(interviewLoops).values(row).run();
+  async insertLoop(row: typeof interviewLoops.$inferInsert): Promise<void> {
+    await this.db.insert(interviewLoops).values(row).run();
   }
-  getLoop(id: string): LoopRow | undefined {
+  async getLoop(id: string): Promise<LoopRow | undefined> {
     return this.db.select().from(interviewLoops).where(eq(interviewLoops.id, id)).get();
   }
-  listLoops(): LoopRow[] {
+  async listLoops(): Promise<LoopRow[]> {
     return this.db
       .select()
       .from(interviewLoops)
       .orderBy(desc(interviewLoops.createdAt))
       .all();
   }
-  updateLoop(id: string, patch: Partial<typeof interviewLoops.$inferInsert>): void {
-    this.db.update(interviewLoops).set(patch).where(eq(interviewLoops.id, id)).run();
+  async updateLoop(
+    id: string,
+    patch: Partial<typeof interviewLoops.$inferInsert>,
+  ): Promise<void> {
+    await this.db.update(interviewLoops).set(patch).where(eq(interviewLoops.id, id)).run();
   }
-  loopForSession(sessionId: string): LoopRow | undefined {
-    const s = this.getSession(sessionId);
-    return s?.loopId ? this.getLoop(s.loopId) : undefined;
+  async loopForSession(sessionId: string): Promise<LoopRow | undefined> {
+    const s = await this.getSession(sessionId);
+    return s?.loopId ? await this.getLoop(s.loopId) : undefined;
   }
 
   // --- usage events (§9.7: names only, no content) ---------------------------
-  insertUsageEvent(row: { id: string; event: string; createdAt: string }): void {
-    this.db.insert(usageEvents).values(row).run();
+  async insertUsageEvent(row: { id: string; event: string; createdAt: string }): Promise<void> {
+    await this.db.insert(usageEvents).values(row).run();
   }
-  countUsageEvents(event?: string): number {
+  async countUsageEvents(event?: string): Promise<number> {
     const q = this.db.select({ n: sql<number>`count(*)` }).from(usageEvents);
-    const row = (event ? q.where(eq(usageEvents.event, event)) : q).get();
+    const row = await (event ? q.where(eq(usageEvents.event, event)) : q).get();
     return row?.n ?? 0;
   }
 
   // --- resume reviews (§9.5) -------------------------------------------------
-  insertResumeReview(row: typeof resumeReviews.$inferInsert): void {
-    this.db.insert(resumeReviews).values(row).run();
+  async insertResumeReview(row: typeof resumeReviews.$inferInsert): Promise<void> {
+    await this.db.insert(resumeReviews).values(row).run();
   }
-  latestResumeReview(candidateId?: string): ResumeReviewRow | undefined {
-    const rows = this.db
+  async latestResumeReview(candidateId?: string): Promise<ResumeReviewRow | undefined> {
+    const rows = await this.db
       .select()
       .from(resumeReviews)
       .orderBy(desc(resumeReviews.createdAt))

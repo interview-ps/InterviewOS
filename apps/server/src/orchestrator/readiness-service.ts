@@ -14,13 +14,13 @@ export class ReadinessService {
     return this.ctx.store;
   }
 
-  graphForActive(): ReadinessGraph {
+  graphForActive(): Promise<ReadinessGraph> {
     return this.ctx.graphForActive();
   }
 
-  calculateGapsInternal(): Gap[] {
-    const { target } = this.ctx.requireActive();
-    const graph = this.graphForActive();
+  async calculateGapsInternal(): Promise<Gap[]> {
+    const { target } = await this.ctx.requireActive();
+    const graph = await this.graphForActive();
     return calculateGaps({
       requirements: this.ctx.allRequirements(target),
       readiness: graph.dimensions,
@@ -28,9 +28,9 @@ export class ReadinessService {
     });
   }
 
-  recomputeReadinessInternal(reason: string): ReadinessGraph {
-    const graph = this.graphForActive();
-    const latest = this.store.latestReadinessBySkill();
+  async recomputeReadinessInternal(reason: string): Promise<ReadinessGraph> {
+    const graph = await this.graphForActive();
+    const latest = await this.store.latestReadinessBySkill();
     const computedAt = this.ctx.iso();
     const changed = (
       skillId: string,
@@ -45,7 +45,7 @@ export class ReadinessService {
     let appended = 0;
     for (const dim of Object.values(graph.dimensions)) {
       if (!changed(dim.skillId, dim.score, dim.confidence)) continue;
-      this.store.appendReadinessSnapshot({
+      await this.store.appendReadinessSnapshot({
         skillId: dim.skillId,
         score: dim.score,
         confidence: dim.confidence,
@@ -56,7 +56,7 @@ export class ReadinessService {
       appended += 1;
     }
     if (changed(OVERALL_SKILL_ID, graph.overall, graph.overallConfidence)) {
-      this.store.appendReadinessSnapshot({
+      await this.store.appendReadinessSnapshot({
         skillId: OVERALL_SKILL_ID,
         score: graph.overall,
         confidence: graph.overallConfidence,

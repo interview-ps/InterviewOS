@@ -13,9 +13,9 @@ loopsRoutes.post("/", async (c) => {
   );
 });
 
-loopsRoutes.get("/", (c) => c.json(c.var.orchestrator.listLoops()));
+loopsRoutes.get("/", async (c) => c.json(await c.var.orchestrator.listLoops()));
 
-loopsRoutes.get("/:id", (c) => c.json(c.var.orchestrator.getLoop(c.req.param("id"))));
+loopsRoutes.get("/:id", async (c) => c.json(await c.var.orchestrator.getLoop(c.req.param("id"))));
 
 loopsRoutes.post("/:id/abandon", async (c) =>
   c.json(await c.var.orchestrator.abandonLoop(c.req.param("id"))),

@@ -48,7 +48,7 @@ describe("multiple targets (§8.1)", () => {
     expect(added.target.id).not.toBe(target1Id);
     expect(added.actions.length).toBeGreaterThan(0);
 
-    const targets = orch.listTargets();
+    const targets = await orch.listTargets();
     expect(targets.length).toBe(2);
     expect(targets.find((t) => t.id === added.target.id)!.active).toBe(true);
     expect(targets.find((t) => t.id === target1Id)!.active).toBe(false);
@@ -76,7 +76,7 @@ describe("multiple targets (§8.1)", () => {
         expect(openIds.has(a.id)).toBe(true);
       }
     }
-    expect(orch.listTargets().find((t) => t.id === target1Id)!.active).toBe(true);
+    expect((await orch.listTargets()).find((t) => t.id === target1Id)!.active).toBe(true);
 
     // activating a target with no open actions rebuilds its plan
     const back2 = await orch.activateTarget(added.target.id);

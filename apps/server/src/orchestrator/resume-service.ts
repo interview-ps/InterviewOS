@@ -18,8 +18,8 @@ import type { WorkflowContext, ProgressOptions } from "./context.js";
 export interface ResumeServiceDeps {
   ctx: WorkflowContext;
   /** Deterministic gap calculation (§9.5 links prepGaps to real gaps). */
-  calculateGaps(): Gap[];
-  recordUsageEvent(event: string): void;
+  calculateGaps(): Promise<Gap[]>;
+  recordUsageEvent(event: string): Promise<void>;
 }
 
 export class ResumeService {
@@ -35,8 +35,8 @@ export class ResumeService {
    * never creates evidence and never changes readiness.
    */
   async reviewResume(opts?: ProgressOptions): Promise<ResumeReview> {
-    const { candidate, target } = this.ctx.requireActive();
-    const candidateRow = this.ctx.store.getActiveCandidate()!;
+    const { candidate, target } = await this.ctx.requireActive();
+    const candidateRow = (await this.ctx.store.getActiveCandidate())!;
     const resumeText = candidateRow.resumeText;
     if (!resumeText.trim()) {
       throw new AppError(
@@ -57,7 +57,7 @@ export class ResumeService {
         ? this.ctx.host.invoke(
             resumeCoach,
             { mode: "bullets", resumeText, bullets: weakBullets },
-            this.ctx.ctx({ onProgress: opts?.onProgress }),
+            await this.ctx.ctx({ onProgress: opts?.onProgress }),
           )
         : Promise.resolve({ suggestions: [] }),
       this.ctx.host.invoke(
@@ -69,7 +69,7 @@ export class ResumeService {
           role: target.role,
           level: target.level,
         },
-        this.ctx.ctx({ onProgress: opts?.onProgress }),
+        await this.ctx.ctx({ onProgress: opts?.onProgress }),
       ),
     ]);
     const bulletSuggestions =
@@ -95,7 +95,7 @@ export class ResumeService {
 
     // §9.5: link prepGaps to real requirement gaps — no evidence, no
     // readiness change.
-    const gaps = this.deps.calculateGaps();
+    const gaps = await this.deps.calculateGaps();
     const linkedGapSkillIds = [...new Set(
       (tailoring?.prepGaps ?? [])
         .map((pg) => {
@@ -122,15 +122,15 @@ export class ResumeService {
       createdAt: this.ctx.iso(),
     };
     this.ctx.host.assertCan("resume-coach", "resume.write");
-    this.ctx.store.insertResumeReview(ResumeReviewSchema.parse(review));
-    this.deps.recordUsageEvent("resume.coach.used");
+    await this.ctx.store.insertResumeReview(ResumeReviewSchema.parse(review));
+    await this.deps.recordUsageEvent("resume.coach.used");
     this.ctx.logger.info("state.mutated", { entity: "resume_review", id: review.id });
     return review;
   }
 
   /** Most recent persisted resume review, or null. */
-  latestResumeReview(): ResumeReview | null {
-    const row = this.ctx.store.latestResumeReview();
+  async latestResumeReview(): Promise<ResumeReview | null> {
+    const row = await this.ctx.store.latestResumeReview();
     if (!row) return null;
     const parsed = ResumeReviewSchema.safeParse({
       id: row.id,

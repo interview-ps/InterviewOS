@@ -18,7 +18,7 @@ const store = openStore(dbPath);
 const runtime = await createRuntime({
   env: process.env,
   logger,
-  preferredKind: store.getSetting("runtimeKind"),
+  preferredKind: await store.getSetting("runtimeKind"),
   onSwitch: (rt) => {
     if (rt instanceof MockRuntime) registerMockHandlers(rt);
   },

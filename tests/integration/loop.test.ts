@@ -126,15 +126,15 @@ describe("§9.4 full interview loops", () => {
     expect(done3.nextSession).toBeNull();
 
     // readiness snapshots recorded per round
-    const stored = store.getLoop(loopId)!;
+    const stored = (await store.getLoop(loopId))!;
     for (const r of stored.rounds as { readinessBefore: unknown; readinessAfter: unknown }[]) {
       expect(r.readinessBefore).not.toBeNull();
       expect(r.readinessAfter).not.toBeNull();
     }
 
     // accessors
-    expect(orch.getLoop(loopId).id).toBe(loopId);
-    expect(orch.listLoops().map((l) => l.id)).toContain(loopId);
+    expect((await orch.getLoop(loopId)).id).toBe(loopId);
+    expect((await orch.listLoops()).map((l) => l.id)).toContain(loopId);
   });
 
   it("defaults to the company profile's typical loop and validates rounds", async () => {
@@ -166,7 +166,7 @@ describe("§9.4 full interview loops", () => {
     const loop = await orch.abandonLoop(started.loop.id);
     expect(loop.status).toBe("complete");
     expect(loop.abandoned).toBe(true);
-    const s = store.getSession(started.session.id)!;
+    const s = (await store.getSession(started.session.id))!;
     expect(["complete", "debrief"]).toContain(s.status);
     // idempotent
     const again = await orch.abandonLoop(started.loop.id);

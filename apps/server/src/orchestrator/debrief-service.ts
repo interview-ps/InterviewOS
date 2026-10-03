@@ -13,22 +13,22 @@ export class DebriefService {
   }
 
   async createDebriefInternal(sessionId: string, opts?: ProgressOptions) {
-    const session = this.ctx.store.getSession(sessionId);
+    const session = await this.ctx.store.getSession(sessionId);
     if (!session) throw new AppError("NOT_FOUND", `no session ${sessionId}`);
-    const existing = this.ctx.store.getDebrief(sessionId);
+    const existing = await this.ctx.store.getDebrief(sessionId);
     const status = session.status as import("@interview-os/core").InterviewStatus;
     if (status === "complete") {
-      this.ctx.transitionSession(sessionId, "debrief", "debrief");
+      await this.ctx.transitionSession(sessionId, "debrief", "debrief");
     } else if (status !== "debrief") {
       transition(status, "debrief"); // throws
     }
 
-    const { target } = this.ctx.requireActive();
-    const questions = this.ctx.store.listQuestions(sessionId);
-    const evaluations = this.ctx.store
-      .listEvaluations(sessionId)
-      .map((r) => r.data as unknown as AnswerEvaluation);
-    const latest = this.ctx.store.latestReadinessBySkill();
+    const { target } = await this.ctx.requireActive();
+    const questions = await this.ctx.store.listQuestions(sessionId);
+    const evaluations = (await this.ctx.store.listEvaluations(sessionId)).map(
+      (r) => r.data as unknown as AnswerEvaluation,
+    );
+    const latest = await this.ctx.store.latestReadinessBySkill();
     const afterMap: Record<string, number | null> = {};
     const beforeMap: Record<string, number | null> = {};
     for (const [skillId, row] of latest) {
@@ -37,7 +37,7 @@ export class DebriefService {
     }
     // readiness "before" = latest snapshot at or before session creation
     for (const skillId of Object.keys(afterMap)) {
-      const history = this.ctx.store.readinessHistory(skillId);
+      const history = await this.ctx.store.readinessHistory(skillId);
       const beforeRow = history.find((r) => r.computedAt <= session.createdAt);
       beforeMap[skillId] = beforeRow ? beforeRow.score : null;
     }
@@ -59,14 +59,15 @@ export class DebriefService {
           evaluations: evaluations as unknown[],
           readinessBefore: beforeMap,
           readinessAfter: afterMap,
-          openActions: this.ctx.store
-            .listActions("open")
-            .map((a) => ({ skillId: a.skillId, action: a.action })),
+          openActions: (await this.ctx.store.listActions("open")).map((a) => ({
+            skillId: a.skillId,
+            action: a.action,
+          })),
         },
-        this.ctx.ctx({ sessionId, onProgress: opts?.onProgress }),
+        await this.ctx.ctx({ sessionId, onProgress: opts?.onProgress }),
       );
       this.ctx.host.assertCan("interview-debrief", "interview.write");
-      this.ctx.store.insertDebrief({
+      await this.ctx.store.insertDebrief({
         id: newId("debrief"),
         sessionId,
         data: output as object,

@@ -3,9 +3,9 @@ import type { AppEnv } from "../context.js";
 
 export const historyRoutes = new Hono<AppEnv>();
 
-historyRoutes.get("/", (c) =>
+historyRoutes.get("/", async (c) =>
   c.json(
-    c.var.orchestrator.getHistory({
+    await c.var.orchestrator.getHistory({
       mode: c.req.query("mode") || undefined,
       targetId: c.req.query("targetId") || undefined,
       loopId: c.req.query("loopId") || undefined,
@@ -14,7 +14,7 @@ historyRoutes.get("/", (c) =>
   ),
 );
 
-historyRoutes.get("/:id", (c) => {
-  c.var.orchestrator.recordUsageEvent("history.viewed");
-  return c.json(c.var.orchestrator.getSessionHistory(c.req.param("id")));
+historyRoutes.get("/:id", async (c) => {
+  await c.var.orchestrator.recordUsageEvent("history.viewed");
+  return c.json(await c.var.orchestrator.getSessionHistory(c.req.param("id")));
 });

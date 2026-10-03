@@ -69,10 +69,10 @@ export interface InterviewServiceDeps {
   readiness: ReadinessService;
   preparation: PreparationService;
   /** §9.4: prior-round weak skills/observations, provided by the loop service. */
-  loopContextFor(session: SessionRow): {
+  loopContextFor(session: SessionRow): Promise<{
     priorWeakSkills: { skillId: SkillId; round: number; mode: RoundType }[];
     priorRoundObservations: string[];
-  };
+  }>;
 }
 
 export class InterviewService {
@@ -87,13 +87,13 @@ export class InterviewService {
   }
 
   async startInterviewInternal(input: InternalStartInput, opts?: ProgressOptions) {
-    const { candidate, target } = this.ctx.requireActive();
+    const { candidate, target } = await this.ctx.requireActive();
     const mode = input.mode ?? "interview";
     if (mode === "practice" && !input.focusSkillId) {
       throw new AppError("VALIDATION", "practice sessions require focusSkillId");
     }
     if (input.actionId) {
-      const action = this.store.getAction(input.actionId);
+      const action = await this.store.getAction(input.actionId);
       if (!action) throw new AppError("NOT_FOUND", `no prep action ${input.actionId}`);
     }
     // practice sessions are single-question verifications
@@ -101,7 +101,7 @@ export class InterviewService {
     const roundType = input.roundType ?? "mixed";
     const sessionId = newId("int");
     const createdAt = this.ctx.iso();
-    this.store.insertSession({
+    await this.store.insertSession({
       id: sessionId,
       candidateId: candidate.id,
       targetId: target.id,
@@ -116,14 +116,14 @@ export class InterviewService {
       loopRound: input.loopRound ?? null,
       createdAt,
     });
-    this.ctx.transitionSession(sessionId, "analyzing", "analyze");
-    this.ctx.transitionSession(sessionId, "ready", "analysis_complete");
+    await this.ctx.transitionSession(sessionId, "analyzing", "analyze");
+    await this.ctx.transitionSession(sessionId, "ready", "analysis_complete");
 
     // runtime session for the interviewer thread
     const rtSession = await this.ctx.runtime.createSession({
       developerInstructions: INTERVIEWER_SESSION_INSTRUCTIONS,
     });
-    this.store.insertRuntimeSession({
+    await this.store.insertRuntimeSession({
       id: newId("rts"),
       sessionId,
       runtime: this.ctx.runtime.kind,
@@ -137,9 +137,9 @@ export class InterviewService {
   }
 
   async nextQuestionInternal(sessionId: string, opts?: ProgressOptions) {
-    const session = this.store.getSession(sessionId);
+    const session = await this.store.getSession(sessionId);
     if (!session) throw new AppError("NOT_FOUND", `no session ${sessionId}`);
-    const questions = this.store.listQuestions(sessionId);
+    const questions = await this.store.listQuestions(sessionId);
     const status = session.status as InterviewStatus;
 
     const roundType = (session.roundType ?? "mixed") as RoundType;
@@ -152,38 +152,38 @@ export class InterviewService {
       | { parentQuestionId: string; parentText: string; focus: string }
       | undefined;
     delete modeState.__pendingFollowUp;
-    if (pendingFollowUp) this.store.updateSession(sessionId, { modeState });
+    if (pendingFollowUp) await this.store.updateSession(sessionId, { modeState });
 
     // §9.1: follow-ups don't count toward plannedQuestions — count mains only
     const mainCount = questions.filter((q) => !q.followUpOf).length;
     if (status === "ready") {
-      this.ctx.transitionSession(sessionId, "question", "ask");
+      await this.ctx.transitionSession(sessionId, "question", "ask");
     } else if (status === "follow_up") {
       if (!pendingFollowUp && mainCount >= session.plannedQuestions) {
-        this.ctx.transitionSession(sessionId, "complete", "complete");
-        return { session: this.store.getSession(sessionId), question: null };
+        await this.ctx.transitionSession(sessionId, "complete", "complete");
+        return { session: await this.store.getSession(sessionId), question: null };
       }
-      this.ctx.transitionSession(sessionId, "question", "next");
+      await this.ctx.transitionSession(sessionId, "question", "next");
     } else {
       // produces InvalidTransitionError for anything else
       transition(status, "ask");
     }
 
-    const { candidate, target } = this.ctx.requireActive();
-    const graph = this.deps.readiness.graphForActive();
-    const evidence = this.ctx.evidenceForActive(candidate.id);
-    const previousSession = this.store
-      .listSessions()
+    const { candidate, target } = await this.ctx.requireActive();
+    const graph = await this.deps.readiness.graphForActive();
+    const evidence = await this.ctx.evidenceForActive(candidate.id);
+    const previousSession = (await this.store.listSessions())
       .find((s) => s.id !== sessionId && s.status !== "created" && s.status !== "analyzing");
     const askedPreviousSession = previousSession
-      ? this.store.listQuestions(previousSession.id).map((q) => q.skillId as SkillId)
+      ? (await this.store.listQuestions(previousSession.id)).map((q) => q.skillId as SkillId)
       : [];
-    const allPreviousTexts = this.store
-      .listSessions()
-      .flatMap((s) => this.store.listQuestions(s.id).map((q) => q.text));
+    const allPreviousTexts: string[] = [];
+    for (const s of await this.store.listSessions()) {
+      for (const q of await this.store.listQuestions(s.id)) allPreviousTexts.push(q.text);
+    }
 
     // §9.4: loop sessions carry prior rounds' weak skills + observations forward
-    const { priorWeakSkills, priorRoundObservations } = this.deps.loopContextFor(session);
+    const { priorWeakSkills, priorRoundObservations } = await this.deps.loopContextFor(session);
 
     let skillId: SkillId;
     let questionReason: string;
@@ -194,7 +194,7 @@ export class InterviewService {
     let followUpFocus: string | null = null;
 
     if (pendingFollowUp) {
-      const parent = this.store.getQuestion(pendingFollowUp.parentQuestionId);
+      const parent = await this.store.getQuestion(pendingFollowUp.parentQuestionId);
       skillId = (parent?.skillId ?? "communication") as SkillId;
       questionReason = `follow-up on "${pendingFollowUp.focus}"`;
       questionPriority = null;
@@ -204,8 +204,8 @@ export class InterviewService {
     } else {
       opts?.onProgress?.({ stage: "selecting skill" });
       const askCounts: Record<SkillId, number> = {};
-      for (const s of this.store.listSessions()) {
-        for (const q of this.store.listQuestions(s.id)) {
+      for (const s of await this.store.listSessions()) {
+        for (const q of await this.store.listQuestions(s.id)) {
           const id = q.skillId as SkillId;
           askCounts[id] = (askCounts[id] ?? 0) + 1;
         }
@@ -234,11 +234,11 @@ export class InterviewService {
                 askCounts,
                 loopWeakSkills: priorWeakSkills,
               },
-              this.ctx.ctx({ sessionId }),
+              await this.ctx.ctx({ sessionId }),
             );
       if (!selection) {
-        this.ctx.transitionSession(sessionId, "complete", "complete");
-        return { session: this.store.getSession(sessionId), question: null };
+        await this.ctx.transitionSession(sessionId, "complete", "complete");
+        return { session: await this.store.getSession(sessionId), question: null };
       }
       skillId = selection.skillId;
       questionReason = selection.reason;
@@ -275,13 +275,13 @@ export class InterviewService {
           : null,
       companyThemes: narrativeRound ? (target.companyProfile?.behavioralThemes ?? []) : [],
       storyTitles: narrativeRound
-        ? this.store.listStories(candidate.id).map((s) => s.title).slice(0, 10)
+        ? (await this.store.listStories(candidate.id)).map((s) => s.title).slice(0, 10)
         : [],
       priorRoundObservations,
     };
 
     const runtimeSessionId = await this.ensureRuntimeSession(sessionId);
-    const interviewCtx = this.ctx.ctx({
+    const interviewCtx = await this.ctx.ctx({
       sessionId,
       runtimeSessionId,
       onProgress: opts?.onProgress,
@@ -300,7 +300,7 @@ export class InterviewService {
         produced = await this.ctx.host.invoke(
           interviewer,
           interviewerInput,
-          this.ctx.ctx({ sessionId, runtimeSessionId: rid }),
+          await this.ctx.ctx({ sessionId, runtimeSessionId: rid }),
         );
       } else {
         throw err;
@@ -314,7 +314,7 @@ export class InterviewService {
     if (produced.problem !== null && produced.problem !== undefined)
       extra.problem = produced.problem;
     if (produced.focusDimension) extra.focusDimension = produced.focusDimension;
-    this.store.insertQuestion({
+    await this.store.insertQuestion({
       id: questionId,
       sessionId,
       skillId: produced.skillId,
@@ -332,9 +332,9 @@ export class InterviewService {
       position: questions.length + 1,
       createdAt: this.ctx.iso(),
     });
-    this.store.updateSession(sessionId, { currentRound: questions.length + 1 });
-    const row = this.store.getQuestion(questionId)!;
-    return { session: this.store.getSession(sessionId), question: rowToQuestion(row) };
+    await this.store.updateSession(sessionId, { currentRound: questions.length + 1 });
+    const row = (await this.store.getQuestion(questionId))!;
+    return { session: await this.store.getSession(sessionId), question: rowToQuestion(row) };
   }
 
   /** §9.3: rendered profile guidance fed to interviewer/evaluator prompts. */
@@ -359,19 +359,19 @@ export class InterviewService {
   }
 
   private async ensureRuntimeSession(sessionId: string): Promise<string | undefined> {
-    const row = this.store.getRuntimeSession(sessionId);
+    const row = await this.store.getRuntimeSession(sessionId);
     if (!row) return undefined;
     return row.runtimeSessionId;
   }
 
   private async resumeRuntimeSession(sessionId: string): Promise<string> {
-    const row = this.store.getRuntimeSession(sessionId);
+    const row = await this.store.getRuntimeSession(sessionId);
     if (!row) throw new AppError("NOT_FOUND", `no runtime session for ${sessionId}`);
     const rtSession = await this.ctx.runtime.resumeSession(row.threadId, {
       developerInstructions: INTERVIEWER_SESSION_INSTRUCTIONS,
     });
-    this.store.updateRuntimeSessionStatus(row.id, "resumed");
-    this.store.insertRuntimeSession({
+    await this.store.updateRuntimeSessionStatus(row.id, "resumed");
+    await this.store.insertRuntimeSession({
       id: newId("rts"),
       sessionId,
       runtime: this.ctx.runtime.kind,
@@ -390,19 +390,23 @@ export class InterviewService {
   ): Promise<SubmitAnswerResult> {
     const { text: answerText, code = null, language = null } =
       typeof answer === "string" ? { text: answer } : answer;
-    const session = this.store.getSession(sessionId);
+    const session = await this.store.getSession(sessionId);
     if (!session) throw new AppError("NOT_FOUND", `no session ${sessionId}`);
-    const questions = this.store.listQuestions(sessionId);
-    const active = [...questions]
-      .reverse()
-      .find((q) => !this.store.getEvaluatedAnswerForQuestion(q.id));
+    const questions = await this.store.listQuestions(sessionId);
+    let active: (typeof questions)[number] | undefined;
+    for (const q of [...questions].reverse()) {
+      if (!(await this.store.getEvaluatedAnswerForQuestion(q.id))) {
+        active = q;
+        break;
+      }
+    }
     if (!active) {
       throw new AppError("NOT_FOUND", "no unanswered question in session");
     }
-    const before = this.deps.readiness.graphForActive();
-    this.ctx.transitionSession(sessionId, "answer", "answer");
+    const before = await this.deps.readiness.graphForActive();
+    await this.ctx.transitionSession(sessionId, "answer", "answer");
     const answerId = newId("ans");
-    this.store.insertAnswer({
+    await this.store.insertAnswer({
       id: answerId,
       questionId: active.id,
       sessionId,
@@ -411,7 +415,7 @@ export class InterviewService {
       language,
       createdAt: this.ctx.iso(),
     });
-    this.ctx.transitionSession(sessionId, "evaluating", "evaluate");
+    await this.ctx.transitionSession(sessionId, "evaluating", "evaluate");
 
     const roundType = (session.roundType ?? "mixed") as RoundType;
     const modeDef = getMode(roundType);
@@ -420,7 +424,7 @@ export class InterviewService {
         ? { ...(session.modeState as ModeState) }
         : {};
 
-    const { candidate, target } = this.ctx.requireActive();
+    const { candidate, target } = await this.ctx.requireActive();
     let evaluation: AnswerEvaluation;
     let skillImpact: SubmitAnswerResult["skillImpact"];
     let followUpPending = false;
@@ -446,7 +450,7 @@ export class InterviewService {
           mode: roundType,
           modeState: preModeState,
         },
-        this.ctx.ctx({ sessionId, onProgress: opts?.onProgress }),
+        await this.ctx.ctx({ sessionId, onProgress: opts?.onProgress }),
       );
       // defensive: merge duplicate per-skill entries before persisting
       evaluation = normalizeEvaluation(AnswerEvaluationSchema.parse(evaluation));
@@ -454,7 +458,7 @@ export class InterviewService {
       this.ctx.host.assertCan("answer-evaluator", "interview.write");
       this.ctx.host.assertCan("answer-evaluator", "evidence.write");
       const evalId = newId("eval");
-      this.store.insertEvaluation({
+      await this.store.insertEvaluation({
         id: evalId,
         answerId,
         questionId: active.id,
@@ -478,7 +482,7 @@ export class InterviewService {
           evaluation.strengths.find((st) => st.skill === skillId)?.evidence ??
           evaluation.summary;
         const evidenceId = newId("ev");
-        this.store.insertEvidence({
+        await this.store.insertEvidence({
           id: evidenceId,
           candidateId: candidate.id,
           skillId,
@@ -491,11 +495,11 @@ export class InterviewService {
           createdAt: evidenceCreatedAt,
         });
         createdEvidenceIds.push(evidenceId);
-        this.ctx.registerSkillNode(skillId);
+        await this.ctx.registerSkillNode(skillId);
       }
 
       opts?.onProgress?.({ stage: "updating readiness" });
-      const after = this.deps.readiness.recomputeReadinessInternal("answer");
+      const after = await this.deps.readiness.recomputeReadinessInternal("answer");
       skillImpact = [...new Map(
         evaluation.scores.map((s) => [
           s.skill,
@@ -508,7 +512,7 @@ export class InterviewService {
       ).values()];
       // §9.7: the skillImpact list is persisted on the evaluation as its
       // readiness delta for the History view.
-      this.store.updateEvaluationDelta(
+      await this.store.updateEvaluationDelta(
         evalId,
         skillImpact.map((i) => ({ skillId: i.skillId, before: i.before, after: i.after })),
       );
@@ -539,13 +543,13 @@ export class InterviewService {
             role: target.role,
             level: target.level,
           },
-          this.ctx.ctx({ sessionId }),
+          await this.ctx.ctx({ sessionId }),
         );
-        plan.actions.forEach((a) => {
+        for (const a of plan.actions) {
           const skillId = a.skillId as SkillId;
           const severity = weakTargets.find((w) => w.skill === skillId)?.severity;
           newActions.push(
-            this.deps.preparation.insertPlannedAction(
+            await this.deps.preparation.insertPlannedAction(
               skillId,
               a,
               candidate.id,
@@ -553,8 +557,8 @@ export class InterviewService {
               target.id,
             ),
           );
-        });
-        this.deps.preparation.renumberActionPriorities(
+        }
+        await this.deps.preparation.renumberActionPriorities(
           this.ctx.allRequirements(target),
           target.id,
         );
@@ -568,12 +572,12 @@ export class InterviewService {
           ? evaluation.scores.find((s) => s.skill === focusSkillId)?.score
           : undefined;
         if (demonstrated !== undefined && demonstrated >= 0.7) {
-          this.store.updateActionStatus(session.actionId, "done");
+          await this.store.updateActionStatus(session.actionId, "done");
         } else {
-          const action = this.store.getAction(session.actionId);
+          const action = await this.store.getAction(session.actionId);
           if (action) {
             const existing = (action.sourceEvidenceIds ?? []) as string[];
-            this.store.updateActionSourceEvidence(session.actionId, [
+            await this.store.updateActionSourceEvidence(session.actionId, [
               ...existing,
               ...createdEvidenceIds,
             ]);
@@ -614,12 +618,12 @@ export class InterviewService {
           });
         }
       }
-      this.store.updateSession(sessionId, { modeState });
+      await this.store.updateSession(sessionId, { modeState });
     } catch (err) {
       // keep the session usable: mark the stored answer failed and roll the
       // session back to QUESTION so the answer can be resubmitted.
-      this.store.updateAnswerStatus(answerId, "failed");
-      this.ctx.transitionSession(sessionId, "question", "evaluation_failed");
+      await this.store.updateAnswerStatus(answerId, "failed");
+      await this.ctx.transitionSession(sessionId, "question", "evaluation_failed");
       this.ctx.logger.warn("evaluation.failed", {
         sessionId,
         questionId: active.id,
@@ -628,7 +632,7 @@ export class InterviewService {
       throw err;
     }
 
-    this.ctx.transitionSession(sessionId, "follow_up", "follow_up");
+    await this.ctx.transitionSession(sessionId, "follow_up", "follow_up");
     const mainCount = questions.filter((q) => !q.followUpOf).length;
     const remaining = followUpPending || mainCount < session.plannedQuestions;
     return {

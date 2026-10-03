@@ -73,9 +73,9 @@ describe("practice loop (§8.1)", () => {
     expect(focusScore.score).toBeGreaterThanOrEqual(0.7);
 
     // practice evidence (not interview_answer) was created and raises readiness
-    const practiceEvidence = store
-      .listEvidence()
-      .filter((e) => e.skillId === CACHE_INV && e.type === "practice");
+    const practiceEvidence = (await store.listEvidence()).filter(
+      (e) => e.skillId === CACHE_INV && e.type === "practice",
+    );
     expect(practiceEvidence.length).toBe(1);
     expect(practiceEvidence[0]!.sessionId).toBe(practice.session.id);
 
@@ -83,7 +83,7 @@ describe("practice loop (§8.1)", () => {
     expect(after.readiness!.score!).toBeGreaterThan(beforeScore);
 
     // the linked action is done
-    expect(store.getAction(invAction.id)!.status).toBe("done");
+    expect((await store.getAction(invAction.id))!.status).toBe("done");
 
     // self-check on another action records one self_report evidence
     const state = await orch.getState();
@@ -99,16 +99,16 @@ describe("practice loop (§8.1)", () => {
     expect(done.ok).toBe(true);
     expect(done.evidenceId).not.toBeNull();
 
-    const reports = store
-      .listEvidence()
-      .filter((e) => e.skillId === candidate.skillId && e.type === "self_report");
+    const reports = (await store.listEvidence()).filter(
+      (e) => e.skillId === candidate.skillId && e.type === "self_report",
+    );
     expect(reports.length).toBe(1);
     expect(reports[0]!.score).toBeCloseTo(checked.length / criteria.length, 6);
     expect(reports[0]!.confidence).toBeCloseTo(0.5, 6);
     expect(reports[0]!.observation).toContain(
       `Self-check: met ${checked.length}/${criteria.length} criteria`,
     );
-    expect(store.getAction(candidate.id)!.status).toBe("done");
+    expect((await store.getAction(candidate.id))!.status).toBe("done");
 
     const skillAfter = await orch.getSkillDetail(candidate.skillId);
     expect(skillAfter.readiness!.score).not.toBeNull();
@@ -124,7 +124,7 @@ describe("practice loop (§8.1)", () => {
       await expect(
         orch.completeAction(third.id, { checkedCriteria: ["not a real criterion"] }),
       ).rejects.toThrow(/criteria/i);
-      expect(store.getAction(third.id)!.status).not.toBe("done");
+      expect((await store.getAction(third.id))!.status).not.toBe("done");
     }
   }, 60_000);
 });

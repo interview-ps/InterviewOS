@@ -74,15 +74,15 @@ describe("InterviewOrchestrator", () => {
       orch.submitAnswer(session.id, "Some answer text."),
     ).rejects.toThrow();
 
-    expect(store.getSession(session.id)!.status).toBe("question");
-    const answers = store.listAnswers(session.id);
+    expect((await store.getSession(session.id))!.status).toBe("question");
+    const answers = await store.listAnswers(session.id);
     expect(answers).toHaveLength(1);
     expect(answers[0]!.status).toBe("failed");
 
     // resubmission works against the same question
     const result = await orch.submitAnswer(session.id, "A better answer.");
     expect(result.evaluation.scores.length).toBeGreaterThan(0);
-    expect(store.getSession(session.id)!.status).toBe("follow_up");
+    expect((await store.getSession(session.id))!.status).toBe("follow_up");
   });
 
   it("interview-evidenced actions outrank generic gap actions after renumbering", async () => {
@@ -95,8 +95,7 @@ describe("InterviewOrchestrator", () => {
       "I would put Redis in front of the database using cache-aside so reads are fast.",
     );
 
-    const open = store
-      .listActions()
+    const open = (await store.listActions())
       .filter((a) => a.status === "open" || a.status === "in_progress")
       .sort((a, b) => a.priority - b.priority);
     expect(open.length).toBeGreaterThan(1);
@@ -135,12 +134,12 @@ describe("InterviewOrchestrator", () => {
     await orch.setupWorkspace(SETUP);
     const { session } = await orch.startInterview({ plannedQuestions: 1 });
     if (!session) throw new Error("no session");
-    const q = store.listQuestions(session.id)[0]!;
+    const q = (await store.listQuestions(session.id))[0]!;
 
     // rows shaped like pre-§9.1 storage: no `rubric` in evaluation JSON, and
     // a roundType no registered mode knows
-    store.updateSession(session.id, { roundType: "legacy-round" });
-    store.insertAnswer({
+    await store.updateSession(session.id, { roundType: "legacy-round" });
+    await store.insertAnswer({
       id: "ans_legacy",
       questionId: q.id,
       sessionId: session.id,
@@ -148,7 +147,7 @@ describe("InterviewOrchestrator", () => {
       status: "evaluated",
       createdAt: new Date().toISOString(),
     });
-    store.insertEvaluation({
+    await store.insertEvaluation({
       id: "ev_legacy",
       answerId: "ans_legacy",
       questionId: q.id,
@@ -167,10 +166,10 @@ describe("InterviewOrchestrator", () => {
       createdAt: new Date().toISOString(),
     });
 
-    const entry = orch.getSessionHistory(session.id);
+    const entry = await orch.getSessionHistory(session.id);
     expect(entry.session.modeLabel).toBe("Mixed");
     expect(entry.questions[0]!.weak).toBe(true); // mean of scores = 0.2 < 0.5
     expect(entry.questions[0]!.evaluation).not.toBeNull();
-    expect(() => orch.getHistory({})).not.toThrow();
+    await expect(orch.getHistory({})).resolves.toBeDefined();
   });
 });

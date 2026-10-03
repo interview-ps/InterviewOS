@@ -16,7 +16,7 @@ export interface TargetServiceDeps {
   readiness: ReadinessService;
   preparation: PreparationService;
   workspace: WorkspaceService;
-  recordUsageEvent(event: string): void;
+  recordUsageEvent(event: string): Promise<void>;
 }
 
 export class TargetService {
@@ -30,8 +30,8 @@ export class TargetService {
     return this.ctx.store;
   }
 
-  listTargets() {
-    return this.store.listTargets().map((t) => {
+  async listTargets() {
+    return (await this.store.listTargets()).map((t) => {
       const parsed = TargetRoleSchema.safeParse(t.data);
       const data = parsed.success ? parsed.data : null;
       return {
@@ -54,7 +54,7 @@ export class TargetService {
 
   /** Add another target role for the active candidate; becomes the active target. */
   async addTarget(input: TargetInput, opts?: ProgressOptions) {
-    const { candidate } = this.ctx.requireActive();
+    const { candidate } = await this.ctx.requireActive();
     if (!candidate.id || candidate.id === "none") {
       throw new AppError("NO_ACTIVE_PROFILE", "no active candidate");
     }
@@ -69,11 +69,11 @@ export class TargetService {
           level: input.level,
           taxonomy: taxonomyEntries(),
         },
-        this.ctx.ctx({ onProgress: opts?.onProgress }),
+        await this.ctx.ctx({ onProgress: opts?.onProgress }),
       ),
       this.deps.workspace.profileCompany(input),
     ]);
-    const target = this.deps.workspace.persistTarget(input, output, profile);
+    const target = await this.deps.workspace.persistTarget(input, output, profile);
     opts?.onProgress?.({ stage: "calculating gaps" });
     opts?.onProgress?.({ stage: "building prep plan" });
     const { actions } = await this.deps.preparation.buildPreparationPlanInternal();
@@ -82,12 +82,12 @@ export class TargetService {
   }
 
   async activateTarget(id: string) {
-    const row = this.store.getTarget(id);
+    const row = await this.store.getTarget(id);
     if (!row) throw new AppError("NOT_FOUND", `no target ${id}`);
-    this.store.activateTarget(id);
-    this.deps.recordUsageEvent("target.switched");
+    await this.store.activateTarget(id);
+    await this.deps.recordUsageEvent("target.switched");
     this.ctx.logger.info("state.mutated", { entity: "target", id, active: true });
-    const openActions = this.store.listActions("open", id);
+    const openActions = await this.store.listActions("open", id);
     let actions: PrepActionRowLike[] = openActions.map(rowToAction);
     if (openActions.length === 0) {
       const plan = await this.deps.preparation.buildPreparationPlanInternal();
@@ -108,7 +108,7 @@ export class TargetService {
    * overlay (§8.4) re-applies on top. Then readiness + plan rebuild.
    */
   async updateTargetCompanyProfile(targetId: string, companyProfileId: string) {
-    const row = this.store.getTarget(targetId);
+    const row = await this.store.getTarget(targetId);
     if (!row) throw new AppError("NOT_FOUND", `no target ${targetId}`);
     if (!COMPANY_PROFILES.some((p) => p.id === companyProfileId)) {
       throw new AppError("VALIDATION", `unknown company profile "${companyProfileId}"`);
@@ -122,13 +122,13 @@ export class TargetService {
     target.preferredSkills = target.preferredSkills.map((r) =>
       this.deps.workspace.applyRequirementBoosts(r, companyProfileId, notesFocus),
     );
-    this.store.updateTargetData(targetId, target as unknown as object);
+    await this.store.updateTargetData(targetId, target as unknown as object);
     this.ctx.logger.info("state.mutated", {
       entity: "target",
       id: targetId,
       companyProfileId,
     });
-    this.deps.readiness.recomputeReadinessInternal("company-profile");
+    await this.deps.readiness.recomputeReadinessInternal("company-profile");
     const { actions } = await this.deps.preparation.buildPreparationPlanInternal();
     return { target, actions };
   }

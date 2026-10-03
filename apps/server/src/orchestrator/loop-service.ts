@@ -51,7 +51,7 @@ export class LoopService {
    * its first question generated.
    */
   async startLoop(input: { rounds?: LoopRoundInput[] } = {}, opts?: ProgressOptions) {
-    const { target } = this.ctx.requireActive();
+    const { target } = await this.ctx.requireActive();
     const profile = getCompanyProfile(target.companyProfileId ?? "generic");
     const defs: LoopRoundInput[] =
       input.rounds ??
@@ -76,7 +76,7 @@ export class LoopService {
       return r;
     });
     const loopId = newId("loop");
-    this.store.insertLoop({
+    await this.store.insertLoop({
       id: loopId,
       targetId: target.id,
       companyProfileId: profile.id,
@@ -87,18 +87,18 @@ export class LoopService {
     });
     this.ctx.logger.info("state.mutated", { entity: "loop", id: loopId, rounds: rounds.length });
     const first = await this.openLoopRound(loopId, 0, opts);
-    return { loop: this.viewLoop(loopId), session: first.session, question: first.question };
+    return { loop: await this.viewLoop(loopId), session: first.session, question: first.question };
   }
 
   /** Create the session for loop round `idx` and generate its first question. */
   private async openLoopRound(loopId: string, idx: number, opts?: ProgressOptions) {
-    const loop = this.store.getLoop(loopId);
+    const loop = await this.store.getLoop(loopId);
     if (!loop) throw new AppError("NOT_FOUND", `no loop ${loopId}`);
     const rounds = [...(loop.rounds as LoopRound[])];
     const round = rounds[idx];
     if (!round) throw new AppError("INTERNAL", `loop ${loopId} has no round ${idx + 1}`);
     round.status = "in_progress";
-    round.readinessBefore = this.readinessSnapshot();
+    round.readinessBefore = await this.readinessSnapshot();
     const created = await this.deps.interview.startInterviewInternal(
       {
         roundType: round.mode,
@@ -112,14 +112,14 @@ export class LoopService {
       throw new AppError("INTERNAL", `loop ${loopId} round ${idx + 1} produced no session`);
     }
     round.sessionId = created.session.id;
-    this.store.updateLoop(loopId, { rounds, currentRound: idx + 1, status: "in_progress" });
+    await this.store.updateLoop(loopId, { rounds, currentRound: idx + 1, status: "in_progress" });
     return created;
   }
 
   /** Overall + per-requirement readiness snapshot at a round boundary. */
-  private readinessSnapshot(): ReadinessSnapshot {
-    const { target } = this.ctx.requireActive();
-    const graph = this.deps.readiness.graphForActive();
+  private async readinessSnapshot(): Promise<ReadinessSnapshot> {
+    const { target } = await this.ctx.requireActive();
+    const graph = await this.deps.readiness.graphForActive();
     const requirements: Record<string, number | null> = {};
     for (const req of this.ctx.allRequirements(target)) {
       requirements[req.skillId] = graph.dimensions[req.skillId]?.score ?? null;
@@ -128,13 +128,13 @@ export class LoopService {
   }
 
   /** Prior rounds' weak skills (for the engine) + observations (for prompts). */
-  loopContextFor(session: SessionRow): {
+  async loopContextFor(session: SessionRow): Promise<{
     priorWeakSkills: { skillId: SkillId; round: number; mode: RoundType }[];
     priorRoundObservations: string[];
-  } {
+  }> {
     const empty = { priorWeakSkills: [], priorRoundObservations: [] };
     if (!session.loopId || !session.loopRound) return empty;
-    const loop = this.store.getLoop(session.loopId);
+    const loop = await this.store.getLoop(session.loopId);
     if (!loop) return empty;
     const earlier = (loop.rounds as LoopRound[]).slice(0, session.loopRound - 1);
     const priorWeakSkills = earlier.flatMap((r, i) =>
@@ -224,8 +224,8 @@ export class LoopService {
    * readinessAfter, then open the next round or run the loop debrief.
    */
   async advanceLoopInternal(sessionId: string, opts?: ProgressOptions) {
-    const session = this.store.getSession(sessionId);
-    const loop = session?.loopId ? this.store.getLoop(session.loopId) : undefined;
+    const session = await this.store.getSession(sessionId);
+    const loop = session?.loopId ? await this.store.getLoop(session.loopId) : undefined;
     if (!session || !loop) return { loop: null, nextSession: null, nextQuestion: null };
     const rounds = [...(loop.rounds as LoopRound[])];
     const idx = (session.loopRound ?? 1) - 1;
@@ -233,20 +233,20 @@ export class LoopService {
     if (!round || round.status === "complete") {
       return { loop: this.viewLoopRow(loop), nextSession: null, nextQuestion: null };
     }
-    const evaluationRows = this.store.listEvaluations(sessionId);
+    const evaluationRows = await this.store.listEvaluations(sessionId);
     const evaluations = evaluationRows.map(
       (r) => r.data as unknown as AnswerEvaluation,
     );
     round.handoff = this.computeHandoff(evaluations);
     round.skillDeltas = this.computeSkillDeltas(evaluationRows);
-    round.readinessAfter = this.readinessSnapshot();
+    round.readinessAfter = await this.readinessSnapshot();
     round.status = "complete";
-    this.store.updateLoop(loop.id, { rounds });
+    await this.store.updateLoop(loop.id, { rounds });
 
     if (idx + 1 < rounds.length) {
       const next = await this.openLoopRound(loop.id, idx + 1, opts);
       return {
-        loop: this.viewLoop(loop.id),
+        loop: await this.viewLoop(loop.id),
         nextSession: next.session,
         nextQuestion: next.question,
       };
@@ -255,13 +255,13 @@ export class LoopService {
     opts?.onProgress?.({ stage: "writing loop debrief" });
     const debrief = await this.createLoopDebrief(rounds, opts);
     this.ctx.host.assertCan("loop-debrief", "interview.write");
-    this.store.updateLoop(loop.id, {
+    await this.store.updateLoop(loop.id, {
       rounds,
       status: "complete",
       completedAt: this.ctx.iso(),
       debrief: debrief as unknown as object,
     });
-    return { loop: this.viewLoop(loop.id), nextSession: null, nextQuestion: null };
+    return { loop: await this.viewLoop(loop.id), nextSession: null, nextQuestion: null };
   }
 
   /** The loop-debrief skill call (§9.4) — never produces a hire/no-hire verdict. */
@@ -269,48 +269,50 @@ export class LoopService {
     rounds: LoopRound[],
     opts?: ProgressOptions,
   ): Promise<LoopDebrief> {
-    const { target } = this.ctx.requireActive();
+    const { target } = await this.ctx.requireActive();
+    const roundSummaries = [];
+    for (const r of rounds) {
+      const evals = r.sessionId
+        ? (await this.store.listEvaluations(r.sessionId)).map(
+            (e) => e.data as unknown as AnswerEvaluation,
+          )
+        : [];
+      const acc = new Map<string, { sum: number; n: number }>();
+      for (const e of evals) {
+        for (const d of e.rubric ?? []) {
+          const a = acc.get(d.id) ?? { sum: 0, n: 0 };
+          a.sum += d.score;
+          a.n += 1;
+          acc.set(d.id, a);
+        }
+      }
+      roundSummaries.push({
+        mode: r.mode,
+        label: r.label,
+        summaries: evals.map((e) => e.summary),
+        rubricAverages: Object.fromEntries(
+          [...acc].map(([k, v]) => [k, v.sum / v.n]),
+        ),
+        handoff: r.handoff,
+      });
+    }
     return this.ctx.host.invoke(
       loopDebrief,
       {
         role: target.role,
         company: target.company,
-        rounds: rounds.map((r) => {
-          const evals = r.sessionId
-            ? this.store
-                .listEvaluations(r.sessionId)
-                .map((e) => e.data as unknown as AnswerEvaluation)
-            : [];
-          const acc = new Map<string, { sum: number; n: number }>();
-          for (const e of evals) {
-            for (const d of e.rubric ?? []) {
-              const a = acc.get(d.id) ?? { sum: 0, n: 0 };
-              a.sum += d.score;
-              a.n += 1;
-              acc.set(d.id, a);
-            }
-          }
-          return {
-            mode: r.mode,
-            label: r.label,
-            summaries: evals.map((e) => e.summary),
-            rubricAverages: Object.fromEntries(
-              [...acc].map(([k, v]) => [k, v.sum / v.n]),
-            ),
-            handoff: r.handoff,
-          };
-        }),
+        rounds: roundSummaries,
         readinessChange: {
           before: rounds[0]?.readinessBefore?.overall ?? null,
           after: rounds[rounds.length - 1]?.readinessAfter?.overall ?? null,
         },
       },
-      this.ctx.ctx({ onProgress: opts?.onProgress }),
+      await this.ctx.ctx({ onProgress: opts?.onProgress }),
     );
   }
 
-  private viewLoop(id: string) {
-    const loop = this.store.getLoop(id);
+  private async viewLoop(id: string) {
+    const loop = await this.store.getLoop(id);
     return loop ? this.viewLoopRow(loop) : null;
   }
 
@@ -323,33 +325,33 @@ export class LoopService {
     };
   }
 
-  getLoop(id: string) {
-    const loop = this.viewLoop(id);
+  async getLoop(id: string) {
+    const loop = await this.viewLoop(id);
     if (!loop) throw new AppError("NOT_FOUND", `no loop ${id}`);
     return loop;
   }
 
-  listLoops() {
-    return this.store.listLoops().map((l) => this.viewLoopRow(l));
+  async listLoops() {
+    return (await this.store.listLoops()).map((l) => this.viewLoopRow(l));
   }
 
   /** Abandon an in-progress loop: current session completed, loop closed. */
   async abandonLoop(id: string) {
-    const loop = this.store.getLoop(id);
+    const loop = await this.store.getLoop(id);
     if (!loop) throw new AppError("NOT_FOUND", `no loop ${id}`);
     if (loop.status === "complete") return this.viewLoopRow(loop);
     const rounds = [...(loop.rounds as LoopRound[])];
     const current = rounds[loop.currentRound - 1];
     if (current?.sessionId) {
-      const s = this.store.getSession(current.sessionId);
-      if (s?.status === "ready") this.ctx.transitionSession(s.id, "question", "ask");
-      const s2 = this.store.getSession(current.sessionId);
+      const s = await this.store.getSession(current.sessionId);
+      if (s?.status === "ready") await this.ctx.transitionSession(s.id, "question", "ask");
+      const s2 = await this.store.getSession(current.sessionId);
       if (s2 && (s2.status === "question" || s2.status === "follow_up")) {
-        this.ctx.transitionSession(s2.id, "complete", "complete");
-        this.store.updateSession(s2.id, { completedAt: this.ctx.iso() });
+        await this.ctx.transitionSession(s2.id, "complete", "complete");
+        await this.store.updateSession(s2.id, { completedAt: this.ctx.iso() });
       }
     }
-    this.store.updateLoop(id, {
+    await this.store.updateLoop(id, {
       rounds,
       status: "complete",
       abandoned: 1,

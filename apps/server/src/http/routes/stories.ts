@@ -6,7 +6,7 @@ import { StoryPatchSchema } from "../schemas.js";
 
 export const storiesRoutes = new Hono<AppEnv>();
 
-storiesRoutes.get("/", (c) => c.json(c.var.orchestrator.listStories()));
+storiesRoutes.get("/", async (c) => c.json(await c.var.orchestrator.listStories()));
 
 storiesRoutes.post("/generate", async (c) => {
   return streamOrJson(c, (onProgress) =>

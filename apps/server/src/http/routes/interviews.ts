@@ -34,10 +34,10 @@ interviewsRoutes.post("/", async (c) => {
   );
 });
 
-interviewsRoutes.get("/", (c) => c.json(c.var.orchestrator.listInterviews()));
+interviewsRoutes.get("/", async (c) => c.json(await c.var.orchestrator.listInterviews()));
 
-interviewsRoutes.get("/:id", (c) =>
-  c.json(c.var.orchestrator.getInterview(c.req.param("id"))),
+interviewsRoutes.get("/:id", async (c) =>
+  c.json(await c.var.orchestrator.getInterview(c.req.param("id"))),
 );
 
 interviewsRoutes.post("/:id/answer", async (c) => {
@@ -62,8 +62,8 @@ interviewsRoutes.post("/:id/complete", async (c) => {
   );
 });
 
-interviewsRoutes.get("/:id/debrief", (c) => {
-  const interview = c.var.orchestrator.getInterview(c.req.param("id"));
+interviewsRoutes.get("/:id/debrief", async (c) => {
+  const interview = await c.var.orchestrator.getInterview(c.req.param("id"));
   if (!interview.debrief) {
     return c.json(
       { error: { code: "NOT_FOUND", message: "no debrief for this session" } },

@@ -297,7 +297,7 @@ describe("runtime detection + switching", () => {
     const body = await json(res);
     expect(body.mode).toBe("claude");
     expect(manager.kind).toBe("claude");
-    expect(store.getSetting("runtimeKind")).toBe("claude");
+    expect(await store.getSetting("runtimeKind")).toBe("claude");
 
     const status = await json(await app.request("/api/runtime/status"));
     expect(status.mode).toBe("claude");

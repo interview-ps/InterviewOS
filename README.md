@@ -94,7 +94,7 @@ INTERVIEW_OS_RUNTIME=mock pnpm dev
 
 Open [http://localhost:3000](http://localhost:3000). The web app runs on port 3000 and the API on port 4100. To use your local Codex installation instead, stop the mock server and run `pnpm dev`.
 
-On Windows PowerShell, start mock mode with `$env:INTERVIEW_OS_RUNTIME="mock"; pnpm dev`. If your machine blocks `pnpm.exe` under Application Control, use `corepack pnpm` for the commands above. For other Windows install failures — a `better-sqlite3` build error or `corepack pnpm` not launching — see the [Windows setup notes](CONTRIBUTING.md#setup), which also cover the test-runner caveat.
+On Windows PowerShell, start mock mode with `$env:INTERVIEW_OS_RUNTIME="mock"; pnpm dev`. If your machine blocks `pnpm.exe` under Application Control, use `corepack pnpm` for the commands above. For other Windows install failures — `corepack pnpm` not launching — see the [Windows setup notes](CONTRIBUTING.md#setup), which also cover the test-runner caveat.
 
 ### Try the feedback loop
 

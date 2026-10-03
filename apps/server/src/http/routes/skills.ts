@@ -14,8 +14,8 @@ skillsRoutes.get("/", (c) =>
 
 skillsRoutes.post("/events", async (c) => {
   const { event } = await parseBody(c, UsageEventSchema);
-  c.var.orchestrator.recordUsageEvent(event);
+  await c.var.orchestrator.recordUsageEvent(event);
   return c.json({ ok: true });
 });
 
-skillsRoutes.get("/metrics", (c) => c.json(c.var.orchestrator.getMetrics()));
+skillsRoutes.get("/metrics", async (c) => c.json(await c.var.orchestrator.getMetrics()));

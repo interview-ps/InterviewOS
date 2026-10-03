@@ -5,7 +5,7 @@ import { SettingsSchema } from "../schemas.js";
 
 export const settingsRoutes = new Hono<AppEnv>();
 
-settingsRoutes.get("/", (c) => c.json(c.var.orchestrator.getSettings()));
+settingsRoutes.get("/", async (c) => c.json(await c.var.orchestrator.getSettings()));
 
 settingsRoutes.put("/", async (c) =>
   c.json(await c.var.orchestrator.updateSettings(await parseBody(c, SettingsSchema))),

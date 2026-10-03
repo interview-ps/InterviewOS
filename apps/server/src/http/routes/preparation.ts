@@ -12,7 +12,7 @@ preparationRoutes.get("/", async (c) => {
   const state = await c.var.orchestrator.getState();
   return c.json({
     nextActions: state.preparation.nextActions,
-    actions: c.var.orchestrator.listPreparationActions(),
+    actions: await c.var.orchestrator.listPreparationActions(),
   });
 });
 

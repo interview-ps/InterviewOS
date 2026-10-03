@@ -19,11 +19,11 @@ export class PreparationService {
     actions: PrepActionRowLike[];
     created: PrepActionRowLike[];
   }> {
-    const { target, candidate } = this.ctx.requireActive();
-    const gaps = this.readiness.calculateGapsInternal();
-    const evidence = this.ctx.evidenceForActive(candidate.id);
+    const { target, candidate } = await this.ctx.requireActive();
+    const gaps = await this.readiness.calculateGapsInternal();
+    const evidence = await this.ctx.evidenceForActive(candidate.id);
     const openSkills = new Set(
-      this.store.listActions("open", target.id).map((a) => a.skillId),
+      (await this.store.listActions("open", target.id)).map((a) => a.skillId),
     );
 
     const targets: Array<{
@@ -69,57 +69,59 @@ export class PreparationService {
       const plan: PrepPlannerOutput = await this.ctx.host.invoke(
         prepPlanner,
         { targets, role: target.role, level: target.level },
-        this.ctx.ctx(),
+        await this.ctx.ctx(),
       );
       const bySkill = new Map(plan.actions.map((a) => [a.skillId, a]));
-      targets.forEach((t) => {
+      for (const t of targets) {
         const action = bySkill.get(t.skillId) ?? bySkill.get(t.skillId as string);
-        if (!action) return;
+        if (!action) continue;
         created.push(
-          this.insertPlannedAction(t.skillId, action, candidate.id, t.severity, target.id),
+          await this.insertPlannedAction(t.skillId, action, candidate.id, t.severity, target.id),
         );
-      });
+      }
     }
 
-    this.renumberActionPriorities(this.ctx.allRequirements(target), target.id);
+    await this.renumberActionPriorities(this.ctx.allRequirements(target), target.id);
 
-    const actions = this.store
-      .listActions(undefined, target.id)
+    const actions = (await this.store.listActions(undefined, target.id))
       .filter((a) => a.status === "open" || a.status === "in_progress")
       .map(rowToAction);
     return { actions, created };
   }
 
-  insertPlannedAction(
+  async insertPlannedAction(
     skillId: SkillId,
     action: { action: string; successCriteria: string[]; reason: string },
     candidateId: string,
     severity: "low" | "medium" | "high" = "medium",
     targetId?: string,
-  ): PrepActionRowLike {
+  ): Promise<PrepActionRowLike> {
     // §9.6: planned actions persist prep-planner output.
     this.ctx.host.assertCan("prep-planner", "preparation.write");
-    const existing = this.store.openActionForSkill(skillId, targetId);
-    if (existing) this.store.updateActionStatus(existing.id, "superseded");
-    const sourceEvidenceIds = this.store
-      .evidenceForSkill(skillId, candidateId)
-      .map((e) => e.id);
-    const row = {
-      id: newId("action"),
-      skillId,
-      targetId: targetId ?? null,
-      priority: 0, // renumbered by renumberActionPriorities
-      reason: action.reason,
-      action: action.action,
-      successCriteria: action.successCriteria,
-      status: "open",
-      severity,
-      createdAt: this.ctx.iso(),
-      sourceEvidenceIds,
-    };
-    this.store.insertAction(row);
-    this.ctx.logger.info("state.mutated", { entity: "prep_action", id: row.id, skillId });
-    return rowToAction({ ...row, successCriteria: action.successCriteria, sourceEvidenceIds });
+    // Atomic supersede + insert: a failure must not drop the action entirely.
+    return this.store.transaction(async (tx) => {
+      const existing = await tx.openActionForSkill(skillId, targetId);
+      if (existing) await tx.updateActionStatus(existing.id, "superseded");
+      const sourceEvidenceIds = (await tx.evidenceForSkill(skillId, candidateId)).map(
+        (e) => e.id,
+      );
+      const row = {
+        id: newId("action"),
+        skillId,
+        targetId: targetId ?? null,
+        priority: 0, // renumbered by renumberActionPriorities
+        reason: action.reason,
+        action: action.action,
+        successCriteria: action.successCriteria,
+        status: "open",
+        severity,
+        createdAt: this.ctx.iso(),
+        sourceEvidenceIds,
+      };
+      await tx.insertAction(row);
+      this.ctx.logger.info("state.mutated", { entity: "prep_action", id: row.id, skillId });
+      return rowToAction({ ...row, successCriteria: action.successCriteria, sourceEvidenceIds });
+    });
   }
 
   /**
@@ -127,7 +129,7 @@ export class PreparationService {
    * outrank generic gap actions: severityWeight × 1.5(if interview evidence)
    * × nearest requirement importance; ties by createdAt desc then skillId.
    */
-  renumberActionPriorities(requirements: Requirement[], targetId?: string): void {
+  async renumberActionPriorities(requirements: Requirement[], targetId?: string): Promise<void> {
     const reqMap = new Map(requirements.map((r) => [r.skillId, r]));
     const nearestReq = (skillId: string): Requirement | undefined => {
       let cur: string | null = skillId;
@@ -138,40 +140,42 @@ export class PreparationService {
       }
       return undefined;
     };
-    const interviewEvidenceIds = new Set(
-      this.store
-        .listEvidence()
-        .filter((e) => e.type === "interview_answer")
-        .map((e) => e.id),
-    );
     const sevW = { high: 3, medium: 2, low: 1 } as Record<string, number>;
-    const open = this.store
-      .listActions(undefined, targetId)
-      .filter((a) => a.status === "open" || a.status === "in_progress");
-    const scored = open.map((a) => {
-      const sourceIds = (a.sourceEvidenceIds ?? []) as string[];
-      const hasInterviewEvidence = sourceIds.some((id) =>
-        interviewEvidenceIds.has(id),
+    // Atomic renumber: priorities are a unique 1..n invariant, so never leave a
+    // half-renumbered plan visible.
+    await this.store.transaction(async (tx) => {
+      const interviewEvidenceIds = new Set(
+        (await tx.listEvidence())
+          .filter((e) => e.type === "interview_answer")
+          .map((e) => e.id),
       );
-      const score =
-        (sevW[a.severity] ?? 2) *
-        (hasInterviewEvidence ? 1.5 : 1) *
-        (nearestReq(a.skillId)?.importance ?? 0.5);
-      return { action: a, score };
+      const open = (await tx.listActions(undefined, targetId))
+        .filter((a) => a.status === "open" || a.status === "in_progress");
+      const scored = open.map((a) => {
+        const sourceIds = (a.sourceEvidenceIds ?? []) as string[];
+        const hasInterviewEvidence = sourceIds.some((id) =>
+          interviewEvidenceIds.has(id),
+        );
+        const score =
+          (sevW[a.severity] ?? 2) *
+          (hasInterviewEvidence ? 1.5 : 1) *
+          (nearestReq(a.skillId)?.importance ?? 0.5);
+        return { action: a, score };
+      });
+      scored.sort(
+        (x, y) =>
+          y.score - x.score ||
+          y.action.createdAt.localeCompare(x.action.createdAt) ||
+          x.action.skillId.localeCompare(y.action.skillId),
+      );
+      for (const [i, { action }] of scored.entries()) {
+        await tx.updateActionPriority(action.id, i + 1);
+      }
     });
-    scored.sort(
-      (x, y) =>
-        y.score - x.score ||
-        y.action.createdAt.localeCompare(x.action.createdAt) ||
-        x.action.skillId.localeCompare(y.action.skillId),
-    );
-    scored.forEach(({ action }, i) =>
-      this.store.updateActionPriority(action.id, i + 1),
-    );
   }
 
-  listPreparationActions(): PrepActionRowLike[] {
-    return this.store.listActions().map(rowToAction);
+  async listPreparationActions(): Promise<PrepActionRowLike[]> {
+    return (await this.store.listActions()).map(rowToAction);
   }
 
   /**
@@ -180,9 +184,9 @@ export class PreparationService {
    * recomputes readiness and rebuilds the plan.
    */
   async completeAction(actionId: string, opts: { checkedCriteria?: string[] } = {}) {
-    const action = this.store.getAction(actionId);
+    const action = await this.store.getAction(actionId);
     if (!action) throw new AppError("NOT_FOUND", `no prep action ${actionId}`);
-    const { candidate } = this.ctx.requireActive();
+    const { candidate } = await this.ctx.requireActive();
     const criteria =
       (Array.isArray(action.successCriteria)
         ? action.successCriteria
@@ -196,7 +200,7 @@ export class PreparationService {
       }
       const checked = opts.checkedCriteria;
       evidenceId = newId("ev");
-      this.store.insertEvidence({
+      await this.store.insertEvidence({
         id: evidenceId,
         candidateId: candidate.id,
         skillId: action.skillId,
@@ -208,18 +212,18 @@ export class PreparationService {
       });
     }
 
-    this.store.updateActionStatus(actionId, "done");
+    await this.store.updateActionStatus(actionId, "done");
     this.ctx.logger.info("state.mutated", { entity: "prep_action", id: actionId, status: "done" });
-    this.readiness.recomputeReadinessInternal("practice");
+    await this.readiness.recomputeReadinessInternal("practice");
     const { actions } = await this.buildPreparationPlanInternal();
     return { ok: true, evidenceId, actions };
   }
 
-  updateActionStatus(
+  async updateActionStatus(
     actionId: string,
     status: "open" | "in_progress" | "done" | "superseded",
-  ): void {
-    this.store.updateActionStatus(actionId, status);
+  ): Promise<void> {
+    await this.store.updateActionStatus(actionId, status);
     this.ctx.logger.info("state.mutated", { entity: "prep_action", id: actionId, status });
   }
 }

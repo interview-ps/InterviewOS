@@ -6,7 +6,7 @@ contradict it.
 
 ## What this package is
 The backend application layer. It owns the Hono HTTP API (`:4100`), the SQLite database
-(drizzle + better-sqlite3), the `InterviewOrchestrator` composition root, the skill
+(drizzle + built-in `node:sqlite` via `drizzle-orm/sqlite-proxy`), the `InterviewOrchestrator` composition root, the skill
 implementations, and the provider child processes. It depends on `@interview-os/core`
 (schemas/domain) and `@interview-os/runtime` (`AIRuntime`). It is never imported by either.
 
