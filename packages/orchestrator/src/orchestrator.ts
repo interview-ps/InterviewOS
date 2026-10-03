@@ -459,7 +459,13 @@ export class InterviewOrchestrator {
     const [output, profile] = await Promise.all([
       this.host.invoke(
         jdAnalyzer,
-        { ...input, taxonomy: taxonomyEntries() },
+        {
+          jobDescription: input.jobDescription,
+          company: input.company,
+          role: input.role,
+          level: input.level,
+          taxonomy: taxonomyEntries(),
+        },
         this.ctx(),
       ),
       this.profileCompany(input),
@@ -584,7 +590,13 @@ export class InterviewOrchestrator {
       const [output, profile] = await Promise.all([
         this.host.invoke(
           jdAnalyzer,
-          { ...input, taxonomy: taxonomyEntries() },
+          {
+            jobDescription: input.jobDescription,
+            company: input.company,
+            role: input.role,
+            level: input.level,
+            taxonomy: taxonomyEntries(),
+          },
           this.ctx({ onProgress: opts?.onProgress }),
         ),
         this.profileCompany(input),

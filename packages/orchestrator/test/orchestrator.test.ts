@@ -105,6 +105,31 @@ describe("InterviewOrchestrator", () => {
     expect(open.map((a) => a.priority)).toEqual(open.map((_, i) => i + 1));
   });
 
+  it("accepts companyNotes on target analysis routes (no undeclared skill inputs)", async () => {
+    const { orch } = makeOrchestrator();
+    const notes = "We value ownership and reliability. Python services everywhere.";
+
+    const analyzed = await orch.analyzeTarget({
+      jobDescription: JD,
+      company: "Acme",
+      role: "Backend Engineer",
+      level: "senior",
+      companyNotes: notes,
+    });
+    expect(analyzed.companyNotes).toBe(notes);
+    expect(analyzed.companyProfile?.focusSkillIds.length).toBeGreaterThan(0);
+
+    await orch.setupWorkspace(SETUP);
+    const added = await orch.addTarget({
+      jobDescription: JD,
+      company: "Other Co",
+      role: "Backend Engineer",
+      level: "senior",
+      companyNotes: notes,
+    });
+    expect(added.target.companyNotes).toBe(notes);
+  });
+
   it("history survives legacy rows: evaluation without rubric, unknown roundType", async () => {
     const { orch, store } = makeOrchestrator();
     await orch.setupWorkspace(SETUP);
