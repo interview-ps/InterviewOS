@@ -37,10 +37,15 @@ export {
   RUNTIME_KINDS,
   DEFAULT_WORKSPACE_DIR,
   HEALTH_CHECKERS,
+  allRuntimeKinds,
+  healthCheckerFor,
   isRuntimeKind,
+  loadRuntimeProviders,
+  registerRuntimeProvider,
+  registeredRuntimeProviders,
   workspaceDirFor,
 } from "./providers.js";
-export type { RuntimeHealthChecker } from "./providers.js";
+export type { RuntimeHealthChecker, RuntimeProviderSpec } from "./providers.js";
 
 export interface CreateRuntimeOptions {
   env?: NodeJS.ProcessEnv;

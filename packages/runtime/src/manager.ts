@@ -14,8 +14,8 @@ import {
   type SessionInput,
 } from "./interface/index.js";
 import {
-  HEALTH_CHECKERS,
-  RUNTIME_KINDS,
+  allRuntimeKinds,
+  healthCheckerFor,
   instantiateProvider,
   isRuntimeKind,
   workspaceDirFor,
@@ -73,20 +73,23 @@ async function instantiate(
  */
 export class RuntimeManager implements AIRuntime {
   private current: AIRuntime;
+  private currentKind: RuntimeKind;
   private disposed = false;
 
   private constructor(
     private readonly opts: RuntimeManagerOptions,
     initial: AIRuntime,
+    initialKind: RuntimeKind,
   ) {
     this.current = initial;
+    this.currentKind = initialKind;
   }
 
   static async create(opts: RuntimeManagerOptions): Promise<RuntimeManager> {
     const env = opts.env;
     const logger = opts.logger ?? createLogger({ level: "warn" });
     const rawKind = env.INTERVIEW_OS_RUNTIME ?? opts.preferredKind ?? "codex";
-    const kind = isRuntimeKind(rawKind) ? (rawKind as RuntimeKind) : "codex";
+    let kind = isRuntimeKind(rawKind) ? (rawKind as RuntimeKind) : "codex";
 
     let runtime = await instantiate(opts, kind);
     const status = await runtime.healthCheck();
@@ -99,6 +102,7 @@ export class RuntimeManager implements AIRuntime {
         });
         await runtime.dispose();
         runtime = await instantiate(opts, "mock");
+        kind = "mock";
       } else {
         logger.warn("runtime.unavailable", {
           runtime: kind,
@@ -106,13 +110,13 @@ export class RuntimeManager implements AIRuntime {
         });
       }
     }
-    const manager = new RuntimeManager(opts, runtime);
+    const manager = new RuntimeManager(opts, runtime, kind);
     opts.onSwitch?.(runtime);
     return manager;
   }
 
   get kind(): RuntimeKind {
-    return this.current.kind;
+    return this.currentKind;
   }
 
   /** Swap the delegate and health-check it. The choice is kept even when the
@@ -125,6 +129,7 @@ export class RuntimeManager implements AIRuntime {
     const status = await next.healthCheck();
     const prev = this.current;
     this.current = next;
+    this.currentKind = kind;
     this.opts.onSwitch?.(next);
     if (prev !== next) await prev.dispose();
     if (!status.available) {
@@ -139,8 +144,8 @@ export class RuntimeManager implements AIRuntime {
   /** Probe every provider's detect path in parallel (PATH scan + `--version`). */
   async probeAll(): Promise<RuntimeStatus[]> {
     return Promise.all(
-      RUNTIME_KINDS.map(async (kind) => {
-        const checker = this.opts.healthCheckers?.[kind] ?? HEALTH_CHECKERS[kind];
+      allRuntimeKinds().map(async (kind) => {
+        const checker = this.opts.healthCheckers?.[kind] ?? healthCheckerFor(kind);
         const workspaceDir = workspaceDirFor(
           kind,
           this.opts.env,

@@ -19,7 +19,11 @@ export class RuntimeError extends Error {
   }
 }
 
-export type RuntimeKind = "codex" | "mock" | "claude" | "opencode" | "devin";
+/**
+ * Provider kinds: the built-ins live in `RUNTIME_KINDS` (providers.ts);
+ * trusted local providers registered via `registerRuntimeProvider` add more.
+ */
+export type RuntimeKind = string;
 
 export interface RuntimeStatus {
   runtime: RuntimeKind;
@@ -28,6 +32,8 @@ export interface RuntimeStatus {
   executable?: string;
   workspace?: string;
   status: "ready" | "unavailable" | "error";
+  /** v1: true for providers from interview-os.runtimes.json (trusted local code). */
+  trustedLocal?: boolean;
   message?: string;
 }
 
