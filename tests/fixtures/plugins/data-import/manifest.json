@@ -1,0 +1,7 @@
+{
+  "id": "data-import",
+  "version": "1.0.0",
+  "kind": "plugin",
+  "description": "Fixture: imports node:net through a data: URL module.",
+  "permissions": []
+}

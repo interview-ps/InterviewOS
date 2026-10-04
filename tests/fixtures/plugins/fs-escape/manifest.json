@@ -1,0 +1,7 @@
+{
+  "id": "fs-escape",
+  "version": "1.0.0",
+  "kind": "plugin",
+  "description": "Fixture: attempts to read a file outside the plugin dir.",
+  "permissions": []
+}

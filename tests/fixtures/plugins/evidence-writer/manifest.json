@@ -1,0 +1,7 @@
+{
+  "id": "evidence-writer",
+  "version": "1.0.0",
+  "kind": "plugin",
+  "description": "Fixture: emits valid evidence proposals.",
+  "permissions": ["evidence.write"]
+}

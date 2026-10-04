@@ -1,0 +1,16 @@
+{
+  "id": "ui-no-capability",
+  "version": "1.0.0",
+  "kind": "plugin",
+  "description": "Fixture: declares a ui section without the ui capability.",
+  "inputs": [{ "key": "readiness", "permission": "readiness.read" }],
+  "outputs": ["echo"],
+  "permissions": ["readiness.read"],
+  "capabilities": ["question_source"],
+  "hooks": ["questions.suggest"],
+  "ui": {
+    "slots": {
+      "dashboard.cards": [{ "component": "card", "kind": "declarative" }]
+    }
+  }
+}

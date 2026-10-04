@@ -1,0 +1,7 @@
+{
+  "id": "net-escape",
+  "version": "1.0.0",
+  "kind": "plugin",
+  "description": "Fixture: attempts fetch and node:http import.",
+  "permissions": []
+}

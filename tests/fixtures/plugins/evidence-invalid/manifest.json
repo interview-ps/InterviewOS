@@ -1,0 +1,7 @@
+{
+  "id": "evidence-invalid",
+  "version": "1.0.0",
+  "kind": "plugin",
+  "description": "Fixture: emits an invalid evidence proposal.",
+  "permissions": ["evidence.write"]
+}

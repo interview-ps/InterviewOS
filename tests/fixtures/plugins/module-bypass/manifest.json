@@ -1,0 +1,7 @@
+{
+  "id": "module-bypass",
+  "version": "1.0.0",
+  "kind": "plugin",
+  "description": "Fixture: tries to bypass the module block via node:module registerHooks and other modules.",
+  "permissions": []
+}
