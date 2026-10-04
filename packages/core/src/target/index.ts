@@ -14,6 +14,8 @@ export const RequirementSchema = z.object({
   evidence: z.string(),
   /** e.g. "company-profile" / "company-profile:amazon" — why importance was raised. */
   boostedBy: z.string().optional(),
+  /** v0.4: where the requirement came from ("jd" default, "role_pack"). */
+  origin: z.string().max(64).optional(),
 });
 export type Requirement = z.infer<typeof RequirementSchema>;
 
@@ -38,5 +40,7 @@ export const TargetRoleSchema = z.object({
   companyProfile: CompanyNotesProfileSchema.optional(),
   /** §9.3 built-in company profile id (auto-matched from `company`). */
   companyProfileId: z.string().optional(),
+  /** v0.4: assigned role pack id (packs add requirements + rubrics). */
+  rolePackId: z.string().max(80).optional(),
 });
 export type TargetRole = z.infer<typeof TargetRoleSchema>;

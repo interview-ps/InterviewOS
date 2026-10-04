@@ -1,6 +1,8 @@
 import { z } from "zod";
 import { SkillIdSchema } from "../skill-id.js";
 
+export * from "./resources.js";
+
 export const PrepActionStatusSchema = z.enum([
   "open",
   "in_progress",

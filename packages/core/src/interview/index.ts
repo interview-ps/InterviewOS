@@ -81,6 +81,7 @@ export type {
 export { RoundTypeSchema, inRound, roundFallbackRequirements } from "./rounds.js";
 export type { RoundType } from "./rounds.js";
 export * from "./loop.js";
+export * from "./voice.js";
 export * from "./modes/index.js";
 export {
   INTERVIEW_STATES,

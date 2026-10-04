@@ -24,10 +24,18 @@ const norm = (s: string) => s.toLowerCase().trim();
  * case-insensitive and on word boundaries; falls back to `generic`.
  */
 export function matchCompanyProfile(companyName: string): CompanyProfile {
+  return matchProfileIn(COMPANY_PROFILES, companyName);
+}
+
+/** Same matching rules over an arbitrary profile list (built-ins + packs). */
+export function matchProfileIn(
+  profiles: CompanyProfile[],
+  companyName: string,
+): CompanyProfile {
   const name = norm(companyName);
   if (!name) return genericProfile;
   const words = new Set(name.split(/[^a-z0-9]+/).filter(Boolean));
-  for (const profile of COMPANY_PROFILES) {
+  for (const profile of profiles) {
     if (profile.id === "generic") continue;
     if (norm(profile.name) === name) return profile;
     for (const alias of profile.aliases) {

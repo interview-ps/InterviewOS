@@ -6,6 +6,7 @@ export const EvidenceTypeSchema = z.enum([
   "interview_answer",
   "practice",
   "self_report",
+  "plugin",
 ]);
 export type EvidenceType = z.infer<typeof EvidenceTypeSchema>;
 
@@ -18,6 +19,8 @@ export const EvidenceSchema = z.object({
   observation: z.string(),
   sessionId: z.string().optional(),
   questionId: z.string().optional(),
+  /** e.g. "plugin:<id>" — where the evidence came from. */
+  source: z.string().optional(),
   createdAt: z.string(),
 });
 export type Evidence = z.infer<typeof EvidenceSchema>;

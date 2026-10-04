@@ -148,6 +148,19 @@ export function allNodes(): TaxonomyNode[] {
   return [...nodes.values()];
 }
 
+/**
+ * v0.4 packs: register extra taxonomy nodes (idempotent — same id just
+ * overwrites). Invalidates the alias index so new keywords resolve.
+ */
+export function registerNodes(
+  list: ReadonlyArray<{ id: SkillId; label: string; keywords?: string[] }>,
+): void {
+  for (const n of list) {
+    register({ id: n.id, label: n.label, keywords: n.keywords ?? [] });
+  }
+  aliasIndex = null;
+}
+
 function countKeywordMentions(text: string, keyword: string): number {
   const escaped = keyword.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
   const re = new RegExp(`(^|[^a-z0-9])${escaped}([^a-z0-9]|$)`, "gi");

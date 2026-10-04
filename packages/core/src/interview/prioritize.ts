@@ -34,6 +34,8 @@ export interface SelectNextSkillInput {
   askCounts?: Record<SkillId, number>;
   /** Weak skills carried over from earlier rounds of a loop (§9.2, W2 feeds). */
   loopWeakSkills?: LoopWeakSkill[];
+  /** v0.4: interview-pack focus skills — boost candidates that descend from them. */
+  focusSkills?: SkillId[];
 }
 
 export interface SelectionFactors {
@@ -43,6 +45,8 @@ export interface SelectionFactors {
   weaknessBoost: number;
   recencyFactor: number;
   noveltyFactor: number;
+  /** v0.4: +0.15 when the candidate skill equals/descends from a pack focus skill. */
+  packFocus?: number;
 }
 
 export interface SkillCandidate {
@@ -114,6 +118,7 @@ function computeFactors(
   askedBefore: Set<SkillId>,
   askCounts: Record<SkillId, number>,
   loopWeakSkills: LoopWeakSkill[],
+  focusSkills: SkillId[],
 ): FactorResult {
   const roleImportance = req?.importance ?? FALLBACK_IMPORTANCE;
   const readinessGap = 1 - (dim?.score ?? 0);
@@ -152,6 +157,11 @@ function computeFactors(
   }
   const askedAll = askCounts[skillId] ?? 0;
   const noveltyFactor = askedAll >= NOVELTY_ASK_CAP && !weak ? 0.85 : 1.0;
+  const packFocus =
+    focusSkills.length > 0 &&
+    focusSkills.some((f) => skillId === f || skillId.startsWith(`${f}.`))
+      ? 0.15
+      : 0;
 
   return {
     factors: {
@@ -161,6 +171,7 @@ function computeFactors(
       weaknessBoost,
       recencyFactor,
       noveltyFactor,
+      packFocus,
     },
     weak,
     loopTrigger,
@@ -175,7 +186,8 @@ function priorityOf(f: SelectionFactors): number {
     (0.5 + f.uncertainty) *
     f.weaknessBoost *
     f.recencyFactor *
-    f.noveltyFactor
+    f.noveltyFactor *
+    (1 + (f.packFocus ?? 0))
   );
 }
 
@@ -190,6 +202,7 @@ export function selectNextSkill(input: SelectNextSkillInput): SelectNextSkillRes
     level = "mid",
     askCounts = {},
     loopWeakSkills = [],
+    focusSkills = [],
   } = input;
   const mode = input.mode ?? input.roundType ?? "mixed";
   const inScope = (skillId: SkillId) => inRound(skillId, mode);
@@ -237,6 +250,11 @@ export function selectNextSkill(input: SelectNextSkillInput): SelectNextSkillRes
         weaknessBoost: 1,
         recencyFactor: 1,
         noveltyFactor: 1,
+        packFocus:
+          focusSkills.length > 0 &&
+          focusSkills.some((f) => top.skillId === f || top.skillId.startsWith(`${f}.`))
+            ? 0.15
+            : 0,
       };
       return resultFor(
         top.skillId,
@@ -299,6 +317,7 @@ export function selectNextSkill(input: SelectNextSkillInput): SelectNextSkillRes
       askedBefore,
       askCounts,
       loopWeakSkills,
+      focusSkills,
     );
     const priority = priorityOf(fr.factors);
     const base =

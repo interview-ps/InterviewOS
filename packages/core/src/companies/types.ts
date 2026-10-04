@@ -43,5 +43,14 @@ export const CompanyProfileSchema = z.object({
   followUpDepth: z.union([z.literal(1), z.literal(2), z.literal(3)]),
   rubricEmphasis: z.record(z.string(), z.number()).default({}),
   roleExpectations: z.record(z.string(), z.array(z.string())).default({}),
+  /** v0.4: present when the profile was compiled from a company pack. */
+  pack: z
+    .object({
+      version: z.string(),
+      kind: z.literal("company"),
+      sourcedCount: z.number().int().min(0),
+      communityCount: z.number().int().min(0),
+    })
+    .optional(),
 });
 export type CompanyProfile = z.infer<typeof CompanyProfileSchema>;

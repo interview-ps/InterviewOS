@@ -9,6 +9,7 @@ export * from "./schema.js";
 export const EVIDENCE_TYPE_WEIGHT: Record<EvidenceType, number> = {
   interview_answer: 1.0,
   practice: 0.7,
+  plugin: 0.5,
   resume_claim: 0.4,
   self_report: 0.3,
 };
@@ -17,6 +18,7 @@ export const EVIDENCE_TYPE_WEIGHT: Record<EvidenceType, number> = {
 export const EVIDENCE_HALF_LIFE_DAYS: Record<EvidenceType, number> = {
   interview_answer: 60,
   practice: 45,
+  plugin: 45,
   self_report: 30,
   resume_claim: 180,
 };
