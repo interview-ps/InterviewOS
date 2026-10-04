@@ -49,6 +49,21 @@ function QuestionNode({ node, depth = 0 }: { node: HistoryQuestion; depth?: numb
           {node.answer.language && (
             <p className="mt-0.5 text-xs text-muted">language: {node.answer.language}</p>
           )}
+          {node.answer.voice && (
+            <div className="mt-1 flex flex-wrap items-center gap-1.5 text-xs text-muted" data-testid="voice-hints">
+              <span>delivery:</span>
+              {node.answer.voice.feedback.signals.map((s) => (
+                <Pill key={s.id} tone={s.status === "ok" ? "green" : "amber"}>
+                  {s.id}
+                </Pill>
+              ))}
+              <span>
+                {node.answer.voice.feedback.wordCount} words
+                {node.answer.voice.feedback.wordsPerMinute != null &&
+                  ` · ${Math.round(node.answer.voice.feedback.wordsPerMinute)} wpm`}
+              </span>
+            </div>
+          )}
         </div>
       )}
       {ev && (

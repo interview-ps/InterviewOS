@@ -1,8 +1,8 @@
 import { useSearchParams } from "react-router";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { api, type SkillDetail, type SkillReadiness } from "@/lib/api";
-import { Sparkline } from "@/components/sparkline";
-import { Bar, Card, CardTitle, ErrorNote, PageHeader, Pill, Skeleton, SkeletonCard, StatusPill, skillLabel } from "@/components/ui";
+import { Bar, Card, CardTitle, ErrorNote, PageHeader, Pill, Skeleton, SkeletonCard, Sparkline, StatusPill, skillLabel } from "@/components/ui";
+import { PluginSlot } from "@/components/plugin-ui";
 
 function scoreTone(s: SkillReadiness): "green" | "blue" | "amber" | "muted" {
   return s.status === "strong" ? "green" : s.status === "developing" ? "blue" : s.status === "weak" ? "amber" : "muted";
@@ -195,6 +195,7 @@ export default function Readiness() {
           </Card>
         </div>
       )}
+      <PluginSlot slot="readiness.panels" />
     </div>
   );
 }

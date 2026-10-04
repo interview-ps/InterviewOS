@@ -1,0 +1,270 @@
+import { Component, useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import { useNavigate } from "react-router";
+import { DeclarativeRenderer, FRAME_MIN_HEIGHT } from "@interview-os/ui";
+import type { UINode } from "@interview-os/core";
+import {
+  api,
+  type PluginUIContributionView,
+} from "@/lib/api";
+import { runUIAction } from "@/lib/plugin-actions";
+import { attachFrameBridge, frameSrc } from "@/lib/plugin-frame-bridge";
+import { Skeleton } from "@/components/ui";
+
+/* -- contributions cache ---------------------------------------------------- */
+
+let contributionsCache: PluginUIContributionView[] | null = null;
+let contributionsPromise: Promise<PluginUIContributionView[]> | null = null;
+
+export function useUIContributions(): PluginUIContributionView[] {
+  const [list, setList] = useState<PluginUIContributionView[]>(
+    contributionsCache ?? [],
+  );
+  useEffect(() => {
+    let cancelled = false;
+    contributionsPromise ??= api
+      .uiContributions()
+      .then((r) => (contributionsCache = r.contributions))
+      .catch(() => (contributionsCache = []));
+    void contributionsPromise.then((v) => {
+      if (!cancelled) setList(v);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+  return list;
+}
+
+/** Force the next useUIContributions call to refetch (enable/disable changes). */
+export function refreshUIContributions(): void {
+  contributionsCache = null;
+  contributionsPromise = null;
+}
+
+/* -- error boundary --------------------------------------------------------- */
+
+class ContributionBoundary extends Component<
+  { children: ReactNode; pluginId: string },
+  { failed: boolean }
+> {
+  state = { failed: false };
+  static getDerivedStateFromError() {
+    return { failed: true };
+  }
+  render() {
+    if (this.state.failed) {
+      return (
+        <div
+          role="alert"
+          data-testid="plugin-ui-error"
+          className="rounded-[0.6rem] border border-line bg-page p-3 text-xs text-muted"
+        >
+          The “{this.props.pluginId}” plugin view failed to render.
+        </div>
+      );
+    }
+    return this.props.children;
+  }
+}
+
+/* -- single contribution ---------------------------------------------------- */
+
+function DeclarativeContribution({
+  plugin,
+  renderReq,
+  attribution = true,
+}: {
+  plugin: PluginUIContributionView;
+  renderReq: { slot?: string; component: string; page?: string; params?: unknown };
+  attribution?: boolean;
+}) {
+  const navigate = useNavigate();
+  const [tree, setTree] = useState<UINode | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
+  const paramsKey = JSON.stringify(renderReq.params ?? null);
+
+  const load = useCallback(
+    (params: unknown) => {
+      setLoading(true);
+      setError(null);
+      api
+        .renderPluginUI(plugin.pluginId, { ...renderReq, params })
+        .then((r) => setTree(r.ui))
+        .catch((e) =>
+          setError(e instanceof Error ? e.message : String(e)),
+        )
+        .finally(() => setLoading(false));
+    },
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [plugin.pluginId, renderReq.slot, renderReq.component, renderReq.page, paramsKey],
+  );
+
+  useEffect(() => {
+    load(renderReq.params);
+  }, [load]);
+
+  const onAction = useCallback(
+    (action: Parameters<typeof runUIAction>[1]) => {
+      runUIAction(plugin.pluginId, action, {
+        navigate,
+        rerun: (request) => load({ action: request }),
+      });
+    },
+    [plugin.pluginId, navigate, load],
+  );
+
+  if (loading) return <Skeleton className="h-24 w-full" />;
+  if (error) {
+    return (
+      <div
+        role="alert"
+        data-testid="plugin-ui-error"
+        className="rounded-[0.6rem] border border-accent/40 bg-[#fdf3e7] p-3 text-xs text-accent"
+      >
+        Plugin view unavailable — {error}
+      </div>
+    );
+  }
+  if (!tree) return null;
+  return (
+    <ContributionBoundary pluginId={plugin.pluginId}>
+      <div>
+        <DeclarativeRenderer node={tree} onAction={onAction} />
+        {attribution && (
+          <p className="mt-2 text-[0.7rem] text-muted">from plugin {plugin.pluginName}</p>
+        )}
+      </div>
+    </ContributionBoundary>
+  );
+}
+
+/**
+ * v0.4 Level 2: a plugin-authored component in an opaque-origin iframe.
+ * `sandbox="allow-scripts"` only — never allow-same-origin/popups/top-
+ * navigation/forms/modals — so the document cannot reach the app DOM,
+ * cookies, storage, or the network; it can only talk through the bridge.
+ */
+export function PluginFrame({
+  plugin,
+  component,
+  page,
+  params,
+  attribution = true,
+}: {
+  plugin: PluginUIContributionView;
+  component?: string;
+  page?: string;
+  params?: Record<string, unknown>;
+  attribution?: boolean;
+}) {
+  const ref = useRef<HTMLIFrameElement>(null);
+  const navigate = useNavigate();
+  const [height, setHeight] = useState(FRAME_MIN_HEIGHT);
+  const paramsKey = JSON.stringify(params ?? null);
+  const src = frameSrc(plugin.pluginId, { component, page });
+
+  useEffect(() => {
+    const iframe = ref.current;
+    if (!iframe) return;
+    return attachFrameBridge({
+      iframe,
+      pluginId: plugin.pluginId,
+      pluginName: plugin.pluginName,
+      component,
+      page,
+      params,
+      navigate,
+      onResize: setHeight,
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [plugin.pluginId, plugin.pluginName, component, page, paramsKey, navigate]);
+
+  return (
+    <ContributionBoundary pluginId={plugin.pluginId}>
+      <div>
+        <iframe
+          ref={ref}
+          data-testid="plugin-frame"
+          sandbox="allow-scripts"
+          src={src}
+          title={`${plugin.pluginName} plugin view`}
+          referrerPolicy="no-referrer"
+          loading="lazy"
+          style={{ height }}
+          className="w-full rounded-[0.6rem] border border-line bg-page"
+        />
+        {attribution && (
+          <p className="mt-2 text-[0.7rem] text-muted">from plugin {plugin.pluginName}</p>
+        )}
+      </div>
+    </ContributionBoundary>
+  );
+}
+
+type SlotContribution = NonNullable<PluginUIContributionView["slots"][string]>[number];
+
+function Contribution({
+  plugin,
+  contribution,
+  slot,
+  params,
+}: {
+  plugin: PluginUIContributionView;
+  contribution: SlotContribution;
+  slot: string;
+  params?: Record<string, unknown>;
+}) {
+  if (contribution.kind === "frame") {
+    return (
+      <PluginFrame
+        plugin={plugin}
+        component={contribution.component}
+        params={params}
+      />
+    );
+  }
+  return (
+    <DeclarativeContribution
+      plugin={plugin}
+      renderReq={{ slot, component: contribution.component, params }}
+    />
+  );
+}
+
+/* -- slot host ---------------------------------------------------------------- */
+
+/**
+ * Render every enabled plugin's contributions for a slot. `params` are passed
+ * to the plugin's render call (e.g. the skill being viewed).
+ */
+export function PluginSlot({
+  slot,
+  params,
+}: {
+  slot: string;
+  params?: Record<string, unknown>;
+}) {
+  const contributions = useUIContributions();
+  const list = useMemo(
+    () =>
+      contributions.flatMap((p) =>
+        (p.slots[slot] ?? []).map((c) => ({ plugin: p, contribution: c })),
+      ),
+    [contributions, slot],
+  );
+  if (list.length === 0) return null;
+  return (
+    <>
+      {list.map(({ plugin, contribution }) => (
+        <Contribution
+          key={`${plugin.pluginId}:${contribution.component}`}
+          plugin={plugin}
+          contribution={contribution}
+          slot={slot}
+          params={params}
+        />
+      ))}
+    </>
+  );
+}

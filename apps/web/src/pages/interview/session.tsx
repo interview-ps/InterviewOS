@@ -1,6 +1,6 @@
 import { Link, useParams } from "react-router";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { getMode } from "@interview-os/core";
+import { getMode, VOICE_DISCLAIMER } from "@interview-os/core";
 import {
   api,
   streamPost,
@@ -12,8 +12,11 @@ import {
   type SessionQuestion,
   type StartInterviewResult,
   type SubmitAnswerResult,
+  type VoiceFeedback,
 } from "@/lib/api";
+import { speechSupported, useSpeakQuestion, useVoiceCapture } from "@/lib/voice";
 import { Bar, Button, Card, CardTitle, ErrorNote, Pill, SkeletonCard, severityTone, skillLabel } from "@/components/ui";
+import { PluginSlot } from "@/components/plugin-ui";
 
 const CODE_LANGUAGES = [
   "python", "javascript", "typescript", "java", "go", "cpp", "csharp",
@@ -39,6 +42,48 @@ function StreamDraft({
       {draft.text}
       <span aria-hidden>▌</span>
     </p>
+  );
+}
+
+/** v0.4: where a question came from (generated questions show nothing). */
+function SourceBadge({ source }: { source: SessionQuestion["source"] }) {
+  if (!source) return null;
+  const label =
+    source.kind === "user_bank"
+      ? "From your question bank"
+      : source.kind === "company_pack"
+        ? `Company pack: ${source.id}`
+        : source.kind === "role_pack"
+          ? `Role pack: ${source.id}`
+          : `Plugin: ${source.id}`;
+  return (
+    <>
+      <Pill tone="green">{label}</Pill>
+      {source.provenance === "community" && <Pill tone="amber">community</Pill>}
+    </>
+  );
+}
+
+/** v0.4: delivery hints from voice metrics — interaction layer only. */
+function DeliveryHints({ feedback }: { feedback: VoiceFeedback }) {
+  return (
+    <div data-testid="delivery-hints" className="rounded-[0.6rem] border border-line bg-page p-3">
+      <h3 className="text-sm font-semibold text-navy">Delivery hints</h3>
+      <ul className="mt-2 space-y-1">
+        {feedback.signals.map((s) => (
+          <li key={s.id} className="flex items-start gap-2 text-sm">
+            <Pill tone={s.status === "ok" ? "green" : "amber"}>{s.status}</Pill>
+            <span className="text-muted">{s.message}</span>
+          </li>
+        ))}
+      </ul>
+      <p className="mt-2 text-xs text-muted">
+        {feedback.wordCount} words
+        {feedback.wordsPerMinute != null && ` · ${Math.round(feedback.wordsPerMinute)} wpm`}
+        {feedback.fillerCount > 0 && ` · ${feedback.fillerCount} fillers`}
+      </p>
+      <p className="mt-1 text-xs text-muted">{VOICE_DISCLAIMER}</p>
+    </div>
   );
 }
 
@@ -203,7 +248,15 @@ export default function InterviewSession() {
   const [error, setError] = useState<unknown>(null);
   const [stage, setStage] = useState<string | null>(null);
   const [draft, setDraft] = useState<{ field: string; text: string } | null>(null);
+  const [voiceOn, setVoiceOn] = useState(false);
+  const [speakOn, setSpeakOn] = useState(false);
   const timer = useRef<ReturnType<typeof setInterval> | null>(null);
+  const voice = useVoiceCapture(
+    useCallback(
+      (t: string) => setAnswer((a) => (a.trim() ? `${a.trimEnd()} ${t.trim()}` : t.trim())),
+      [],
+    ),
+  );
 
   const load = useCallback(async () => {
     const d = await api.interview(id);
@@ -223,8 +276,17 @@ export default function InterviewSession() {
 
   useEffect(() => {
     load().catch((e) => setError(e));
+    api
+      .settings()
+      .then((s) => {
+        setVoiceOn(!!s.voice?.enabled);
+        setSpeakOn(!!s.voice?.enabled && (s.voice?.speakQuestions ?? true));
+      })
+      .catch(() => {});
     return () => { if (timer.current) clearInterval(timer.current); };
   }, [load]);
+
+  useSpeakQuestion(speakOn && voice.supported, current?.text ?? null);
 
   const tick = () => {
     setElapsed(0);
@@ -246,9 +308,10 @@ export default function InterviewSession() {
     setStage(null);
     setDraft(null);
     tick();
+    const voiceMetrics = voice.takeMetrics();
     const body = isCoding
-      ? { answer, ...(code.trim() ? { code, language } : {}) }
-      : { answer };
+      ? { answer, ...(code.trim() ? { code, language } : {}), ...(voiceMetrics ? { voice: voiceMetrics } : {}) }
+      : { answer, ...(voiceMetrics ? { voice: voiceMetrics } : {}) };
     streamPost<SubmitAnswerResult>(`/api/interviews/${id}/answer`, body, progress)
       .then((r) => { setResult(r); setDraft(null); })
       .catch((e) => setError(e))
@@ -324,6 +387,7 @@ export default function InterviewSession() {
           </Pill>
         )}
         {designFocus && <Pill tone="blue">focus: {designFocus}</Pill>}
+        <SourceBadge source={current.source} />
       </div>
       <WhyThisQuestion q={current} />
       <p className="mt-3 text-base font-medium leading-relaxed">{current.text}</p>
@@ -331,6 +395,31 @@ export default function InterviewSession() {
 
       {!result ? (
         <div className="mt-4 space-y-3">
+          {voiceOn && (
+            <div className="flex items-center gap-2">
+              {voice.supported ? (
+                <>
+                  <Button
+                    variant="secondary"
+                    onClick={voice.toggle}
+                    data-testid="voice-toggle"
+                  >
+                    {voice.recording ? "■ Stop speaking" : "● Speak answer"}
+                  </Button>
+                  {voice.recording && (
+                    <span className="text-xs text-muted" role="status">
+                      Recording — your words are appended to the answer; you can still type.
+                    </span>
+                  )}
+                </>
+              ) : (
+                <p className="text-xs text-muted" data-testid="voice-unsupported">
+                  Voice capture isn't supported in this browser (Web Speech API —
+                  Chrome/Edge). Type your answer instead.
+                </p>
+              )}
+            </div>
+          )}
           <label className="block text-sm">
             <span className="sr-only">Your answer</span>
             <textarea
@@ -394,6 +483,7 @@ export default function InterviewSession() {
         </div>
       ) : (
         <div className="mt-4 space-y-4" aria-live="polite">
+          {result.voiceFeedback && <DeliveryHints feedback={result.voiceFeedback} />}
           <p className="rounded-[0.6rem] bg-page p-3 text-sm">{result.evaluation.summary}</p>
           <RubricBars rubric={result.evaluation.rubric} />
           {result.evaluation.star && (
@@ -479,6 +569,27 @@ export default function InterviewSession() {
               </ul>
             </div>
           )}
+          {result.pluginReviews && result.pluginReviews.length > 0 && (
+            <div>
+              <h3 className="text-sm font-semibold text-navy">Plugin reviews</h3>
+              <div className="mt-1 space-y-2">
+                {result.pluginReviews.map((r) => (
+                  <div key={r.pluginId} className="rounded-[0.6rem] bg-page p-3">
+                    <p className="text-xs font-medium text-muted">
+                      from plugin {r.pluginName}
+                    </p>
+                    <ul className="mt-1 list-disc space-y-0.5 pl-5 text-sm">
+                      {r.observations.map((o, i) => (
+                        <li key={i} className={o.tone === "amber" ? "text-amber" : o.tone === "red" ? "text-red" : ""}>
+                          {o.text}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
           <div className="flex items-center gap-3">
             {result.nextAvailable === "question" ? (
               <Button onClick={next} disabled={busy}>Next Question</Button>
@@ -524,6 +635,7 @@ export default function InterviewSession() {
           </Link>
         )}
       </h1>
+      <PluginSlot slot="interview.toolbar" params={{ sessionId: id }} />
       <ErrorNote error={error} />
 
       {isDesign && !done ? (
@@ -607,6 +719,7 @@ export default function InterviewSession() {
             })()}
         </Card>
       )}
+      <PluginSlot slot="interview.sidebar" params={{ sessionId: id }} />
     </div>
   );
 }

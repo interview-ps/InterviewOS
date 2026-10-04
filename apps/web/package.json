@@ -1,6 +1,6 @@
 {
   "name": "@interview-os/web",
-  "version": "0.1.0",
+  "version": "0.4.0",
   "private": true,
   "type": "module",
   "scripts": {
@@ -15,7 +15,8 @@
     "@interview-os/core": "workspace:*",
     "react": "19.3.0",
     "react-dom": "19.3.0",
-    "react-router": "7.18.4"
+    "react-router": "7.18.4",
+    "@interview-os/ui": "workspace:*"
   },
   "devDependencies": {
     "@tailwindcss/vite": "4.3.3",

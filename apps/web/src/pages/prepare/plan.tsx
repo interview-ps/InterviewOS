@@ -1,7 +1,13 @@
 import { useCallback, useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router";
-import { api, type PrepAction } from "@/lib/api";
+import {
+  api,
+  type PluginSuggestionGroup,
+  type PrepAction,
+  type PrepResource,
+} from "@/lib/api";
 import { Button, Card, CardTitle, EmptyState, ErrorNote, PageHeader, Pill, SkeletonCard, skillLabel, toast } from "@/components/ui";
+import { PluginSlot } from "@/components/plugin-ui";
 
 const ACTION_STATUS: Record<string, string> = {
   open: "open",
@@ -10,15 +16,93 @@ const ACTION_STATUS: Record<string, string> = {
   superseded: "superseded",
 };
 
+const isHttps = (u: unknown): u is string =>
+  typeof u === "string" && u.startsWith("https://");
+
+function Resources({
+  action,
+  busy,
+  canFetch,
+  onChanged,
+  onError,
+  onPractice,
+  run,
+}: {
+  action: PrepAction;
+  busy: boolean;
+  canFetch: boolean;
+  onChanged: () => void;
+  onError: (e: unknown) => void;
+  onPractice: () => void;
+  run: (id: string, fn: () => Promise<unknown>) => void;
+}) {
+  const resources = (action as PrepAction & { resources?: PrepResource[] }).resources ?? [];
+  return (
+    <div className="mt-2" data-testid={`resources-${action.id}`}>
+      {resources.length > 0 && (
+        <ul className="space-y-1">
+          {resources.map((r, i) => (
+            <li key={i} className="flex flex-wrap items-baseline gap-2 text-xs">
+              <Pill tone="muted">{r.kind}</Pill>
+              {r.kind === "practice" ? (
+                <button
+                  type="button"
+                  onClick={onPractice}
+                  disabled={busy}
+                  className="text-blue underline"
+                >
+                  {r.title}
+                </button>
+              ) : isHttps(r.url) ? (
+                <a
+                  href={r.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-blue underline"
+                >
+                  {r.title}
+                </a>
+              ) : (
+                <span className="font-medium text-ink">{r.title}</span>
+              )}
+              <span className="text-muted">{r.source}</span>
+              {r.summary && (
+                <span className="w-full text-muted">{r.summary}</span>
+              )}
+            </li>
+          ))}
+        </ul>
+      )}
+      {canFetch && (
+        <button
+          type="button"
+          disabled={busy}
+          data-testid={`find-resources-${action.id}`}
+          onClick={() =>
+            run(action.id, () =>
+              api.fetchActionResources(action.id).then(onChanged),
+            )
+          }
+          className="mt-1 text-xs text-blue underline"
+        >
+          Find more resources
+        </button>
+      )}
+    </div>
+  );
+}
+
 function ActionCard({
   action,
   busy,
+  canFetchResources,
   onChanged,
   onError,
   run,
 }: {
   action: PrepAction;
   busy: boolean;
+  canFetchResources: boolean;
   onChanged: () => void;
   onError: (e: unknown) => void;
   run: (id: string, fn: () => Promise<unknown>) => void;
@@ -73,6 +157,15 @@ function ActionCard({
           </label>
         ))}
       </fieldset>
+      <Resources
+        action={a}
+        busy={busy}
+        canFetch={canFetchResources}
+        onChanged={onChanged}
+        onError={onError}
+        onPractice={verify}
+        run={run}
+      />
       <div className="mt-3 flex flex-wrap gap-2">
         {a.status === "open" && (
           <Button
@@ -99,9 +192,20 @@ export default function PrepPlan() {
   const [error, setError] = useState<unknown>(null);
   const [busy, setBusy] = useState<string | null>(null);
   const [showHistory, setShowHistory] = useState(false);
+  const [canFetchResources, setCanFetchResources] = useState(false);
 
   const load = useCallback(() => {
     api.preparation().then((p) => setActions(p.actions)).catch((e) => setError(e));
+    api
+      .plugins()
+      .then((r) =>
+        setCanFetchResources(
+          r.plugins.some(
+            (p) => p.enabled && (p.manifest.capabilities ?? []).includes("resources"),
+          ),
+        ),
+      )
+      .catch(() => {});
   }, []);
   useEffect(load, [load]);
 
@@ -164,6 +268,7 @@ export default function PrepPlan() {
           key={a.id}
           action={a}
           busy={busy === a.id}
+          canFetchResources={canFetchResources}
           onChanged={load}
           onError={(e) => setError(e)}
           run={run}
@@ -192,6 +297,74 @@ export default function PrepPlan() {
           )}
         </Card>
       )}
+      <PluginSuggestions onAccepted={load} onError={(e) => setError(e)} />
+      <PluginSlot slot="prepare.activities" />
     </div>
+  );
+}
+
+/** v1: activities suggested by `preparation` plugins — "Add to plan" accepts. */
+function PluginSuggestions({
+  onAccepted,
+  onError,
+}: {
+  onAccepted: () => void;
+  onError: (e: unknown) => void;
+}) {
+  const [groups, setGroups] = useState<PluginSuggestionGroup[]>([]);
+  const [added, setAdded] = useState<Set<string>>(new Set());
+  const [busy, setBusy] = useState<string | null>(null);
+  useEffect(() => {
+    api.pluginPrepSuggestions().then((r) => setGroups(r.suggestions)).catch(() => {});
+  }, []);
+  const visible = groups.filter((g) => g.activities.length > 0);
+  if (visible.length === 0) return null;
+  return (
+    <Card>
+      <CardTitle>Suggestions from plugins</CardTitle>
+      <div className="mt-2 space-y-3">
+        {visible.map((g) => (
+          <div key={g.pluginId}>
+            <p className="text-xs font-medium text-muted">
+              from plugin {g.pluginName}
+            </p>
+            <ul className="mt-1 space-y-2">
+              {g.activities.map((a, i) => {
+                const key = `${g.pluginId}:${i}`;
+                return (
+                  <li
+                    key={key}
+                    className="flex items-center justify-between gap-3 rounded-[0.6rem] bg-page p-3"
+                  >
+                    <div className="min-w-0">
+                      <p className="text-sm font-medium text-navy">{a.title}</p>
+                      <p className="truncate text-xs text-muted">{a.action}</p>
+                    </div>
+                    <Button
+                      variant="secondary"
+                      disabled={busy === key || added.has(key)}
+                      onClick={() => {
+                        setBusy(key);
+                        api
+                          .acceptPluginSuggestion(g.pluginId, a)
+                          .then(() => {
+                            setAdded((prev) => new Set(prev).add(key));
+                            toast("Added to plan");
+                            onAccepted();
+                          })
+                          .catch(onError)
+                          .finally(() => setBusy(null));
+                      }}
+                    >
+                      {added.has(key) ? "Added" : "Add to plan"}
+                    </Button>
+                  </li>
+                );
+              })}
+            </ul>
+          </div>
+        ))}
+      </div>
+    </Card>
   );
 }

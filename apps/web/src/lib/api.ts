@@ -5,15 +5,24 @@ import type {
   Evidence,
   Gap,
   InterviewOSState,
+  InterviewPack,
   PrepAction,
+  PrepResource,
   Question,
+  QuestionCandidate,
   ReadinessGraph,
   SkillReadiness,
   TargetRole,
+  UIAction,
+  UINode,
 } from "@interview-os/core";
 
 export type AppState = InterviewOSState;
 export type { CandidateProfile, Gap, PrepAction, Question, SkillReadiness, Evidence, TargetRole };
+
+/** Prep action as returned by the API (v0.4 adds learning resources). */
+export type PrepActionView = PrepAction & { resources: PrepResource[] };
+export type { PrepResource, QuestionCandidate, InterviewPack };
 
 export interface ExpectedConcept {
   concept: string;
@@ -48,8 +57,45 @@ export interface SessionRow {
   /** §9.4: set when this session is a loop round (1-based). */
   loopId: string | null;
   loopRound: number | null;
+  /** v0.4: external context this session is grounded on (nullable). */
+  contextId: string | null;
   createdAt: string;
   completedAt: string | null;
+}
+
+// --- v0.4 voice mode (delivery hints only; never part of evaluation) --------
+
+export interface VoiceMetrics {
+  durationSec: number;
+  longPauseCount: number;
+  longestPauseSec: number;
+}
+
+export type VoiceSignalId =
+  | "structure"
+  | "filler"
+  | "pauses"
+  | "length"
+  | "conclusion"
+  | "clarity";
+
+export interface VoiceSignal {
+  id: VoiceSignalId;
+  status: "ok" | "watch";
+  message: string;
+}
+
+export interface VoiceFeedback {
+  signals: VoiceSignal[];
+  wordCount: number;
+  fillerCount: number;
+  wordsPerMinute: number | null;
+  disclaimer: string;
+}
+
+export interface StoredVoice {
+  metrics: VoiceMetrics;
+  feedback: VoiceFeedback;
 }
 
 export interface SelectionFactors {
@@ -59,6 +105,8 @@ export interface SelectionFactors {
   weaknessBoost: number;
   recencyFactor: number;
   noveltyFactor: number;
+  /** v0.4: interview-pack focus bonus (present for pack-started loops). */
+  packFocus?: number;
 }
 
 export interface CodingProblem {
@@ -80,6 +128,8 @@ export interface SessionQuestion extends Question {
   followUpOf: string | null;
   followUpFocus: string | null;
   extra: QuestionExtra | null;
+  /** v0.4: which question source provided this question (null = generated). */
+  source: QuestionCandidate["source"] | null;
 }
 
 export interface AnswerRow {
@@ -89,6 +139,8 @@ export interface AnswerRow {
   text: string;
   code: string | null;
   language: string | null;
+  /** v0.4: delivery metrics + feedback when voice mode captured them. */
+  voice: StoredVoice | null;
   status: string;
   createdAt: string;
 }
@@ -177,8 +229,38 @@ export interface StartInterviewResult {
 export interface SubmitAnswerResult {
   evaluation: Evaluation;
   skillImpact: { skillId: string; before: number | null; after: number | null }[];
-  newActions: PrepAction[];
+  newActions: PrepActionView[];
   nextAvailable: "question" | "complete";
+  /** v0.4: delivery hints when the client sent voice metrics. */
+  voiceFeedback: VoiceFeedback | null;
+  /** v1: review observations from evaluation plugins (attributed). */
+  pluginReviews?: PluginReviewView[];
+}
+
+export interface PluginReviewView {
+  pluginId: string;
+  pluginName: string;
+  observations: { text: string; tone: "green" | "amber" | "red" | "blue" | "muted" }[];
+}
+
+export interface PluginSettingField {
+  key: string;
+  label: string;
+  type: "string" | "number" | "boolean" | "enum";
+  options?: string[];
+  default?: string | number | boolean;
+  description?: string;
+}
+
+export interface PluginSuggestionGroup {
+  pluginId: string;
+  pluginName: string;
+  activities: {
+    skillId: string;
+    title: string;
+    action: string;
+    successCriteria: string[];
+  }[];
 }
 
 export interface SkillDetail {
@@ -186,8 +268,8 @@ export interface SkillDetail {
   readiness: SkillReadiness | null;
   evidence: (Evidence & { sessionId: string | null; questionId: string | null })[];
   history: { id: number; score: number | null; confidence: number; computedAt: string; reason: string }[];
-  actions: PrepAction[];
-  recommendedAction: PrepAction | null;
+  actions: PrepActionView[];
+  recommendedAction: PrepActionView | null;
 }
 
 export interface RuntimeStatus {
@@ -198,7 +280,7 @@ export interface RuntimeStatus {
   workspace?: string;
   status: string;
   message?: string;
-  mode: "codex" | "mock" | "claude" | "opencode" | "devin";
+  mode: string;
 }
 
 export interface RuntimeProbe {
@@ -209,6 +291,8 @@ export interface RuntimeProbe {
   workspace?: string;
   status: string;
   message?: string;
+  /** v1: loaded from interview-os.runtimes.json (trusted local code). */
+  trustedLocal?: boolean;
 }
 
 export interface RuntimeAvailability {
@@ -250,7 +334,7 @@ export interface SetupResult {
   candidate: CandidateProfile;
   target: TargetRole;
   gaps: Gap[];
-  actions: PrepAction[];
+  actions: PrepActionView[];
 }
 
 // --- §9.4 interview loops ---------------------------------------------------
@@ -335,6 +419,7 @@ export interface HistoryQuestion {
     text: string;
     code: string | null;
     language: string | null;
+    voice: StoredVoice | null;
     createdAt: string;
   } | null;
   evaluation: Evaluation | null;
@@ -352,7 +437,7 @@ export interface HistoryEntry {
   } | null;
   loop: { id: string; round: number | null; totalRounds: number; label: string | null } | null;
   questions: (HistoryQuestion & { followUps: HistoryQuestion[] })[];
-  actionsCreated: PrepAction[];
+  actionsCreated: PrepActionView[];
   debrief: Debrief | null;
   hasWeakAnswer: boolean;
 }
@@ -432,6 +517,137 @@ export interface SkillInfo {
 export interface SkillsList {
   skills: SkillInfo[];
   pluginErrors: { dir: string; file: string; error: string }[];
+}
+
+// --- v0.4 packs / question bank ----------------------------------------------
+
+export interface PackItemView {
+  group: string;
+  text: string;
+  provenance: "sourced" | "community";
+  source?: string;
+}
+
+export interface CompanyPackView {
+  id: string;
+  name: string;
+  version: string;
+  source: string;
+  description: string;
+  aliases: string[];
+  stages: { mode: string; label: string; plannedQuestions: number; provenance: string; source?: string }[];
+  sources: { id: string; title: string; url?: string }[];
+  items: PackItemView[];
+  sourcedCount: number;
+  communityCount: number;
+}
+
+export interface RolePackView {
+  id: string;
+  name: string;
+  version: string;
+  source: string;
+  description: string;
+  dimensions: { skillId: string; weight: number }[];
+  defaultQuestionCategories: string[];
+  resources: PrepResource[];
+}
+
+export interface PackListView {
+  companies: CompanyPackView[];
+  roles: RolePackView[];
+  loadErrors: { path: string; error: string }[];
+}
+
+// --- v0.4 plugins --------------------------------------------------------------
+
+export interface PluginPermissionEntry {
+  category: string;
+  access: "READ" | "WRITE" | "INVOKE" | "DENIED" | "UI";
+  requested: boolean;
+  granted: boolean;
+  detail?: string;
+}
+
+/** v0.4: UI contributions an enabled plugin declares (mirrors server view). */
+export interface PluginUIContributionView {
+  pluginId: string;
+  pluginName: string;
+  navigation: { label: string; icon: string; page: string }[];
+  commands: { id: string; label: string; action: UIAction }[];
+  slots: Partial<
+    Record<
+      string,
+      { component: string; kind: "declarative" | "frame"; title?: string; entry?: string }[]
+    >
+  >;
+  pages: {
+    path: string;
+    title: string;
+    kind: "declarative" | "frame";
+    component: string;
+    entry?: string;
+  }[];
+  interviewModes: {
+    id: string;
+    label: string;
+    roundType: RoundType;
+    focusSkills: string[];
+    plannedQuestions: number;
+  }[];
+}
+
+export type { UIAction, UINode } from "@interview-os/core";
+
+export interface PluginView {
+  manifest: {
+    id: string;
+    version: string;
+    name?: string;
+    author?: string;
+    description: string;
+    capabilities?: string[];
+    permissions: string[];
+    engines?: Record<string, string>;
+  };
+  enabled: boolean;
+  grantedPermissions: string[];
+  source: "bundled" | "git" | "memory";
+  compatible: boolean;
+  permissions: PluginPermissionEntry[];
+  loadError?: string;
+}
+
+export interface PluginRunResult {
+  output: unknown;
+  evidenceWritten: number;
+  evidenceIgnored: number;
+  evidenceRejected?: string;
+}
+
+export interface InterviewPackInfo {
+  pack: InterviewPack;
+  source: "bundled" | "user" | "imported";
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+export interface InterviewPackInput {
+  name: string;
+  description?: string;
+  author?: string;
+  version?: string;
+  skills: string[];
+  rounds: { mode: RoundType; label: string; plannedQuestions: number }[];
+  durationMinutes: number;
+}
+
+export interface UserBankQuestion {
+  skillId: string;
+  text: string;
+  difficulty?: "easy" | "medium" | "hard";
+  mode?: RoundType;
+  source: { kind: "user_bank"; id: string };
 }
 
 export class ApiError extends Error {
@@ -581,6 +797,51 @@ export interface AppSettings {
   model: string | null;
   reasoningEffort: "low" | "medium" | "high" | null;
   taskMode: "app-server" | "exec";
+  /** v0.4: which question sources feed interviews. */
+  questionSources?: {
+    companyPacks: boolean;
+    rolePacks: boolean;
+    userBank: boolean;
+    plugins: string[];
+  };
+  /** v0.4: voice mode (interaction layer only). */
+  voice?: {
+    enabled: boolean;
+    speakQuestions: boolean;
+  };
+}
+
+// --- v0.4 MCP ----------------------------------------------------------------
+
+export interface McpServerInfo {
+  id: string;
+  name: string;
+  description?: string;
+  command: string;
+  args: string[];
+  /** Env var NAMES only — values never leave the server process. */
+  envPassthrough: string[];
+  enabled: boolean;
+  allowedTools: string[];
+}
+
+export interface McpServersView {
+  servers: McpServerInfo[];
+  loadError: string | null;
+}
+
+export interface McpToolInfo {
+  name: string;
+  description?: string;
+}
+
+export interface ExternalContext {
+  id: string;
+  serverId: string;
+  tool: string;
+  title: string;
+  text: string;
+  createdAt: string;
 }
 
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
@@ -642,9 +903,9 @@ export const api = {
       body: JSON.stringify(body),
     }),
   preparation: () =>
-    request<{ nextActions: PrepAction[]; actions: PrepAction[] }>("/api/preparation"),
+    request<{ nextActions: PrepActionView[]; actions: PrepActionView[] }>("/api/preparation"),
   recalculatePlan: () =>
-    request<PrepAction[]>("/api/preparation/recalculate", { method: "POST" }),
+    request<PrepActionView[]>("/api/preparation/recalculate", { method: "POST" }),
   updateAction: (id: string, status: "open" | "in_progress" | "done" | "superseded") =>
     request<{ ok: boolean }>(`/api/preparation/${id}`, {
       method: "PATCH",
@@ -652,7 +913,7 @@ export const api = {
       body: JSON.stringify({ status }),
     }),
   completeAction: (id: string, checkedCriteria: string[]) =>
-    request<{ ok: boolean; evidenceId: string | null; actions: PrepAction[] }>(
+    request<{ ok: boolean; evidenceId: string | null; actions: PrepActionView[] }>(
       `/api/preparation/${id}/complete`,
       {
         method: "POST",
@@ -668,13 +929,13 @@ export const api = {
     level: string;
     companyNotes?: string;
   }) =>
-    request<{ target: TargetRole; actions: PrepAction[] }>("/api/targets", {
+    request<{ target: TargetRole; actions: PrepActionView[] }>("/api/targets", {
       method: "POST",
       headers: { "content-type": "application/json" },
       body: JSON.stringify(body),
     }),
   activateTarget: (id: string) =>
-    request<{ target: TargetRole; actions: PrepAction[] }>(
+    request<{ target: TargetRole; actions: PrepActionView[] }>(
       `/api/targets/${id}/activate`,
       { method: "POST" },
     ),
@@ -700,6 +961,8 @@ export const api = {
       focusSkillId?: string;
       actionId?: string;
       roundType?: RoundType;
+      contextId?: string;
+      pluginModeId?: string;
     } = {},
   ) =>
     request<StartInterviewResult>("/api/interviews", {
@@ -709,7 +972,10 @@ export const api = {
     }),
   listInterviews: () => request<InterviewListItem[]>("/api/interviews"),
   interview: (id: string) => request<SessionDetail>(`/api/interviews/${id}`),
-  submitAnswer: (sessionId: string, body: { answer: string; code?: string; language?: string }) =>
+  submitAnswer: (
+    sessionId: string,
+    body: { answer: string; code?: string; language?: string; voice?: VoiceMetrics },
+  ) =>
     request<SubmitAnswerResult>(`/api/interviews/${sessionId}/answer`, {
       method: "POST",
       headers: { "content-type": "application/json" },
@@ -767,8 +1033,203 @@ export const api = {
   latestResumeReview: () =>
     request<ResumeReview | null>("/api/resume/reviews/latest"),
   skills: () => request<SkillsList>("/api/skills"),
-  runPlugin: (id: string) =>
-    request<{ output: unknown }>(`/api/plugins/${encodeURIComponent(id)}/run`, {
+  plugins: () => request<{ plugins: PluginView[] }>("/api/plugins"),
+  setPluginEnabled: (id: string, enabled: boolean, grantedPermissions?: string[]) =>
+    request<{ plugin: PluginView }>(`/api/plugins/${encodeURIComponent(id)}`, {
+      method: "PUT",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ enabled, grantedPermissions }),
+    }),
+  installPlugin: (url: string) =>
+    request<{ plugin: PluginView }>("/api/plugins/install", {
       method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ url }),
+    }),
+  uninstallPlugin: (id: string) =>
+    request<{ ok: boolean }>(`/api/plugins/${encodeURIComponent(id)}`, {
+      method: "DELETE",
+    }),
+  runPlugin: (id: string) =>
+    request<PluginRunResult>(`/api/plugins/${encodeURIComponent(id)}/run`, {
+      method: "POST",
+    }),
+  /** v0.4: enabled plugins' UI contributions (nav, commands, slots, pages, modes). */
+  uiContributions: () =>
+    request<{ contributions: PluginUIContributionView[] }>("/api/ui/contributions"),
+  /** v0.4: render a declared declarative contribution → validated UI tree. */
+  renderPluginUI: (
+    id: string,
+    body: {
+      slot?: string;
+      component: string;
+      page?: string;
+      params?: unknown;
+    },
+  ) =>
+    request<{ ui: UINode }>(`/api/plugins/${encodeURIComponent(id)}/ui/render`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify(body),
+    }),
+  /** v0.4 Level 2: a frame's declared + granted data slices. */
+  pluginUIData: (
+    id: string,
+    body: { component?: string; page?: string },
+  ) =>
+    request<{ slices: Record<string, unknown> }>(
+      `/api/plugins/${encodeURIComponent(id)}/ui/data`,
+      {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify(body),
+      },
+    ),
+  /** v0.4 Level 2: stateless plugin invocation from inside a frame. */
+  pluginUIRun: (
+    id: string,
+    body: { component?: string; page?: string; request?: Record<string, unknown> },
+  ) =>
+    request<{ output: unknown; ui?: UINode }>(
+      `/api/plugins/${encodeURIComponent(id)}/ui/run`,
+      {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify(body),
+      },
+    ),
+  /** v1: plugin-declared settings fields + effective values. */
+  pluginSettings: (id: string) =>
+    request<{ fields: PluginSettingField[]; values: Record<string, unknown> }>(
+      `/api/plugins/${encodeURIComponent(id)}/settings`,
+    ),
+  setPluginSettings: (id: string, values: Record<string, unknown>) =>
+    request<{ values: Record<string, unknown> }>(
+      `/api/plugins/${encodeURIComponent(id)}/settings`,
+      {
+        method: "PUT",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ values }),
+      },
+    ),
+  /** v1: plugin-suggested prep activities (read-only). */
+  pluginPrepSuggestions: () =>
+    request<{ suggestions: PluginSuggestionGroup[] }>(
+      "/api/preparation/suggestions",
+    ),
+  acceptPluginSuggestion: (pluginId: string, activity: unknown) =>
+    request<{ id: string }>("/api/preparation/suggestions/accept", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ pluginId, activity }),
+    }),
+  packs: () => request<PackListView>("/api/packs"),
+  installPack: (kind: "company" | "role", url: string) =>
+    request<unknown>("/api/packs/install", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ kind, url }),
+    }),
+  uninstallPack: (kind: "company" | "role", id: string) =>
+    request<{ ok: boolean }>(
+      `/api/packs/${kind}/${encodeURIComponent(id)}`,
+      { method: "DELETE" },
+    ),
+  setTargetRolePack: (targetId: string, rolePackId: string | null) =>
+    request<{ target: TargetRole }>(
+      `/api/targets/${targetId}/role-pack`,
+      {
+        method: "PUT",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ rolePackId }),
+      },
+    ),
+  interviewPacks: () => request<InterviewPackInfo[]>("/api/interview-packs"),
+  createInterviewPack: (body: InterviewPackInput) =>
+    request<InterviewPackInfo>("/api/interview-packs", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify(body),
+    }),
+  importInterviewPack: (content: string) =>
+    request<InterviewPackInfo>("/api/interview-packs/import", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ content }),
+    }),
+  deleteInterviewPack: (id: string) =>
+    request<{ ok: boolean }>(
+      `/api/interview-packs/${encodeURIComponent(id)}`,
+      { method: "DELETE" },
+    ),
+  exportInterviewPackUrl: (id: string) =>
+    `/api/interview-packs/${encodeURIComponent(id)}/export`,
+  startInterviewPack: (id: string) =>
+    request<StartLoopResult>(
+      `/api/interview-packs/${encodeURIComponent(id)}/start`,
+      { method: "POST" },
+    ),
+  questionBank: () => request<UserBankQuestion[]>("/api/question-bank"),
+  addBankQuestion: (body: {
+    skillId: string;
+    text: string;
+    difficulty?: "easy" | "medium" | "hard";
+    mode?: RoundType;
+  }) =>
+    request<unknown>("/api/question-bank", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify(body),
+    }),
+  deleteBankQuestion: (id: string) =>
+    request<{ ok: boolean }>(
+      `/api/question-bank/${encodeURIComponent(id)}`,
+      { method: "DELETE" },
+    ),
+  importQuestionBank: (content: string) =>
+    request<{ imported: number }>("/api/question-bank/import", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ content }),
+    }),
+  fetchActionResources: (actionId: string) =>
+    request<PrepActionView>(
+      `/api/preparation/${encodeURIComponent(actionId)}/resources`,
+      { method: "POST" },
+    ),
+  // ------------------------------------------------------------- v0.4 MCP
+  mcpServers: () => request<McpServersView>("/api/mcp/servers"),
+  updateMcpServer: (id: string, patch: { enabled?: boolean; allowedTools?: string[] }) =>
+    request<McpServerInfo>(`/api/mcp/servers/${encodeURIComponent(id)}`, {
+      method: "PUT",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify(patch),
+    }),
+  mcpTools: (id: string) =>
+    request<{ tools: McpToolInfo[] }>(`/api/mcp/servers/${encodeURIComponent(id)}/tools`),
+  mcpContexts: () => request<ExternalContext[]>("/api/mcp/contexts"),
+  fetchMcpContext: (body: {
+    serverId: string;
+    tool: string;
+    args?: Record<string, unknown>;
+    title?: string;
+  }) =>
+    request<ExternalContext>("/api/mcp/contexts", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify(body),
+    }),
+  deleteMcpContext: (id: string) =>
+    request<{ ok: boolean }>(`/api/mcp/contexts/${encodeURIComponent(id)}`, {
+      method: "DELETE",
+    }),
+  // ------------------------------------------------------ v0.4 export/import
+  exportUrl: () => "/api/export",
+  exportPartUrl: (part: string) => `/api/export/${encodeURIComponent(part)}`,
+  importState: (bundle: unknown) =>
+    request<{ ok: boolean; counts: Record<string, number> }>("/api/import", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ bundle, confirm: "replace" }),
     }),
 };

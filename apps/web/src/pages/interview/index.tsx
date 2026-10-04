@@ -5,13 +5,17 @@ import {
   api,
   streamPost,
   type CompanyProfileInfo,
+  type ExternalContext,
   type InterviewListItem,
   type InterviewLoop,
+  type InterviewPackInfo,
+  type McpServerInfo,
   type RoundType,
   type StartInterviewResult,
   type StartLoopResult,
 } from "@/lib/api";
 import { Button, Card, CardTitle, EmptyState, ErrorNote, PageHeader, Pill, SkeletonCard } from "@/components/ui";
+import { useUIContributions } from "@/components/plugin-ui";
 
 const MODES = allModes();
 const MODE_IDS = MODES.map((m) => m.id);
@@ -35,11 +39,37 @@ export default function Interview() {
   const [roundType, setRoundType] = useState<RoundType>("technical");
   const [loopOpen, setLoopOpen] = useState(false);
   const [loopRounds, setLoopRounds] = useState<LoopRoundDraft[]>([]);
+  const [contexts, setContexts] = useState<ExternalContext[]>([]);
+  const [contextId, setContextId] = useState("");
+  const [mcpServers, setMcpServers] = useState<McpServerInfo[]>([]);
+  const [fetchServer, setFetchServer] = useState("");
+  const [fetchTool, setFetchTool] = useState("");
+  const [fetchArgs, setFetchArgs] = useState("{}");
+  const [fetchTitle, setFetchTitle] = useState("");
+  const [fetching, setFetching] = useState(false);
+  const [packs, setPacks] = useState<InterviewPackInfo[]>([]);
+  const [packId, setPackId] = useState("");
+  const pluginModes = useUIContributions().flatMap((p) =>
+    p.interviewModes.map((m) => ({ plugin: p.pluginName, pluginModeId: `${p.pluginId}:${m.id}`, ...m })),
+  );
+
+  const loadContexts = () =>
+    api.mcpContexts().then(setContexts).catch(() => setContexts([]));
 
   useEffect(() => {
     api.listInterviews().then(setSessions).catch((e) => setError(e));
     api.loops().then(setLoops).catch(() => setLoops([]));
     api.companies().then(setProfiles).catch(() => {});
+    loadContexts();
+    api
+      .mcpServers()
+      .then((r) => {
+        const enabled = r.servers.filter((s) => s.enabled);
+        setMcpServers(enabled);
+        if (enabled[0]) setFetchServer(enabled[0].id);
+      })
+      .catch(() => {});
+    api.interviewPacks().then(setPacks).catch(() => {});
   }, []);
 
   const openLoopBuilder = async () => {
@@ -73,7 +103,10 @@ export default function Interview() {
   const start = () => {
     setStarting(true);
     setStage(null);
-    streamPost<StartInterviewResult>("/api/interviews", { plannedQuestions: 4, roundType }, {
+    streamPost<StartInterviewResult>(
+      "/api/interviews",
+      { plannedQuestions: 4, roundType, ...(contextId ? { contextId } : {}) },
+      {
       onStage: setStage,
     })
       .then((r) => r.session && navigate(`/interview/${r.session.id}`))
@@ -100,6 +133,59 @@ export default function Interview() {
       [next[i], next[j]] = [next[j]!, next[i]!];
       return next;
     });
+  };
+
+  const activeServer = mcpServers.find((s) => s.id === fetchServer);
+  let argsError: string | null = null;
+  let parsedArgs: Record<string, unknown> = {};
+  try {
+    const v: unknown = JSON.parse(fetchArgs || "{}");
+    if (v && typeof v === "object" && !Array.isArray(v)) {
+      parsedArgs = v as Record<string, unknown>;
+    } else {
+      argsError = "Args must be a JSON object.";
+    }
+  } catch {
+    argsError = "Args must be valid JSON.";
+  }
+
+  const fetchContext = () => {
+    setFetching(true);
+    setError(null);
+    api
+      .fetchMcpContext({
+        serverId: fetchServer,
+        tool: fetchTool,
+        args: parsedArgs,
+        ...(fetchTitle.trim() ? { title: fetchTitle.trim() } : {}),
+      })
+      .then(() => {
+        setFetchTitle("");
+        setFetchArgs("{}");
+        return loadContexts();
+      })
+      .catch((e) => setError(e))
+      .finally(() => setFetching(false));
+  };
+
+  const startPluginMode = (pluginModeId: string) => {
+    setStarting(true);
+    setStage(null);
+    api
+      .startInterview({ pluginModeId })
+      .then((r) => r.session && navigate(`/interview/${r.session.id}`))
+      .catch((e) => setError(e))
+      .finally(() => setStarting(false));
+  };
+
+  const startPack = () => {
+    setStarting(true);
+    setStage(null);
+    api
+      .startInterviewPack(packId)
+      .then((r) => navigate(`/interview/loop/${r.loop.id}`))
+      .catch((e) => setError(e))
+      .finally(() => setStarting(false));
   };
 
   const live = sessions?.filter((s) => s.status !== "debrief" && s.status !== "complete") ?? [];
@@ -166,6 +252,28 @@ export default function Interview() {
           </div>
         </details>
       </Card>
+
+      {pluginModes.length > 0 && (
+        <Card data-testid="plugin-modes">
+          <CardTitle>Plugin modes</CardTitle>
+          <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+            {pluginModes.map((m) => (
+              <button
+                key={m.pluginModeId}
+                type="button"
+                onClick={() => startPluginMode(m.pluginModeId)}
+                disabled={starting}
+                className="rounded-[0.6rem] border border-line p-3 text-left text-sm hover:bg-tint disabled:opacity-60"
+              >
+                <span className="block font-medium text-ink">{m.label}</span>
+                <span className="mt-0.5 block text-xs text-muted">
+                  {m.plugin} · {m.roundType.replace("_", " ")} · {m.plannedQuestions} questions
+                </span>
+              </button>
+            ))}
+          </div>
+        </Card>
+      )}
 
       <Card data-testid="loop-builder">
         <CardTitle>Full loop — a multi-round interview</CardTitle>
@@ -269,6 +377,149 @@ export default function Interview() {
           </div>
         )}
       </Card>
+
+      {(contexts.length > 0 || mcpServers.length > 0) && (
+        <Card data-testid="external-context">
+          <CardTitle>External context</CardTitle>
+          <p className="mt-1 text-xs text-muted">
+            Attach one saved context — it is shown to the interviewer as
+            untrusted reference material.
+          </p>
+          {contexts.length > 0 && (
+            <ul className="mt-3 space-y-1.5 text-sm">
+              <li>
+                <label className="flex items-center gap-2">
+                  <input
+                    type="radio"
+                    name="context"
+                    checked={contextId === ""}
+                    onChange={() => setContextId("")}
+                    className="accent-accent"
+                  />
+                  <span className="text-muted">No context</span>
+                </label>
+              </li>
+              {contexts.map((c) => (
+                <li key={c.id} className="flex items-center gap-2">
+                  <label className="flex min-w-0 flex-1 items-center gap-2">
+                    <input
+                      type="radio"
+                      name="context"
+                      checked={contextId === c.id}
+                      onChange={() => setContextId(c.id)}
+                      className="accent-accent"
+                    />
+                    <span className="truncate">
+                      {c.title}{" "}
+                      <span className="text-xs text-muted">
+                        ({c.text.length} chars · {c.serverId}/{c.tool})
+                      </span>
+                    </span>
+                  </label>
+                  <button
+                    type="button"
+                    aria-label={`Delete context ${c.title}`}
+                    className="text-muted hover:text-danger"
+                    onClick={() =>
+                      api.deleteMcpContext(c.id).then(loadContexts).catch(setError)
+                    }
+                  >
+                    ✕
+                  </button>
+                </li>
+              ))}
+            </ul>
+          )}
+          {mcpServers.length > 0 && (
+            <div className="mt-3 border-t border-line pt-3">
+              <p className="text-sm font-medium text-navy">Fetch context</p>
+              <div className="mt-2 flex flex-wrap gap-2">
+                <select
+                  aria-label="MCP server"
+                  value={fetchServer}
+                  onChange={(e) => {
+                    setFetchServer(e.target.value);
+                    setFetchTool("");
+                  }}
+                  data-testid="mcp-server-select"
+                  className="rounded border border-line bg-white px-2 py-1.5 text-sm"
+                >
+                  {mcpServers.map((s) => (
+                    <option key={s.id} value={s.id}>{s.name}</option>
+                  ))}
+                </select>
+                <select
+                  aria-label="Tool"
+                  value={fetchTool}
+                  onChange={(e) => setFetchTool(e.target.value)}
+                  data-testid="mcp-tool-select"
+                  className="rounded border border-line bg-white px-2 py-1.5 text-sm"
+                >
+                  <option value="">tool…</option>
+                  {(activeServer?.allowedTools ?? []).map((t) => (
+                    <option key={t} value={t}>{t}</option>
+                  ))}
+                </select>
+                <input
+                  value={fetchTitle}
+                  onChange={(e) => setFetchTitle(e.target.value)}
+                  placeholder="Title (optional)"
+                  aria-label="Context title"
+                  className="min-w-0 flex-1 rounded border border-line px-2 py-1.5 text-sm"
+                />
+              </div>
+              <textarea
+                value={fetchArgs}
+                onChange={(e) => setFetchArgs(e.target.value)}
+                rows={2}
+                aria-label="Tool arguments (JSON)"
+                className="mt-2 w-full rounded-[0.6rem] border border-line px-3 py-2 font-mono text-xs"
+              />
+              {argsError && (
+                <p className="mt-1 text-xs text-danger">{argsError}</p>
+              )}
+              <Button
+                variant="secondary"
+                disabled={fetching || !fetchServer || !fetchTool || !!argsError}
+                onClick={fetchContext}
+                data-testid="fetch-context"
+              >
+                {fetching ? "Fetching…" : "Fetch context"}
+              </Button>
+            </div>
+          )}
+        </Card>
+      )}
+
+      {packs.length > 0 && (
+        <Card>
+          <CardTitle>Start from interview pack</CardTitle>
+          <div className="mt-2 flex items-center gap-2">
+            <select
+              aria-label="Interview pack"
+              value={packId}
+              onChange={(e) => setPackId(e.target.value)}
+              data-testid="pack-select"
+              className="min-w-0 flex-1 rounded border border-line bg-white px-2 py-1.5 text-sm"
+            >
+              <option value="">choose a pack…</option>
+              {packs.map(({ pack }) => (
+                <option key={pack.id} value={pack.id}>
+                  {pack.name} ({pack.rounds.length} rounds)
+                </option>
+              ))}
+            </select>
+            <Button
+              variant="secondary"
+              disabled={starting || !packId}
+              onClick={startPack}
+              data-testid="start-pack"
+            >
+              Start pack
+            </Button>
+          </div>
+        </Card>
+      )}
 
       {starting && (
         <p role="status" aria-live="polite" className="text-sm text-muted">

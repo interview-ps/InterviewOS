@@ -8,11 +8,13 @@ import {
 } from "react";
 import {
   api,
+  type PluginUIContributionView,
   type PrepAction,
   type RoundType,
   type SkillReadiness,
   type TargetListItem,
 } from "@/lib/api";
+import { runUIAction } from "@/lib/plugin-actions";
 import { fuzzyFilter } from "@/lib/fuzzy";
 import { skillLabel } from "@/components/ui";
 
@@ -50,6 +52,7 @@ export function CommandPalette({
   const [targets, setTargets] = useState<TargetListItem[]>([]);
   const [actions, setActions] = useState<PrepAction[]>([]);
   const [graph, setGraph] = useState<Record<string, SkillReadiness>>({});
+  const [pluginUI, setPluginUI] = useState<PluginUIContributionView[]>([]);
 
   // Load dynamic command sources each time the palette opens.
   useEffect(() => {
@@ -60,6 +63,7 @@ export function CommandPalette({
     api.listTargets().then(setTargets).catch(() => setTargets([]));
     api.preparation().then((p) => setActions(p.actions)).catch(() => setActions([]));
     api.readiness().then((g) => setGraph(g.dimensions)).catch(() => setGraph({}));
+    api.uiContributions().then((r) => setPluginUI(r.contributions)).catch(() => setPluginUI([]));
     inputRef.current?.focus();
   }, [open]);
 
@@ -113,6 +117,24 @@ export function CommandPalette({
           await api.reviewResume();
           navigate("/resume");
         },
+      },
+      {
+        id: "packs",
+        title: "Packs",
+        hint: "Navigation",
+        run: () => navigate("/packs"),
+      },
+      {
+        id: "plugins",
+        title: "Plugins",
+        hint: "Navigation",
+        run: () => navigate("/skills"),
+      },
+      {
+        id: "export-data",
+        title: "Export data",
+        hint: "Settings",
+        run: () => navigate("/settings#data"),
       },
       {
         id: "settings",
@@ -170,8 +192,32 @@ export function CommandPalette({
         },
       });
     }
+    // v0.4: plugin-declared commands and interview modes
+    for (const p of pluginUI) {
+      for (const cmd of p.commands) {
+        const action = cmd.action;
+        list.push({
+          id: `plugin-${p.pluginId}-${cmd.id}`,
+          title: cmd.label,
+          hint: p.pluginName,
+          run: () => runUIAction(p.pluginId, action, { navigate }),
+        });
+      }
+      for (const m of p.interviewModes) {
+        const pluginModeId = `${p.pluginId}:${m.id}`;
+        list.push({
+          id: `plugin-mode-${pluginModeId}`,
+          title: `Start ${m.label}`,
+          hint: p.pluginName,
+          run: async () => {
+            const r = await api.startInterview({ pluginModeId });
+            if (r.session) navigate(`/interview/${r.session.id}`);
+          },
+        });
+      }
+    }
     return list;
-  }, [actions, graph, targets, navigate]);
+  }, [actions, graph, targets, pluginUI, navigate]);
 
   const filtered = useMemo(
     () => fuzzyFilter(commands, query, (c) => c.title),
