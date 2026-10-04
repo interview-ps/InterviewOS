@@ -1,0 +1,606 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "properties": {
+    "id": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 80
+    },
+    "version": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 24
+    },
+    "kind": {
+      "type": "string",
+      "enum": [
+        "builtin",
+        "plugin"
+      ]
+    },
+    "description": {
+      "default": "",
+      "type": "string",
+      "maxLength": 1000
+    },
+    "inputs": {
+      "default": [],
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "key": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 64
+          },
+          "permission": {
+            "type": "string",
+            "enum": [
+              "candidate.read",
+              "candidate.write",
+              "target.read",
+              "target.write",
+              "readiness.read",
+              "evidence.write",
+              "interview.read",
+              "interview.write",
+              "stories.read",
+              "stories.write",
+              "resume.read",
+              "resume.write",
+              "preparation.write",
+              "taxonomy.read",
+              "answers.read",
+              "runtime.invoke"
+            ]
+          }
+        },
+        "required": [
+          "key",
+          "permission"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "outputs": {
+      "default": [],
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "permissions": {
+      "default": [],
+      "type": "array",
+      "items": {
+        "type": "string",
+        "enum": [
+          "candidate.read",
+          "candidate.write",
+          "target.read",
+          "target.write",
+          "readiness.read",
+          "evidence.write",
+          "interview.read",
+          "interview.write",
+          "stories.read",
+          "stories.write",
+          "resume.read",
+          "resume.write",
+          "preparation.write",
+          "taxonomy.read",
+          "answers.read",
+          "runtime.invoke"
+        ]
+      }
+    },
+    "name": {
+      "type": "string",
+      "maxLength": 120
+    },
+    "author": {
+      "type": "string",
+      "maxLength": 120
+    },
+    "capabilities": {},
+    "engines": {
+      "type": "object",
+      "properties": {
+        "interview-os": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 80
+        },
+        "plugin-api": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 80
+        }
+      },
+      "required": [
+        "interview-os"
+      ],
+      "additionalProperties": false
+    },
+    "hooks": {
+      "maxItems": 30,
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1,
+        "maxLength": 80
+      }
+    },
+    "events": {
+      "maxItems": 4,
+      "type": "array",
+      "items": {
+        "type": "string",
+        "enum": [
+          "sessionCompleted",
+          "readinessUpdated"
+        ]
+      }
+    },
+    "appliesTo": {
+      "type": "object",
+      "properties": {
+        "skillPrefixes": {
+          "maxItems": 30,
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 80
+          }
+        }
+      },
+      "additionalProperties": false
+    },
+    "settings": {
+      "maxItems": 20,
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "key": {
+            "type": "string",
+            "pattern": "^[a-z0-9][a-z0-9-]{0,63}$"
+          },
+          "label": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 120
+          },
+          "type": {
+            "type": "string",
+            "enum": [
+              "string",
+              "number",
+              "boolean",
+              "enum"
+            ]
+          },
+          "options": {
+            "maxItems": 20,
+            "type": "array",
+            "items": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 80
+            }
+          },
+          "default": {
+            "type": [
+              "string",
+              "number",
+              "boolean"
+            ]
+          },
+          "description": {
+            "type": "string",
+            "maxLength": 300
+          }
+        },
+        "required": [
+          "key",
+          "label",
+          "type"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "ui": {
+      "type": "object",
+      "properties": {
+        "navigation": {
+          "default": [],
+          "maxItems": 2,
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "label": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 60
+              },
+              "icon": {
+                "type": "string",
+                "enum": [
+                  "database",
+                  "cloud",
+                  "code",
+                  "book",
+                  "chart",
+                  "puzzle",
+                  "shield",
+                  "star"
+                ]
+              },
+              "page": {
+                "type": "string",
+                "maxLength": 120,
+                "pattern": "^\\/"
+              }
+            },
+            "required": [
+              "label",
+              "icon",
+              "page"
+            ],
+            "additionalProperties": false
+          }
+        },
+        "commands": {
+          "default": [],
+          "maxItems": 5,
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string",
+                "pattern": "^[a-z0-9][a-z0-9-]{0,63}$"
+              },
+              "label": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 120
+              },
+              "action": {
+                "oneOf": [
+                  {
+                    "type": "object",
+                    "properties": {
+                      "type": {
+                        "type": "string",
+                        "const": "navigate"
+                      },
+                      "to": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 300
+                      }
+                    },
+                    "required": [
+                      "type",
+                      "to"
+                    ],
+                    "additionalProperties": false
+                  },
+                  {
+                    "type": "object",
+                    "properties": {
+                      "type": {
+                        "type": "string",
+                        "const": "startInterview"
+                      },
+                      "roundType": {
+                        "type": "string",
+                        "enum": [
+                          "mixed",
+                          "technical",
+                          "coding",
+                          "system_design",
+                          "behavioral",
+                          "hiring_manager",
+                          "hr"
+                        ]
+                      },
+                      "modeId": {
+                        "type": "string",
+                        "pattern": "^[a-z0-9][a-z0-9-]{0,63}$"
+                      },
+                      "plannedQuestions": {
+                        "type": "integer",
+                        "minimum": 1,
+                        "maximum": 10
+                      }
+                    },
+                    "required": [
+                      "type"
+                    ],
+                    "additionalProperties": false
+                  },
+                  {
+                    "type": "object",
+                    "properties": {
+                      "type": {
+                        "type": "string",
+                        "const": "startPractice"
+                      },
+                      "skillId": {
+                        "type": "string",
+                        "pattern": "^[a-z0-9-]+(\\.[a-z0-9-]+)*$"
+                      }
+                    },
+                    "required": [
+                      "type",
+                      "skillId"
+                    ],
+                    "additionalProperties": false
+                  },
+                  {
+                    "type": "object",
+                    "properties": {
+                      "type": {
+                        "type": "string",
+                        "const": "runPlugin"
+                      },
+                      "request": {
+                        "type": "object",
+                        "propertyNames": {
+                          "type": "string"
+                        },
+                        "additionalProperties": {}
+                      }
+                    },
+                    "required": [
+                      "type",
+                      "request"
+                    ],
+                    "additionalProperties": false
+                  },
+                  {
+                    "type": "object",
+                    "properties": {
+                      "type": {
+                        "type": "string",
+                        "const": "openPluginPage"
+                      },
+                      "path": {
+                        "type": "string",
+                        "maxLength": 120,
+                        "pattern": "^\\/"
+                      }
+                    },
+                    "required": [
+                      "type",
+                      "path"
+                    ],
+                    "additionalProperties": false
+                  }
+                ]
+              }
+            },
+            "required": [
+              "id",
+              "label",
+              "action"
+            ],
+            "additionalProperties": false
+          }
+        },
+        "slots": {
+          "default": {},
+          "type": "object",
+          "propertyNames": {
+            "type": "string",
+            "enum": [
+              "dashboard.cards",
+              "dashboard.sidebar",
+              "target.tabs",
+              "prepare.activities",
+              "interview.sidebar",
+              "interview.toolbar",
+              "readiness.panels",
+              "resume.tabs",
+              "settings.sections"
+            ]
+          },
+          "additionalProperties": {
+            "maxItems": 3,
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "component": {
+                  "type": "string",
+                  "pattern": "^[a-z0-9][a-z0-9-]{0,63}$"
+                },
+                "kind": {
+                  "type": "string",
+                  "enum": [
+                    "declarative",
+                    "frame"
+                  ]
+                },
+                "title": {
+                  "type": "string",
+                  "maxLength": 120
+                },
+                "entry": {
+                  "type": "string",
+                  "maxLength": 200
+                }
+              },
+              "required": [
+                "component",
+                "kind"
+              ],
+              "additionalProperties": false
+            }
+          }
+        },
+        "pages": {
+          "default": [],
+          "maxItems": 5,
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "path": {
+                "type": "string",
+                "maxLength": 120,
+                "pattern": "^\\/"
+              },
+              "title": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 120
+              },
+              "kind": {
+                "type": "string",
+                "enum": [
+                  "declarative",
+                  "frame"
+                ]
+              },
+              "component": {
+                "type": "string",
+                "pattern": "^[a-z0-9][a-z0-9-]{0,63}$"
+              },
+              "entry": {
+                "type": "string",
+                "maxLength": 200
+              }
+            },
+            "required": [
+              "path",
+              "title",
+              "kind",
+              "component"
+            ],
+            "additionalProperties": false
+          }
+        }
+      },
+      "required": [
+        "navigation",
+        "commands",
+        "slots",
+        "pages"
+      ],
+      "additionalProperties": false
+    },
+    "interviewModes": {
+      "maxItems": 5,
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "pattern": "^[a-z0-9][a-z0-9-]{0,63}$"
+          },
+          "label": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 120
+          },
+          "description": {
+            "default": "",
+            "type": "string",
+            "maxLength": 300
+          },
+          "roundType": {
+            "type": "string",
+            "enum": [
+              "mixed",
+              "technical",
+              "coding",
+              "system_design",
+              "behavioral",
+              "hiring_manager",
+              "hr"
+            ]
+          },
+          "focusSkills": {
+            "default": [],
+            "maxItems": 12,
+            "type": "array",
+            "items": {
+              "type": "string",
+              "pattern": "^[a-z0-9-]+(\\.[a-z0-9-]+)*$"
+            }
+          },
+          "plannedQuestions": {
+            "default": 4,
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 10
+          },
+          "guidance": {
+            "type": "string",
+            "maxLength": 1500
+          }
+        },
+        "required": [
+          "id",
+          "label",
+          "description",
+          "roundType",
+          "focusSkills",
+          "plannedQuestions"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "taxonomy": {
+      "maxItems": 30,
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "pattern": "^[a-z0-9-]+(\\.[a-z0-9-]+)*$"
+          },
+          "label": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 120
+          },
+          "keywords": {
+            "default": [],
+            "type": "array",
+            "items": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 80
+            }
+          }
+        },
+        "required": [
+          "id",
+          "label",
+          "keywords"
+        ],
+        "additionalProperties": false
+      }
+    }
+  },
+  "required": [
+    "id",
+    "version",
+    "kind",
+    "description",
+    "inputs",
+    "outputs",
+    "permissions"
+  ],
+  "additionalProperties": false
+}

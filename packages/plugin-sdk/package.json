@@ -1,0 +1,24 @@
+{
+  "name": "@interview-os/plugin-sdk",
+  "version": "0.4.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts",
+    "./testing": "./src/testing.ts"
+  },
+  "bin": {
+    "interview-os": "bin/interview-os.mjs"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit -p tsconfig.json"
+  },
+  "dependencies": {
+    "@interview-os/core": "workspace:*",
+    "@interview-os/runtime": "workspace:*",
+    "@interview-os/ui": "workspace:*",
+    "esbuild": "0.28.2",
+    "yaml": "2.9.1",
+    "zod": "4.6.5"
+  }
+}
