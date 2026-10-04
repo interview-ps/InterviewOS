@@ -96,6 +96,3 @@ data/opencode-workspace/
 data/devin-workspace/
 test-results/
 playwright-report/
-
-# Next.js generated
-next-env.d.ts

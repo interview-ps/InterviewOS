@@ -1,7 +1,4 @@
-"use client";
-
-import { useParams } from "next/navigation";
-import Link from "next/link";
+import { Link, useParams } from "react-router";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { getMode } from "@interview-os/core";
 import {
@@ -192,7 +189,7 @@ function RubricBars({ rubric }: { rubric: { id: string; label: string; score: nu
 }
 
 export default function InterviewSession() {
-  const { id } = useParams<{ id: string }>();
+  const id = useParams().id ?? "";
   const [detail, setDetail] = useState<SessionDetail | null>(null);
   const [current, setCurrent] = useState<SessionQuestion | null>(null);
   const [answer, setAnswer] = useState("");
@@ -519,7 +516,7 @@ export default function InterviewSession() {
         </span>
         {loop && (
           <Link
-            href={`/interview/loop/${loop.id}`}
+            to={`/interview/loop/${loop.id}`}
             className="text-sm font-normal text-blue underline"
             data-testid="loop-link"
           >
@@ -588,7 +585,7 @@ export default function InterviewSession() {
               if (nextRound?.sessionId) {
                 return (
                   <div className="mt-4 flex items-center gap-3">
-                    <Link href={`/interview/${nextRound.sessionId}`}>
+                    <Link to={`/interview/${nextRound.sessionId}`}>
                       <Button data-testid="next-round">
                         Continue to round {loop.rounds.indexOf(nextRound) + 1}:{" "}
                         {nextRound.label || nextRound.mode}
@@ -600,7 +597,7 @@ export default function InterviewSession() {
               if (loop.status === "complete") {
                 return (
                   <div className="mt-4">
-                    <Link href={`/interview/loop/${loop.id}`} className="text-blue underline">
+                    <Link to={`/interview/loop/${loop.id}`} className="text-blue underline">
                       View the loop debrief →
                     </Link>
                   </div>

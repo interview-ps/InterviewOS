@@ -1,5 +1,3 @@
-"use client";
-
 import { useEffect, useState, type ReactNode } from "react";
 import { taxonomy } from "@interview-os/core";
 import { ApiError } from "@/lib/api";

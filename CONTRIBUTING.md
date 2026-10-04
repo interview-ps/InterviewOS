@@ -5,8 +5,9 @@
 ```sh
 pnpm install
 pnpm typecheck && pnpm test       # must be green before and after your change
-pnpm dev                          # server :4100 + web :3000
+pnpm dev                          # server :4100 + Vite dev UI :3000 (/api proxied to :4100)
 INTERVIEW_OS_RUNTIME=mock pnpm dev
+pnpm start                        # build the SPA and serve UI + API from :4100
 pnpm test:e2e                     # Playwright e2e (mock runtime)
 ```
 

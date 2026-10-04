@@ -1,8 +1,5 @@
-"use client";
-
-import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
+import { Link, useNavigate } from "react-router";
 import { api, type PrepAction } from "@/lib/api";
 import { Button, Card, CardTitle, EmptyState, ErrorNote, PageHeader, Pill, SkeletonCard, skillLabel, toast } from "@/components/ui";
 
@@ -26,7 +23,7 @@ function ActionCard({
   onError: (e: unknown) => void;
   run: (id: string, fn: () => Promise<unknown>) => void;
 }) {
-  const router = useRouter();
+  const navigate = useNavigate();
   const [checked, setChecked] = useState<Set<string>>(new Set());
   const a = action;
 
@@ -50,7 +47,7 @@ function ActionCard({
     run(a.id, () =>
       api
         .startInterview({ mode: "practice", focusSkillId: a.skillId, actionId: a.id })
-        .then((r) => r.session && router.push(`/interview/${r.session.id}`)),
+        .then((r) => r.session && navigate(`/interview/${r.session.id}`)),
     );
 
   return (
@@ -154,7 +151,7 @@ export default function PrepPlan() {
             title="No open actions"
             description="Set a target role or recalculate the plan."
             action={
-              <Link href="/target">
+              <Link to="/target">
                 <Button variant="secondary">Open target</Button>
               </Link>
             }

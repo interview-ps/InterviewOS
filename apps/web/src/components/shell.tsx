@@ -1,8 +1,4 @@
-"use client";
-
-import Image from "next/image";
-import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { Link, useLocation } from "react-router";
 import { useEffect, useState, type ReactNode } from "react";
 import { api, type RuntimeStatus, type TargetListItem } from "@/lib/api";
 import { CommandPalette } from "@/components/command-palette";
@@ -88,7 +84,7 @@ function TargetSwitcher() {
 }
 
 function NavList({ onNavigate }: { onNavigate?: () => void }) {
-  const pathname = usePathname();
+  const pathname = useLocation().pathname;
   return (
     <ul className="space-y-1">
       {NAV.map((item) => {
@@ -97,7 +93,7 @@ function NavList({ onNavigate }: { onNavigate?: () => void }) {
         return (
           <li key={item.href}>
             <Link
-              href={item.href}
+              to={item.href}
               aria-current={active ? "page" : undefined}
               onClick={onNavigate}
               className={`block rounded-[0.6rem] px-3 py-2 text-sm ${
@@ -116,7 +112,7 @@ function NavList({ onNavigate }: { onNavigate?: () => void }) {
 }
 
 export function Shell({ children }: { children: ReactNode }) {
-  const pathname = usePathname();
+  const location = useLocation();
   const [status, setStatus] = useState<RuntimeStatus | null>(null);
   const [paletteOpen, setPaletteOpen] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
@@ -148,6 +144,26 @@ export function Shell({ children }: { children: ReactNode }) {
     };
   }, []);
 
+  // Scroll restoration: hash targets (e.g. /target#add-target) scroll into view
+  // — retry briefly since the element may render after an async load; otherwise
+  // go to the top like a fresh page.
+  useEffect(() => {
+    if (!location.hash) {
+      window.scrollTo(0, 0);
+      return;
+    }
+    const id = decodeURIComponent(location.hash.slice(1));
+    let tries = 0;
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    const attempt = () => {
+      const el = document.getElementById(id);
+      if (el) el.scrollIntoView();
+      else if (tries++ < 40) timer = setTimeout(attempt, 50);
+    };
+    attempt();
+    return () => clearTimeout(timer);
+  }, [location.pathname, location.hash]);
+
   return (
     <div className="flex min-h-screen flex-col">
       <header className="flex items-center gap-3 border-b border-line bg-surface px-5 py-3">
@@ -161,7 +177,7 @@ export function Shell({ children }: { children: ReactNode }) {
         >
           ☰
         </button>
-        <Image src="/interview-ps-logo.png" alt="interview.ps logo" width={28} height={28} />
+        <img src="/interview-ps-logo.png" alt="interview.ps logo" width={28} height={28} />
         <div className="font-display text-base font-semibold text-navy">
           Interview OS <span className="font-normal text-muted">· by interview.ps</span>
         </div>

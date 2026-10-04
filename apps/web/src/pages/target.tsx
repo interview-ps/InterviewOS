@@ -1,5 +1,3 @@
-"use client";
-
 import { useCallback, useEffect, useRef, useState } from "react";
 import { api, streamPost, type CompanyProfileInfo, type SetupResult, type TargetListItem } from "@/lib/api";
 import { Bar, Button, Card, CardTitle, ErrorNote, PageHeader, Pill, skillLabel, toast } from "@/components/ui";

@@ -22,7 +22,7 @@
 
   <g class="rise">
     <rect x="120" y="32" width="960" height="60" rx="12" fill="#14213D" stroke="#26395E"/>
-    <text x="600" y="68" font-size="20" text-anchor="middle"><tspan class="mono" fill="#7DD3FC">apps/web</tspan><tspan fill="#DCE6F8" dx="14">· Next.js interface :3000</tspan></text>
+    <text x="600" y="68" font-size="20" text-anchor="middle"><tspan class="mono" fill="#7DD3FC">apps/web</tspan><tspan fill="#DCE6F8" dx="14">· Vite + React Router UI :3000</tspan></text>
   </g>
 
   <path d="M600 92 V114" stroke="#22D3EE" stroke-width="2" class="flow" opacity="0.7"/>

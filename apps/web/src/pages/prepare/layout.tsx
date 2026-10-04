@@ -1,16 +1,12 @@
-"use client";
-
-import Link from "next/link";
-import { usePathname } from "next/navigation";
-import type { ReactNode } from "react";
+import { Link, Outlet, useLocation } from "react-router";
 
 const TABS = [
   { href: "/prepare", label: "Plan" },
   { href: "/prepare/stories", label: "Stories" },
 ];
 
-export default function PrepareLayout({ children }: { children: ReactNode }) {
-  const pathname = usePathname();
+export default function PrepareLayout() {
+  const pathname = useLocation().pathname;
   return (
     <div className="space-y-5">
       <nav aria-label="Prepare sections" className="flex gap-1 border-b border-line">
@@ -20,7 +16,7 @@ export default function PrepareLayout({ children }: { children: ReactNode }) {
           return (
             <Link
               key={t.href}
-              href={t.href}
+              to={t.href}
               aria-current={active ? "page" : undefined}
               className={`-mb-px border-b-2 px-3 py-2 text-sm ${
                 active
@@ -33,7 +29,7 @@ export default function PrepareLayout({ children }: { children: ReactNode }) {
           );
         })}
       </nav>
-      {children}
+      <Outlet />
     </div>
   );
 }

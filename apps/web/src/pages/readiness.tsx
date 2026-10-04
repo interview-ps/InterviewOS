@@ -1,10 +1,8 @@
-"use client";
-
-import { useSearchParams } from "next/navigation";
-import { Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useSearchParams } from "react-router";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { api, type SkillDetail, type SkillReadiness } from "@/lib/api";
 import { Sparkline } from "@/components/sparkline";
-import { Bar, Card, CardTitle, ErrorNote, PageHeader, Pill, Skeleton, SkeletonCard, Spinner, StatusPill, skillLabel } from "@/components/ui";
+import { Bar, Card, CardTitle, ErrorNote, PageHeader, Pill, Skeleton, SkeletonCard, StatusPill, skillLabel } from "@/components/ui";
 
 function scoreTone(s: SkillReadiness): "green" | "blue" | "amber" | "muted" {
   return s.status === "strong" ? "green" : s.status === "developing" ? "blue" : s.status === "weak" ? "amber" : "muted";
@@ -63,8 +61,8 @@ function TreeNode({
   );
 }
 
-function ReadinessPage() {
-  const params = useSearchParams();
+export default function Readiness() {
+  const [params] = useSearchParams();
   const [graph, setGraph] = useState<Record<string, SkillReadiness> | null>(null);
   const [selected, setSelected] = useState<string | null>(null);
   const [detail, setDetail] = useState<SkillDetail | null>(null);
@@ -201,10 +199,3 @@ function ReadinessPage() {
   );
 }
 
-export default function Readiness() {
-  return (
-    <Suspense fallback={<Spinner label="Loading readiness…" />}>
-      <ReadinessPage />
-    </Suspense>
-  );
-}

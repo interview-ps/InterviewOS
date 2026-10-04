@@ -1,5 +1,3 @@
-"use client";
-
 import { useCallback, useEffect, useState } from "react";
 import { api, type SkillInfo, type SkillsList } from "@/lib/api";
 import {

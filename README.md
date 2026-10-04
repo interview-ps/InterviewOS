@@ -127,7 +127,7 @@ pnpm install
 INTERVIEW_OS_RUNTIME=mock pnpm dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000). The web app runs on port 3000 and the API on port 4100. To use your local Codex installation instead, stop the mock server and run `pnpm dev`.
+Open [http://localhost:3000](http://localhost:3000). In dev, the Vite UI runs on port 3000 and proxies `/api` to the API on port 4100; `pnpm start` instead builds the SPA and serves UI + API together from port 4100. To use your local Codex installation instead, stop the mock server and run `pnpm dev`.
 
 > [!TIP]
 > On Windows PowerShell, start mock mode with `$env:INTERVIEW_OS_RUNTIME="mock"; pnpm dev`. If your machine blocks `pnpm.exe` under Application Control, use `corepack pnpm` for the commands above. For other Windows install failures — `corepack pnpm` not launching — see the [Windows setup notes](CONTRIBUTING.md#setup), which also cover the test-runner caveat.
@@ -178,6 +178,7 @@ Interview OS keeps application state in a local SQLite database (`data/interview
 | `INTERVIEW_OS_RUNTIME` | `codex` | `codex`, `claude`, `opencode`, `devin`, or `mock`; overrides the runtime picked in Settings |
 | `INTERVIEW_OS_RUNTIME_FALLBACK` | none | Set to `mock` to use mock mode if the selected runtime is unavailable |
 | `INTERVIEW_OS_PORT` | `4100` | API server port |
+| `INTERVIEW_OS_HOST` | `127.0.0.1` | Bind address for the API server (and the Vite dev/preview server). Set to a non-loopback host only on trusted networks — the API has no authentication |
 | `INTERVIEW_OS_DB` | `data/interview-os.db` | SQLite database path |
 | `INTERVIEW_OS_PLUGINS_DIR` | `<repo>/plugins` | Local plugin discovery directory |
 
@@ -193,17 +194,17 @@ Runtime model, reasoning effort, and task mode can be changed in **Settings**. F
 
 <div align="center">
 
-[![Next.js](https://img.shields.io/badge/Next.js-black?style=flat-square&logo=nextdotjs&logoColor=white)](https://nextjs.org/) [![Hono](https://img.shields.io/badge/Hono-E36002?style=flat-square&logo=hono&logoColor=white)](https://hono.dev/) [![SQLite](https://img.shields.io/badge/SQLite-003B57?style=flat-square&logo=sqlite&logoColor=white)](https://www.sqlite.org/) [![Zod](https://img.shields.io/badge/Zod-3E67B1?style=flat-square&logo=zod&logoColor=white)](https://zod.dev/) [![Tailwind CSS](https://img.shields.io/badge/Tailwind_CSS-06B6D4?style=flat-square&logo=tailwindcss&logoColor=white)](https://tailwindcss.com/) [![Vitest](https://img.shields.io/badge/Vitest-6E9F18?style=flat-square&logo=vitest&logoColor=white)](https://vitest.dev/) [![Playwright](https://img.shields.io/badge/Playwright-2EAD33?style=flat-square&logo=playwright&logoColor=white)](https://playwright.dev/)
+[![Vite](https://img.shields.io/badge/Vite-646CFF?style=flat-square&logo=vite&logoColor=white)](https://vite.dev/) [![React Router](https://img.shields.io/badge/React_Router-CA4245?style=flat-square&logo=reactrouter&logoColor=white)](https://reactrouter.com/) [![Hono](https://img.shields.io/badge/Hono-E36002?style=flat-square&logo=hono&logoColor=white)](https://hono.dev/) [![SQLite](https://img.shields.io/badge/SQLite-003B57?style=flat-square&logo=sqlite&logoColor=white)](https://www.sqlite.org/) [![Zod](https://img.shields.io/badge/Zod-3E67B1?style=flat-square&logo=zod&logoColor=white)](https://zod.dev/) [![Tailwind CSS](https://img.shields.io/badge/Tailwind_CSS-06B6D4?style=flat-square&logo=tailwindcss&logoColor=white)](https://tailwindcss.com/) [![Vitest](https://img.shields.io/badge/Vitest-6E9F18?style=flat-square&logo=vitest&logoColor=white)](https://vitest.dev/) [![Playwright](https://img.shields.io/badge/Playwright-2EAD33?style=flat-square&logo=playwright&logoColor=white)](https://playwright.dev/)
 
 </div>
 
-<img src="docs/assets/readme/architecture.svg" width="100%" alt="Architecture: apps/web Next.js interface on port 3000, apps/server Hono API on port 4100 with local SQLite containing the orchestrator and skills, over packages/core schemas and packages/runtime provider adapters" />
+<img src="docs/assets/readme/architecture.svg" width="100%" alt="Architecture: apps/web Vite + React Router interface on port 3000, apps/server Hono API on port 4100 with local SQLite containing the orchestrator and skills, over packages/core schemas and packages/runtime provider adapters" />
 
 <details>
 <summary>Repository layout</summary>
 
 ```text
-apps/web             Next.js interface (port 3000)
+apps/web             Vite + React Router SPA (dev :3000, built SPA served by the API)
         ↓
 apps/server          Hono API (port 4100) + local SQLite
                      src/orchestrator — Interview and preparation workflows

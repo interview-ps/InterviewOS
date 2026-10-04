@@ -25,6 +25,9 @@ export interface AppDeps {
   runtimes?: RuntimeManager;
   store?: Store;
   examplesDir?: string;
+  /** Built SPA directory (apps/web/dist): when set, non-/api GET/HEAD requests
+   * serve static files with an index.html fallback for client-side routes. */
+  webDir?: string;
   logger?: Logger;
   /** §9.6: plugin directories that failed validation/import at startup. */
   pluginErrors?: { dir: string; file: string; error: string }[];
