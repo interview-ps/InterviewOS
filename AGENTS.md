@@ -25,9 +25,24 @@ interview-question generator. See `ARCHITECTURE.md` for the full design.
 8. **All skill calls go through `SkillHost`.** Never call `skill.execute` from orchestrator or
    server code. Manifests declare inputs/permissions; the host rejects undeclared input keys,
    gates `ctx.runtime` behind `runtime.invoke`, and `host.assertCan(id, "<x>.write")` must pass
-   before persisting a skill's outputs. Plugins are read-only local code: manifests requesting
-   `*.write` are rejected at load, and a plugin only ever receives the state slices it declares —
-   it cannot mutate application state.
+   before persisting a skill's outputs. Plugins run in an **isolated child process**
+   (Node `--permission`, fs limited to the plugin dir, no env inheritance, network and
+   child-process modules blocked); they receive only the state slices they declare *and* the
+   user has granted. A plugin manifest may request `evidence.write` — the only `*.write`
+   allowed (all others are rejected at load) — and even then evidence is **proposal-only**:
+   schema-validated, confidence-capped, stored as type `plugin` with its source, and written
+   by the orchestrator only when the user granted the permission.
+   MCP servers are defined only in the local `interview-os.mcp.json` file (never via HTTP),
+   are disabled by default, and each tool requires an explicit allowlist entry.
+   Packs distinguish `sourced` items (must cite a declared `sources[].id`) from `community`
+   items (displayed as unverified).
+   Plugin UI appears only through declared slots — declarative trees rendered by the host,
+   or plugin-authored components in sandboxed opaque-origin iframes reached via the
+   postMessage bridge; never same-origin plugin code, global CSS, or remote scripts.
+   Core talks to plugins only through the `PLUGIN_HOOKS` contracts
+   (`packages/core/src/platform/plugin-api.ts`) — never add plugin-specific
+   code to core. AI runtime providers are trusted local code loaded only from
+   `interview-os.runtimes.json` (like `interview-os.mcp.json`, never HTTP).
 
 ## Repository map
 ```
@@ -37,15 +52,25 @@ apps/web            Vite + React Router + Tailwind UI :3000 (dev proxies /api �
 packages/core       schemas, taxonomy, readiness, gaps, prioritize, state machine,
                     logger (redacting), ids, errors
 packages/runtime    AIRuntime, MockRuntime, codex/, claude/, opencode/, devin/
+packages/plugin-sdk plugin SDK: defineSkill, manifest loading, runPluginWithMock test
+                    helper, and the `interview-os` CLI (create-skill, validate, build-ui)
+packages/ui         shared design system (@interview-os/ui): tokens/theme.css, components,
+                    declarative UINode renderer, and the plugin-frame runtime bundle
 apps/server/src/skills        resume-analyzer, jd-analyzer, gap-analyzer, company-profiler,
                               prep-planner, star-coach, resume-coach, interviewer,
                               answer-evaluator, interview-debrief, loop-debrief, host/SkillHost
 apps/server/src/orchestrator  InterviewOrchestrator facade (withLock + composition) delegating
                               to domain services (settings, workspace, targets, readiness,
                               preparation, interview, loop, debrief, history, story, resume,
-                              plugin) over a shared WorkflowContext + SQLite store
+                              plugin, pack, mcp, export) over a shared WorkflowContext + store
+apps/server/src/plugins       isolated plugin executor (child process + runner protocol)
+apps/server/src/packs         PackRegistry: bundled + installed company/role/interview packs
+apps/server/src/mcp           McpManager: lazy stdio MCP clients with minimal child env
 examples/           seed resumes + JDs (backend-engineer is canonical)
-plugins/            local read-only plugins (INTERVIEW_OS_PLUGINS_DIR overrides)
+plugins/            bundled plugins (INTERVIEW_OS_PLUGINS_DIR overrides)
+packs/              bundled packs (companies/, roles/, interview/)
+data/               SQLite db, runtime workspaces, installed plugins (data/plugins)
+                    and packs (data/packs) — gitignored
 tests/              integration (canonical feedback loop), fixtures/fake-codex.mjs, e2e
 CLAUDE.md           Claude Code entrypoint (imports @AGENTS.md)
 .claude/            Claude Code settings, agents, commands, skills
@@ -86,6 +111,11 @@ INTERVIEW_OS_RUNTIME=opencode pnpm dev
 INTERVIEW_OS_RUNTIME=devin pnpm dev
 pnpm typecheck && pnpm test       # unit + runtime + integration (mock, fakes)
 pnpm test:e2e                     # Playwright on mock runtime
+pnpm interview-os create-skill <name>     # scaffold a plugin (skill.yaml + index.ts + test)
+pnpm interview-os validate <dir>          # check a plugin manifest + entry
+pnpm interview-os build-ui <dir>          # bundle <dir>/ui/src/index.tsx → ui/index.js
+pnpm interview-os build <dir>             # esbuild index.ts+deps → dist/index.js
+pnpm interview-os schema                  # print the skill.yaml JSON Schema
 INTERVIEW_OS_LIVE_CODEX=1 pnpm test:codex      # opt-in, real local Codex
 INTERVIEW_OS_LIVE_CLAUDE=1 pnpm test:claude    # opt-in, real local Claude Code
 INTERVIEW_OS_LIVE_OPENCODE=1 pnpm test:opencode # opt-in, real local opencode

@@ -85,9 +85,11 @@ For example, if you give a vague answer about cache invalidation, Interview OS r
   </tr>
   <tr>
     <td width="50%" valign="top"><h4>📊 One place to follow progress</h4><p>Browse interview history, answer feedback, per-skill readiness changes, prep actions, and progress metrics. Use the command palette with <code>Ctrl/Cmd+K</code> to jump to common actions.</p></td>
-    <td width="50%" valign="top"><h4>🔌 Local runtimes and plugins</h4><p>Use a locally installed Codex CLI by default, choose Claude Code, opencode, or Devin, or use the deterministic mock runtime. Skills declare their inputs and permissions; local plugins can read declared state slices and cannot write application state. Only install plugin code you trust, because plugins run in the server process.</p></td>
+    <td width="50%" valign="top"><h4>🔌 Local runtimes and plugins</h4><p>Use a locally installed Codex CLI by default, choose Claude Code, opencode, or Devin, or use the deterministic mock runtime. Skills declare their inputs and permissions; plugins run in an isolated child process, see only the state slices you grant, and can only propose evidence — the orchestrator decides what gets written.</p></td>
   </tr>
 </table>
+
+**v0.4 platform additions:** a [plugin SDK](docs/plugins.md) (`pnpm interview-os create-skill` / `validate`), community [company](docs/company-packs.md) and [role](docs/role-packs.md) packs plus shareable [interview packs](docs/interview-packs.md), [MCP server context](docs/security.md) (`interview-os.mcp.json`, per-tool allowlists), voice answers with delivery hints, a per-skill question bank, and full state [export/import](docs/security.md). Security model: [docs/security.md](docs/security.md).
 
 ### Screenshots
 

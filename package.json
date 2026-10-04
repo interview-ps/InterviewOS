@@ -1,12 +1,12 @@
 {
   "name": "interview-os",
-  "version": "0.1.0",
+  "version": "0.4.0",
   "private": true,
   "type": "module",
   "packageManager": "pnpm@12.6.0",
   "scripts": {
-    "dev": "corepack pnpm -r --parallel --if-present dev",
-    "build": "corepack pnpm --filter @interview-os/web build",
+    "dev": "corepack pnpm --filter @interview-os/ui build:runtime && corepack pnpm -r --parallel --if-present dev",
+    "build": "corepack pnpm --filter @interview-os/ui build:runtime && corepack pnpm --filter @interview-os/web build",
     "start": "corepack pnpm build && corepack pnpm --filter @interview-os/server start",
     "typecheck": "corepack pnpm -r --if-present typecheck",
     "test": "vitest run",
@@ -17,12 +17,15 @@
     "test:opencode": "INTERVIEW_OS_LIVE_OPENCODE=1 vitest run opencode-online",
     "test:devin": "INTERVIEW_OS_LIVE_DEVIN=1 vitest run devin-online",
     "test:e2e": "playwright test",
+    "interview-os": "node packages/plugin-sdk/bin/interview-os.mjs",
     "test:e2e:live": "playwright test -c playwright.live.config.ts"
   },
   "devDependencies": {
     "@interview-os/core": "workspace:*",
+    "@interview-os/plugin-sdk": "workspace:*",
     "@interview-os/runtime": "workspace:*",
     "@interview-os/server": "workspace:*",
+    "@modelcontextprotocol/sdk": "1.30.1",
     "@playwright/test": "^1.63.0",
     "@types/node": "24.13.6",
     "@vitest/coverage-v8": "5.0.1",

@@ -89,26 +89,38 @@ interviewer/evaluator wiring in `apps/server/src/skills`:
 
 ## Writing a plugin
 
-Plugins are local, trusted, **read-only** code in `plugins/<name>/` (or
-`INTERVIEW_OS_PLUGINS_DIR`):
+Full guide: [docs/plugins.md](docs/plugins.md). Quick version:
 
-1. `manifest.json` — a `SkillManifest` with `id`, `version`, `description`,
-   `inputs` (each `{key, permission}`), `outputs`, `permissions`. The loader
-   forces `kind: "plugin"` and **rejects any `*.write` permission** at load.
-2. `index.ts` (or `index.js`) — default export `{ execute(input, ctx) }`.
-3. Input slices are assembled by `SkillHost` **only for declared keys**:
-   `candidate`, `target`, `readiness`, `gaps`, `stories`, `recentEvaluations` —
-   each maps to the matching `*.read` permission. `ctx.runtime` exists only if
-   the manifest declares `runtime.invoke` (a proxy throws `PERMISSION_DENIED`
-   otherwise). Plugin runs time out after 30 s and output is capped at 100 KB.
-4. See `plugins/interview-day-checklist/` for a complete example and
-   `tests/fixtures/plugins/` for rejection/permission fixtures. If your
-   plugin returns `{ items: [{title, detail?}] }` the `/skills` page renders
-   it as a checklist.
+1. Scaffold: `pnpm interview-os create-skill <name>` produces `skill.yaml` +
+   `index.ts` + a test. Check it with `pnpm interview-os validate <dir>`.
+2. The manifest declares `inputs` (state slices gated by permissions) and
+   `permissions`. `evidence.write` is the only allowed `*.write`; evidence is
+   proposal-only (validated, confidence-capped at 0.6, written by the
+   orchestrator only when granted).
+3. Plugins run in an isolated child process (`node --permission`): fs limited
+   to the plugin dir, no env, network/child-process modules blocked. They see
+   only declared **and** user-granted slices.
+4. Drop the directory in `plugins/` (bundled) or install via
+   `POST /api/plugins/install`. Installed plugins start disabled; the user
+   reviews and grants permissions before enabling.
+5. See `plugins/interview-day-checklist/`, `plugins/postgres-interviewer/`,
+   `plugins/learning-resources/` for examples and `apps/server/test/plugins.test.ts`
+   for fixtures.
 
-Trust model: plugins run in-process — only install code you trust. The
-sandbox guarantee is about *data scope* (declared slices only, no writes),
-not code isolation.
+## Contributing packs
+
+Packs are YAML content, not code. Guides:
+
+- [docs/company-packs.md](docs/company-packs.md) — loop stages, competencies,
+  sourced vs community provenance.
+- [docs/role-packs.md](docs/role-packs.md) — skill dimensions, rubrics,
+  resources; applied to a target.
+- [docs/interview-packs.md](docs/interview-packs.md) — shareable multi-round
+  loop recipes.
+
+Every item carries `provenance`: `sourced` must cite a declared source id;
+`community` is shown as unverified. Bundled packs live in `packs/`; installs go
+to `data/packs/`.
 
 ## Test requirements
 
@@ -149,4 +161,5 @@ Permission rules deny reading `data/**` and `.env*`, and restrict shell commands
 - [ ] Invariants above preserved (check AGENTS.md)
 - [ ] No new dependency unless the existing stack can't cover it
 - [ ] Untrusted text never reaches argv, shell strings, or logs
-- [ ] Docs updated (README / AGENTS.md / ARCHITECTURE.md / IMPLEMENTATION_PLAN.md)
+- [ ] Docs updated (README / AGENTS.md / ARCHITECTURE.md / docs/)
+- [ ] Plugin, pack, MCP, and import changes keep the guarantees in [docs/security.md](docs/security.md)

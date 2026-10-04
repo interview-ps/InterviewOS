@@ -492,12 +492,12 @@ permissions[]}` (Zod). Every built-in skill exports one. `SkillHost` (`apps/serv
 permission isn't granted; `ctx.runtime` is a proxy that throws unless `runtime.invoke`; the orchestrator calls
 `host.assertCan(id, '<x>.write')` before persisting a skill's outputs. All orchestrator skill calls go through the
 host.
-Plugins: `plugins/<name>/{manifest.json, index.ts}` loaded at server start from `INTERVIEW_OS_PLUGINS_DIR`
-(default `<repo>/plugins`); kind forced to `plugin`; v0.3 plugins may hold only read permissions +
-`runtime.invoke` (write permissions → plugin skipped with a logged warning). `GET /api/skills` lists manifests;
-`POST /api/plugins/:id/run` builds the plugin input **from state, only for declared input slices**; runs are
-time-boxed at 30 s and output is capped at 100 KB. Plugins are trusted local code (documented).
-Sample: `plugins/interview-day-checklist` (target.read + readiness.read, no runtime).
+Plugins: `plugins/<name>/{skill.yaml, index.ts}` loaded at server start from `INTERVIEW_OS_PLUGINS_DIR`
+(default `<repo>/plugins`, installed plugins in `data/plugins`); kind forced to `plugin`; plugins may hold
+read permissions + `runtime.invoke` + `evidence.write` (other write permissions → rejected at load).
+`GET /api/plugins` lists manifests + permission views; `POST /api/plugins/:id/run` builds the plugin input
+**from state, only for declared *and* granted slices**. Since v0.4 plugins run in an isolated child process
+— see §10.1. Sample: `plugins/interview-day-checklist` (target.read + readiness.read, no runtime).
 
 ### 9.7 History, metrics, command palette, UI
 - Evaluations store `readinessDelta[{skillId, before, after}]`; History shows mode, company profile, target,
@@ -517,3 +517,113 @@ Sample: `plugins/interview-day-checklist` (target.read + readiness.read, no runt
   button below 900px.
 - Test-only endpoint: `POST /api/test/reset` wipes all state — it returns 404 unless
   `INTERVIEW_OS_TEST_MODE=1` (e2e isolation; never enabled in dev/prod).
+
+## 10. v0.4 — extensible platform
+
+### 10.1 Plugin host (`apps/server/src/plugins`, `packages/plugin-sdk`)
+Plugins are directories with `skill.yaml` (or `manifest.json`) + an entry file exporting
+`defineSkill({id, permissions, capabilities?, inputs?, execute})` from `@interview-os/plugin-sdk`.
+Manifests are slug-id'd (`SLUG_ID_REGEX`), `kind` forced to `plugin`, and any `*.write` other than
+`evidence.write` is rejected at load. Each run spawns a Node child process with `--permission`
+(`executor.ts` + `runner.mjs`): fs scoped to the plugin dir, no env inheritance (`SystemRoot` only on
+Windows), network/child-process/`module`/`wasi`/`repl` blocked via a resolve hook, `fetch`/`WebSocket`/
+`process.binding` removed, 30 s timeout, capped output. The plugin receives only input slices that are
+both declared in `inputs` and granted by the user (`PluginView.grantedPermissions`); `ctx.runtime`
+exists only with a granted `runtime.invoke`. `evidenceProposals` in plugin output are proposal-only:
+`EvidenceProposalSchema`-validated, confidence capped at `PLUGIN_EVIDENCE_CONFIDENCE_CAP` (0.6),
+persisted as `type:"plugin"` / `source:"plugin:<id>"` by the orchestrator only when `evidence.write`
+was granted. Installed plugins (`data/plugins`) start disabled; enabling is a separate user action.
+
+### 10.2 Pack registry (`apps/server/src/packs`, `packages/core/src/packs`)
+`PackRegistry` synchronously loads bundled `packs/` and installed `data/packs/` trees:
+`companies/` (`CompanyPackSchema` + overlays → `compileCompanyPack` → `CompanyProfile`),
+`roles/` (`RolePackSchema`), `interview/` (`InterviewPackSchema` YAML). Company/role packs install
+from git (`cloneShallow` — no prompts, no credential helpers); interview packs are stored in the
+`interview_packs` table with create/export/import/delete. **Provenance:** every pack item is
+`sourced` (must cite a declared `sources[].id`, enforced by schema refinement) or `community`
+(rendered "unverified" in UI and prompts). Pack/company content is labeled `Sourced:`/`Community
+observation:` in interviewer guidance.
+
+### 10.3 Question-source routing
+`nextQuestionInternal` gathers candidates in order — user question bank → company-pack overlays →
+role-pack questions → enabled `question_source` plugins (`request.kind:"questions"`) — picks the
+first eligible candidate, and otherwise falls back to the generated interviewer question. Sources
+only *suggest*; the orchestrator always decides the skill and never lets a source inject follow-ups.
+Candidate questions are `QuestionCandidateSchema`-validated and filtered to the target skill/mode; a
+failing/disabled source just falls through. Settings `questionSources` toggles each source family.
+
+### 10.4 MCP context (`apps/server/src/mcp`, `orchestrator/mcp-service.ts`)
+`McpManager` lazily spawns SDK stdio clients for servers defined **only** in local
+`interview-os.mcp.json` (never HTTP; missing file → none, invalid → surfaced `loadError`). Servers
+are disabled by default; each tool needs an explicit `allowedTools` entry (`mcp_servers` table).
+Child env is minimal + declared `envPassthrough` names only; args ≤ 4 KB; results truncated to 12 000
+chars; 30 s timeout; values never logged or returned. `fetchExternalContext` stores text in
+`external_contexts`; `StartInterviewInput.contextId` injects it into the interviewer as fenced,
+untrusted reference data. Plugins have no MCP access.
+
+### 10.5 Voice (interaction layer only)
+`core/interview/voice.ts`: `VoiceMetricsSchema` (client-measured duration/pauses), deterministic
+`voiceFeedback(metrics, transcript)` → `VoiceSignalSchema[]` (structure/filler/pauses/length/
+conclusion/clarity) + counts + `VOICE_DISCLAIMER`. The client appends a transcript plus `voice`
+metrics on answer submit; the server recomputes counts, stores `{metrics, feedback}` on the answer
+row, and returns `voiceFeedback`. The evaluator input and evidence are unchanged — voice never
+influences evaluation.
+
+### 10.6 Export / import (`core/platform/export.ts`, `orchestrator/export-service.ts`)
+`ExportBundleSchema` covers the 16 user-data tables (runtime_sessions, plugin_installs, mcp_servers,
+usage_events excluded; settings allowlisted — never `runtimeKind`). `exportState`/`exportStatePart`
+emit the full bundle or one part; `importState(bundle, {mode:"replace"})` validates the whole bundle
+(schema + id uniqueness + referential checks) *before* writing, then wipes and inserts in one
+`Store.transaction` and appends a readiness snapshot with reason `import`. HTTP: `GET /api/export[/:part]`
+(dated attachments), `POST /api/import {bundle, confirm:"replace"}` under a 25 MB body limit.
+
+### 10.7 Plugin UI extensions (`packages/ui`, `orchestrator/plugin-service.ts`, `http/routes/ui.ts`)
+Plugins may add experiences only through **declared** extension points, in three levels:
+(1) `kind:"declarative"` contributions — the plugin returns a `UINode` tree
+(`core/platform/ui-schema.ts`: depth ≤ 8, ≤ 300 nodes, no html/style/url fields), validated by
+`validateUITree` at `POST /api/plugins/:id/ui/render` and rendered by the host's
+`DeclarativeRenderer` (`@interview-os/ui/renderer`);
+(2) `kind:"frame"` contributions — plugin-authored components bundled to `ui/index.js`
+(`interview-os build-ui`), rendered inside a **sandboxed opaque-origin iframe**
+(`sandbox="allow-scripts"` only) served by `GET /api/plugins/:id/ui/frame` with
+`connect-src 'none'` CSP and a per-response nonce; the frame's only channel is the
+postMessage bridge (`PluginFrame` + `lib/plugin-frame-bridge.ts`), which enforces
+source-window identity, envelope schema, 64 KB cap, 20 msg/s rate limit, and a closed
+`UIAction` vocabulary; `getData`/`run` hit `POST .../ui/data` and `.../ui/run`, which reuse
+the declared+granted slice gating of a normal plugin run;
+(3) full plugin pages at `/plugins/<id>/<path>` (declarative or frame).
+`ui` sections require capability `ui`; contributions auto-enable with the plugin and are
+listed in the permission review. `interviewModes` add plugin-declared session presets
+(`pluginModeId` on `POST /api/interviews` → `interview_sessions.focus_skills` → planner
+`packFocus`); `taxonomy` registers new skill nodes at load. The iframe never gets
+same-origin, DOM, storage, network, or remote-script access — see `docs/security.md`.
+
+### 10.8 Plugin API v1 + runtime providers (`core/platform/plugin-api.ts`, `runtime/providers.ts`)
+
+Plugin API v1 replaces ad-hoc `request.kind` dispatch with a versioned hook
+contract: `PLUGIN_HOOKS` maps each hook to `{capability, request, response}`
+Zod schemas; the host validates both directions (`PLUGIN_OUTPUT` on invalid
+responses, fail-soft per caller). Plugins implement `handlers` (typed per hook)
+or keep legacy `execute`; manifest `hooks` + runner `describe()` give the
+loader the capability↔hook coverage check. `engines["plugin-api"]` (default
+`^1.0.0`) is semver-checked like `interview-os`.
+
+| Extension point | Contract | Who decides |
+| --- | --- | --- |
+| Question suggestions | `questions.suggest` | core routes; plugin suggests candidates |
+| Prep resources | `resources.suggest` | plugin suggests; host fills skill/source |
+| UI | `ui.render` / `ui.frameRun` | plugin returns tree/output; host renders/sandboxes |
+| Answer review | `evaluation.review` | plugin observes; host persists attributed reviews |
+| Prep suggestions | `preparation.suggest` + accept | plugin suggests; user accepts |
+| Interview modes | manifest `interviewModes` + guidance | plugin declares; core runs the session |
+| Lifecycle events | `events.*` hooks | core fires outside the lock; proposals gated |
+| Company/role packs | `packs/` in plugin dir | PackRegistry loads; collisions are errors |
+| Settings/KV | manifest `settings`, `ctx.storage` | host validates/stores; plugin-owned data |
+| AI runtime | `interview-os.runtimes.json` → `registerRuntimeProvider` | trusted local config only, never HTTP |
+
+`RuntimeManager` gained a provider registry (`packages/runtime/src/providers.ts`):
+`registerRuntimeProvider` adds `create`/`healthCheck` for a non-builtin slug;
+`allRuntimeKinds`/`isRuntimeKind`/probing/switching consult it. Providers load
+at startup from `interview-os.runtimes.json` (`loadRuntimeProviders`; errors
+are surfaced, startup continues) and are tagged `trustedLocal` in
+`GET /api/runtime/available`.

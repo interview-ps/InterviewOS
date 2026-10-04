@@ -1,0 +1,12 @@
+{
+  "servers": [
+    {
+      "id": "github",
+      "name": "GitHub",
+      "description": "Example only. Point `command`/`args` at a locally installed GitHub MCP server binary of your choice — Interview OS does not ship or verify a specific package. envPassthrough lists env var NAMES only; values come from your local environment and are never stored or returned by the API.",
+      "command": "github-mcp-server",
+      "args": ["stdio"],
+      "envPassthrough": ["GITHUB_PERSONAL_ACCESS_TOKEN"]
+    }
+  ]
+}
