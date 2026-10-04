@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 120" role="img" aria-label="Built for candidates who want evidence, not guesswork.">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#0B1220"/>
+      <stop offset="1" stop-color="#111C33"/>
+    </linearGradient>
+  </defs>
+  <style>
+    text{font-family:-apple-system,'Segoe UI',Inter,Helvetica,Arial,sans-serif}
+    .w1{animation:drift 17s linear infinite}
+    .w2{animation:drift 12s linear infinite}
+    .w3{animation:drift 8s linear infinite}
+    @keyframes drift{from{transform:translateX(0)}to{transform:translateX(-600px)}}
+    .rise{opacity:0;animation:rise 1s ease .2s forwards}
+    @keyframes rise{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
+    @media (prefers-reduced-motion: reduce){*{animation:none !important}}
+  </style>
+  <rect x="0.5" y="0.5" width="1199" height="119" rx="16" fill="url(#bg)" stroke="#94A3B8" stroke-opacity="0.35"/>
+  <text class="rise" x="600" y="54" font-size="22" text-anchor="middle" fill="#D5E2FA">Built for candidates who want evidence, not guesswork.</text>
+  <path class="w1" fill="#8B5CF6" fill-opacity="0.16" d="M0 78 C75 68,225 68,300 78 C375 88,525 88,600 78 C675 68,825 68,900 78 C975 88,1125 88,1200 78 C1275 68,1425 68,1500 78 C1575 88,1725 88,1800 78 C1875 68,2025 68,2100 78 C2175 88,2325 88,2400 78 L2400 120 L0 120 Z"/>
+  <path class="w2" fill="#22D3EE" fill-opacity="0.22" d="M0 86 C75 78,225 78,300 86 C375 94,525 94,600 86 C675 78,825 78,900 86 C975 94,1125 94,1200 86 C1275 78,1425 78,1500 86 C1575 94,1725 94,1800 86 C1875 78,2025 78,2100 86 C2175 94,2325 94,2400 86 L2400 120 L0 120 Z"/>
+  <path class="w3" fill="#3178C6" fill-opacity="0.30" d="M0 94 C75 88,225 88,300 94 C375 100,525 100,600 94 C675 88,825 88,900 94 C975 100,1125 100,1200 94 C1275 88,1425 88,1500 94 C1575 100,1725 100,1800 94 C1875 88,2025 88,2100 94 C2175 100,2325 100,2400 94 L2400 120 L0 120 Z"/>
+</svg>
