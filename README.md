@@ -18,7 +18,7 @@
 
 </div>
 
-<p align="center"><img src="docs/assets/readme/stats.svg" alt="7 interview modes · 5 AI runtimes · 12 built-in skills · 0 API keys pasted" width="100%" /></p>
+<p align="center"><img src="docs/assets/readme/stats.svg" alt="7 interview modes · 4 AI runtimes · 12 built-in skills · 0 API keys pasted" width="100%" /></p>
 
 <p align="center"><img src="docs/assets/readme/divider.svg" width="100%" alt="" /></p>
 
