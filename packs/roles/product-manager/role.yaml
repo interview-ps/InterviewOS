@@ -1,0 +1,37 @@
+format: interview-os.role-pack
+id: product-manager
+name: Product Manager
+version: 1.0.0
+description: Common expectations for product management roles.
+taxonomy:
+  - id: product.product-sense
+    label: Product sense
+    keywords:
+      - product sense
+      - product design
+      - user empathy
+dimensions:
+  - skillId: product.metrics
+    weight: 0.8
+  - skillId: product.prioritization
+    weight: 0.85
+  - skillId: product.product-sense
+    weight: 0.85
+  - skillId: communication
+    weight: 0.75
+  - skillId: behavioral.leadership
+    weight: 0.6
+defaultQuestionCategories:
+  - behavioral
+  - hiring_manager
+  - technical
+rubrics:
+  - skillId: product.product-sense
+    criteria:
+      - Starts from the user problem
+      - Considers trade-offs and success metrics
+questions:
+  - skillId: product.product-sense
+    text: "Pick a product you use daily — what would you change first and how would you know it worked?"
+    difficulty: medium
+    provenance: community

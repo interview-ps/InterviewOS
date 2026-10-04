@@ -17,6 +17,25 @@ interface ChecklistItem {
  * writes.
  */
 export default {
+  handlers: {
+    /**
+     * preparation.suggest — the same weakest-area logic expressed as prep
+     * activities; the legacy `/run` checklist output is preserved below.
+     */
+    "preparation.suggest"(req: { gaps?: Gap[] }) {
+      const gaps = req.gaps ?? [];
+      const weakest = [...gaps]
+        .sort((a, b) => b.importance * b.gap - a.importance * a.gap)
+        .slice(0, 3);
+      const activities = weakest.map((g) => ({
+        skillId: g.skillId,
+        title: `Skim ${g.label || g.skillId}`,
+        action: `Weak area for this role (severity ${g.severity}) — 10 minutes of review before the interview.`,
+        successCriteria: ["Can explain the core concept unprompted"],
+      }));
+      return { activities };
+    },
+  },
   execute(input: Record<string, unknown>) {
     const target = input.target as
       | { company: string; role: string; level: string }

@@ -1,0 +1,20 @@
+appliesTo:
+  roleKeywords:
+    - backend
+    - api
+competencies:
+  - text: Backend candidates report heavier emphasis on API correctness and idempotency.
+    provenance: community
+  - text: Distributed payment-style flows (retries, consistency) come up in system design.
+    provenance: community
+questions:
+  - skillId: distributed-systems.consistency
+    text: "How would you keep a payments ledger correct when requests can be retried?"
+    difficulty: hard
+    mode: system_design
+    provenance: community
+  - skillId: sql.transactions
+    text: "When do you need serializable isolation in a payment system, and what does it cost?"
+    difficulty: hard
+    mode: technical
+    provenance: community

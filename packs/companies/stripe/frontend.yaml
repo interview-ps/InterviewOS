@@ -1,0 +1,11 @@
+appliesTo:
+  roleKeywords:
+    - frontend
+    - front-end
+    - web
+competencies:
+  - text: Frontend candidates report more UI-component design and browser-domain questions.
+    provenance: community
+questionStyle:
+  - text: Expect practical component or dashboard builds with attention to detail.
+    provenance: community

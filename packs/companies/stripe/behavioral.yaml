@@ -1,0 +1,11 @@
+appliesTo:
+  mode: behavioral
+evaluationGuidance:
+  - text: Behavioral rounds reportedly probe for craftsmanship and clear written reasoning.
+    provenance: community
+questions:
+  - skillId: behavioral.ownership
+    text: "Tell me about a time you raised the quality bar on something that shipped."
+    difficulty: medium
+    mode: behavioral
+    provenance: community

@@ -1,0 +1,66 @@
+id: postgres-interviewer
+name: PostgreSQL Interviewer
+version: 1.2.0
+description: A deterministic PostgreSQL question bank with a self-check evidence path.
+author: community
+permissions:
+  - candidate.read
+  - target.read
+  - readiness.read
+  - taxonomy.read
+  - answers.read
+  - evidence.write
+capabilities:
+  - interview
+  - evaluation
+  - question_source
+  - ui
+hooks:
+  - questions.suggest
+  - ui.render
+  - ui.frameRun
+  - evaluation.review
+appliesTo:
+  skillPrefixes: [sql]
+settings:
+  - key: difficulty-bias
+    label: Question difficulty bias
+    type: enum
+    options: [easy, medium, hard]
+    default: medium
+    description: Bias suggested PostgreSQL questions toward this difficulty.
+inputs:
+  - candidate
+  - target
+  - readiness
+  - gaps
+  - request
+engines:
+  interview-os: ">=0.4.0"
+ui:
+  navigation:
+    - { label: PostgreSQL, icon: database, page: "/" }
+  commands:
+    - id: start-pg
+      label: Start PostgreSQL Deep Dive
+      action: { type: startInterview, modeId: pg-deep-dive }
+  slots:
+    dashboard.cards:
+      - { component: readiness-card, kind: declarative, title: "PostgreSQL readiness" }
+    readiness.panels:
+      - { component: postgres-skill-tree, kind: frame, entry: "ui/index.js" }
+    prepare.activities:
+      - { component: explain-analyze, kind: declarative, title: "Practice EXPLAIN ANALYZE" }
+  pages:
+    - { path: "/", title: "PostgreSQL", kind: declarative, component: home }
+interviewModes:
+  - id: pg-deep-dive
+    label: PostgreSQL Deep Dive
+    description: Focused PostgreSQL round on indexing, transactions, and query plans.
+    roundType: technical
+    focusSkills: [sql.indexing, sql.transactions, sql.query-optimization]
+    plannedQuestions: 4
+taxonomy:
+  - id: sql.locking
+    label: Locking
+    keywords: [locks, deadlock, mvcc]

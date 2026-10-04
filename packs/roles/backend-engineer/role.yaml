@@ -1,0 +1,48 @@
+format: interview-os.role-pack
+id: backend-engineer
+name: Backend Engineer
+version: 1.0.0
+description: Common expectations for backend service/API engineering roles.
+taxonomy: []
+dimensions:
+  - skillId: apis.rest
+    weight: 0.9
+  - skillId: sql
+    weight: 0.85
+  - skillId: distributed-systems
+    weight: 0.8
+  - skillId: system-design
+    weight: 0.75
+  - skillId: coding
+    weight: 0.8
+  - skillId: behavioral.ownership
+    weight: 0.5
+defaultQuestionCategories:
+  - technical
+  - coding
+  - system_design
+  - behavioral
+rubrics:
+  - mode: system_design
+    criteria:
+      - Clarifies requirements before designing
+      - Names trade-offs and bottlenecks
+  - skillId: apis.rest
+    criteria:
+      - Resource-oriented design
+      - Error and idempotency semantics
+resources:
+  - skillId: sql.indexing
+    title: PostgreSQL indexes documentation
+    url: https://www.postgresql.org/docs/current/indexes.html
+    kind: docs
+  - skillId: distributed-systems
+    title: Distributed systems review checklist
+    summary: Replication, partitioning, consistency models.
+    kind: explanation
+questions:
+  - skillId: sql.transactions
+    text: "When does an isolation level actually matter in a backend service? Give a concrete failure you would prevent."
+    difficulty: medium
+    mode: technical
+    provenance: community
