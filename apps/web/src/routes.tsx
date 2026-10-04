@@ -1,4 +1,4 @@
-import { Link, Navigate, Outlet, Route, Routes } from "react-router";
+import { Link, Navigate, Outlet, Route, Routes, useParams } from "react-router";
 import { Shell } from "@/components/shell";
 import { Button, Card, EmptyState } from "@/components/ui";
 import Home from "@/pages/home";
@@ -31,6 +31,11 @@ function NotFound() {
   );
 }
 
+function InterviewSessionRoute() {
+  const { id } = useParams();
+  return <InterviewSession key={id} />;
+}
+
 export function App() {
   return (
     <Routes>
@@ -42,7 +47,7 @@ export function App() {
           <Route path="stories" element={<Stories />} />
         </Route>
         <Route path="interview" element={<Interview />} />
-        <Route path="interview/:id" element={<InterviewSession />} />
+        <Route path="interview/:id" element={<InterviewSessionRoute />} />
         <Route path="interview/loop/:id" element={<LoopPage />} />
         <Route path="readiness" element={<Readiness />} />
         <Route path="resume" element={<Resume />} />

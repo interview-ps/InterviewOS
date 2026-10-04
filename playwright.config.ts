@@ -1,7 +1,9 @@
 import { defineConfig } from "@playwright/test";
+import os from "node:os";
+import path from "node:path";
 
 const SERVER_PORT = 4310;
-const DB = "/tmp/interview-os-e2e.db";
+const DB = path.join(os.tmpdir(), "interview-os-e2e.db");
 
 export default defineConfig({
   testDir: "tests/e2e",
@@ -16,8 +18,7 @@ export default defineConfig({
   },
   webServer: {
     // build the SPA, then serve UI + API from one server (like `pnpm start`)
-    command:
-      `sh -c 'rm -f ${DB} ${DB}-wal ${DB}-shm ${DB}-journal && corepack pnpm --filter @interview-os/web build && exec node_modules/.bin/tsx apps/server/src/index.ts'`,
+    command: "node tests/e2e/serve.mjs",
     url: `http://127.0.0.1:${SERVER_PORT}/api/runtime/status`,
     env: {
       INTERVIEW_OS_RUNTIME: "mock",

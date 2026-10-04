@@ -21,7 +21,7 @@ test.describe("core loop", () => {
     await expect(
       page.getByRole("option", { name: /Mock \(deterministic\)/i }),
     ).toBeAttached();
-    await page.getByLabel(/Task mode/i).selectOption("exec");
+    await page.getByLabel(/Reasoning effort/i).selectOption("high");
     await page.getByRole("button", { name: "Save" }).click();
     await expect(page.getByText("Saved.")).toBeVisible();
     await page.screenshot({ path: "test-results/core-1-settings.png", fullPage: true });
