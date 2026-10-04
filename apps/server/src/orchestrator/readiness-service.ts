@@ -8,7 +8,14 @@ import type { WorkflowContext } from "./context.js";
 const OVERALL_SKILL_ID = "__overall__";
 
 export class ReadinessService {
-  constructor(private readonly ctx: WorkflowContext) {}
+  constructor(
+    private readonly ctx: WorkflowContext,
+    private readonly deps?: {
+      /** v1: fired (inside the lock; expected to enqueue) when a recompute
+       *  appends snapshots whose scores differ from the previous ones. */
+      onReadinessChanged?: (changedSkillIds: string[], reason: string) => void;
+    },
+  ) {}
 
   private get store() {
     return this.ctx.store;
@@ -43,8 +50,12 @@ export class ReadinessService {
       return prevScore !== score || Math.abs(prev.confidence - confidence) > 1e-9;
     };
     let appended = 0;
+    const changedSkillIds: string[] = [];
     for (const dim of Object.values(graph.dimensions)) {
       if (!changed(dim.skillId, dim.score, dim.confidence)) continue;
+      if (latest.get(dim.skillId)?.score !== dim.score) {
+        changedSkillIds.push(dim.skillId);
+      }
       await this.store.appendReadinessSnapshot({
         skillId: dim.skillId,
         score: dim.score,
@@ -67,6 +78,10 @@ export class ReadinessService {
       appended += 1;
     }
     this.ctx.logger.info("readiness.updated", { reason, nodesChanged: appended });
+    if (appended > 0) this.ctx.bumpUIEpoch();
+    if (changedSkillIds.length > 0) {
+      this.deps?.onReadinessChanged?.(changedSkillIds, reason);
+    }
     return graph;
   }
 }

@@ -1,15 +1,24 @@
 import { z } from "zod";
 import { AppError, type Logger } from "@interview-os/core";
 import {
+  INTERVIEW_OS_VERSION,
   PLUGIN_INPUT_KEYS,
   SkillManifestSchema,
+  isPluginWritable,
   isWritePermission,
+  satisfies,
+  SLUG_ID_REGEX,
+  isPluginApiCompatible,
   type Permission,
   type PluginInputKey,
   type SkillManifest,
 } from "@interview-os/core";
 import type { AIRuntime } from "@interview-os/runtime";
-import type { InterviewSkill, SkillContext } from "../framework/skill.js";
+import type {
+  InterviewSkill,
+  PluginKvStorage,
+  SkillContext,
+} from "../framework/skill.js";
 
 /** §9.6: permission failure code — thrown before a skill ever executes. */
 export class PermissionError extends AppError {
@@ -20,7 +29,16 @@ export class PermissionError extends AppError {
 }
 
 export class PluginError extends AppError {
-  constructor(code: "PLUGIN_TIMEOUT" | "PLUGIN_OUTPUT" | "PLUGIN_INVALID", message: string) {
+  constructor(
+    code:
+      | "PLUGIN_TIMEOUT"
+      | "PLUGIN_OUTPUT"
+      | "PLUGIN_INVALID"
+      | "PLUGIN_INCOMPATIBLE"
+      | "PLUGIN_DISABLED"
+      | "PLUGIN_INSTALL",
+    message: string,
+  ) {
     super(code, message);
     this.name = "PluginError";
   }
@@ -38,6 +56,8 @@ export interface PluginExecutor {
   ): Promise<unknown> | unknown;
   /** Optional output schema — validated like a structured skill output. */
   outputSchema?: z.ZodType;
+  /** v1: report which Plugin API hooks the plugin implements. */
+  describe?(): Promise<{ handlers: string[]; hasExecute: boolean }>;
 }
 
 interface HostEntry {
@@ -52,16 +72,40 @@ export type PluginStateSlices = Partial<
   Record<PluginInputKey, unknown>
 >;
 
-function proxyRuntime(manifest: SkillManifest, runtime: AIRuntime): AIRuntime {
-  if (manifest.permissions.includes("runtime.invoke")) return runtime;
+function proxyRuntime(
+  skillId: string,
+  permissions: readonly Permission[],
+  runtime: AIRuntime,
+): AIRuntime {
+  if (permissions.includes("runtime.invoke")) return runtime;
   return new Proxy({} as AIRuntime, {
     get(_target, prop) {
       if (typeof prop === "symbol" || prop === "then") return undefined;
       throw new PermissionError(
-        `skill "${manifest.id}" cannot use the runtime — its manifest lacks runtime.invoke`,
+        `skill "${skillId}" cannot use the runtime — its manifest lacks runtime.invoke`,
       );
     },
   });
+}
+
+/** v0.4: effective permissions = manifest ∩ granted (granted omitted → all requested). */
+function effectivePermissions(
+  manifest: SkillManifest,
+  granted?: readonly Permission[],
+): Permission[] {
+  if (!granted) return manifest.permissions;
+  const set = new Set(granted);
+  return manifest.permissions.filter((p) => set.has(p));
+}
+
+/** v0.4: engines["interview-os"] and engines["plugin-api"] (missing = ^1) must hold. */
+export function isManifestCompatible(manifest: SkillManifest): boolean {
+  const range = manifest.engines?.["interview-os"];
+  const apiRange = manifest.engines?.["plugin-api"];
+  return (
+    (range === undefined || satisfies(INTERVIEW_OS_VERSION, range)) &&
+    isPluginApiCompatible(apiRange)
+  );
 }
 
 /**
@@ -106,10 +150,17 @@ export class SkillHost {
    */
   registerPlugin(manifest: SkillManifest, executor: PluginExecutor): void {
     const parsed = SkillManifestSchema.parse({ ...manifest, kind: "plugin" });
+    if (!SLUG_ID_REGEX.test(parsed.id)) {
+      throw new PluginError(
+        "PLUGIN_INVALID",
+        `plugin id "${parsed.id}" is not a valid slug (${SLUG_ID_REGEX.source})`,
+      );
+    }
+    parsed.name ??= parsed.id;
     for (const permission of parsed.permissions) {
-      if (isWritePermission(permission)) {
+      if (isWritePermission(permission) && !isPluginWritable(permission)) {
         throw new PermissionError(
-          `plugin "${parsed.id}" requests write permission "${permission}" — plugins are read-only`,
+          `plugin "${parsed.id}" requests write permission "${permission}" — plugins may only write evidence`,
         );
       }
     }
@@ -148,15 +199,29 @@ export class SkillHost {
 
   /**
    * §9.6 write gate — the orchestrator calls this before persisting any of the
-   * skill's outputs.
+   * skill's outputs. For plugins, pass the effective grant set.
    */
-  assertCan(id: string, permission: Permission): void {
+  assertCan(
+    id: string,
+    permission: Permission,
+    granted?: readonly Permission[],
+  ): void {
     const { manifest } = this.entry(id);
-    if (!manifest.permissions.includes(permission)) {
+    if (!effectivePermissions(manifest, granted).includes(permission)) {
       throw new PermissionError(
-        `skill "${id}" is not allowed ${permission} (granted: ${manifest.permissions.join(", ") || "none"})`,
+        `skill "${id}" is not allowed ${permission} (granted: ${effectivePermissions(manifest, granted).join(", ") || "none"})`,
       );
     }
+  }
+
+  /** Remove a registered plugin (v0.4 uninstall); built-ins cannot be removed. */
+  unregister(id: string): void {
+    const entry = this.entries.get(id);
+    if (!entry) return;
+    if (!entry.plugin) {
+      throw new AppError("VALIDATION", `skill "${id}" is not a plugin`);
+    }
+    this.entries.delete(id);
   }
 
   /** Reject top-level input keys the manifest doesn't declare or permit. */
@@ -209,7 +274,7 @@ export class SkillHost {
 
     const guardedCtx: SkillContext = {
       ...ctx,
-      runtime: proxyRuntime(entry.manifest, ctx.runtime),
+      runtime: proxyRuntime(id, entry.manifest.permissions, ctx.runtime),
     };
     const output = await entry.execute(parsedInput, guardedCtx);
     if (entry.outputSchema) {
@@ -235,21 +300,42 @@ export class SkillHost {
     id: string,
     slices: PluginStateSlices,
     ctx: SkillContext,
+    opts: {
+      granted?: readonly Permission[];
+      /** v1: Plugin API hook to dispatch (handlers) — legacy falls back. */
+      hook?: string;
+      hookRequest?: unknown;
+      /** v1: declared settings values + plugin-owned KV storage adapter. */
+      settings?: Record<string, unknown>;
+      storage?: PluginKvStorage;
+    } = {},
   ): Promise<unknown> {
     const entry = this.entry(id);
     if (!entry.plugin) {
       throw new AppError("VALIDATION", `skill "${id}" is not a plugin`);
     }
+    if (!isManifestCompatible(entry.manifest)) {
+      throw new PluginError(
+        "PLUGIN_INCOMPATIBLE",
+        `plugin "${id}" requires interview-os ${entry.manifest.engines?.["interview-os"]} (running ${INTERVIEW_OS_VERSION})`,
+      );
+    }
+    const effective = effectivePermissions(entry.manifest, opts.granted);
     const input: Record<string, unknown> = {};
     for (const declared of entry.manifest.inputs) {
-      if (!entry.manifest.permissions.includes(declared.permission)) continue;
+      if (!effective.includes(declared.permission)) continue;
       const key = declared.key as PluginInputKey;
       input[key] = slices[key];
     }
 
     const guardedCtx: SkillContext = {
       ...ctx,
-      runtime: proxyRuntime(entry.manifest, ctx.runtime),
+      runtime: proxyRuntime(id, effective, ctx.runtime),
+      grantedPermissions: effective,
+      pluginHook: opts.hook,
+      hookRequest: opts.hookRequest,
+      settings: opts.settings,
+      storage: opts.storage,
     };
     const timeout = new Promise<never>((_, reject) =>
       setTimeout(

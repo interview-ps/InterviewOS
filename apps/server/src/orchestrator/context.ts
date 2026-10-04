@@ -16,6 +16,7 @@ import { AppError, type Logger } from "@interview-os/core";
 import type { AIRuntime } from "@interview-os/runtime";
 import type { ProgressUpdate, SkillContext, SkillHost } from "../skills/index.js";
 import type { Store, SessionRow } from "./store/index.js";
+import type { PackRegistry } from "../packs/registry.js";
 
 /** Streaming progress pushed to SSE/API callers during long AI operations. */
 export interface ProgressOptions {
@@ -34,7 +35,16 @@ export class WorkflowContext {
     readonly runtime: AIRuntime,
     readonly logger: Logger,
     readonly now: () => Date,
+    /** v0.4: pack registry (built-ins only when no pack dirs configured). */
+    readonly packs: PackRegistry,
   ) {}
+
+  /** v0.4: bumped whenever plugin-rendered UI could be stale (readiness
+   *  snapshots, evidence, target switches, plugin enable/grant changes). */
+  uiEpoch = 0;
+  bumpUIEpoch(): void {
+    this.uiEpoch += 1;
+  }
 
   /** Skill invocation context, with settings-backed runtime overrides (§8.3). */
   async ctx(extra?: Partial<SkillContext>): Promise<SkillContext> {
@@ -81,6 +91,7 @@ export class WorkflowContext {
       observation: r.observation,
       sessionId: r.sessionId ?? undefined,
       questionId: r.questionId ?? undefined,
+      source: r.source ?? undefined,
       createdAt: r.createdAt,
     }));
   }

@@ -1,5 +1,4 @@
 import {
-  getCompanyProfile,
   getMode,
   newId,
   LoopRoundSchema,
@@ -50,12 +49,21 @@ export class LoopService {
    * mode ∈ ModeId, plannedQuestions 1–6). Round 1's session is created and
    * its first question generated.
    */
-  async startLoop(input: { rounds?: LoopRoundInput[] } = {}, opts?: ProgressOptions) {
+  async startLoop(
+    input: { rounds?: LoopRoundInput[]; packId?: string; focusSkills?: SkillId[] } = {},
+    opts?: ProgressOptions,
+  ) {
     const { target } = await this.ctx.requireActive();
-    const profile = getCompanyProfile(target.companyProfileId ?? "generic");
+    await this.ctx.packs.ready();
+    const profile = this.ctx.packs.companyProfile(target.companyProfileId ?? "generic");
+    // v0.4: a target with a role pack but no company match takes its default
+    // loop shape from the pack's question categories.
+    const rolePack = target.rolePackId ? this.ctx.packs.rolePack(target.rolePackId) : undefined;
     const defs: LoopRoundInput[] =
       input.rounds ??
-      profile.typicalLoop.map((s) => ({ mode: s.mode, label: s.label }));
+      (profile.id === "generic" && rolePack
+        ? rolePack.defaultQuestionCategories.map((mode) => ({ mode }))
+        : profile.typicalLoop.map((s) => ({ mode: s.mode, label: s.label })));
     if (!Array.isArray(defs) || defs.length < 2 || defs.length > 7) {
       throw new AppError("VALIDATION", "a loop needs between 2 and 7 rounds");
     }
@@ -81,6 +89,8 @@ export class LoopService {
       targetId: target.id,
       companyProfileId: profile.id,
       rounds,
+      packId: input.packId ?? null,
+      focusSkills: input.focusSkills ?? [],
       status: "in_progress",
       currentRound: 1,
       createdAt: this.ctx.iso(),

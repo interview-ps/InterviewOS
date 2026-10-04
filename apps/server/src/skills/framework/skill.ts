@@ -1,5 +1,5 @@
 import type { AIRuntime } from "@interview-os/runtime";
-import type { SkillManifest } from "@interview-os/core";
+import type { Permission, SkillManifest } from "@interview-os/core";
 import { AppError, type Logger } from "@interview-os/core";
 import type { z } from "zod";
 
@@ -23,7 +23,24 @@ export interface SkillContext {
     effort?: "low" | "medium" | "high" | null;
     taskMode?: "app-server" | "exec";
   };
+  /** v0.4 plugins: effective permission grant set (manifest ∩ granted). */
+  grantedPermissions?: readonly Permission[];
+  /** v1 plugins: which Plugin API hook this run dispatches to (if any). */
+  pluginHook?: string;
+  /** v1 plugins: the hook's raw request payload (for handlers dispatch). */
+  hookRequest?: unknown;
+  /** v1 plugins: declared settings values (defaults applied). */
+  settings?: Record<string, unknown>;
+  /** v1 plugins: plugin-owned KV storage (isolated per plugin, never shared). */
+  storage?: PluginKvStorage;
   now(): Date;
+}
+
+/** Plugin-owned key/value storage: get/set/delete, backed by the host. */
+export interface PluginKvStorage {
+  get(key: string): Promise<unknown>;
+  set(key: string, value: unknown): Promise<void>;
+  delete(key: string): Promise<void>;
 }
 
 export interface InterviewSkill<I, O> {

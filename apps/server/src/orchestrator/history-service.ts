@@ -2,7 +2,6 @@ import {
   buildReadinessGraph,
   calculateGaps,
   CandidateProfileSchema,
-  getCompanyProfile,
   getMode,
   isModeId,
   InterviewOSStateSchema,
@@ -208,7 +207,8 @@ export class HistoryService {
     if (!session) throw new AppError("NOT_FOUND", `no session ${id}`);
     const target = session.targetId ? await this.store.getTarget(session.targetId) : undefined;
     const targetData = target?.data ? TargetRoleSchema.safeParse(target.data) : null;
-    const companyProfile = getCompanyProfile(
+    await this.ctx.packs.ready();
+    const companyProfile = this.ctx.packs.companyProfile(
       targetData?.success ? (targetData.data.companyProfileId ?? "generic") : "generic",
     );
     return {
@@ -302,6 +302,10 @@ export class HistoryService {
               text: answer.text,
               code: answer.code,
               language: answer.language,
+              voice: (answer.voice ?? null) as {
+                metrics: unknown;
+                feedback: unknown;
+              } | null,
               createdAt: answer.createdAt,
             }
           : null,

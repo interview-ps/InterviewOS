@@ -1,6 +1,4 @@
 import {
-  getCompanyProfile,
-  matchCompanyProfile,
   newId,
   type CandidateProfile,
   type CompanyNotesProfile,
@@ -246,7 +244,9 @@ export class WorkspaceService {
     notesFocus: Set<string>,
   ): Requirement {
     const base = req.baseImportance ?? req.importance;
-    const profile = companyProfileId ? getCompanyProfile(companyProfileId) : null;
+    const profile = companyProfileId
+      ? this.ctx.packs.companyProfile(companyProfileId)
+      : null;
     let importance = base;
     let boostedBy: string | undefined;
     const emphasis = profile?.emphasis.find((e) => e.skillId === req.skillId);
@@ -274,8 +274,9 @@ export class WorkspaceService {
     // §9.6: skill outputs persist the target row (+ its notes-derived profile).
     this.ctx.host.assertCan("jd-analyzer", "target.write");
     if (companyProfile) this.ctx.host.assertCan("company-profiler", "target.write");
-    // §9.3: auto-match a built-in profile; §8.4 notes profile stays an overlay
-    const profileId = matchCompanyProfile(input.company).id;
+    // §9.3: auto-match a company profile (built-ins + packs); §8.4 notes profile stays an overlay
+    await this.ctx.packs.ready();
+    const profileId = this.ctx.packs.matchCompanyProfile(input.company).id;
     const notesFocus = new Set<string>(companyProfile?.focusSkillIds ?? []);
     const boost = (r: Requirement): Requirement =>
       this.applyRequirementBoosts(r, profileId, notesFocus);

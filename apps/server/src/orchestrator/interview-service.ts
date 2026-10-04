@@ -1,8 +1,8 @@
 import {
   AnswerEvaluationSchema,
-  getCompanyProfile,
   getMode,
   newId,
+  QuestionCandidateSchema,
   normalizeEvaluation,
   nextUncoveredDimension,
   taxonomy,
@@ -11,10 +11,16 @@ import {
   type ExpectedConcept,
   type InterviewStatus,
   type ModeState,
+  type PackItem,
+  type PluginInterviewMode,
+  type QuestionCandidate,
   type RoundType,
   type SkillId,
   type SystemDesignState,
   type TargetRole,
+  voiceFeedback,
+  type VoiceFeedback,
+  type VoiceMetrics,
 } from "@interview-os/core";
 import { AppError } from "@interview-os/core";
 import { RuntimeError } from "@interview-os/runtime";
@@ -26,13 +32,21 @@ import {
   SkillRuntimeError,
 } from "../skills/index.js";
 import type { WorkflowContext, ProgressOptions } from "./context.js";
+
 import type { ReadinessService } from "./readiness-service.js";
 import type { PreparationService } from "./preparation-service.js";
+import type { PluginReview } from "./plugin-service.js";
+import { QuestionSourcesSchema, type QuestionSources } from "./settings-service.js";
 import {
   rowToQuestion,
   type PrepActionRowLike,
 } from "./projection.js";
 import type { SessionRow } from "./store/index.js";
+
+/** Question-text comparison for "don't re-ask" — case/whitespace-insensitive. */
+function normalizeQuestionText(text: string): string {
+  return text.trim().toLowerCase().replace(/\s+/g, " ").replace(/[?.!]+$/, "");
+}
 
 export interface StartInterviewInput {
   plannedQuestions?: number;
@@ -41,6 +55,10 @@ export interface StartInterviewInput {
   actionId?: string;
   /** §8.4 round type; practice sessions ignore it (focus skill wins). */
   roundType?: RoundType;
+  /** v0.4: stored external context (MCP fetch) to ground questions on. */
+  contextId?: string;
+  /** v0.4: "<pluginId>:<modeId>" — a plugin-declared interview mode. */
+  pluginModeId?: string;
 }
 
 export interface SubmitAnswerInput {
@@ -48,6 +66,8 @@ export interface SubmitAnswerInput {
   /** §9.1 coding rounds: optional submitted code (reviewed, not executed). */
   code?: string;
   language?: string;
+  /** v0.4 voice mode: client-measured delivery metrics (feedback only). */
+  voice?: VoiceMetrics;
 }
 
 export interface SubmitAnswerResult {
@@ -55,6 +75,17 @@ export interface SubmitAnswerResult {
   skillImpact: Array<{ skillId: SkillId; before: number | null; after: number | null }>;
   newActions: PrepActionRowLike[];
   nextAvailable: "question" | "complete";
+  /** v0.4: delivery hints, present only when the client sent voice metrics. */
+  voiceFeedback: VoiceFeedback | null;
+  /** v1: review observations from `evaluation` plugins (attributed). */
+  pluginReviews?: PluginReviewPublic[];
+}
+
+/** Plugin review observations surfaced on a submitted answer. */
+export interface PluginReviewPublic {
+  pluginId: string;
+  pluginName: string;
+  observations: { text: string; tone: string }[];
 }
 
 export interface InternalStartInput extends StartInterviewInput {
@@ -73,6 +104,30 @@ export interface InterviewServiceDeps {
     priorWeakSkills: { skillId: SkillId; round: number; mode: RoundType }[];
     priorRoundObservations: string[];
   }>;
+  /** v0.4: run a question-source plugin; returns raw output or throws. */
+  runQuestionPlugin(id: string, request: unknown): Promise<unknown>;
+  /** v0.4: ids of enabled+compatible question_source plugins. */
+  enabledQuestionPlugins(): Promise<string[]>;
+  /** v0.4: resolve a "<pluginId>:<modeId>" interview mode (enabled+compatible). */
+  pluginInterviewMode(
+    pluginModeId: string,
+  ): Promise<{ pluginId: string; mode: PluginInterviewMode }>;
+  /** v1: evaluation.review hooks — optional; absent means no review plugins. */
+  evaluationReviews?: (args: {
+    question: {
+      skillId: string;
+      text: string;
+      roundType: RoundType;
+      expectedConcepts: string[];
+    };
+    evaluation: AnswerEvaluation;
+    answer: { text: string; code?: string; language?: string };
+  }) => Promise<PluginReview[]>;
+  /** v1: persist gated plugin-event/review evidence under the lock. */
+  persistPluginEvidence?: (
+    pluginId: string,
+    proposals: unknown[],
+  ) => Promise<{ written: number; ignored: number }>;
 }
 
 export class InterviewService {
@@ -96,6 +151,18 @@ export class InterviewService {
       const action = await this.store.getAction(input.actionId);
       if (!action) throw new AppError("NOT_FOUND", `no prep action ${input.actionId}`);
     }
+    if (input.contextId) {
+      const context = await this.store.getExternalContext(input.contextId);
+      if (!context) throw new AppError("NOT_FOUND", `no external context ${input.contextId}`);
+    }
+    // v0.4: a plugin interview mode fixes roundType/plan/focus skills
+    let pluginFocusSkills: SkillId[] = [];
+    if (input.pluginModeId) {
+      const { mode: pMode } = await this.deps.pluginInterviewMode(input.pluginModeId);
+      input.roundType = pMode.roundType;
+      input.plannedQuestions = pMode.plannedQuestions;
+      pluginFocusSkills = pMode.focusSkills;
+    }
     // practice sessions are single-question verifications
     const plannedQuestions = mode === "practice" ? 1 : (input.plannedQuestions ?? 4);
     const roundType = input.roundType ?? "mixed";
@@ -114,6 +181,9 @@ export class InterviewService {
       modeState: getMode(roundType).initialState(),
       loopId: input.loopId ?? null,
       loopRound: input.loopRound ?? null,
+      contextId: input.contextId ?? null,
+      focusSkills: pluginFocusSkills,
+      pluginModeId: input.pluginModeId ?? null,
       createdAt,
     });
     await this.ctx.transitionSession(sessionId, "analyzing", "analyze");
@@ -184,6 +254,11 @@ export class InterviewService {
 
     // §9.4: loop sessions carry prior rounds' weak skills + observations forward
     const { priorWeakSkills, priorRoundObservations } = await this.deps.loopContextFor(session);
+    // v0.4: loops feed pack focus skills; standalone sessions feed their own
+    // (plugin interview-mode) focus skills.
+    const focusSkills: SkillId[] = session.loopId
+      ? (((await this.store.getLoop(session.loopId))?.focusSkills as SkillId[] | undefined) ?? [])
+      : ((session.focusSkills as SkillId[] | undefined) ?? []);
 
     let skillId: SkillId;
     let questionReason: string;
@@ -233,6 +308,7 @@ export class InterviewService {
                 level: target.level,
                 askCounts,
                 loopWeakSkills: priorWeakSkills,
+                focusSkills,
               },
               await this.ctx.ctx({ sessionId }),
             );
@@ -246,6 +322,41 @@ export class InterviewService {
       questionDifficulty = selection.difficulty;
       selectionFactors = selection.factors as unknown as Record<string, number>;
     }
+
+    // v0.4: question sources only feed main questions, never follow-ups. The
+    // orchestrator picked the skill — a source only suggests the question text.
+    let seedQuestion: { text: string; expectedConcepts?: string[]; sourceLabel: string } | null =
+      null;
+    let questionSource: QuestionCandidate["source"] | null = null;
+    if (!pendingFollowUp) {
+      const candidate = await this.pickSourcedQuestion(
+        target,
+        skillId,
+        roundType,
+        allPreviousTexts,
+      );
+      if (candidate) {
+        seedQuestion = {
+          text: candidate.text,
+          expectedConcepts: candidate.expectedConcepts,
+          sourceLabel:
+            candidate.source.kind === "plugin"
+              ? `plugin:${candidate.source.id}`
+              : candidate.source.kind === "user_bank"
+                ? "your question bank"
+                : `${candidate.source.kind === "company_pack" ? "company" : "role"} pack "${candidate.source.id}"`,
+        };
+        questionSource = candidate.source;
+      }
+    }
+
+    // v0.4: a stored external context grounds the question (untrusted data).
+    const externalContext = session.contextId
+      ? await (async () => {
+          const row = await this.store.getExternalContext(session.contextId!);
+          return row ? { title: row.title, text: row.text } : null;
+        })()
+      : null;
 
     // §8.4: behavioral/hr (+§9.1 hiring manager) get company themes + story titles
     const narrativeRound =
@@ -265,7 +376,11 @@ export class InterviewService {
       followUp: pendingFollowUp
         ? { parentQuestion: pendingFollowUp.parentText, focus: pendingFollowUp.focus }
         : null,
-      companyGuidance: this.companyGuidanceFor(target, roundType),
+      companyGuidance: await this.companyGuidanceFor(
+        target,
+        roundType,
+        session.pluginModeId as string | null,
+      ),
       difficulty: questionDifficulty,
       focusDimension:
         roundType === "system_design"
@@ -278,6 +393,9 @@ export class InterviewService {
         ? (await this.store.listStories(candidate.id)).map((s) => s.title).slice(0, 10)
         : [],
       priorRoundObservations,
+      seedQuestion,
+      roleRubric: await this.roleRubricFor(target, skillId, roundType),
+      externalContext,
     };
 
     const runtimeSessionId = await this.ensureRuntimeSession(sessionId);
@@ -314,6 +432,7 @@ export class InterviewService {
     if (produced.problem !== null && produced.problem !== undefined)
       extra.problem = produced.problem;
     if (produced.focusDimension) extra.focusDimension = produced.focusDimension;
+    if (questionSource) extra.source = questionSource;
     await this.store.insertQuestion({
       id: questionId,
       sessionId,
@@ -338,8 +457,13 @@ export class InterviewService {
   }
 
   /** §9.3: rendered profile guidance fed to interviewer/evaluator prompts. */
-  companyGuidanceFor(target: TargetRole, roundType: RoundType): string {
-    const profile = getCompanyProfile(target.companyProfileId ?? "generic");
+  async companyGuidanceFor(
+    target: TargetRole,
+    roundType: RoundType,
+    pluginModeId?: string | null,
+  ): Promise<string> {
+    await this.ctx.packs.ready();
+    const profile = this.ctx.packs.companyProfile(target.companyProfileId ?? "generic");
     const lines = [
       `Interview profile: ${profile.name} (${profile.id}). Typical loop: ${profile.typicalLoop
         .map((l) => l.label)
@@ -355,7 +479,191 @@ export class InterviewService {
       const loopStage = profile.typicalLoop.find((l) => l.mode === roundType);
       if (loopStage) lines.push(`This round plays the "${loopStage.label}" part of the loop.`);
     }
+    // v1: plugin interview-mode guidance is untrusted pack-like text —
+    // rendered with provenance so the model weights it accordingly.
+    let pluginGuidanceLines = 0;
+    if (pluginModeId) {
+      const pluginId = pluginModeId.slice(0, pluginModeId.indexOf(":"));
+      try {
+        const { mode } = await this.deps.pluginInterviewMode(pluginModeId);
+        if (mode.guidance) {
+          lines.push(
+            `Plugin mode guidance (${pluginId}, unverified): ${mode.guidance.slice(0, 1500)}`,
+          );
+          pluginGuidanceLines = 1;
+        }
+      } catch {
+        /* plugin disabled/removed mid-session — guidance simply omitted */
+      }
+    }
+    // v0.4: pack items render their provenance — sourced lines name the source,
+    // community lines are marked unverified.
+    const pack = this.ctx.packs.companyPack(profile.id);
+    if (pack) {
+      const renderItems = (heading: string, items: PackItem[]) => {
+        for (const item of items) {
+          lines.push(
+            item.provenance === "sourced"
+              ? `${heading} Sourced (${this.packSourceTitle(pack.sources, item.source)}): ${item.text}`
+              : `${heading} Community observation (unverified): ${item.text}`,
+          );
+        }
+      };
+      renderItems("Competency:", pack.competencies);
+      renderItems("Question style:", pack.questionStyle);
+      renderItems("Evaluation guidance:", pack.evaluationGuidance);
+      for (const overlay of pack.overlays) {
+        if (!this.ctx.packs.overlayApplies(overlay, target.role, roundType)) continue;
+        renderItems("Overlay competency:", overlay.competencies);
+        renderItems("Overlay question style:", overlay.questionStyle);
+        renderItems("Overlay evaluation guidance:", overlay.evaluationGuidance);
+      }
+      // cap the pack-authored portion of the guidance block
+      const head = lines.slice(
+        0,
+        3 +
+          (expectations?.length ? 1 : 0) +
+          (roundType !== "mixed" ? 1 : 0) +
+          pluginGuidanceLines,
+      );
+      const tail = lines.slice(head.length);
+      const budget = 1500;
+      const kept: string[] = [];
+      let used = 0;
+      for (const line of tail) {
+        if (used + line.length > budget) break;
+        kept.push(line);
+        used += line.length;
+      }
+      return [...head, ...kept].join("\n");
+    }
     return lines.join("\n");
+  }
+
+  private packSourceTitle(
+    sources: { id: string; title: string }[],
+    id: string | undefined,
+  ): string {
+    return sources.find((s) => s.id === id)?.title ?? id ?? "unknown";
+  }
+
+  /** Role-pack rubric lines for the interviewer + evaluator. */
+  private async roleRubricFor(
+    target: TargetRole,
+    skillId: SkillId,
+    roundType: RoundType,
+  ): Promise<string[]> {
+    await this.ctx.packs.ready();
+    const criteria = this.ctx.packs.roleRubrics(target.rolePackId, skillId, roundType);
+    const pack = target.rolePackId ? this.ctx.packs.rolePack(target.rolePackId) : undefined;
+    return criteria.length > 0 && pack
+      ? criteria.map((c) => `Role rubric (${pack.name}): ${c}`)
+      : criteria;
+  }
+
+  /** Settings-backed question-source toggles. */
+  private async questionSources(): Promise<QuestionSources> {
+    const raw = await this.store.getSetting("questionSources");
+    if (!raw) return QuestionSourcesSchema.parse({});
+    const parsed = QuestionSourcesSchema.safeParse(JSON.parse(raw));
+    return parsed.success ? parsed.data : QuestionSourcesSchema.parse({});
+  }
+
+  /**
+   * v0.4 question sources, in priority order: user bank → company pack
+   * (overlay questions first) → role pack → plugins. Only eligible candidates
+   * (exact/descendant skill, mode-compatible, never asked before) are offered.
+   */
+  private async pickSourcedQuestion(
+    target: TargetRole,
+    skillId: SkillId,
+    roundType: RoundType,
+    allPreviousTexts: string[],
+  ): Promise<QuestionCandidate | null> {
+    const settings = await this.questionSources();
+    await this.ctx.packs.ready();
+    const asked = new Set(allPreviousTexts.map(normalizeQuestionText));
+    const eligible = (c: QuestionCandidate) => !asked.has(normalizeQuestionText(c.text));
+
+    const candidates: QuestionCandidate[] = [];
+    if (settings.userBank) {
+      const rows = await this.store.listUserQuestions();
+      for (const r of rows) {
+        const matches =
+          r.skillId === skillId || r.skillId.startsWith(`${skillId}.`);
+        const modeOk = !r.mode || r.mode === roundType || roundType === "mixed";
+        if (!matches || !modeOk) continue;
+        candidates.push({
+          skillId: r.skillId as SkillId,
+          text: r.text,
+          difficulty: (r.difficulty ?? undefined) as QuestionCandidate["difficulty"],
+          mode: (r.mode ?? undefined) as QuestionCandidate["mode"],
+          source: { kind: "user_bank", id: r.id },
+        });
+      }
+    }
+    if (settings.companyPacks) {
+      candidates.push(
+        ...this.ctx.packs.companyPackQuestions(
+          target.companyProfileId ?? "generic",
+          skillId,
+          roundType,
+          target.role,
+        ),
+      );
+    }
+    if (settings.rolePacks && target.rolePackId) {
+      candidates.push(
+        ...this.ctx.packs.rolePackQuestions(target.rolePackId, skillId, roundType),
+      );
+    }
+    if (settings.plugins.length > 0) {
+      const enabled = new Set(await this.deps.enabledQuestionPlugins());
+      for (const pluginId of settings.plugins) {
+        if (!enabled.has(pluginId)) continue;
+        try {
+          const output = await this.deps.runQuestionPlugin(pluginId, {
+            kind: "questions",
+            skillId,
+            roundType,
+            level: target.level,
+            count: 5,
+          });
+          const list = (output as { questions?: unknown[] })?.questions;
+          if (!Array.isArray(list)) continue;
+          let dropped = 0;
+          for (const q of list) {
+            const parsed = QuestionCandidateSchema.safeParse({
+              ...(q as object),
+              source: { kind: "plugin", id: pluginId },
+            });
+            if (!parsed.success) {
+              dropped += 1;
+              continue;
+            }
+            if (
+              (parsed.data.skillId === skillId || parsed.data.skillId.startsWith(`${skillId}.`)) &&
+              (!parsed.data.mode || parsed.data.mode === roundType || roundType === "mixed")
+            ) {
+              candidates.push(parsed.data);
+            }
+          }
+          if (dropped > 0) {
+            this.ctx.logger.warn("questionsource.invalid", {
+              plugin: pluginId,
+              dropped,
+            });
+          }
+        } catch (err) {
+          // a failing question source never breaks the interview flow
+          this.ctx.logger.warn("questionsource.failed", {
+            plugin: pluginId,
+            error: (err as Error).message.slice(0, 200),
+          });
+        }
+      }
+    }
+    return candidates.find(eligible) ?? null;
   }
 
   private async ensureRuntimeSession(sessionId: string): Promise<string | undefined> {
@@ -388,8 +696,15 @@ export class InterviewService {
     answer: string | SubmitAnswerInput,
     opts?: ProgressOptions,
   ): Promise<SubmitAnswerResult> {
-    const { text: answerText, code = null, language = null } =
-      typeof answer === "string" ? { text: answer } : answer;
+    const {
+      text: answerText,
+      code = null,
+      language = null,
+      voice = null,
+    } = typeof answer === "string" ? { text: answer } : answer;
+    // v0.4 voice mode: feedback is computed server-side from the transcript —
+    // the client supplies only raw metrics, never counts.
+    const feedback = voice ? voiceFeedback(voice, answerText) : null;
     const session = await this.store.getSession(sessionId);
     if (!session) throw new AppError("NOT_FOUND", `no session ${sessionId}`);
     const questions = await this.store.listQuestions(sessionId);
@@ -413,6 +728,7 @@ export class InterviewService {
       text: answerText,
       code,
       language,
+      voice: voice ? { metrics: voice, feedback } : null,
       createdAt: this.ctx.iso(),
     });
     await this.ctx.transitionSession(sessionId, "evaluating", "evaluate");
@@ -428,6 +744,7 @@ export class InterviewService {
     let evaluation: AnswerEvaluation;
     let skillImpact: SubmitAnswerResult["skillImpact"];
     let followUpPending = false;
+    let pluginReviews: PluginReviewPublic[] | undefined;
     const newActions: PrepActionRowLike[] = [];
     opts?.onProgress?.({ stage: "evaluating answer" });
     try {
@@ -449,6 +766,12 @@ export class InterviewService {
           roundType,
           mode: roundType,
           modeState: preModeState,
+          companyGuidance: await this.companyGuidanceFor(
+            target,
+            roundType,
+            session.pluginModeId as string | null,
+          ),
+          roleRubric: await this.roleRubricFor(target, active.skillId as SkillId, roundType),
         },
         await this.ctx.ctx({ sessionId, onProgress: opts?.onProgress }),
       );
@@ -597,7 +920,7 @@ export class InterviewService {
       if (session.mode !== "practice" && roundType !== "mixed") {
         const mainId = active.followUpOf ?? active.id;
         const chainDepth = questions.filter((q) => q.followUpOf === mainId).length;
-        const maxDepth = getCompanyProfile(
+        const maxDepth = this.ctx.packs.companyProfile(
           target.companyProfileId ?? "generic",
         ).followUpDepth;
         const decision = modeDef.followUp(evaluation, modeState, chainDepth, maxDepth);
@@ -618,6 +941,47 @@ export class InterviewService {
           });
         }
       }
+      // v1: after the built-in evaluation persists, `evaluation` plugins
+      // review the answer (answer text only when granted `answers.read`).
+      // Observations attach to the answer row; evidence proposals go through
+      // the standard gate. Plugin failures were already logged+skipped.
+      if (this.deps.evaluationReviews) {
+        const reviews = await this.deps.evaluationReviews({
+          question: {
+            skillId: active.skillId,
+            text: active.text,
+            roundType,
+            expectedConcepts: (
+              (active.expectedConcepts as ExpectedConcept[] | undefined) ?? []
+            )
+              .map((c) => c.concept)
+              .slice(0, 16),
+          },
+          evaluation,
+          answer: {
+            text: answerText,
+            ...(code ? { code } : {}),
+            ...(language ? { language } : {}),
+          },
+        });
+        if (reviews.length > 0) {
+          pluginReviews = reviews.map((r) => ({
+            pluginId: r.pluginId,
+            pluginName: r.pluginName,
+            observations: r.observations,
+          }));
+          await this.store.updateAnswerPluginReviews(answerId, pluginReviews);
+          for (const r of reviews) {
+            if (r.evidenceProposals.length > 0) {
+              await this.deps.persistPluginEvidence?.(
+                r.pluginId,
+                r.evidenceProposals,
+              );
+            }
+          }
+        }
+      }
+
       await this.store.updateSession(sessionId, { modeState });
     } catch (err) {
       // keep the session usable: mark the stored answer failed and roll the
@@ -640,6 +1004,8 @@ export class InterviewService {
       skillImpact,
       newActions,
       nextAvailable: remaining ? "question" : "complete",
+      voiceFeedback: feedback,
+      pluginReviews,
     };
   }
 }

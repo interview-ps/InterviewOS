@@ -2,20 +2,26 @@ import { createLogger } from "@interview-os/core";
 import { Hono } from "hono";
 import { DEFAULT_EXAMPLES_DIR } from "../paths.js";
 import type { AppDeps, AppEnv } from "./context.js";
-import { apiBodyLimit, docBodyLimit } from "./middleware/body-limit.js";
+import { apiBodyLimit, docBodyLimit, importBodyLimit } from "./middleware/body-limit.js";
 import { onError } from "./middleware/error.js";
 import { companiesRoutes } from "./routes/companies.js";
 import { documentsRoutes } from "./routes/documents.js";
 import { examplesRoutes } from "./routes/examples.js";
+import { exportRoutes } from "./routes/export.js";
+import { mcpRoutes } from "./routes/mcp.js";
 import { historyRoutes } from "./routes/history.js";
 import { interviewsRoutes } from "./routes/interviews.js";
+import { interviewPacksRoutes } from "./routes/interview-packs.js";
 import { loopsRoutes } from "./routes/loops.js";
+import { packsRoutes } from "./routes/packs.js";
+import { questionBankRoutes } from "./routes/question-bank.js";
 import { preparationRoutes } from "./routes/preparation.js";
 import { readinessRoutes } from "./routes/readiness.js";
 import { resumeRoutes } from "./routes/resume.js";
 import { runtimeRoutes } from "./routes/runtime.js";
 import { settingsRoutes } from "./routes/settings.js";
 import { pluginsRoutes } from "./routes/plugins.js";
+import { uiRoutes } from "./routes/ui.js";
 import { skillsRoutes } from "./routes/skills.js";
 import { storiesRoutes } from "./routes/stories.js";
 import { targetsRoutes } from "./routes/targets.js";
@@ -33,7 +39,9 @@ export function createApp(deps: AppDeps) {
   app.use("/api/*", (c, next) =>
     c.req.path === "/api/documents/extract"
       ? docBodyLimit(c, next)
-      : apiBodyLimit(c, next),
+      : c.req.path === "/api/import" && c.req.method === "POST"
+        ? importBodyLimit(c, next)
+        : apiBodyLimit(c, next),
   );
 
   // Resolve dependencies once per request; handlers read them via c.var.
@@ -58,6 +66,9 @@ export function createApp(deps: AppDeps) {
   app.route("/api/interviews", interviewsRoutes);
   app.route("/api/stories", storiesRoutes);
   app.route("/api/loops", loopsRoutes);
+  app.route("/api/packs", packsRoutes);
+  app.route("/api/interview-packs", interviewPacksRoutes);
+  app.route("/api/question-bank", questionBankRoutes);
   app.route("/api/history", historyRoutes);
   app.route("/api/resume", resumeRoutes);
   app.route("/api/readiness", readinessRoutes);
@@ -65,8 +76,11 @@ export function createApp(deps: AppDeps) {
   app.route("/api/runtime", runtimeRoutes);
   app.route("/api/skills", skillsRoutes);
   app.route("/api/plugins", pluginsRoutes);
+  app.route("/api", uiRoutes);
   app.route("/api/documents", documentsRoutes);
   app.route("/api/examples", examplesRoutes);
+  app.route("/api/mcp", mcpRoutes);
+  app.route("/api", exportRoutes);
 
   if (deps.webDir) mountStaticWeb(app, deps.webDir);
 

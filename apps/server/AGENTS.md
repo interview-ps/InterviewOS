@@ -28,14 +28,18 @@ src/http/             Hono API
   middleware/         body-limit, error, validate, stream
   routes/<domain>.ts  one router per domain (workspace, targets, readiness, preparation,
                       interviews, loops, resume, history, stories, settings, skills,
-                      plugins, runtime, documents, examples)
+                      plugins, packs, interview-packs, question-bank, mcp, export,
+                      runtime, documents, examples)
 src/orchestrator/     composition root over services + SQLite
   orchestrator.ts     InterviewOrchestrator: withLock + composition + cross-domain flows
   context.ts          WorkflowContext (store/host/runtime/logger + shared helpers)
   projection.ts       rowToAction / rowToQuestion + view types
-  *-service.ts        settings, resume, story, plugin, debrief, history, readiness,
-                      preparation, workspace, target, interview, loop
+  *-service.ts        settings, resume, story, plugin, pack, mcp, export, debrief,
+                      history, readiness, preparation, workspace, target, interview, loop
   store/              SQLite data access (index.ts) + drizzle schema + row types
+src/plugins/          isolated plugin executor (child process + runner protocol)
+src/packs/            PackRegistry (bundled + installed company/role/interview packs)
+src/mcp/              McpManager (lazy stdio clients, minimal child env, tool allowlists)
 src/skills/           skill implementations
   framework/          skill.ts, runStructured, partialJson, common
   host/               SkillHost, builtins

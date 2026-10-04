@@ -12,18 +12,25 @@ import {
   candidateProfiles,
   interviewDebriefs,
   interviewLoops,
+  interviewPacks,
+  userQuestions,
   interviewQuestions,
   interviewSessions,
   preparationActions,
   readinessScores,
   runtimeSessions,
   settings,
+  pluginInstalls,
   resumeReviews,
   starStories,
   skillEvidence,
   skillNodes,
   targetRoles,
   usageEvents,
+  mcpServers,
+  externalContexts,
+  pluginSettings,
+  pluginStorage,
 } from "./schema.js";
 
 const DDL = `
@@ -49,12 +56,14 @@ CREATE TABLE IF NOT EXISTS interview_sessions (
   focus_skill_id TEXT, action_id TEXT,
   mode_state TEXT NOT NULL DEFAULT '{}',
   loop_id TEXT, loop_round INTEGER,
+  context_id TEXT, focus_skills TEXT NOT NULL DEFAULT '[]',
   created_at TEXT NOT NULL, completed_at TEXT
 );
 CREATE TABLE IF NOT EXISTS interview_loops (
   id TEXT PRIMARY KEY, target_id TEXT,
   company_profile_id TEXT NOT NULL DEFAULT 'generic',
   rounds TEXT NOT NULL DEFAULT '[]',
+  pack_id TEXT, focus_skills TEXT NOT NULL DEFAULT '[]',
   status TEXT NOT NULL DEFAULT 'planned',
   current_round INTEGER NOT NULL DEFAULT 0,
   abandoned INTEGER NOT NULL DEFAULT 0,
@@ -99,7 +108,14 @@ CREATE TABLE IF NOT EXISTS skill_evidence (
   id TEXT PRIMARY KEY, candidate_id TEXT, skill_id TEXT NOT NULL,
   type TEXT NOT NULL, score REAL NOT NULL, confidence REAL NOT NULL,
   observation TEXT NOT NULL DEFAULT '', session_id TEXT, question_id TEXT,
+  source TEXT,
   created_at TEXT NOT NULL
+);
+CREATE TABLE IF NOT EXISTS plugin_installs (
+  id TEXT PRIMARY KEY, enabled INTEGER NOT NULL DEFAULT 0,
+  granted_permissions TEXT NOT NULL DEFAULT '[]',
+  source TEXT NOT NULL, source_url TEXT, dir_name TEXT,
+  installed_at TEXT, updated_at TEXT
 );
 CREATE TABLE IF NOT EXISTS readiness_scores (
   id INTEGER PRIMARY KEY AUTOINCREMENT, skill_id TEXT NOT NULL,
@@ -112,7 +128,16 @@ CREATE TABLE IF NOT EXISTS preparation_actions (
   reason TEXT NOT NULL DEFAULT '', action TEXT NOT NULL,
   success_criteria TEXT NOT NULL DEFAULT '[]', status TEXT NOT NULL DEFAULT 'open',
   severity TEXT NOT NULL DEFAULT 'medium',
-  created_at TEXT NOT NULL, source_evidence_ids TEXT NOT NULL DEFAULT '[]'
+  created_at TEXT NOT NULL, source_evidence_ids TEXT NOT NULL DEFAULT '[]',
+  resources TEXT NOT NULL DEFAULT '[]'
+);
+CREATE TABLE IF NOT EXISTS interview_packs (
+  id TEXT PRIMARY KEY, data TEXT NOT NULL, source TEXT NOT NULL,
+  created_at TEXT NOT NULL, updated_at TEXT NOT NULL
+);
+CREATE TABLE IF NOT EXISTS user_questions (
+  id TEXT PRIMARY KEY, skill_id TEXT NOT NULL, text TEXT NOT NULL,
+  difficulty TEXT, mode TEXT, created_at TEXT NOT NULL
 );
 CREATE TABLE IF NOT EXISTS runtime_sessions (
   id TEXT PRIMARY KEY, session_id TEXT NOT NULL, runtime TEXT NOT NULL,
@@ -133,6 +158,23 @@ CREATE TABLE IF NOT EXISTS star_stories (
 CREATE TABLE IF NOT EXISTS settings (
   key TEXT PRIMARY KEY, value TEXT NOT NULL
 );
+CREATE TABLE IF NOT EXISTS mcp_servers (
+  id TEXT PRIMARY KEY, enabled INTEGER NOT NULL DEFAULT 0,
+  allowed_tools TEXT NOT NULL DEFAULT '[]', updated_at TEXT
+);
+CREATE TABLE IF NOT EXISTS external_contexts (
+  id TEXT PRIMARY KEY, server_id TEXT NOT NULL, tool TEXT NOT NULL,
+  title TEXT NOT NULL DEFAULT '', text TEXT NOT NULL DEFAULT '',
+  created_at TEXT NOT NULL
+);
+CREATE TABLE IF NOT EXISTS plugin_settings (
+  plugin_id TEXT NOT NULL, key TEXT NOT NULL, value TEXT NOT NULL,
+  PRIMARY KEY (plugin_id, key)
+);
+CREATE TABLE IF NOT EXISTS plugin_storage (
+  plugin_id TEXT NOT NULL, key TEXT NOT NULL, value TEXT NOT NULL,
+  PRIMARY KEY (plugin_id, key)
+);
 `;
 
 type Db = SqliteRemoteDatabase<typeof schema>;
@@ -152,6 +194,11 @@ export type StarStoryRow = typeof starStories.$inferSelect;
 export type LoopRow = typeof interviewLoops.$inferSelect;
 export type UsageEventRow = typeof usageEvents.$inferSelect;
 export type ResumeReviewRow = typeof resumeReviews.$inferSelect;
+export type PluginInstallRow = typeof pluginInstalls.$inferSelect;
+export type InterviewPackRow = typeof interviewPacks.$inferSelect;
+export type UserQuestionRow = typeof userQuestions.$inferSelect;
+export type McpServerRow = typeof mcpServers.$inferSelect;
+export type ExternalContextRow = typeof externalContexts.$inferSelect;
 
 function makeSqliteProxy(client: DatabaseSync): RemoteCallback {
   return async (sqlText, params, method) => {
@@ -199,7 +246,10 @@ export class Store {
    * transaction store see that connection's snapshot.
    */
   async transaction<T>(fn: (tx: Store) => Promise<T>): Promise<T> {
-    return this.db.transaction(async (txDb) => fn(new Store(txDb as unknown as Db)));
+    return this.db.transaction(
+      async (txDb) => fn(new Store(txDb as unknown as Db)),
+      { behavior: "immediate" },
+    );
   }
 
   /** Idempotent column additions for databases created by older versions. */
@@ -295,6 +345,56 @@ export class Store {
       "readiness_delta",
       "ALTER TABLE answer_evaluations ADD COLUMN readiness_delta TEXT NOT NULL DEFAULT '[]'",
     );
+    addColumn(
+      "skill_evidence",
+      "source",
+      "ALTER TABLE skill_evidence ADD COLUMN source TEXT",
+    );
+    addColumn(
+      "interview_loops",
+      "pack_id",
+      "ALTER TABLE interview_loops ADD COLUMN pack_id TEXT",
+    );
+    addColumn(
+      "interview_loops",
+      "focus_skills",
+      "ALTER TABLE interview_loops ADD COLUMN focus_skills TEXT NOT NULL DEFAULT '[]'",
+    );
+    addColumn(
+      "preparation_actions",
+      "resources",
+      "ALTER TABLE preparation_actions ADD COLUMN resources TEXT NOT NULL DEFAULT '[]'",
+    );
+    addColumn(
+      "candidate_answers",
+      "voice",
+      "ALTER TABLE candidate_answers ADD COLUMN voice TEXT",
+    );
+    addColumn(
+      "interview_sessions",
+      "context_id",
+      "ALTER TABLE interview_sessions ADD COLUMN context_id TEXT",
+    );
+    addColumn(
+      "interview_sessions",
+      "focus_skills",
+      "ALTER TABLE interview_sessions ADD COLUMN focus_skills TEXT NOT NULL DEFAULT '[]'",
+    );
+    addColumn(
+      "candidate_answers",
+      "plugin_reviews",
+      "ALTER TABLE candidate_answers ADD COLUMN plugin_reviews TEXT",
+    );
+    addColumn(
+      "preparation_actions",
+      "source",
+      "ALTER TABLE preparation_actions ADD COLUMN source TEXT NOT NULL DEFAULT 'planner'",
+    );
+    addColumn(
+      "interview_sessions",
+      "plugin_mode_id",
+      "ALTER TABLE interview_sessions ADD COLUMN plugin_mode_id TEXT",
+    );
     // backfill: existing actions belong to whichever target was active at upgrade time
     client.exec(
       `UPDATE preparation_actions SET target_id = (
@@ -318,6 +418,9 @@ export class Store {
   }
   async deactivateCandidates(): Promise<void> {
     await this.db.update(candidateProfiles).set({ active: 0 }).run();
+  }
+  async listCandidates(): Promise<CandidateRow[]> {
+    return this.db.select().from(candidateProfiles).all();
   }
   async getActiveCandidate(): Promise<CandidateRow | undefined> {
     return this.db
@@ -433,6 +536,17 @@ export class Store {
   async updateAnswerStatus(id: string, status: "evaluated" | "failed"): Promise<void> {
     await this.db.update(candidateAnswers).set({ status }).where(eq(candidateAnswers.id, id)).run();
   }
+  /** v1: attach plugin review observations to a persisted answer. */
+  async updateAnswerPluginReviews(
+    id: string,
+    reviews: { pluginId: string; pluginName: string; observations: unknown[] }[],
+  ): Promise<void> {
+    await this.db
+      .update(candidateAnswers)
+      .set({ pluginReviews: reviews })
+      .where(eq(candidateAnswers.id, id))
+      .run();
+  }
   async insertEvaluation(row: typeof answerEvaluations.$inferInsert): Promise<void> {
     await this.db.insert(answerEvaluations).values(row).run();
   }
@@ -456,6 +570,12 @@ export class Store {
   async listAllEvaluations(): Promise<EvaluationRow[]> {
     return this.db.select().from(answerEvaluations).all();
   }
+  async listAllQuestions(): Promise<QuestionRow[]> {
+    return this.db.select().from(interviewQuestions).all();
+  }
+  async listAllAnswers(): Promise<AnswerRow[]> {
+    return this.db.select().from(candidateAnswers).all();
+  }
 
   // --- evidence -----------------------------------------------------------------
   async insertEvidence(row: typeof skillEvidence.$inferInsert): Promise<void> {
@@ -471,6 +591,113 @@ export class Store {
     }
     return this.db.select().from(skillEvidence).all();
   }
+  // --- plugin installs (v0.4) ---------------------------------------------------
+  async upsertPluginInstall(row: typeof pluginInstalls.$inferInsert): Promise<void> {
+    await this.db
+      .insert(pluginInstalls)
+      .values(row)
+      .onConflictDoUpdate({ target: pluginInstalls.id, set: row })
+      .run();
+  }
+  async getPluginInstall(id: string): Promise<PluginInstallRow | undefined> {
+    return this.db
+      .select()
+      .from(pluginInstalls)
+      .where(eq(pluginInstalls.id, id))
+      .get();
+  }
+  async listPluginInstalls(): Promise<PluginInstallRow[]> {
+    return this.db.select().from(pluginInstalls).all();
+  }
+  async deletePluginInstall(id: string): Promise<void> {
+    await this.db.delete(pluginInstalls).where(eq(pluginInstalls.id, id)).run();
+    // plugin-owned rows go with the install (settings + KV storage)
+    await this.db
+      .delete(pluginStorage)
+      .where(eq(pluginStorage.pluginId, id))
+      .run();
+    await this.db
+      .delete(pluginSettings)
+      .where(eq(pluginSettings.pluginId, id))
+      .run();
+  }
+
+  // ------------------------------------------------ v1 plugin settings + KV
+
+  async getPluginSettings(
+    pluginId: string,
+  ): Promise<Record<string, unknown>> {
+    const rows = await this.db
+      .select()
+      .from(pluginSettings)
+      .where(eq(pluginSettings.pluginId, pluginId))
+      .all();
+    return Object.fromEntries(rows.map((r) => [r.key, r.value]));
+  }
+  async setPluginSetting(
+    pluginId: string,
+    key: string,
+    value: unknown,
+  ): Promise<void> {
+    await this.db
+      .insert(pluginSettings)
+      .values({ pluginId, key, value })
+      .onConflictDoUpdate({
+        target: [pluginSettings.pluginId, pluginSettings.key],
+        set: { value },
+      })
+      .run();
+  }
+  async getPluginStorageValue(
+    pluginId: string,
+    key: string,
+  ): Promise<unknown> {
+    const row = await this.db
+      .select()
+      .from(pluginStorage)
+      .where(
+        and(eq(pluginStorage.pluginId, pluginId), eq(pluginStorage.key, key)),
+      )
+      .get();
+    return row?.value;
+  }
+  async setPluginStorageValue(
+    pluginId: string,
+    key: string,
+    value: unknown,
+  ): Promise<void> {
+    await this.db
+      .insert(pluginStorage)
+      .values({ pluginId, key, value })
+      .onConflictDoUpdate({
+        target: [pluginStorage.pluginId, pluginStorage.key],
+        set: { value },
+      })
+      .run();
+  }
+  async deletePluginStorageValue(
+    pluginId: string,
+    key: string,
+  ): Promise<void> {
+    await this.db
+      .delete(pluginStorage)
+      .where(
+        and(eq(pluginStorage.pluginId, pluginId), eq(pluginStorage.key, key)),
+      )
+      .run();
+  }
+  async pluginStorageBytes(pluginId: string): Promise<number> {
+    const rows = await this.db
+      .select({ key: pluginStorage.key, value: pluginStorage.value })
+      .from(pluginStorage)
+      .where(eq(pluginStorage.pluginId, pluginId))
+      .all();
+    return rows.reduce(
+      (n, r) => n + r.key.length + JSON.stringify(r.value).length,
+      0,
+    );
+  }
+
   async evidenceForSkill(skillId: string, candidateId?: string): Promise<EvidenceRow[]> {
     const clauses = [eq(skillEvidence.skillId, skillId)];
     if (candidateId) clauses.push(eq(skillEvidence.candidateId, candidateId));
@@ -504,6 +731,9 @@ export class Store {
       .where(eq(readinessScores.skillId, skillId))
       .orderBy(desc(readinessScores.id))
       .all();
+  }
+  async listAllReadiness(): Promise<ReadinessRow[]> {
+    return this.db.select().from(readinessScores).orderBy(readinessScores.id).all();
   }
   async countReadinessSnapshots(): Promise<number> {
     const row = await this.db
@@ -542,6 +772,13 @@ export class Store {
     await this.db
       .update(preparationActions)
       .set({ sourceEvidenceIds })
+      .where(eq(preparationActions.id, id))
+      .run();
+  }
+  async updateActionResources(id: string, resources: unknown[]): Promise<void> {
+    await this.db
+      .update(preparationActions)
+      .set({ resources })
       .where(eq(preparationActions.id, id))
       .run();
   }
@@ -608,6 +845,9 @@ export class Store {
   async insertDebrief(row: typeof interviewDebriefs.$inferInsert): Promise<void> {
     await this.db.insert(interviewDebriefs).values(row).run();
   }
+  async listAllDebriefs(): Promise<DebriefRow[]> {
+    return this.db.select().from(interviewDebriefs).all();
+  }
   async getDebrief(sessionId: string): Promise<DebriefRow | undefined> {
     return this.db
       .select()
@@ -620,6 +860,9 @@ export class Store {
   // --- star stories (§8.4) ----------------------------------------------------
   async insertStory(row: typeof starStories.$inferInsert): Promise<void> {
     await this.db.insert(starStories).values(row).run();
+  }
+  async listAllStories(): Promise<StarStoryRow[]> {
+    return this.db.select().from(starStories).all();
   }
   async listStories(candidateId: string): Promise<StarStoryRow[]> {
     return this.db
@@ -680,6 +923,9 @@ export class Store {
       settings,
       resumeReviews,
       usageEvents,
+      interviewPacks,
+      userQuestions,
+      pluginInstalls,
     ]) {
       await this.db.delete(t).run();
     }
@@ -710,6 +956,41 @@ export class Store {
     return s?.loopId ? await this.getLoop(s.loopId) : undefined;
   }
 
+  // --- interview packs (v0.4) -------------------------------------------------
+  async insertInterviewPack(row: typeof interviewPacks.$inferInsert): Promise<void> {
+    await this.db.insert(interviewPacks).values(row).run();
+  }
+  async upsertInterviewPack(row: typeof interviewPacks.$inferInsert): Promise<void> {
+    await this.db
+      .insert(interviewPacks)
+      .values(row)
+      .onConflictDoUpdate({ target: interviewPacks.id, set: row })
+      .run();
+  }
+  async getInterviewPack(id: string): Promise<InterviewPackRow | undefined> {
+    return this.db.select().from(interviewPacks).where(eq(interviewPacks.id, id)).get();
+  }
+  async listInterviewPacks(): Promise<InterviewPackRow[]> {
+    return this.db.select().from(interviewPacks).orderBy(desc(interviewPacks.createdAt)).all();
+  }
+  async deleteInterviewPack(id: string): Promise<void> {
+    await this.db.delete(interviewPacks).where(eq(interviewPacks.id, id)).run();
+  }
+
+  // --- user question bank (v0.4) ------------------------------------------------
+  async insertUserQuestion(row: typeof userQuestions.$inferInsert): Promise<void> {
+    await this.db.insert(userQuestions).values(row).run();
+  }
+  async getUserQuestion(id: string): Promise<UserQuestionRow | undefined> {
+    return this.db.select().from(userQuestions).where(eq(userQuestions.id, id)).get();
+  }
+  async listUserQuestions(): Promise<UserQuestionRow[]> {
+    return this.db.select().from(userQuestions).orderBy(userQuestions.createdAt).all();
+  }
+  async deleteUserQuestion(id: string): Promise<void> {
+    await this.db.delete(userQuestions).where(eq(userQuestions.id, id)).run();
+  }
+
   // --- usage events (§9.7: names only, no content) ---------------------------
   async insertUsageEvent(row: { id: string; event: string; createdAt: string }): Promise<void> {
     await this.db.insert(usageEvents).values(row).run();
@@ -724,6 +1005,9 @@ export class Store {
   async insertResumeReview(row: typeof resumeReviews.$inferInsert): Promise<void> {
     await this.db.insert(resumeReviews).values(row).run();
   }
+  async listAllResumeReviews(): Promise<ResumeReviewRow[]> {
+    return this.db.select().from(resumeReviews).all();
+  }
   async latestResumeReview(candidateId?: string): Promise<ResumeReviewRow | undefined> {
     const rows = await this.db
       .select()
@@ -733,6 +1017,74 @@ export class Store {
     return candidateId
       ? rows.find((r) => r.candidateId === candidateId) ?? rows[0]
       : rows[0];
+  }
+
+  // --- MCP servers (v0.4: state only; config lives in interview-os.mcp.json) --
+  async getMcpServer(id: string): Promise<McpServerRow | undefined> {
+    return this.db.select().from(mcpServers).where(eq(mcpServers.id, id)).get();
+  }
+  async upsertMcpServer(row: typeof mcpServers.$inferInsert): Promise<void> {
+    await this.db
+      .insert(mcpServers)
+      .values(row)
+      .onConflictDoUpdate({
+        target: mcpServers.id,
+        set: {
+          enabled: row.enabled,
+          allowedTools: row.allowedTools,
+          updatedAt: row.updatedAt,
+        },
+      })
+      .run();
+  }
+  async listMcpServers(): Promise<McpServerRow[]> {
+    return this.db.select().from(mcpServers).all();
+  }
+
+  // --- external contexts (v0.4) ------------------------------------------------
+  async insertExternalContext(row: typeof externalContexts.$inferInsert): Promise<void> {
+    await this.db.insert(externalContexts).values(row).run();
+  }
+  async getExternalContext(id: string): Promise<ExternalContextRow | undefined> {
+    return this.db.select().from(externalContexts).where(eq(externalContexts.id, id)).get();
+  }
+  async listExternalContexts(): Promise<ExternalContextRow[]> {
+    return this.db
+      .select()
+      .from(externalContexts)
+      .orderBy(desc(externalContexts.createdAt))
+      .all();
+  }
+  async deleteExternalContext(id: string): Promise<void> {
+    await this.db.delete(externalContexts).where(eq(externalContexts.id, id)).run();
+  }
+
+  /**
+   * v0.4 import: wipe every table the export bundle covers (in one transaction
+   * with the inserts at the caller). Settings/plugin/MCP state are NOT
+   * domain data — allowlisted settings keys are upserted by the importer.
+   */
+  async wipeExportTables(): Promise<void> {
+    for (const t of [
+      candidateProfiles,
+      targetRoles,
+      interviewSessions,
+      interviewLoops,
+      interviewQuestions,
+      candidateAnswers,
+      answerEvaluations,
+      interviewDebriefs,
+      skillEvidence,
+      readinessScores,
+      preparationActions,
+      starStories,
+      resumeReviews,
+      interviewPacks,
+      userQuestions,
+      externalContexts,
+    ]) {
+      await this.db.delete(t).run();
+    }
   }
 }
 

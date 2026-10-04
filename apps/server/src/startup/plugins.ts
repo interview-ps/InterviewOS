@@ -1,13 +1,10 @@
 import fs from "node:fs/promises";
 import path from "node:path";
-import { pathToFileURL } from "node:url";
-import {
-  isWritePermission,
-  SkillManifestSchema,
-  type SkillManifest,
-} from "@interview-os/core";
+import { isPluginWritable, isWritePermission, SLUG_ID_REGEX, taxonomy } from "@interview-os/core";
+import { findEntryFile, loadManifestFile } from "@interview-os/plugin-sdk";
 import type { InterviewOrchestrator } from "../orchestrator/index.js";
-import type { PluginExecutor } from "../skills/index.js";
+import type { PluginSource } from "../orchestrator/plugin-service.js";
+import { createIsolatedExecutor } from "../plugins/executor.js";
 import type { Logger } from "@interview-os/core";
 
 export interface PluginLoadError {
@@ -18,14 +15,15 @@ export interface PluginLoadError {
 
 /**
  * §9.6: scan a plugins directory at server start. Each subdirectory needs a
- * `manifest.json` (Zod-validated, kind forced to "plugin") and an
- * `index.js`/`index.ts` default-exporting `{ execute(input, ctx) }`.
- * Manifests requesting write permissions are rejected with a warning.
+ * `skill.yaml` (preferred) or `manifest.json` and an `index.ts`/`index.js`/
+ * `index.mjs` entry; plugins execute in an isolated child process. Manifests
+ * requesting a write permission other than evidence.write are rejected.
  */
 export async function loadPlugins(
   dir: string,
   orchestrator: InterviewOrchestrator,
   logger: Logger,
+  source: PluginSource = "bundled",
 ): Promise<PluginLoadError[]> {
   const errors: PluginLoadError[] = [];
   let entries: import("node:fs").Dirent[];
@@ -35,73 +33,72 @@ export async function loadPlugins(
     return errors; // no plugins directory — fine
   }
 
-  for (const entry of entries.filter((e) => e.isDirectory())) {
+  for (const entry of entries.filter(
+    (e) => e.isDirectory() && !e.name.startsWith("."),
+  )) {
     const pluginDir = path.join(dir, entry.name);
     const fail = (file: string, error: string) => {
       errors.push({ dir: entry.name, file, error });
       logger.warn("plugin.load_failed", { plugin: entry.name, file, error });
     };
 
-    let manifestRaw: string;
+    let manifest;
     try {
-      manifestRaw = await fs.readFile(
-        path.join(pluginDir, "manifest.json"),
-        "utf8",
-      );
-    } catch {
-      fail("manifest.json", "missing or unreadable");
-      continue;
-    }
-
-    let manifest: SkillManifest;
-    try {
-      manifest = SkillManifestSchema.parse({
-        ...(JSON.parse(manifestRaw) as object),
-        kind: "plugin",
-      });
+      manifest = await loadManifestFile(pluginDir);
     } catch (err) {
       fail(
-        "manifest.json",
-        `invalid manifest: ${err instanceof Error ? err.message.slice(0, 300) : String(err)}`,
+        "skill.yaml",
+        err instanceof Error ? err.message.slice(0, 300) : String(err),
       );
       continue;
     }
 
-    const writePerm = manifest.permissions.find((p) => isWritePermission(p));
+    if (!SLUG_ID_REGEX.test(manifest.id)) {
+      fail("manifest", `invalid plugin id "${manifest.id}"`);
+      continue;
+    }
+
+    const writePerm = manifest.permissions.find(
+      (p) => isWritePermission(p) && !isPluginWritable(p),
+    );
     if (writePerm) {
       fail(
-        "manifest.json",
-        `requests write permission "${writePerm}" — plugins are read-only, skipped`,
+        "manifest",
+        `requests write permission "${writePerm}" — plugins may only write evidence, skipped`,
       );
       continue;
     }
 
-    const entryFile = await (async () => {
-      for (const name of ["index.js", "index.ts"]) {
-        try {
-          await fs.access(path.join(pluginDir, name));
-          return name;
-        } catch {
-          /* try next */
-        }
-      }
-      return null;
-    })();
+    const entryFile = await findEntryFile(pluginDir);
     if (!entryFile) {
-      fail("index.{js,ts}", "missing entry file");
+      fail("index.{ts,js,mjs}", "missing entry file");
       continue;
     }
 
     try {
-      const mod = (await import(
-        pathToFileURL(path.join(pluginDir, entryFile)).href
-      )) as { default?: PluginExecutor };
-      const executor = mod.default;
-      if (!executor || typeof executor.execute !== "function") {
-        fail(entryFile, "default export must be { execute(input, ctx) }");
-        continue;
+      const executor = createIsolatedExecutor({
+        pluginDir,
+        entryFile,
+        manifest,
+        logger,
+      });
+      // Plugin API v1: ask the isolated runner which handlers it exports so
+      // the loader can enforce capability↔hook backing. Best-effort: a
+      // describe failure just leaves hooks = manifest-declared.
+      const described = await executor.describe?.().catch(() => null);
+      orchestrator.registerPlugin(manifest, executor, {
+        dir: pluginDir,
+        entryFile,
+        source,
+        hooks: described?.handlers,
+      });
+      // v0.4: plugin-declared taxonomy nodes register at load (idempotent).
+      if (manifest.taxonomy?.length) {
+        taxonomy.registerNodes(manifest.taxonomy);
+        for (const node of manifest.taxonomy) {
+          await orchestrator.registerSkillNode(node.id);
+        }
       }
-      orchestrator.registerPlugin(manifest, executor);
       logger.info("plugin.loaded", {
         plugin: manifest.id,
         version: manifest.version,
@@ -110,7 +107,7 @@ export async function loadPlugins(
     } catch (err) {
       fail(
         entryFile,
-        `load failed: ${err instanceof Error ? err.message.slice(0, 300) : String(err)}`,
+        err instanceof Error ? err.message.slice(0, 300) : String(err),
       );
     }
   }

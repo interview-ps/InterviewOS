@@ -1,6 +1,7 @@
 import { Hono } from "hono";
 import type { AppEnv } from "../context.js";
 import { AppError } from "@interview-os/core";
+import { isRuntimeKind } from "@interview-os/runtime";
 import { parseBody } from "../middleware/validate.js";
 import { RuntimeSwitchSchema } from "../schemas.js";
 
@@ -33,6 +34,9 @@ runtimeRoutes.put("/", async (c) => {
     );
   }
   const { kind } = await parseBody(c, RuntimeSwitchSchema);
+  if (!isRuntimeKind(kind)) {
+    throw new AppError("VALIDATION", `unknown runtime "${kind}"`);
+  }
   const status = await runtimes.switchTo(kind);
   await c.var.store?.setSetting("runtimeKind", runtimes.kind);
   // Re-resolve the saved model against the new provider's catalog so a stale

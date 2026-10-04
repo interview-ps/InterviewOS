@@ -1,6 +1,7 @@
 import {
-  COMPANY_PROFILES,
   TargetRoleSchema,
+  taxonomy,
+  type Requirement,
   type TargetRole,
 } from "@interview-os/core";
 import { AppError } from "@interview-os/core";
@@ -85,6 +86,7 @@ export class TargetService {
     const row = await this.store.getTarget(id);
     if (!row) throw new AppError("NOT_FOUND", `no target ${id}`);
     await this.store.activateTarget(id);
+    this.ctx.bumpUIEpoch();
     await this.deps.recordUsageEvent("target.switched");
     this.ctx.logger.info("state.mutated", { entity: "target", id, active: true });
     const openActions = await this.store.listActions("open", id);
@@ -97,9 +99,10 @@ export class TargetService {
     return { target, actions };
   }
 
-  /** §9.3: all built-in company profiles (each carries the disclaimer). */
+  /** §9.3/v0.4: built-in + pack-compiled company profiles (with disclaimers). */
   listCompanyProfiles() {
-    return COMPANY_PROFILES;
+    this.ctx.packs.ensureLoaded();
+    return this.ctx.packs.listCompanyProfiles();
   }
 
   /**
@@ -110,7 +113,8 @@ export class TargetService {
   async updateTargetCompanyProfile(targetId: string, companyProfileId: string) {
     const row = await this.store.getTarget(targetId);
     if (!row) throw new AppError("NOT_FOUND", `no target ${targetId}`);
-    if (!COMPANY_PROFILES.some((p) => p.id === companyProfileId)) {
+    await this.ctx.packs.ready();
+    if (!this.ctx.packs.listCompanyProfiles().some((p) => p.id === companyProfileId)) {
       throw new AppError("VALIDATION", `unknown company profile "${companyProfileId}"`);
     }
     const target = TargetRoleSchema.parse(row.data);
@@ -129,6 +133,63 @@ export class TargetService {
       companyProfileId,
     });
     await this.deps.readiness.recomputeReadinessInternal("company-profile");
+    const { actions } = await this.deps.preparation.buildPreparationPlanInternal();
+    return { target, actions };
+  }
+
+  /**
+   * v0.4: assign/clear a role pack. Pack dimensions join the requirements as
+   * `origin: "role_pack"` entries (importance = weight, never compounded);
+   * re-applying replaces prior role-pack requirements rather than stacking.
+   */
+  async setTargetRolePack(targetId: string, rolePackId: string | null) {
+    const row = await this.store.getTarget(targetId);
+    if (!row) throw new AppError("NOT_FOUND", `no target ${targetId}`);
+    await this.ctx.packs.ready();
+    const pack = rolePackId ? this.ctx.packs.rolePack(rolePackId) : undefined;
+    if (rolePackId && !pack) {
+      throw new AppError("VALIDATION", `unknown role pack "${rolePackId}"`);
+    }
+    const target = TargetRoleSchema.parse(row.data);
+    target.rolePackId = rolePackId ?? undefined;
+    if (pack && pack.taxonomy.length > 0) {
+      taxonomy.registerNodes(pack.taxonomy);
+      for (const n of pack.taxonomy) await this.ctx.registerSkillNode(n.id);
+    }
+    // drop previous role-pack requirements, then re-add the new pack's dims
+    target.requirements = target.requirements.filter((r) => r.origin !== "role_pack");
+    if (pack) {
+      const have = new Set(
+        this.ctx.allRequirements(target).map((r) => r.skillId),
+      );
+      for (const dim of pack.dimensions) {
+        if (have.has(dim.skillId)) continue;
+        target.requirements.push({
+          skillId: dim.skillId,
+          label: taxonomy.labelFor(dim.skillId),
+          importance: dim.weight,
+          baseImportance: dim.weight,
+          kind: "required",
+          evidence: `role pack "${pack.name}"`,
+          boostedBy: `role-pack:${pack.id}`,
+          origin: "role_pack",
+        });
+        await this.ctx.registerSkillNode(dim.skillId);
+      }
+    }
+    // re-apply company emphasis + notes overlay on top (non-compounding)
+    const notesFocus = new Set<string>(target.companyProfile?.focusSkillIds ?? []);
+    const boost = (r: Requirement): Requirement =>
+      this.deps.workspace.applyRequirementBoosts(r, target.companyProfileId, notesFocus);
+    target.requirements = target.requirements.map(boost);
+    target.preferredSkills = target.preferredSkills.map(boost);
+    await this.store.updateTargetData(targetId, target as unknown as object);
+    this.ctx.logger.info("state.mutated", {
+      entity: "target",
+      id: targetId,
+      rolePackId,
+    });
+    await this.deps.readiness.recomputeReadinessInternal("role-pack");
     const { actions } = await this.deps.preparation.buildPreparationPlanInternal();
     return { target, actions };
   }

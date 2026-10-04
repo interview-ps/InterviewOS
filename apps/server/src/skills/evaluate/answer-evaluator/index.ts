@@ -43,6 +43,10 @@ export const AnswerEvaluatorInputSchema = z.object({
   language: z.string().nullable().default(null),
   /** Per-mode state blob (system-design dimension status etc.). */
   modeState: z.record(z.string(), z.unknown()).default({}),
+  /** §9.3/v0.4: company profile guidance (sourced vs community marked). */
+  companyGuidance: z.string().default(""),
+  /** v0.4: role-pack rubric criteria for this skill/mode. */
+  roleRubric: z.array(z.string()).default([]),
 });
 export type AnswerEvaluatorInput = z.input<typeof AnswerEvaluatorInputSchema>;
 
@@ -108,6 +112,8 @@ const manifest: SkillManifest = {
     { key: "code", permission: "interview.read" },
     { key: "language", permission: "interview.read" },
     { key: "modeState", permission: "interview.read" },
+    { key: "companyGuidance", permission: "target.read" },
+    { key: "roleRubric", permission: "target.read" },
   ],
   outputs: ["evaluation", "evidence"],
   permissions: [

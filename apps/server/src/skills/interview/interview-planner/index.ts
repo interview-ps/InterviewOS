@@ -39,6 +39,8 @@ export const InterviewPlannerInputSchema = z.object({
       }),
     )
     .default([]),
+  /** v0.4: interview-pack focus skills (+0.15 packFocus on matching skills). */
+  focusSkills: z.array(SkillIdSchema).default([]),
 });
 export type InterviewPlannerInput = z.input<typeof InterviewPlannerInputSchema>;
 
@@ -77,6 +79,7 @@ const manifest: SkillManifest = {
     { key: "level", permission: "target.read" },
     { key: "askCounts", permission: "interview.read" },
     { key: "loopWeakSkills", permission: "interview.read" },
+    { key: "focusSkills", permission: "interview.read" },
   ],
   outputs: ["selection"],
   permissions: ["target.read", "readiness.read", "interview.read"],
@@ -104,6 +107,7 @@ export const interviewPlanner: InterviewSkill<
       level: input.level as Level | undefined,
       askCounts: input.askCounts as Record<SkillId, number>,
       loopWeakSkills: input.loopWeakSkills as LoopWeakSkill[],
+      focusSkills: input.focusSkills as SkillId[],
     });
   },
 };

@@ -2,7 +2,7 @@ import { Hono } from "hono";
 import type { AppEnv } from "../context.js";
 import { streamOrJson } from "../middleware/stream.js";
 import { parseBody } from "../middleware/validate.js";
-import { TargetCreateSchema, TargetPatchSchema } from "../schemas.js";
+import { RolePackAssignSchema, TargetCreateSchema, TargetPatchSchema } from "../schemas.js";
 
 export const targetsRoutes = new Hono<AppEnv>();
 
@@ -25,4 +25,10 @@ targetsRoutes.patch("/:id", async (c) => {
   return c.json(
     await c.var.orchestrator.updateTargetCompanyProfile(c.req.param("id"), companyProfileId),
   );
+});
+
+// v0.4: assign/clear a role pack — pack dimensions join the requirements.
+targetsRoutes.put("/:id/role-pack", async (c) => {
+  const { rolePackId } = await parseBody(c, RolePackAssignSchema);
+  return c.json(await c.var.orchestrator.setTargetRolePack(c.req.param("id"), rolePackId));
 });

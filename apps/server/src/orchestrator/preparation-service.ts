@@ -1,14 +1,31 @@
-import { newId, taxonomy, type Requirement, type SkillId } from "@interview-os/core";
+import {
+  builtinResourcesFor,
+  mergeResources,
+  newId,
+  PrepResourceSchema,
+  taxonomy,
+  type PrepResource,
+  type Requirement,
+  type SkillId,
+} from "@interview-os/core";
 import { AppError } from "@interview-os/core";
 import { prepPlanner, type PrepPlannerOutput } from "../skills/index.js";
 import type { WorkflowContext } from "./context.js";
 import type { ReadinessService } from "./readiness-service.js";
 import { rowToAction, type PrepActionRowLike } from "./projection.js";
 
+export interface PreparationServiceDeps {
+  /** v0.4: run a resources-capability plugin; returns raw output or throws. */
+  runResourcePlugin(id: string, request: unknown): Promise<unknown>;
+  /** v0.4: ids of enabled+compatible plugins with the resources capability. */
+  enabledResourcePlugins(): Promise<string[]>;
+}
+
 export class PreparationService {
   constructor(
     private readonly ctx: WorkflowContext,
     private readonly readiness: ReadinessService,
+    private readonly deps?: PreparationServiceDeps,
   ) {}
 
   private get store() {
@@ -98,6 +115,8 @@ export class PreparationService {
   ): Promise<PrepActionRowLike> {
     // §9.6: planned actions persist prep-planner output.
     this.ctx.host.assertCan("prep-planner", "preparation.write");
+    // v0.4: resources = builtin catalog + the target's role-pack resources.
+    const resources = await this.resourcesForSkill(skillId, targetId);
     // Atomic supersede + insert: a failure must not drop the action entirely.
     return this.store.transaction(async (tx) => {
       const existing = await tx.openActionForSkill(skillId, targetId);
@@ -117,6 +136,7 @@ export class PreparationService {
         severity,
         createdAt: this.ctx.iso(),
         sourceEvidenceIds,
+        resources,
       };
       await tx.insertAction(row);
       this.ctx.logger.info("state.mutated", { entity: "prep_action", id: row.id, skillId });
@@ -172,6 +192,69 @@ export class PreparationService {
         await tx.updateActionPriority(action.id, i + 1);
       }
     });
+  }
+
+  /** builtin catalog + role-pack resources for an action's skill. */
+  private async resourcesForSkill(skillId: SkillId, targetId?: string): Promise<PrepResource[]> {
+    await this.ctx.packs.ready();
+    let rolePackId: string | undefined;
+    const targetRow = targetId
+      ? await this.store.getTarget(targetId)
+      : await this.store.getActiveTarget();
+    if (targetRow) {
+      const data = targetRow.data as { rolePackId?: string };
+      rolePackId = typeof data === "object" ? data.rolePackId : undefined;
+    }
+    return mergeResources(
+      builtinResourcesFor(skillId),
+      this.ctx.packs.rolePackResources(rolePackId, skillId),
+    );
+  }
+
+  /**
+   * v0.4: fetch learning resources from enabled `resources` plugins for one
+   * action, merge them in (dedupe by title+url), persist, return the action.
+   */
+  async fetchPluginResources(actionId: string): Promise<PrepActionRowLike> {
+    const action = await this.store.getAction(actionId);
+    if (!action) throw new AppError("NOT_FOUND", `no prep action ${actionId}`);
+    const existing = (Array.isArray(action.resources)
+      ? action.resources
+      : JSON.parse(String(action.resources ?? "[]"))) as PrepResource[];
+    let merged = existing;
+    for (const id of (await this.deps?.enabledResourcePlugins()) ?? []) {
+      try {
+        const output = await this.deps!.runResourcePlugin(id, {
+          kind: "resources",
+          skillIds: [action.skillId],
+        });
+        const list = (output as { resources?: unknown[] })?.resources;
+        if (!Array.isArray(list)) continue;
+        let dropped = 0;
+        const valid: PrepResource[] = [];
+        for (const r of list) {
+          const parsed = PrepResourceSchema.safeParse({
+            ...(r as object),
+            skillId: action.skillId,
+            source: `plugin:${id}`,
+          });
+          if (parsed.success) valid.push(parsed.data);
+          else dropped += 1;
+        }
+        if (dropped > 0) {
+          this.ctx.logger.warn("resources.invalid", { plugin: id, dropped });
+        }
+        merged = mergeResources(merged, valid);
+      } catch (err) {
+        this.ctx.logger.warn("resources.plugin_failed", {
+          plugin: id,
+          error: (err as Error).message.slice(0, 200),
+        });
+      }
+    }
+    await this.store.updateActionResources(actionId, merged);
+    const row = (await this.store.getAction(actionId))!;
+    return rowToAction(row);
   }
 
   async listPreparationActions(): Promise<PrepActionRowLike[]> {

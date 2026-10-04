@@ -56,6 +56,18 @@ export function errorStatus(err: unknown): HttpError {
       return { status: 422, code: err.code, message: err.message };
     if (err.code === "VALIDATION")
       return { status: 400, code: err.code, message: err.message };
+    if (err.code === "PLUGIN_OUTPUT")
+      return { status: 422, code: err.code, message: err.message };
+    if (err.code === "PLUGIN_DISABLED" || err.code === "PLUGIN_INCOMPATIBLE")
+      return { status: 409, code: err.code, message: err.message };
+    if (err.code === "PLUGIN_INSTALL" || err.code === "PACK_INSTALL")
+      return { status: 400, code: err.code, message: err.message };
+    if (err.code === "CONFLICT")
+      return { status: 409, code: err.code, message: err.message };
+    if (err.code === "MCP_UNAVAILABLE")
+      return { status: 502, code: err.code, message: err.message };
+    if (err.code === "UNAVAILABLE")
+      return { status: 503, code: err.code, message: err.message };
     return { status: 400, code: err.code, message: err.message };
   }
   return {

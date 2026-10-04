@@ -29,6 +29,7 @@ export {
   SkillHost,
   PLUGIN_OUTPUT_MAX_BYTES,
   PLUGIN_TIMEOUT_MS,
+  isManifestCompatible,
 } from "./host/SkillHost.js";
 export type {
   PluginExecutor,

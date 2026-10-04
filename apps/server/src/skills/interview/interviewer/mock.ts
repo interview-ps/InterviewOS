@@ -548,11 +548,38 @@ const GENERIC_PROMPTS: ((label: string) => string)[] = [
 ];
 
 export function interviewerMock(input: unknown): unknown {
-  const { skillId, label, previousQuestions } = input as {
-    skillId: string;
-    label: string;
-    previousQuestions: string[];
-  };
+  const { skillId, label, previousQuestions, seedQuestion, externalContext } =
+    input as {
+      skillId: string;
+      label: string;
+      previousQuestions: string[];
+      seedQuestion?: { text: string; expectedConcepts?: string[] } | null;
+      externalContext?: { title: string; text: string } | null;
+    };
+  // v0.4: a stored external context grounds the question (references its title)
+  if (externalContext?.title) {
+    return {
+      question: `Looking at ${externalContext.title}, how would you describe its ${label.toLowerCase()} approach, and what would you change?`,
+      topic: label,
+      skillId,
+      subSkills: [],
+      expectedConcepts: [CONCEPT(label, skillId, [])],
+      difficulty: "medium" as const,
+    };
+  }
+  // a question-source suggestion is used verbatim (the orchestrator picked it)
+  if (seedQuestion?.text) {
+    return {
+      question: seedQuestion.text,
+      topic: label,
+      skillId,
+      subSkills: [],
+      expectedConcepts: (seedQuestion.expectedConcepts ?? []).map((c) =>
+        CONCEPT(c, skillId, []),
+      ),
+      difficulty: "medium" as const,
+    };
+  }
   const asked = new Set(previousQuestions);
   const templates =
     TEMPLATES[skillId] ??
