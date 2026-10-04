@@ -1,0 +1,53 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 380" role="img" aria-label="Architecture layers: web, server, shared packages">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#0B1220"/>
+      <stop offset="1" stop-color="#111C33"/>
+    </linearGradient>
+    <pattern id="grid" width="42" height="42" patternUnits="userSpaceOnUse">
+      <path d="M42 0H0V42" fill="none" stroke="#FFFFFF" stroke-opacity="0.05"/>
+    </pattern>
+  </defs>
+  <style>
+    text{font-family:-apple-system,'Segoe UI',Inter,Helvetica,Arial,sans-serif}
+    .mono{font-family:ui-monospace,'SFMono-Regular',Consolas,monospace}
+    .flow{stroke-dasharray:4 8;animation:flow 2.2s linear infinite}
+    @keyframes flow{to{stroke-dashoffset:-96}}
+    .rise{opacity:0;animation:rise .8s cubic-bezier(.2,.7,.3,1) forwards}
+    @keyframes rise{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
+    @media (prefers-reduced-motion: reduce){*{animation:none !important}}
+  </style>
+  <rect x="0.5" y="0.5" width="1199" height="379" rx="16" fill="url(#bg)" stroke="#94A3B8" stroke-opacity="0.35"/>
+  <rect width="1200" height="380" rx="16" fill="url(#grid)"/>
+
+  <g class="rise">
+    <rect x="120" y="32" width="960" height="60" rx="12" fill="#14213D" stroke="#26395E"/>
+    <text x="600" y="68" font-size="20" text-anchor="middle"><tspan class="mono" fill="#7DD3FC">apps/web</tspan><tspan fill="#DCE6F8" dx="14">· Next.js interface :3000</tspan></text>
+  </g>
+
+  <path d="M600 92 V114" stroke="#22D3EE" stroke-width="2" class="flow" opacity="0.7"/>
+  <path d="M594 106 L606 106 L600 116 Z" fill="#22D3EE" opacity="0.85"/>
+
+  <g class="rise" style="animation-delay:.15s">
+    <rect x="120" y="116" width="960" height="104" rx="12" fill="#14213D" stroke="#26395E"/>
+    <text x="600" y="146" font-size="20" text-anchor="middle"><tspan class="mono" fill="#7DD3FC">apps/server</tspan><tspan fill="#DCE6F8" dx="14">· Hono API :4100 + local SQLite</tspan></text>
+    <rect x="150" y="158" width="440" height="50" rx="10" fill="#182747" stroke="#2C3E66"/>
+    <text x="370" y="189" font-size="18" text-anchor="middle" fill="#A9BCE0"><tspan class="mono" fill="#9FD9F2">orchestrator</tspan><tspan> — workflows</tspan></text>
+    <rect x="610" y="158" width="440" height="50" rx="10" fill="#182747" stroke="#2C3E66"/>
+    <text x="830" y="182" font-size="18" text-anchor="middle" fill="#A9BCE0"><tspan class="mono" fill="#9FD9F2">skills</tspan><tspan> — analyzers, planner,</tspan></text>
+    <text x="830" y="202" font-size="18" text-anchor="middle" fill="#A9BCE0">interviewer, evaluator, coaches</text>
+  </g>
+
+  <path d="M600 220 V236 M355 236 H845 M355 236 V246 M845 236 V246" stroke="#22D3EE" stroke-width="2" class="flow" opacity="0.7" fill="none"/>
+  <path d="M349 240 L361 240 L355 250 Z" fill="#22D3EE" opacity="0.85"/>
+  <path d="M839 240 L851 240 L845 250 Z" fill="#22D3EE" opacity="0.85"/>
+
+  <g class="rise" style="animation-delay:.3s">
+    <rect x="120" y="252" width="470" height="96" rx="12" fill="#14213D" stroke="#26395E"/>
+    <text x="355" y="292" font-size="19" class="mono" text-anchor="middle" fill="#7DD3FC">packages/core</text>
+    <text x="355" y="324" font-size="18" text-anchor="middle" fill="#A9BCE0">schemas, readiness, gaps, prioritization</text>
+    <rect x="610" y="252" width="470" height="96" rx="12" fill="#14213D" stroke="#26395E"/>
+    <text x="845" y="292" font-size="19" class="mono" text-anchor="middle" fill="#7DD3FC">packages/runtime</text>
+    <text x="845" y="324" font-size="18" text-anchor="middle" fill="#A9BCE0">Codex, Claude Code, opencode, Devin, mock</text>
+  </g>
+</svg>

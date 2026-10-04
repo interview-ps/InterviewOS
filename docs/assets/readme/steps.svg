@@ -1,0 +1,54 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 260" role="img" aria-label="Three steps: set a target, prepare and interview, improve">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#0B1220"/>
+      <stop offset="1" stop-color="#111C33"/>
+    </linearGradient>
+    <linearGradient id="word" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#3178C6"/>
+      <stop offset="0.5" stop-color="#22D3EE"/>
+      <stop offset="1" stop-color="#8B5CF6"/>
+    </linearGradient>
+    <pattern id="grid" width="42" height="42" patternUnits="userSpaceOnUse">
+      <path d="M42 0H0V42" fill="none" stroke="#FFFFFF" stroke-opacity="0.05"/>
+    </pattern>
+  </defs>
+  <style>
+    text{font-family:-apple-system,'Segoe UI',Inter,Helvetica,Arial,sans-serif}
+    .card{opacity:0;animation:pop .7s cubic-bezier(.2,.7,.3,1) forwards}
+    @keyframes pop{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+    @media (prefers-reduced-motion: reduce){*{animation:none !important}}
+  </style>
+  <rect x="0.5" y="0.5" width="1199" height="259" rx="16" fill="url(#bg)" stroke="#94A3B8" stroke-opacity="0.35"/>
+  <rect width="1200" height="260" rx="16" fill="url(#grid)"/>
+
+  <g class="card">
+    <rect x="24" y="16" width="365" height="228" rx="14" fill="#14213D" stroke="#26395E"/>
+    <text x="54" y="76" font-size="56" font-weight="800" fill="url(#word)">01</text>
+    <rect x="54" y="88" width="52" height="4" rx="2" fill="url(#word)"/>
+    <text x="54" y="122" font-size="21" font-weight="700" fill="#E8F0FF">Set a target</text>
+    <text x="54" y="152" font-size="18" fill="#A9BCE0">Add your resume and a job</text>
+    <text x="54" y="178" font-size="18" fill="#A9BCE0">description, or load a bundled</text>
+    <text x="54" y="204" font-size="18" fill="#A9BCE0">example.</text>
+  </g>
+  <g class="card" style="animation-delay:.15s">
+    <rect x="417" y="16" width="365" height="228" rx="14" fill="#14213D" stroke="#26395E"/>
+    <text x="447" y="76" font-size="56" font-weight="800" fill="url(#word)">02</text>
+    <rect x="447" y="88" width="52" height="4" rx="2" fill="url(#word)"/>
+    <text x="447" y="122" font-size="21" font-weight="700" fill="#E8F0FF">Prepare and interview</text>
+    <text x="447" y="152" font-size="18" fill="#A9BCE0">Follow a prioritized plan,</text>
+    <text x="447" y="178" font-size="18" fill="#A9BCE0">practice one skill, or run a</text>
+    <text x="447" y="204" font-size="18" fill="#A9BCE0">focused round or full</text>
+    <text x="447" y="230" font-size="18" fill="#A9BCE0">interview loop.</text>
+  </g>
+  <g class="card" style="animation-delay:.3s">
+    <rect x="810" y="16" width="365" height="228" rx="14" fill="#14213D" stroke="#26395E"/>
+    <text x="840" y="76" font-size="56" font-weight="800" fill="url(#word)">03</text>
+    <rect x="840" y="88" width="52" height="4" rx="2" fill="url(#word)"/>
+    <text x="840" y="122" font-size="21" font-weight="700" fill="#E8F0FF">Improve</text>
+    <text x="840" y="152" font-size="18" fill="#A9BCE0">Review the evidence behind each</text>
+    <text x="840" y="178" font-size="18" fill="#A9BCE0">readiness score. Weak answers</text>
+    <text x="840" y="204" font-size="18" fill="#A9BCE0">move skills up the plan and can</text>
+    <text x="840" y="230" font-size="18" fill="#A9BCE0">be retested in later rounds.</text>
+  </g>
+</svg>

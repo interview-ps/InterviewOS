@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 24">
+  <defs>
+    <linearGradient id="line" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#3178C6" stop-opacity="0"/>
+      <stop offset="0.15" stop-color="#3178C6" stop-opacity="0.8"/>
+      <stop offset="0.5" stop-color="#22D3EE" stop-opacity="0.95"/>
+      <stop offset="0.85" stop-color="#8B5CF6" stop-opacity="0.8"/>
+      <stop offset="1" stop-color="#8B5CF6" stop-opacity="0"/>
+    </linearGradient>
+    <linearGradient id="sw" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#9FECFF" stop-opacity="0"/>
+      <stop offset="0.5" stop-color="#9FECFF" stop-opacity="0.95"/>
+      <stop offset="1" stop-color="#9FECFF" stop-opacity="0"/>
+    </linearGradient>
+  </defs>
+  <style>
+    .sweep{animation:sweep 4.2s ease-in-out infinite}
+    @keyframes sweep{0%{transform:translateX(-260px)}62%,100%{transform:translateX(1220px)}}
+    @media (prefers-reduced-motion: reduce){*{animation:none !important}}
+  </style>
+  <rect x="40" y="10.5" width="1120" height="3" rx="1.5" fill="url(#line)" opacity="0.9"/>
+  <rect class="sweep" x="40" y="9" width="220" height="6" rx="3" fill="url(#sw)"/>
+</svg>

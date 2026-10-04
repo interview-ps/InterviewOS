@@ -1,0 +1,68 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 250" role="img" aria-label="Preparation feedback loop">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#0B1220"/>
+      <stop offset="1" stop-color="#111C33"/>
+    </linearGradient>
+    <radialGradient id="dg">
+      <stop offset="0" stop-color="#BFF4FF"/>
+      <stop offset="0.35" stop-color="#22D3EE"/>
+      <stop offset="1" stop-color="#22D3EE" stop-opacity="0"/>
+    </radialGradient>
+    <pattern id="grid" width="42" height="42" patternUnits="userSpaceOnUse">
+      <path d="M42 0H0V42" fill="none" stroke="#FFFFFF" stroke-opacity="0.05"/>
+    </pattern>
+  </defs>
+  <style>
+    text{font-family:-apple-system,'Segoe UI',Inter,Helvetica,Arial,sans-serif}
+    .flow{stroke-dasharray:3 15;animation:flow 2.4s linear infinite}
+    @keyframes flow{to{stroke-dashoffset:-144}}
+    @media (prefers-reduced-motion: reduce){*{animation:none !important}.mo{display:none}}
+  </style>
+  <rect x="0.5" y="0.5" width="1199" height="249" rx="16" fill="url(#bg)" stroke="#94A3B8" stroke-opacity="0.35"/>
+  <rect width="1200" height="250" rx="16" fill="url(#grid)"/>
+
+  <path id="lp" d="M170 125 A430 70 0 1 1 1030 125 A430 70 0 1 1 170 125" fill="none" stroke="#26395E" stroke-width="2.5"/>
+  <path d="M170 125 A430 70 0 1 1 1030 125 A430 70 0 1 1 170 125" fill="none" stroke="#22D3EE" stroke-width="2.5" class="flow" opacity="0.7"/>
+
+  <g class="mo">
+    <circle r="12" fill="url(#dg)"><animateMotion dur="9s" repeatCount="indefinite"><mpath href="#lp"/></animateMotion></circle>
+    <circle r="12" fill="url(#dg)"><animateMotion dur="9s" begin="-4.5s" repeatCount="indefinite"><mpath href="#lp"/></animateMotion></circle>
+    <circle r="5" fill="#EAFBFF"><animateMotion dur="9s" repeatCount="indefinite"><mpath href="#lp"/></animateMotion></circle>
+    <circle r="5" fill="#EAFBFF"><animateMotion dur="9s" begin="-4.5s" repeatCount="indefinite"><mpath href="#lp"/></animateMotion></circle>
+  </g>
+
+  <g transform="translate(170 125)"><g class="n">
+    <rect x="-115" y="-28" width="230" height="56" rx="12" fill="#131F3A" stroke="#2C3E66"/>
+    <circle cx="-88" cy="0" r="8" fill="#3178C6"/>
+    <text x="-70" y="7" font-size="20" fill="#DCE6F8">Resume + JD</text>
+  </g></g>
+  <g transform="translate(385 64)"><g class="n" style="animation-delay:.15s">
+    <rect x="-115" y="-28" width="230" height="56" rx="12" fill="#131F3A" stroke="#2C3E66"/>
+    <path d="M-88 -9 L-79 0 L-88 9 L-97 0 Z" fill="#8B5CF6"/>
+    <text x="-70" y="7" font-size="20" fill="#DCE6F8">Skill gaps</text>
+  </g></g>
+  <g transform="translate(815 64)"><g class="n" style="animation-delay:.3s">
+    <rect x="-115" y="-28" width="230" height="56" rx="12" fill="#131F3A" stroke="#2C3E66"/>
+    <path d="M-88 -9 L-79 8 L-97 8 Z" fill="#22D3EE"/>
+    <text x="-70" y="7" font-size="20" fill="#DCE6F8">Prep plan</text>
+  </g></g>
+  <g transform="translate(1030 125)"><g class="n" style="animation-delay:.45s">
+    <rect x="-115" y="-28" width="230" height="56" rx="12" fill="#131F3A" stroke="#2C3E66"/>
+    <rect x="-96" y="-8" width="16" height="16" rx="4" fill="#F59E0B"/>
+    <text x="-70" y="7" font-size="20" fill="#DCE6F8">Mock interview</text>
+  </g></g>
+  <g transform="translate(815 186)"><g class="n" style="animation-delay:.6s">
+    <rect x="-115" y="-28" width="230" height="56" rx="12" fill="#131F3A" stroke="#2C3E66"/>
+    <path d="M-79 0 L-83.5 -7.8 L-92.5 -7.8 L-97 0 L-92.5 7.8 L-83.5 7.8 Z" fill="#3178C6"/>
+    <text x="-70" y="7" font-size="20" fill="#DCE6F8">Answer evaluation</text>
+  </g></g>
+  <g transform="translate(385 186)"><g class="n" style="animation-delay:.75s">
+    <rect x="-115" y="-28" width="230" height="56" rx="12" fill="#131F3A" stroke="#2C3E66"/>
+    <circle cx="-88" cy="0" r="7" fill="none" stroke="#22C55E" stroke-width="3"/>
+    <circle cx="-88" cy="0" r="2.2" fill="#22C55E"/>
+    <text x="-70" y="7" font-size="20" fill="#DCE6F8">Readiness evidence</text>
+  </g></g>
+
+  <text x="212" y="232" font-size="18" font-style="italic" text-anchor="middle" fill="#7E93C4">weak skills get retested</text>
+</svg>
