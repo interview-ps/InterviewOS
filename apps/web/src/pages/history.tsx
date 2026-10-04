@@ -1,6 +1,4 @@
-"use client";
-
-import Link from "next/link";
+import { Link } from "react-router";
 import { useCallback, useEffect, useState } from "react";
 import { api, type HistoryEntry, type HistoryQuestion, type TargetListItem, type InterviewLoop } from "@/lib/api";
 import { Bar, Button, Card, CardTitle, EmptyState, ErrorNote, PageHeader, Pill, SkeletonCard, Spinner, skillLabel } from "@/components/ui";
@@ -196,7 +194,7 @@ export default function History() {
             title="No past interviews match these filters"
             description="Run an interview or loosen the filters above."
             action={
-              <Link href="/interview">
+              <Link to="/interview">
                 <Button variant="secondary">Start an interview</Button>
               </Link>
             }

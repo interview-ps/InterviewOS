@@ -9,3 +9,4 @@ export const REPO_ROOT = path.resolve(
 export const DEFAULT_DB_PATH = path.join(REPO_ROOT, "data/interview-os.db");
 export const DEFAULT_PLUGINS_DIR = path.join(REPO_ROOT, "plugins");
 export const DEFAULT_EXAMPLES_DIR = path.join(REPO_ROOT, "examples");
+export const DEFAULT_WEB_DIST = path.join(REPO_ROOT, "apps/web/dist");

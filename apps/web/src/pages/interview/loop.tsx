@@ -1,7 +1,4 @@
-"use client";
-
-import Link from "next/link";
-import { useParams } from "next/navigation";
+import { Link, useParams } from "react-router";
 import { useCallback, useEffect, useState } from "react";
 import { api, type InterviewLoop, type LoopRound } from "@/lib/api";
 import { Button, Card, CardTitle, ErrorNote, PageHeader, Pill, SkeletonCard, signalTone, statusTone } from "@/components/ui";
@@ -35,8 +32,7 @@ function SkillDeltas({ deltas }: { deltas: LoopRound["skillDeltas"] }) {
 }
 
 export default function LoopPage() {
-  const params = useParams<{ id: string }>();
-  const id = params.id;
+  const id = useParams().id ?? "";
   const [loop, setLoop] = useState<InterviewLoop | null>(null);
   const [error, setError] = useState<unknown>(null);
   const [busy, setBusy] = useState(false);
@@ -117,7 +113,7 @@ export default function LoopPage() {
                       readiness {fmt(r.readinessBefore?.overall)} → {fmt(r.readinessAfter?.overall)}
                     </span>
                     {r.sessionId && (
-                      <Link href={`/interview/${r.sessionId}`} className="text-blue underline">
+                      <Link to={`/interview/${r.sessionId}`} className="text-blue underline">
                         Open session
                       </Link>
                     )}
@@ -196,7 +192,7 @@ export default function LoopPage() {
             Round {loop.currentRound} of {loop.rounds.length}: {currentRound.label || currentRound.mode}
           </p>
           <div className="mt-3">
-            <Link href={`/interview/${currentRound.sessionId}`}>
+            <Link to={`/interview/${currentRound.sessionId}`}>
               <Button>Continue</Button>
             </Link>
           </div>

@@ -1,7 +1,4 @@
-"use client";
-
-import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { Link, useNavigate } from "react-router";
 import { useCallback, useEffect, useState } from "react";
 import { api, type AppState, type InterviewListItem, type Metrics } from "@/lib/api";
 import { Bar, Button, Card, CardTitle, EmptyState, ErrorNote, PageHeader, Pill, SkeletonCard, StatusPill, skillLabel } from "@/components/ui";
@@ -17,7 +14,7 @@ function Metric({ label, value, title }: { label: string; value: string; title: 
 }
 
 export default function Dashboard() {
-  const router = useRouter();
+  const navigate = useNavigate();
   const [state, setState] = useState<AppState | null>(null);
   const [sessions, setSessions] = useState<InterviewListItem[]>([]);
   const [metrics, setMetrics] = useState<Metrics | null>(null);
@@ -50,7 +47,7 @@ export default function Dashboard() {
         <EmptyState
           title="Welcome to Interview OS"
           description="Set a target role — a job description plus your resume — to build an evidence-backed readiness model and start preparing."
-          action={<Link href="/target"><Button>Define Target Role</Button></Link>}
+          action={<Link to="/target"><Button>Define Target Role</Button></Link>}
         />
       </Card>
     );
@@ -78,7 +75,7 @@ export default function Dashboard() {
         focusSkillId: nextAction.skillId,
         actionId: nextAction.id,
       })
-      .then((r) => router.push(`/interview/${r.session!.id}`))
+      .then((r) => navigate(`/interview/${r.session!.id}`))
       .catch((e) => setError(e))
       .finally(() => setStarting(false));
   };
@@ -194,7 +191,7 @@ export default function Dashboard() {
             {new Date(lastSession.createdAt).toLocaleString()} · status{" "}
             <Pill tone={lastSession.status === "debrief" ? "green" : "muted"}>{lastSession.status}</Pill>
           </p>
-          <Link href={`/interview/${lastSession.id}`} className="mt-2 inline-block text-sm text-blue underline">
+          <Link to={`/interview/${lastSession.id}`} className="mt-2 inline-block text-sm text-blue underline">
             View session
           </Link>
         </Card>

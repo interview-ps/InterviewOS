@@ -531,8 +531,8 @@ export async function streamPost<T>(
 
   for (;;) {
     // `result`/`error` are terminal frames — resolve on the frame itself
-    // rather than waiting for stream close: the Next.js rewrite proxy
-    // intermittently holds the final bytes of a long-lived SSE response.
+    // rather than waiting for stream close: dev proxies can hold the final
+    // bytes of a long-lived SSE response.
     if (result !== undefined || streamError) {
       void reader.cancel().catch(() => {});
       break;

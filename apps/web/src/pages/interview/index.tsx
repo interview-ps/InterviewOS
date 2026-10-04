@@ -1,7 +1,4 @@
-"use client";
-
-import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { Link, useNavigate } from "react-router";
 import { useEffect, useState } from "react";
 import { allModes } from "@interview-os/core";
 import {
@@ -28,7 +25,7 @@ interface LoopRoundDraft {
 const modeLabel = (id: string) => MODES.find((m) => m.id === id)?.label ?? id;
 
 export default function Interview() {
-  const router = useRouter();
+  const navigate = useNavigate();
   const [sessions, setSessions] = useState<InterviewListItem[] | null>(null);
   const [loops, setLoops] = useState<InterviewLoop[] | null>(null);
   const [profiles, setProfiles] = useState<CompanyProfileInfo[] | null>(null);
@@ -79,7 +76,7 @@ export default function Interview() {
     streamPost<StartInterviewResult>("/api/interviews", { plannedQuestions: 4, roundType }, {
       onStage: setStage,
     })
-      .then((r) => r.session && router.push(`/interview/${r.session.id}`))
+      .then((r) => r.session && navigate(`/interview/${r.session.id}`))
       .catch((e) => setError(e))
       .finally(() => setStarting(false));
   };
@@ -90,7 +87,7 @@ export default function Interview() {
     streamPost<StartLoopResult>("/api/loops", { rounds: loopRounds }, {
       onStage: setStage,
     })
-      .then((r) => r.session && router.push(`/interview/${r.session.id}`))
+      .then((r) => r.session && navigate(`/interview/${r.session.id}`))
       .catch((e) => setError(e))
       .finally(() => setStarting(false));
   };
@@ -288,7 +285,7 @@ export default function Interview() {
           <ul className="space-y-2 text-sm">
             {(loops ?? []).map((l) => (
               <li key={l.id} className="flex items-center justify-between gap-2">
-                <Link href={`/interview/loop/${l.id}`} className="text-blue underline">
+                <Link to={`/interview/loop/${l.id}`} className="text-blue underline">
                   Loop {new Date(l.createdAt).toLocaleString()}
                 </Link>
                 <span className="flex items-center gap-2 text-muted">
@@ -314,7 +311,7 @@ export default function Interview() {
             )}{" "}
             <Pill tone="blue">{s.status}</Pill>
           </p>
-          <div className="mt-3"><Link href={`/interview/${s.id}`}><Button>Resume</Button></Link></div>
+          <div className="mt-3"><Link to={`/interview/${s.id}`}><Button>Resume</Button></Link></div>
         </Card>
       ))}
 
@@ -324,7 +321,7 @@ export default function Interview() {
           <ul className="space-y-2 text-sm">
             {past.map((s) => (
               <li key={s.id} className="flex items-center justify-between gap-2">
-                <Link href={`/interview/${s.id}`} className="text-blue underline">
+                <Link to={`/interview/${s.id}`} className="text-blue underline">
                   {new Date(s.createdAt).toLocaleString()}
                 </Link>
                 <span className="flex items-center gap-2 text-muted">

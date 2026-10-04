@@ -6,6 +6,8 @@
   "packageManager": "pnpm@12.6.0",
   "scripts": {
     "dev": "corepack pnpm -r --parallel --if-present dev",
+    "build": "corepack pnpm --filter @interview-os/web build",
+    "start": "corepack pnpm build && corepack pnpm --filter @interview-os/server start",
     "typecheck": "corepack pnpm -r --if-present typecheck",
     "test": "vitest run",
     "test:coverage": "vitest run --coverage",

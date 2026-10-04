@@ -21,6 +21,7 @@ import { storiesRoutes } from "./routes/stories.js";
 import { targetsRoutes } from "./routes/targets.js";
 import { usageRoutes } from "./routes/usage.js";
 import { workspaceRoutes } from "./routes/workspace.js";
+import { mountStaticWeb } from "./static.js";
 
 export type { AppDeps } from "./context.js";
 
@@ -66,6 +67,8 @@ export function createApp(deps: AppDeps) {
   app.route("/api/plugins", pluginsRoutes);
   app.route("/api/documents", documentsRoutes);
   app.route("/api/examples", examplesRoutes);
+
+  if (deps.webDir) mountStaticWeb(app, deps.webDir);
 
   return app;
 }

@@ -16,7 +16,9 @@ apps/
   server/      Hono HTTP API (port 4100). Owns SQLite + the provider child process, the
                InterviewOrchestrator, and the skill implementations
                (src/orchestrator/, src/skills/).
-  web/         Next.js (App Router) + Tailwind UI (port 3000). /api/* rewritten to server.
+  web/         Vite + React Router SPA + Tailwind UI. In dev it runs on port 3000 and proxies
+               /api/* to the server; in prod the built SPA (apps/web/dist) is served by the
+               server on port 4100 alongside the API.
 packages/
   core/        Zod schemas = canonical shared state; taxonomy; readiness math; gaps;
                question prioritisation; interview state machine; companies; resume

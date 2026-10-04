@@ -32,7 +32,8 @@ interview-question generator. See `ARCHITECTURE.md` for the full design.
 ## Repository map
 ```
 apps/server         Hono API :4100, owns SQLite + provider child process
-apps/web            Next.js + Tailwind UI :3000 (/api → server)
+apps/web            Vite + React Router + Tailwind UI :3000 (dev proxies /api → server;
+                    the built SPA in apps/web/dist is served by the API)
 packages/core       schemas, taxonomy, readiness, gaps, prioritize, state machine,
                     logger (redacting), ids, errors
 packages/runtime    AIRuntime, MockRuntime, codex/, claude/, opencode/, devin/
@@ -76,7 +77,9 @@ CLAUDE.md           Claude Code entrypoint (imports @AGENTS.md)
 ## Commands
 ```
 pnpm install
-pnpm dev                          # server :4100 + web :3000 (selected runtime)
+pnpm dev                          # server :4100 + Vite dev UI :3000 (/api proxied; selected runtime)
+pnpm build                        # build the SPA into apps/web/dist
+pnpm start                        # build + serve UI and API together on :4100
 INTERVIEW_OS_RUNTIME=mock pnpm dev
 INTERVIEW_OS_RUNTIME=claude pnpm dev
 INTERVIEW_OS_RUNTIME=opencode pnpm dev

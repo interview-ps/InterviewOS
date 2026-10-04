@@ -1,6 +1,4 @@
-"use client";
-
-import { useRouter } from "next/navigation";
+import { useNavigate } from "react-router";
 import {
   useCallback,
   useEffect,
@@ -43,7 +41,7 @@ export function CommandPalette({
   open: boolean;
   onClose: () => void;
 }) {
-  const router = useRouter();
+  const navigate = useNavigate();
   const inputRef = useRef<HTMLInputElement>(null);
   const [query, setQuery] = useState("");
   const [active, setActive] = useState(0);
@@ -75,7 +73,7 @@ export function CommandPalette({
         hint: "Interview",
         run: async () => {
           const r = await api.startInterview({ roundType });
-          if (r.session) router.push(`/interview/${r.session.id}`);
+          if (r.session) navigate(`/interview/${r.session.id}`);
         },
       });
     }
@@ -85,7 +83,7 @@ export function CommandPalette({
       hint: "Interview",
       run: async () => {
         const r = await api.startLoop();
-        router.push(`/interview/loop/${r.loop.id}`);
+        navigate(`/interview/loop/${r.loop.id}`);
       },
     });
     list.push(
@@ -93,19 +91,19 @@ export function CommandPalette({
         id: "analyze-jd",
         title: "Analyze new job description",
         hint: "Target",
-        run: () => router.push("/target#add-target"),
+        run: () => navigate("/target#add-target"),
       },
       {
         id: "weak-answers",
         title: "Review weak answers",
         hint: "History",
-        run: () => router.push("/history?weakOnly=1"),
+        run: () => navigate("/history?weakOnly=1"),
       },
       {
         id: "resume-open",
         title: "Open resume coach",
         hint: "Resume",
-        run: () => router.push("/resume"),
+        run: () => navigate("/resume"),
       },
       {
         id: "resume-review",
@@ -113,14 +111,14 @@ export function CommandPalette({
         hint: "Resume",
         run: async () => {
           await api.reviewResume();
-          router.push("/resume");
+          navigate("/resume");
         },
       },
       {
         id: "settings",
         title: "Open settings",
         hint: "Settings",
-        run: () => router.push("/settings"),
+        run: () => navigate("/settings"),
       },
       {
         id: "codex-check",
@@ -128,7 +126,7 @@ export function CommandPalette({
         hint: "Settings",
         run: async () => {
           await api.runtimeCheck();
-          router.push("/settings");
+          navigate("/settings");
         },
       },
     );
@@ -147,7 +145,7 @@ export function CommandPalette({
             focusSkillId: action.skillId,
             actionId: action.id,
           });
-          if (r.session) router.push(`/interview/${r.session.id}`);
+          if (r.session) navigate(`/interview/${r.session.id}`);
         },
       });
     }
@@ -157,7 +155,7 @@ export function CommandPalette({
         id: `readiness-${id}`,
         title: `View ${s.label || id} readiness`,
         hint: "Readiness",
-        run: () => router.push(`/readiness?skill=${encodeURIComponent(id)}`),
+        run: () => navigate(`/readiness?skill=${encodeURIComponent(id)}`),
       });
     }
     for (const t of targets.filter((t) => !t.active)) {
@@ -173,7 +171,7 @@ export function CommandPalette({
       });
     }
     return list;
-  }, [actions, graph, targets, router]);
+  }, [actions, graph, targets, navigate]);
 
   const filtered = useMemo(
     () => fuzzyFilter(commands, query, (c) => c.title),
