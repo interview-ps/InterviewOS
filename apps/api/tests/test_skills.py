@@ -344,3 +344,120 @@ async def test_interview_planner_selects_through_the_host(
     assert output is not None
     assert output.skill_id == "python"
     assert output.candidates
+
+
+async def test_prep_planner_actions(host: SkillHost, runtime: MockRuntime) -> None:
+    output = await host.invoke(
+        "prep-planner",
+        {
+            "targets": [
+                {
+                    "skillId": "distributed-systems.caching",
+                    "label": "Caching",
+                    "reason": "weak in the last session",
+                    "missingConcepts": ["TTL"],
+                    "severity": "high",
+                }
+            ],
+            "role": "Senior Backend Engineer",
+            "level": "senior",
+        },
+        _ctx(runtime),
+    )
+    assert output.actions
+    assert output.actions[0].skill_id == "distributed-systems.caching"
+    assert 2 <= len(output.actions[0].success_criteria) <= 4
+
+
+async def test_star_coach_generate_and_review(host: SkillHost, runtime: MockRuntime) -> None:
+    generated = await host.invoke(
+        "star-coach",
+        {
+            "mode": "generate",
+            "experience": [
+                {
+                    "title": "Senior Backend Engineer",
+                    "company": "Northwind Cloud",
+                    "highlights": ["led the caching migration"],
+                }
+            ],
+            "achievements": [],
+            "projects": [],
+            "behavioralSkillIds": ["behavioral.leadership"],
+            "existingTitles": [],
+        },
+        _ctx(runtime),
+    )
+    assert generated.stories
+    story = generated.stories[0]
+    assert story.title.startswith("Northwind Cloud:")
+    assert story.result == "[add metric]"
+    assert story.skill_ids == ["behavioral.leadership"]
+
+    review = await host.invoke(
+        "star-coach",
+        {
+            "mode": "review",
+            "story": {
+                "title": "Caching migration",
+                "situation": "At Northwind Cloud our cache was stale.",
+                "task": "I owned the migration.",
+                "action": "I led the migration.",
+                "result": "[add metric]",
+            },
+            "role": "Senior Backend Engineer",
+            "level": "senior",
+        },
+        _ctx(runtime),
+    )
+    assert review.feedback
+    assert any("Result" in item for item in review.missing)
+    assert review.improved_draft.result.startswith("[add metric")
+
+
+async def test_resume_coach_bullets_and_tailor(host: SkillHost, runtime: MockRuntime) -> None:
+    bullets = await host.invoke(
+        "resume-coach",
+        {
+            "mode": "bullets",
+            "resumeText": "Led the caching migration at Northwind Cloud.",
+            "bullets": ["responsible for the caching layer"],
+        },
+        _ctx(runtime),
+    )
+    assert bullets.suggestions
+    assert bullets.suggestions[0].original == "responsible for the caching layer"
+    assert bullets.suggestions[0].improved.startswith("Delivered")
+
+    tailoring = await host.invoke(
+        "resume-coach",
+        {
+            "mode": "tailor",
+            "resumeText": "Led the caching migration at Northwind Cloud.",
+            "requirements": [
+                {
+                    "skillId": "distributed-systems.caching",
+                    "label": "Caching",
+                    "importance": 0.8,
+                    "kind": "required",
+                    "evidence": "cache",
+                },
+                {
+                    "skillId": "infrastructure.kubernetes",
+                    "label": "Kubernetes",
+                    "importance": 0.6,
+                    "kind": "required",
+                    "evidence": "k8s",
+                },
+            ],
+            "role": "Senior Backend Engineer",
+            "level": "senior",
+        },
+        _ctx(runtime),
+    )
+    assert "Caching" in tailoring.emphasize
+    assert "Kubernetes" in tailoring.prep_gaps
+    covered = next(a for a in tailoring.alignment if a.requirement == "Caching")
+    assert covered.resume_evidence is not None
+    gap = next(a for a in tailoring.alignment if a.requirement == "Kubernetes")
+    assert gap.resume_evidence is None

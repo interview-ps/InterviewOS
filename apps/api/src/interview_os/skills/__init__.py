@@ -34,6 +34,7 @@ from .host import (
 )
 from .interview import interview_planner, interviewer
 from .mock import install_mode_mock_fallback, register_mock_handlers
+from .prepare import prep_planner, resume_coach, star_coach
 
 __all__ = [
     "BUILTIN_SKILLS",
@@ -42,6 +43,9 @@ __all__ = [
     "interview_planner",
     "interviewer",
     "loop_debrief",
+    "prep_planner",
+    "resume_coach",
+    "star_coach",
     "PLUGIN_OUTPUT_MAX_BYTES",
     "PLUGIN_TIMEOUT_MS",
     "InterviewSkill",

@@ -17,6 +17,13 @@ from ..evaluate.mocks import (
     loop_debrief_mock,
 )
 from ..interview.mocks import interviewer_mock
+from ..prepare.mocks import (
+    prep_planner_mock,
+    resume_coach_bullets_mock,
+    resume_coach_tailor_mock,
+    star_coach_generate_mock,
+    star_coach_review_mock,
+)
 
 __all__ = ["install_mode_mock_fallback", "register_mock_handlers"]
 
@@ -24,6 +31,11 @@ __all__ = ["install_mode_mock_fallback", "register_mock_handlers"]
 MOCK_HANDLERS: dict[str, Callable[[object], object]] = {
     "resume-analyzer": resume_analyzer_mock,
     "jd-analyzer": jd_analyzer_mock,
+    "prep-planner": prep_planner_mock,
+    "star-coach.generate": star_coach_generate_mock,
+    "star-coach.review": star_coach_review_mock,
+    "resume-coach.bullets": resume_coach_bullets_mock,
+    "resume-coach.tailor": resume_coach_tailor_mock,
     "company-profiler": company_profiler_mock,
     "interviewer": interviewer_mock,
     "answer-evaluator": answer_evaluator_mock,
