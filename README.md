@@ -79,6 +79,16 @@ Security model: [docs/security.md](docs/security.md). Plugin guide: [docs/plugin
 
 ## 🧠 AI runtimes
 
+<p align="center">
+  <picture><source media="(prefers-color-scheme: dark)" srcset="docs/assets/logos/opencode-dark.svg" /><img src="docs/assets/logos/opencode.svg" width="40" height="40" alt="opencode" /></picture>
+  &nbsp;&nbsp;&nbsp;&nbsp;
+  <img src="docs/assets/logos/claude.svg" width="40" height="40" alt="Claude Code" />
+  &nbsp;&nbsp;&nbsp;&nbsp;
+  <img src="docs/assets/logos/codex.svg" width="40" height="40" alt="Codex" />
+  &nbsp;&nbsp;&nbsp;&nbsp;
+  <picture><source media="(prefers-color-scheme: dark)" srcset="docs/assets/logos/devin-dark.png" /><img src="docs/assets/logos/devin.png" width="40" height="40" alt="Devin" /></picture>
+</p>
+
 | Runtime | Select with `INTERVIEW_OS_RUNTIME` | How to start |
 | --- | --- | --- |
 | Codex (default) | `codex` or unset | Install and sign in to the Codex CLI, then run `pnpm dev:api`. |
