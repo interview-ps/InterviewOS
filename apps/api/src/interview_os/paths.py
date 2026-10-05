@@ -10,6 +10,7 @@ import os
 from pathlib import Path
 
 __all__ = [
+    "DEFAULT_CONFIG_PATH",
     "DEFAULT_DB_PATH",
     "DEFAULT_EXAMPLES_DIR",
     "DEFAULT_HOST",
@@ -32,6 +33,10 @@ DEFAULT_DB_PATH = Path(os.environ.get("INTERVIEW_OS_DB", REPO_ROOT / "data/inter
 DEFAULT_PLUGINS_DIR = Path(os.environ.get("INTERVIEW_OS_PLUGINS_DIR", REPO_ROOT / "plugins"))
 DEFAULT_INSTALLED_PLUGINS_DIR = Path(
     os.environ.get("INTERVIEW_OS_INSTALLED_PLUGINS_DIR", REPO_ROOT / "data/plugins")
+)
+#: Plugin enablement + per-tool config (Octop `~/.octop/config.json` equivalent).
+DEFAULT_CONFIG_PATH = Path(
+    os.environ.get("INTERVIEW_OS_CONFIG", REPO_ROOT / "data/config.json")
 )
 DEFAULT_EXAMPLES_DIR = Path(REPO_ROOT / "examples")
 DEFAULT_WEB_DIST = Path(REPO_ROOT / "apps/web/dist")

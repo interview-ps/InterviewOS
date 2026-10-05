@@ -1,20 +1,9 @@
 id: postgres-interviewer
 name: PostgreSQL Interviewer
 version: 1.2.0
+kind: hook
+entry: main.py
 description: A deterministic PostgreSQL question bank with a self-check evidence path.
-author: community
-permissions:
-  - candidate.read
-  - target.read
-  - readiness.read
-  - taxonomy.read
-  - answers.read
-  - evidence.write
-capabilities:
-  - interview
-  - evaluation
-  - question_source
-  - ui
 hooks:
   - questions.suggest
   - ui.render
@@ -29,14 +18,17 @@ settings:
     options: [easy, medium, hard]
     default: medium
     description: Bias suggested PostgreSQL questions toward this difficulty.
-inputs:
-  - candidate
-  - target
-  - readiness
-  - gaps
-  - request
-engines:
-  interview-os: ">=0.4.0"
+taxonomy:
+  - id: sql.locking
+    label: Locking
+    keywords: [locks, deadlock, mvcc]
+interviewModes:
+  - id: pg-deep-dive
+    label: PostgreSQL Deep Dive
+    description: Focused PostgreSQL round on indexing, transactions, and query plans.
+    roundType: technical
+    focusSkills: [sql.indexing, sql.transactions, sql.query-optimization]
+    plannedQuestions: 4
 ui:
   navigation:
     - { label: PostgreSQL, icon: database, page: "/" }
@@ -53,14 +45,3 @@ ui:
       - { component: explain-analyze, kind: declarative, title: "Practice EXPLAIN ANALYZE" }
   pages:
     - { path: "/", title: "PostgreSQL", kind: declarative, component: home }
-interviewModes:
-  - id: pg-deep-dive
-    label: PostgreSQL Deep Dive
-    description: Focused PostgreSQL round on indexing, transactions, and query plans.
-    roundType: technical
-    focusSkills: [sql.indexing, sql.transactions, sql.query-optimization]
-    plannedQuestions: 4
-taxonomy:
-  - id: sql.locking
-    label: Locking
-    keywords: [locks, deadlock, mvcc]

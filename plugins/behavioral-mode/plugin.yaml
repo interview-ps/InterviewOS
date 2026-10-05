@@ -1,0 +1,47 @@
+id: behavioral-mode
+version: 1.0.0
+name: Behavioral Mode
+kind: hook
+entry: main.py
+description: STAR stories from your experience — a specific situation, your actions, measurable results.
+modes:
+  - id: behavioral
+    label: Behavioral
+    description: "STAR stories from your experience — a specific situation, your actions, measurable results."
+    scope:
+      include:
+        - behavioral
+        - communication
+    rubric:
+      - id: situationClarity
+        label: Situation clarity
+        description: Sets clear context — when, where, what was at stake.
+      - id: ownership
+        label: Ownership
+        description: Shows personal accountability rather than team-only framing.
+      - id: actions
+        label: Actions
+        description: Describes what the candidate personally did, in first person.
+      - id: decisionMaking
+        label: Decision making
+        description: Explains reasoning and trade-offs behind choices.
+      - id: impact
+        label: Impact
+        description: Shows the outcome mattered to the business or team.
+      - id: results
+        label: Results
+        description: Reports concrete, ideally quantified, results.
+      - id: reflection
+        label: Reflection
+        description: Shows learning — what changed or what they would do differently.
+      - id: communication
+        label: Communication
+        description: Concise, well-structured story under ~2 minutes.
+    initialState:
+      storyIdsUsed: []
+      competenciesCovered: []
+    context:
+      companyThemes: true
+      storyTitles: true
+    interviewerPrompt: prompts/interviewer.md
+    evaluatorPrompt: prompts/evaluator.md

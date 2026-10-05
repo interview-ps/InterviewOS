@@ -1,0 +1,59 @@
+id: coding-mode
+version: 1.0.0
+name: Coding Mode
+kind: hook
+entry: main.py
+description: Live-coding interview round — solve a small algorithmic problem, explain your approach, then write code (reviewed, not executed).
+modes:
+  - id: coding
+    label: Coding
+    description: "Solve a small algorithmic problem — explain your approach, then write code (reviewed, not executed)."
+    scope:
+      include:
+        - coding
+    fallbackSkills:
+      - coding
+      - coding.algorithms
+      - coding.data-structures
+      - coding.complexity
+      - coding.edge-cases
+      - coding.code-quality
+    answerFormat: text+code
+    rubric:
+      - id: problemUnderstanding
+        label: Problem understanding
+        description: Restates the goal, clarifies inputs, constraints and edge conditions before coding.
+      - id: approach
+        label: Approach
+        description: Describes a workable plan before or while writing code.
+      - id: correctness
+        label: Correctness
+        description: The proposed logic/code solves the stated problem.
+      - id: complexity
+        label: Complexity
+        description: States and reasons about time/space complexity (big-O).
+      - id: edgeCases
+        label: Edge cases
+        description: Identifies and handles edge cases (empty input, duplicates, bounds).
+      - id: codeQuality
+        label: Code quality
+        description: Readable, structured code — good naming, no dead paths.
+      - id: communication
+        label: Communication
+        description: Thinks aloud clearly; the interviewer could follow along.
+    initialState:
+      problem: null
+      phase: briefing
+    reduce:
+      copyExtra: [problem]
+      set:
+        phase: working
+    followUpRules:
+      - { rubricId: complexity, below: 0.6, focus: "complexity analysis" }
+      - { rubricId: edgeCases, below: 0.6, focus: "edge cases" }
+    interviewerPrompt: prompts/interviewer.md
+    evaluatorPrompt: prompts/evaluator.md
+ui:
+  slots:
+    interview.question:
+      - { component: coding-problem, kind: declarative, title: "Problem" }
