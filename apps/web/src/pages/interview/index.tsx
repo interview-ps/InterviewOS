@@ -19,6 +19,7 @@ import {
   Button,
   Card,
   CardTitle,
+  displayLabel,
   EmptyState,
   ErrorNote,
   PageHeader,
@@ -248,17 +249,47 @@ export default function Interview() {
     <div className="space-y-5">
       <PageHeader
         title="Interview"
-        subtitle="A quick practice, a single mock round, or a full multi-round loop — every answer feeds your readiness."
-        actions={
-          <Button onClick={start} disabled={starting}>
-            {starting ? "Preparing…" : "Start Interview"}
-          </Button>
-        }
+        subtitle="Focused practice, a single mock round, or a full multi-round loop — every answer feeds your readiness."
       />
+
+      {live.length > 0 && (
+        <Card>
+          <SectionHeading
+            title={live.length > 1 ? "Interviews in progress" : "Continue your interview"}
+            description="Pick up where you left off — finish this before starting another."
+          />
+          <ul className="space-y-3">
+            {live.map((s) => (
+              <li
+                key={s.id}
+                className="flex flex-wrap items-center justify-between gap-3"
+              >
+                <div className="text-sm">
+                  <div className="font-medium text-ink">
+                    {s.mode === "practice"
+                      ? "Practice session"
+                      : `${s.modeLabel ?? displayLabel(s.roundType)} interview`}
+                  </div>
+                  <div className="text-muted">
+                    round {s.currentRound}/{s.plannedQuestions} · started{" "}
+                    {new Date(s.createdAt).toLocaleString()}
+                    {s.loopId ? ` · loop round ${s.loopRound}` : ""}
+                  </div>
+                </div>
+                <Link to={`/interview/${s.id}`}>
+                  <Button>Resume interview</Button>
+                </Link>
+              </li>
+            ))}
+          </ul>
+        </Card>
+      )}
+
+      {live.length > 0 && <SectionHeading title="Or start another interview" />}
 
       <Card>
         <SectionHeading
-          title="Quick practice"
+          title="Focused practice"
           description="A short session on your highest-priority skill."
           action={
             <Button
@@ -331,6 +362,12 @@ export default function Interview() {
             </label>
           </div>
         </details>
+        <div className="mt-4 flex flex-wrap items-center gap-3">
+          <Button onClick={start} disabled={starting}>
+            {starting ? "Preparing…" : "Start Interview"}
+          </Button>
+          <span className="text-sm text-muted">Uses the mode you selected above.</span>
+        </div>
       </Card>
 
       <Card data-testid="loop-builder">
@@ -672,29 +709,6 @@ export default function Interview() {
           </ul>
         </Card>
       )}
-
-      {live.map((s) => (
-        <Card key={s.id}>
-          <CardTitle>
-            {s.mode === "practice" ? "Practice session in progress" : "Session in progress"}
-          </CardTitle>
-          <p className="text-sm text-muted">
-            Started {new Date(s.createdAt).toLocaleString()} · round {s.currentRound}/
-            {s.plannedQuestions} ·{" "}
-            {s.loopId && <Pill tone="blue">Loop round {s.loopRound}</Pill>}{" "}
-            {s.mode === "practice" && <Pill tone="amber">Practice</Pill>}{" "}
-            {s.mode !== "practice" && s.roundType !== "mixed" && (
-              <Pill tone="blue">{(s.modeLabel ?? s.roundType).replace("_", " ")}</Pill>
-            )}{" "}
-            <Pill tone="blue">{s.status}</Pill>
-          </p>
-          <div className="mt-3">
-            <Link to={`/interview/${s.id}`}>
-              <Button>Resume</Button>
-            </Link>
-          </div>
-        </Card>
-      ))}
 
       {past.length > 0 && (
         <Card>
