@@ -280,6 +280,7 @@ export function NextActionCard({
   skill,
   readiness,
   impact,
+  practice,
   cta,
 }: {
   action: ReactNode;
@@ -287,6 +288,7 @@ export function NextActionCard({
   skill?: ReactNode;
   readiness?: number | null;
   impact?: ReactNode;
+  practice?: string[];
   cta?: ReactNode;
 }) {
   return (
@@ -328,6 +330,21 @@ export function NextActionCard({
               Impact: <Typography.Text strong>{impact}</Typography.Text>
             </span>
           )}
+        </div>
+      )}
+      {practice && practice.length > 0 && (
+        <div className="mb-4">
+          <Typography.Text
+            strong
+            style={{ fontSize: 12, textTransform: "uppercase", letterSpacing: "0.06em" }}
+          >
+            You'll practice
+          </Typography.Text>
+          <ul className="mt-1 list-disc space-y-0.5 pl-5 text-sm text-muted">
+            {practice.map((p, i) => (
+              <li key={i}>{p}</li>
+            ))}
+          </ul>
         </div>
       )}
       {cta && <div className="flex flex-wrap items-center gap-2">{cta}</div>}

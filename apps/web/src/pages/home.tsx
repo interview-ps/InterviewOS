@@ -5,6 +5,7 @@ import {
   Button,
   Card,
   DeltaList,
+  displayLabel,
   ErrorNote,
   NextActionCard,
   PageHeader,
@@ -16,7 +17,6 @@ import {
   pct,
   readinessVerdict,
   severityTone,
-  skillLabel,
   trendOf,
 } from "@/components/ui";
 import { PluginSlot } from "@/components/plugin-ui";
@@ -81,7 +81,7 @@ export default function Dashboard() {
         setDeltas(
           [...bySkill].map(([skillId, v]) => ({
             skillId,
-            label: skillLabel(skillId),
+            label: displayLabel(skillId),
             ...v,
           })),
         );
@@ -135,6 +135,10 @@ export default function Dashboard() {
     .filter((x) => x.rd);
 
   const gaps = [...state.assessment.gaps].sort((a, b) => b.gap - a.gap);
+  const topGaps = gaps.slice(0, 5);
+  const resolvedTop = topGaps.filter(
+    (g) => (readiness.dimensions[g.skillId]?.score ?? 0) >= 0.6,
+  ).length;
 
   const net = deltas.reduce(
     (acc, d) => acc + ((d.after ?? 0) - (d.before ?? 0)),
@@ -230,25 +234,22 @@ export default function Dashboard() {
       />
 
       <NextActionCard
-        action={nextAction ? nextAction.action : "You're caught up"}
-        why={
-          nextAction
-            ? [
-                <div key="reason">
-                  {nextAction.reason || "This skill is a priority for your target role."}
-                </div>,
-                nextDelta && nextDelta.before !== null && nextDelta.after !== null ? (
-                  <div key="delta" className="mt-1">
-                    Your last interview moved this from {pct(nextDelta.before)} to{" "}
-                    {pct(nextDelta.after)}.
-                  </div>
-                ) : null,
-              ]
-            : "No open preparation actions — run a mock interview to add fresh evidence."
+        action={
+          nextAction ? `Practice ${displayLabel(nextAction.skillId)}` : "You're caught up"
         }
-        skill={nextAction ? skillLabel(nextAction.skillId) : undefined}
+        why={
+          !nextAction
+            ? "No open preparation actions — run a mock interview to add fresh evidence."
+            : nextDelta && nextDelta.before !== null && nextDelta.after !== null
+              ? `Your last interview moved this from ${pct(nextDelta.before)} to ${pct(
+                  nextDelta.after,
+                )}.`
+              : nextAction.reason || "This is a priority for your target role."
+        }
+        skill={nextAction ? displayLabel(nextAction.skillId) : undefined}
         readiness={nextAction ? nextReadiness : undefined}
         impact={nextAction ? impact : undefined}
+        practice={nextAction ? nextAction.successCriteria.slice(0, 4) : undefined}
         cta={
           nextAction ? (
             <Button onClick={startPractice} disabled={starting}>
@@ -281,7 +282,7 @@ export default function Dashboard() {
             empty="No gaps detected — nice."
             items={gaps.slice(0, 5).map((g) => ({
               key: g.skillId,
-              label: g.label || skillLabel(g.skillId),
+              label: displayLabel(g.skillId, g.label),
               statusLabel: g.severity,
               tone: severityTone(g.severity),
               readiness: readiness.dimensions[g.skillId]?.score ?? null,
@@ -350,6 +351,11 @@ export default function Dashboard() {
             ) : undefined
           }
         />
+        {topGaps.length > 0 && (
+          <p className="mb-3 text-sm">
+            You've resolved <strong>{resolvedTop}</strong> of your top {topGaps.length} gaps.
+          </p>
+        )}
         <DeltaList
           empty="No interview evidence yet — run one to start tracking change."
           items={deltas.map((d) => ({
