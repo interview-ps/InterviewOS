@@ -5,10 +5,12 @@ from __future__ import annotations
 from fastapi import FastAPI, Request
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
+from pydantic import ValidationError
 
 from ..ai.errors import RuntimeError as RuntimeFailure
 from ..ai.structured import StructuredOutputError, StructuredRuntimeError
 from ..core.models import AppError
+from .validation import format_zod_validation_error, request_body_model
 
 __all__ = ["error_status", "install_error_handlers"]
 
@@ -76,14 +78,18 @@ def install_error_handlers(app: FastAPI) -> None:
         status, code, message = error_status(exc)
         return _error_response(status, code, message)
 
+    # Mirrors the Hono `validate` middleware's message shape — Zod's wording,
+    # not Pydantic's (see `api/validation.py`). `ValidationError` is registered
+    # alongside FastAPI's `RequestValidationError` because the routers validate
+    # bodies by hand (`Model.model_validate(await request.json())`) as well as
+    # through declared body parameters; both are request validation.
     @app.exception_handler(RequestValidationError)
-    async def _validation_error(_req: Request, exc: RequestValidationError) -> JSONResponse:
-        # Mirrors the Hono `validate` middleware's message shape.
-        parts = []
-        for error in exc.errors():
-            loc = ".".join(str(item) for item in error.get("loc", []) if item != "body")
-            parts.append(f"{loc or 'body'}: {error.get('msg', 'invalid')}")
-        return _error_response(400, "VALIDATION", f"invalid request body: {'; '.join(parts)}")
+    @app.exception_handler(ValidationError)
+    async def _validation_error(
+        request: Request, exc: RequestValidationError | ValidationError
+    ) -> JSONResponse:
+        message = format_zod_validation_error(exc, model=request_body_model(request))
+        return _error_response(400, "VALIDATION", message)
 
     @app.exception_handler(Exception)
     async def _unhandled(_req: Request, exc: Exception) -> JSONResponse:

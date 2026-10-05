@@ -319,12 +319,12 @@ def star_coach_review_mock(input: object) -> object:
     qualified = role if role.lower().startswith(level) else f"{level} {role}"
     if not missing:
         feedback = (
-            f'"{title}" is in good shape for a {qualified.lower()} interview — '
+            f'"{title}" is in good shape for a {qualified} interview — '
             "all four STAR parts are present and grounded."
         )
     else:
         feedback = (
-            f'"{title}" needs work for a {qualified.lower()} interview: '
+            f'"{title}" needs work for a {qualified} interview: '
             f"{'; '.join(missing)}. Tighten it so each STAR part is concrete."
         )
     return {
@@ -372,7 +372,7 @@ def _rewrite_bullet(bullet: str) -> tuple[str, str]:
             improved = text[0].upper() + text[1:]
 
     if not re.search(r"\d", improved):
-        improved = f"{re.sub(r'[.\\s]+$', '', improved)}, achieving [add metric]"
+        improved = f"{re.sub(r'[.\s]+$', '', improved)}, achieving [add metric]"
         parts.append("adds a measurable outcome placeholder")
 
     rationale = (

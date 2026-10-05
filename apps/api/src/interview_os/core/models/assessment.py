@@ -113,14 +113,18 @@ class AnswerEvaluation(CamelModel):
     missing_concepts: list[str]
     better_approach: str
     follow_up_topics: list[str]
-    star: StarAssessment | None = None
+    star: StarAssessment | None = Field(default=None, json_schema_extra={"emit_null": True})
     # §9.1 mode rubric — exactly the mode's rubric ids (empty for "mixed").
     rubric: list[RubricScore] = Field(default_factory=list)
     # Deprecated: prefer `modeSignals.designUpdates`.
-    design_updates: list[DesignUpdate] | None = None
+    design_updates: list[DesignUpdate] | None = Field(
+        default=None, json_schema_extra={"emit_null": True}
+    )
     # v1.1: opaque per-mode signal payload the evaluator may emit. The host
     # drops payloads over 8 KB of JSON (logged, never persisted).
-    mode_signals: dict[str, Any] | None = None
+    mode_signals: dict[str, Any] | None = Field(
+        default=None, json_schema_extra={"emit_null": True}
+    )
 
 
 class AssessedItem(CamelModel):

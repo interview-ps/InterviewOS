@@ -149,6 +149,7 @@
                 }
               ],
               "default": null,
+              "emit_null": true,
               "title": "Score"
             },
             "skillId": {
@@ -254,6 +255,7 @@
             }
           ],
           "default": null,
+          "emit_null": true,
           "title": "Score"
         },
         "skillId": {

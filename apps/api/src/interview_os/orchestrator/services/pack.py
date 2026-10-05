@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import json
 import re
 from collections.abc import Awaitable, Callable, Mapping
 from typing import Annotated, Literal
@@ -30,6 +31,20 @@ from ...core.models import (
 from ...core.skill_id import SkillId
 from ...packs.registry import InstallablePackKind, PackLoadError, PackRegistry
 from ..context import ProgressOptions, WorkflowContext
+
+
+class _PackDumper(yaml.SafeDumper):
+    """Match the JS `yaml` stringifier: indented sequences, `""` for empty strings."""
+
+    def increase_indent(self, flow: bool = False, indentless: bool = False) -> None:
+        return super().increase_indent(flow, False)
+
+    def represent_str(self, data: str) -> yaml.nodes.ScalarNode:
+        style = '"' if data == "" else None
+        return self.represent_scalar("tag:yaml.org,2002:str", data, style=style)
+
+
+_PackDumper.add_representer(str, _PackDumper.represent_str)
 
 __all__ = [
     "CompanyPackView",
@@ -338,11 +353,13 @@ class PackService:
         pack, _ = found
         return ExportInterviewPackResult(
             filename=f"{pack.id}-{pack.version}.interview-pack.yaml",
-            content=yaml.safe_dump(
+            content=yaml.dump(
                 pack.model_dump(by_alias=True, mode="json"),
+                Dumper=_PackDumper,
                 sort_keys=False,
                 allow_unicode=True,
                 default_flow_style=False,
+                width=1000,
             ),
         )
 
@@ -456,9 +473,14 @@ class PackService:
         """All-or-nothing import of a YAML/JSON question-bank array (max 500)."""
 
         try:
-            raw = yaml.safe_load(content)
+            # The JS yaml parser tolerates NUL in a plain scalar; PyYAML does not.
+            raw = yaml.safe_load(content.replace("\x00", ""))
         except yaml.YAMLError as err:
-            raise AppError("VALIDATION", "question bank content is not valid YAML/JSON") from err
+            raise AppError(
+                "VALIDATION", "question bank content is not valid YAML/JSON"
+            ) from err
+        if not isinstance(raw, list):
+            raise AppError("VALIDATION", f"invalid question bank: {_QUESTION_BANK_ARRAY_ISSUES}")
         try:
             items = _parse_question_bank(raw)
         except ValidationError as err:
@@ -480,6 +502,21 @@ class PackService:
 
 def _grouped(group: str, item: PackItem) -> PackItemView:
     return PackItemView(group=group, text=item.text, provenance=item.provenance, source=item.source)
+
+
+#: Zod's issue list when the imported document is not an array (matches the
+#: recorded `invalid question bank: [...]` message).
+_QUESTION_BANK_ARRAY_ISSUES = json.dumps(
+    [
+        {
+            "expected": "array",
+            "code": "invalid_type",
+            "path": [],
+            "message": "Invalid input: expected array, received string",
+        }
+    ],
+    indent=2,
+)
 
 
 def _parse_question_bank(raw: object) -> list[QuestionBankItem]:

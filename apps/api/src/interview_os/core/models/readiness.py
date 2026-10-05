@@ -50,7 +50,7 @@ class ReadinessStatus(StrEnum):
 class SkillReadiness(CamelModel):
     skill_id: SkillId
     label: str
-    score: float | None = Field(default=None, ge=0, le=1)
+    score: float | None = Field(default=None, ge=0, le=1, json_schema_extra={"emit_null": True})
     confidence: float = Field(ge=0, le=1)
     evidence_ids: list[str] = Field(default_factory=list)
     children: list[SkillId] = Field(default_factory=list)

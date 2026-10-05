@@ -327,7 +327,11 @@ def _setting_value_error(field_: PluginSettingField, value: object) -> str | Non
         return None if isinstance(value, bool) else "must be a boolean"
     if field_.type == PluginSettingFieldType.ENUM:
         options = field_.options or []
-        return None if isinstance(value, str) and value in options else f"must be one of {options}"
+        return (
+            None
+            if isinstance(value, str) and value in options
+            else f"must be one of {', '.join(options)}"
+        )
     return "unknown setting type"
 
 

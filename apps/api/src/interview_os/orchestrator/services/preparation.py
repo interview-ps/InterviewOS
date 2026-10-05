@@ -291,7 +291,7 @@ class PreparationService:
                             PrepResource.model_validate(
                                 {
                                     **entry,
-                                    "skill_id": action.skill_id,
+                                    "skillId": action.skill_id,
                                     "source": f"plugin:{plugin_id}",
                                 }
                             )

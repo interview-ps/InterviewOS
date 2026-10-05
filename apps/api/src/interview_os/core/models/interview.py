@@ -220,11 +220,15 @@ class LoopRound(CamelModel):
     mode: LoopMode
     label: str = ""
     planned_questions: int = Field(ge=1, le=6)
-    session_id: str | None = None
+    session_id: str | None = Field(default=None, json_schema_extra={"emit_null": True})
     status: LoopRoundStatus = LoopRoundStatus.PENDING
-    readiness_before: ReadinessSnapshot | None = None
-    readiness_after: ReadinessSnapshot | None = None
-    handoff: RoundHandoff | None = None
+    readiness_before: ReadinessSnapshot | None = Field(
+        default=None, json_schema_extra={"emit_null": True}
+    )
+    readiness_after: ReadinessSnapshot | None = Field(
+        default=None, json_schema_extra={"emit_null": True}
+    )
+    handoff: RoundHandoff | None = Field(default=None, json_schema_extra={"emit_null": True})
     skill_deltas: list[SkillDelta] = Field(default_factory=list)
 
 

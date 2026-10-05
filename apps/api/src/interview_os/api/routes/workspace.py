@@ -7,10 +7,10 @@ import os
 from fastapi import APIRouter, Request
 from fastapi.responses import JSONResponse
 
-from ...core.models import Level
 from ...orchestrator.context import ProgressOptions
 from ...orchestrator.services import SetupWorkspaceInput, TargetInput
 from ..deps import StateDep
+from ..respond import json_response
 from ..schemas import JobSchema, ResumeSchema, SetupSchema
 from ..streaming import stream_or_json
 
@@ -21,7 +21,7 @@ router = APIRouter(prefix="/api")
 
 @router.post("/workspace/setup")
 async def setup(request: Request, state: StateDep) -> object:
-    body = SetupSchema.model_validate(await request.json())
+    body = SetupSchema.model_validate_json(await request.body())
     parsed = SetupWorkspaceInput.model_validate(body.model_dump(by_alias=True))
     return await stream_or_json(
         request,
@@ -33,24 +33,24 @@ async def setup(request: Request, state: StateDep) -> object:
 
 @router.post("/analysis/resume")
 async def analysis_resume(request: Request, state: StateDep) -> object:
-    body = ResumeSchema.model_validate(await request.json())
-    return await state.orchestrator.analyze_candidate(body.resume_text)
+    body = ResumeSchema.model_validate_json(await request.body())
+    return json_response(await state.orchestrator.analyze_candidate(body.resume_text))
 
 
 @router.post("/analysis/job")
 async def analysis_job(request: Request, state: StateDep) -> object:
-    body = JobSchema.model_validate(await request.json())
-    return await state.orchestrator.analyze_target(_target_input(body))
+    body = JobSchema.model_validate_json(await request.body())
+    return json_response(await state.orchestrator.analyze_target(_target_input(body)))
 
 
 @router.post("/analysis/gaps")
 async def analysis_gaps(state: StateDep) -> object:
-    return await state.orchestrator.calculate_gaps()
+    return json_response(await state.orchestrator.calculate_gaps())
 
 
 @router.get("/state")
 async def state_route(state: StateDep) -> object:
-    return await state.orchestrator.get_state()
+    return json_response(await state.orchestrator.get_state())
 
 
 @router.post("/test/reset")
@@ -60,7 +60,7 @@ async def test_reset(state: StateDep) -> object:
             status_code=404, content={"error": {"code": "NOT_FOUND", "message": "not found"}}
         )
     await state.orchestrator.reset_all()
-    return {"ok": True}
+    return json_response({"ok": True})
 
 
 def _target_input(body: JobSchema) -> TargetInput:
@@ -68,6 +68,6 @@ def _target_input(body: JobSchema) -> TargetInput:
         job_description=body.job_description,
         company=body.company,
         role=body.role,
-        level=Level(body.level),
+        level=body.level,
         company_notes=body.company_notes,
     )

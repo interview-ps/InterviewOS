@@ -688,7 +688,8 @@
               "type": "null"
             }
           ],
-          "default": null
+          "default": null,
+          "emit_null": true
         },
         "label": {
           "default": "",
@@ -715,7 +716,8 @@
               "type": "null"
             }
           ],
-          "default": null
+          "default": null,
+          "emit_null": true
         },
         "readinessBefore": {
           "anyOf": [
@@ -726,7 +728,8 @@
               "type": "null"
             }
           ],
-          "default": null
+          "default": null,
+          "emit_null": true
         },
         "sessionId": {
           "anyOf": [
@@ -738,6 +741,7 @@
             }
           ],
           "default": null,
+          "emit_null": true,
           "title": "Sessionid"
         },
         "skillDeltas": {

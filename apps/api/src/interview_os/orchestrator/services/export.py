@@ -135,8 +135,11 @@ class ExportService:
         except ValidationError as err:
             issue = err.errors()[0]
             location = ".".join(str(bit) for bit in issue["loc"])
+            message = str(issue["msg"])
+            if issue.get("type") == "missing" and location == "format":
+                message = 'Invalid input: expected "interview-os.export"'
             raise AppError(
-                "VALIDATION", f"invalid export bundle: {location} {issue['msg']}"
+                "VALIDATION", f"invalid export bundle: {location} {message}"
             ) from err
 
         _duplicate_id(bundle.candidate.profiles, "candidate.profiles")

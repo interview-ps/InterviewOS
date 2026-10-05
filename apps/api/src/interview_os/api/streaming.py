@@ -15,10 +15,10 @@ from collections.abc import AsyncIterator, Awaitable, Callable
 from typing import Any
 
 from fastapi import Request
-from fastapi.encoders import jsonable_encoder
 from fastapi.responses import JSONResponse, Response, StreamingResponse
 
 from ..ai.interface import ProgressUpdate
+from ..core.serialize import dump_json
 from .errors import error_status
 
 __all__ = ["stream_or_json", "wants_stream"]
@@ -51,7 +51,7 @@ async def _streaming_response(run: Runner) -> Response:
 
 async def _json_response(run: Runner) -> JSONResponse:
     result = await run(lambda _p: None)
-    return JSONResponse(content=jsonable_encoder(result))
+    return JSONResponse(content=dump_json(result))
 
 
 async def _event_stream(run: Runner) -> AsyncIterator[str]:
@@ -88,7 +88,7 @@ async def _event_stream(run: Runner) -> AsyncIterator[str]:
 
     try:
         result = await task
-        yield _frame("result", jsonable_encoder(result))
+        yield _frame("result", dump_json(result))
     except Exception as err:  # noqa: BLE001 - mapped to an SSE error event
         status, code, message = error_status(err)
         yield _frame("error", {"code": code, "message": message})

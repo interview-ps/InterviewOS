@@ -345,6 +345,7 @@
                 }
               ],
               "default": null,
+              "emit_null": true,
               "title": "Designupdates"
             },
             "dimensions": {
@@ -375,6 +376,7 @@
                 }
               ],
               "default": null,
+              "emit_null": true,
               "title": "Modesignals"
             },
             "rubric": {
@@ -400,7 +402,8 @@
                   "type": "null"
                 }
               ],
-              "default": null
+              "default": null,
+              "emit_null": true
             },
             "strengths": {
               "items": {
@@ -1069,6 +1072,7 @@
                 }
               ],
               "default": null,
+              "emit_null": true,
               "title": "Designupdates"
             },
             "dimensions": {
@@ -1099,6 +1103,7 @@
                 }
               ],
               "default": null,
+              "emit_null": true,
               "title": "Modesignals"
             },
             "rubric": {
@@ -1124,7 +1129,8 @@
                   "type": "null"
                 }
               ],
-              "default": null
+              "default": null,
+              "emit_null": true
             },
             "strengths": {
               "items": {
@@ -1587,6 +1593,7 @@
                 }
               ],
               "default": null,
+              "emit_null": true,
               "title": "Designupdates"
             },
             "dimensions": {
@@ -1617,6 +1624,7 @@
                 }
               ],
               "default": null,
+              "emit_null": true,
               "title": "Modesignals"
             },
             "rubric": {
@@ -1642,7 +1650,8 @@
                   "type": "null"
                 }
               ],
-              "default": null
+              "default": null,
+              "emit_null": true
             },
             "strengths": {
               "items": {

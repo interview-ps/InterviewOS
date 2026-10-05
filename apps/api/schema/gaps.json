@@ -27,6 +27,7 @@
             }
           ],
           "default": null,
+          "emit_null": true,
           "title": "Currentscore"
         },
         "gap": {

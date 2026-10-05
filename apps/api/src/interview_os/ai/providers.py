@@ -15,6 +15,7 @@ from dataclasses import dataclass, replace
 from pathlib import Path
 from typing import Protocol
 
+from ..paths import REPO_ROOT
 from .claude import ClaudeCodeRuntime, ClaudeRuntimeOptions
 from .claude.detect import claude_health_check
 from .codex import CodexRuntime, CodexRuntimeOptions
@@ -48,7 +49,7 @@ __all__ = [
 
 RUNTIME_KINDS: tuple[RuntimeKind, ...] = ("codex", "mock", "claude", "opencode", "devin")
 
-DEFAULT_WORKSPACE_DIR = str(Path("data/codex-workspace").resolve())
+DEFAULT_WORKSPACE_DIR = str((REPO_ROOT / "data" / "codex-workspace").resolve())
 
 SLUG_RE = re.compile(r"^[a-z][a-z0-9-]{0,39}$")
 
@@ -127,7 +128,7 @@ def workspace_dir_for(
         return str(Path(per_provider).resolve())
     if kind == "mock":
         return DEFAULT_WORKSPACE_DIR
-    return str(Path(f"data/{kind}-workspace").resolve())
+    return str((REPO_ROOT / f"data/{kind}-workspace").resolve())
 
 
 def mock_delay_ms(env: Mapping[str, str]) -> int:

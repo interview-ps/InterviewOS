@@ -20,7 +20,6 @@ from .ai.manager import RuntimeManager
 from .api.deps import AppState
 from .api.errors import install_error_handlers
 from .api.limits import BodyLimitMiddleware
-from .api.routes import companies, examples, modes, runtime, settings, skills, workspace
 from .core.models import INTERVIEW_OS_VERSION
 from .mcp.manager import McpManager, McpServerState
 from .orchestrator import InterviewOrchestrator, OrchestratorDeps
@@ -94,6 +93,23 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     )
     resolver["fn"] = orchestrator.plugin_mode_mock_fallback
 
+    # §9.6: discover bundled + installed plugins before serving (plugin loader
+    # lands with phase 7; guarded so the backend boots without it).
+    plugin_errors: list[Any] = []
+    try:
+        from importlib import import_module
+
+        load_plugins = import_module("interview_os.startup.plugins").load_plugins
+    except (ImportError, AttributeError):
+        load_plugins = None
+    if load_plugins is not None:
+        plugin_errors = await load_plugins(DEFAULT_PLUGINS_DIR, orchestrator, logger, "bundled")
+        plugin_errors += await load_plugins(
+            DEFAULT_INSTALLED_PLUGINS_DIR, orchestrator, logger, "git"
+        )
+        orchestrator.set_plugin_load_errors(plugin_errors)
+        await orchestrator.sync_plugin_packs()
+
     web_dir = DEFAULT_WEB_DIST if (DEFAULT_WEB_DIST / "index.html").is_file() else None
     app.state.app_state = AppState(
         orchestrator=orchestrator,
@@ -104,6 +120,7 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
         examples_dir=DEFAULT_EXAMPLES_DIR,
         ui_runtime_dir=DEFAULT_UI_RUNTIME_DIR,
         web_dir=web_dir,
+        plugin_errors=plugin_errors,
     )
     try:
         yield
@@ -135,14 +152,32 @@ def create_app() -> FastAPI:
     app.add_middleware(BodyLimitMiddleware)
     install_error_handlers(app)
 
-    for module in (workspace, runtime, companies, examples, skills, modes, settings):
-        app.include_router(module.router)
+    _mount_routers(app)
 
     @app.get(f"{API_PREFIX}/health")
     def health() -> dict[str, str]:
         return {"status": "ok", "version": INTERVIEW_OS_VERSION}
 
     return app
+
+
+def _mount_routers(app: FastAPI) -> None:
+    """Mount every `api/routes/<domain>.py` module that defines `router`.
+
+    Auto-discovery keeps one file per domain (as in Hono) and lets domains land
+    independently without editing this module.
+    """
+
+    import importlib
+    import pkgutil
+
+    from .api import routes as routes_pkg
+
+    for module_info in sorted(pkgutil.iter_modules(routes_pkg.__path__), key=lambda m: m.name):
+        module = importlib.import_module(f"{routes_pkg.__name__}.{module_info.name}")
+        router = getattr(module, "router", None)
+        if router is not None:
+            app.include_router(router)
 
 
 app = create_app()

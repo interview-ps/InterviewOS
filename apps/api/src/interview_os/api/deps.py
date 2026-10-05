@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Annotated
+from typing import Annotated, Any
 
 from fastapi import Depends, Request
 
@@ -26,7 +26,7 @@ class AppState:
     logger: Logger
     examples_dir: Path
     ui_runtime_dir: Path
-    plugin_errors: list[dict[str, str]] = field(default_factory=list)
+    plugin_errors: list[Any] = field(default_factory=list)
     web_dir: Path | None = None
 
 

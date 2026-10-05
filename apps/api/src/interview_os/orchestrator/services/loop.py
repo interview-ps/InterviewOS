@@ -12,7 +12,7 @@ import json
 from collections.abc import Mapping
 from typing import TYPE_CHECKING
 
-from pydantic import BaseModel, TypeAdapter, ValidationError
+from pydantic import BaseModel, Field, TypeAdapter, ValidationError
 
 from ...ai.interface import ProgressUpdate
 from ...core import new_id, taxonomy
@@ -86,7 +86,7 @@ class LoopView(InterviewLoopRow):
 
     rounds: list[LoopRound]
     abandoned: bool
-    debrief: LoopDebrief | None = None
+    debrief: LoopDebrief | None = Field(default=None, json_schema_extra={"emit_null": True})
 
 
 class StartLoopResult(CamelModel):

@@ -23,7 +23,9 @@ class Gap(CamelModel):
     label: str
     importance: float = Field(ge=0, le=1)
     target_score: float = Field(ge=0, le=1)
-    current_score: float | None = Field(default=None, ge=0, le=1)
+    current_score: float | None = Field(
+        default=None, ge=0, le=1, json_schema_extra={"emit_null": True}
+    )
     gap: float = Field(ge=0)
     uncertainty: float = Field(ge=0, le=1)
     severity: GapSeverity

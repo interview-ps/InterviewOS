@@ -408,6 +408,7 @@
                 }
               ],
               "default": null,
+              "emit_null": true,
               "title": "Currentscore"
             },
             "gap": {
@@ -978,6 +979,7 @@
                 }
               ],
               "default": null,
+              "emit_null": true,
               "title": "Score"
             },
             "skillId": {

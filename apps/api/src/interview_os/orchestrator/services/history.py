@@ -5,7 +5,7 @@ from __future__ import annotations
 from collections.abc import Callable
 from typing import Any
 
-from pydantic import TypeAdapter
+from pydantic import Field, TypeAdapter
 
 from ...core import new_id, taxonomy
 from ...core.companies import generic_profile
@@ -33,7 +33,14 @@ from ...core.models import (
 )
 from ...core.modes import ModeAnswerField, get_mode
 from ...core.readiness import build_readiness_graph
-from ...store import AnswerRow, AnswerVoice, EvidenceRow, ReadinessRow, SessionRow
+from ...store import (
+    AnswerRow,
+    AnswerVoice,
+    EvidenceRow,
+    ReadinessDeltaEntry,
+    ReadinessRow,
+    SessionRow,
+)
 from ..context import WorkflowContext
 from ..projection import OrchestratorQuestion, PrepActionRowLike, row_to_action, row_to_question
 
@@ -66,16 +73,18 @@ class InterviewTargetRef(CamelModel):
 class InterviewListItem(SessionRow):
     target: InterviewTargetRef | None = None
     questions: int = 0
-    debrief: Any = None
+    debrief: Any = Field(default=None, json_schema_extra={"emit_null": True})
 
 
 class SkillDetail(CamelModel):
     skill_id: str
-    readiness: SkillReadiness | None = None
+    readiness: SkillReadiness | None = Field(default=None, json_schema_extra={"emit_null": True})
     evidence: list[EvidenceRow]
     history: list[ReadinessRow]
     actions: list[PrepActionRowLike]
-    recommended_action: PrepActionRowLike | None = None
+    recommended_action: PrepActionRowLike | None = Field(
+        default=None, json_schema_extra={"emit_null": True}
+    )
 
 
 class InterviewSessionView(SessionRow):
@@ -95,7 +104,7 @@ class InterviewDetail(CamelModel):
     questions: list[OrchestratorQuestion]
     answers: list[AnswerRow]
     evaluations: list[AnswerEvaluation]
-    debrief: Any = None
+    debrief: Any = Field(default=None, json_schema_extra={"emit_null": True})
     company_profile: CompanyProfileRef
 
 
@@ -120,17 +129,21 @@ class HistoryLoopRef(CamelModel):
 class HistoryAnswerView(CamelModel):
     id: str
     text: str
-    code: str | None = None
-    language: str | None = None
-    voice: AnswerVoice | None = None
+    code: str | None = Field(default=None, json_schema_extra={"emit_null": True})
+    language: str | None = Field(default=None, json_schema_extra={"emit_null": True})
+    voice: AnswerVoice | None = Field(default=None, json_schema_extra={"emit_null": True})
     created_at: str
 
 
 class HistoryQuestionNode(CamelModel):
     question: OrchestratorQuestion
-    answer: HistoryAnswerView | None = None
-    evaluation: AnswerEvaluation | None = None
-    readiness_delta: list[Any]
+    answer: HistoryAnswerView | None = Field(
+        default=None, json_schema_extra={"emit_null": True}
+    )
+    evaluation: AnswerEvaluation | None = Field(
+        default=None, json_schema_extra={"emit_null": True}
+    )
+    readiness_delta: list[ReadinessDeltaEntry]
     weak: bool
 
 
@@ -141,10 +154,10 @@ class HistoryMainQuestion(HistoryQuestionNode):
 class SessionHistoryEntry(CamelModel):
     session: HistorySessionView
     target: HistoryTargetRef | None = None
-    loop: HistoryLoopRef | None = None
+    loop: HistoryLoopRef | None = Field(default=None, json_schema_extra={"emit_null": True})
     questions: list[HistoryMainQuestion]
     actions_created: list[PrepActionRowLike]
-    debrief: Any = None
+    debrief: Any = Field(default=None, json_schema_extra={"emit_null": True})
     has_weak_answer: bool
 
 

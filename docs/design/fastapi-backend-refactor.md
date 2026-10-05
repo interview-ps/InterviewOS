@@ -15,7 +15,7 @@ server-side use of `packages/core`) with a Python FastAPI backend. The React UI
 | 3. Port `ai/` runtimes + `run_structured` | **Done** (`b4bb74c`). 729 tests (4 live opt-in skipped); codex suite drives the real `fake-codex.mjs`; claude seam with lazy Python SDK import. |
 | 4. Port skills + `SkillHost` | **Done** (`ebb6205`, `4310afc`, `a6aa373`, `cd1f735`). Framework, `SkillHost`, all 12 built-in skills + deterministic mocks, builtins registry; 744 tests. |
 | 5. Port orchestrator services | **Done** (`9b8cdab` foundation, `a5e7790` 5a, this commit 5b). `PackRegistry`, `McpManager`, the 15 services, the plugin executor, and the `InterviewOrchestrator` facade. Exit gate green: 823 tests (4 skipped), `ruff` + `mypy --strict` clean, feedback-loop pytest green. Phase-6 blockers logged in [`notes/phase-5b.md`](./notes/phase-5b.md). |
-| 6. Port HTTP routers + streaming + static serving | Not started |
+| 6. Port HTTP routers + streaming + static serving | **Done**. 25 routers, SSE `stream_or_json` (stage/delta/result/error + 10 s ping, disconnect never aborts), body limits (400/413 parity), static serving, lifespan. Contract suite green against FastAPI with **zero snapshot changes** (and still green on Hono). Zod-exact request-validation messages (`api/validation.py`) and Zod omit-undefined serialization (`core/serialize.py`). |
 | 7. Plugin system (Octop model) + port 9 bundled plugins | Not started |
 | 8. Cut-over | Not started |
 | 9. Fine-grained locks default | Not started |

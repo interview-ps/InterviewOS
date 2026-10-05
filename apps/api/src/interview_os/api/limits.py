@@ -1,7 +1,8 @@
 """Request body limits — port of `http/middleware/body-limit.ts`.
 
-Pure ASGI middleware (no response buffering, so SSE is untouched): rejects
-over-size requests by Content-Length with the same 413 shape as Hono.
+Pure ASGI middleware (no response buffering, so SSE is untouched). Rejects
+over-size requests on Content-Length, and — like Hono's bodyLimit — also reads
+chunked bodies up to the limit, aborting with 413 as soon as it is exceeded.
 """
 
 from __future__ import annotations
@@ -25,19 +26,20 @@ def _limit_for(path: str, method: str) -> tuple[int, str]:
     return _API_MAX, "body exceeds 200KB"
 
 
+def _too_large(message: str) -> bytes:
+    return json.dumps({"error": {"code": "TOO_LARGE", "message": message}}).encode()
+
+
 class BodyLimitMiddleware:
     def __init__(self, app: ASGIApp) -> None:
         self.app = app
 
     async def __call__(self, scope: Scope, receive: Receive, send: Send) -> None:
-        if scope["type"] != "http":
+        if scope["type"] != "http" or not scope.get("path", "").startswith("/api"):
             await self.app(scope, receive, send)
             return
-        path = scope.get("path", "")
-        if not path.startswith("/api"):
-            await self.app(scope, receive, send)
-            return
-        method = scope.get("method", "")
+
+        limit, message = _limit_for(scope.get("path", ""), scope.get("method", ""))
         headers = {key.decode().lower(): value.decode() for key, value in scope["headers"]}
         raw_length = headers.get("content-length")
         if raw_length is not None:
@@ -45,18 +47,47 @@ class BodyLimitMiddleware:
                 size = int(raw_length)
             except ValueError:
                 size = -1
-            limit, message = _limit_for(path, method)
             if size > limit:
-                body = json.dumps({"error": {"code": "TOO_LARGE", "message": message}}).encode()
-                start: Message = {
-                    "type": "http.response.start",
-                    "status": 413,
-                    "headers": [
-                        (b"content-type", b"application/json"),
-                        (b"content-length", str(len(body)).encode()),
-                    ],
-                }
-                await send(start)
-                await send({"type": "http.response.body", "body": body})
+                await self._reject(send, message)
                 return
-        await self.app(scope, receive, send)
+
+        # Read the (possibly chunked) body, aborting once the limit is exceeded.
+        body = bytearray()
+        while True:
+            event = await receive()
+            if event["type"] == "http.disconnect":
+                return
+            body += event.get("body", b"")
+            if len(body) > limit:
+                await self._reject(send, message)
+                return
+            if not event.get("more_body", False):
+                break
+
+        sent = False
+
+        async def replay() -> Message:
+            nonlocal sent
+            if not sent:
+                sent = True
+                return {"type": "http.request", "body": bytes(body), "more_body": False}
+            # Hand control back to the real channel: streaming responses rely on
+            # a subsequent http.disconnect to detect a real client disconnect.
+            return await receive()
+
+        await self.app(scope, replay, send)
+
+    @staticmethod
+    async def _reject(send: Send, message: str) -> None:
+        payload = _too_large(message)
+        await send(
+            {
+                "type": "http.response.start",
+                "status": 413,
+                "headers": [
+                    (b"content-type", b"application/json"),
+                    (b"content-length", str(len(payload)).encode()),
+                ],
+            }
+        )
+        await send({"type": "http.response.body", "body": payload})
