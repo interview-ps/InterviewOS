@@ -20,6 +20,7 @@ from .ai.manager import RuntimeManager
 from .api.deps import AppState
 from .api.errors import install_error_handlers
 from .api.limits import BodyLimitMiddleware
+from .api.static import mount_static_web
 from .core.models import INTERVIEW_OS_VERSION
 from .mcp.manager import McpManager, McpServerState
 from .orchestrator import InterviewOrchestrator, OrchestratorDeps
@@ -111,6 +112,9 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
         await orchestrator.sync_plugin_packs()
 
     web_dir = DEFAULT_WEB_DIST if (DEFAULT_WEB_DIST / "index.html").is_file() else None
+    if web_dir is not None:
+        # Registered last (after the API routers) so it only catches SPA routes.
+        mount_static_web(app, web_dir)
     app.state.app_state = AppState(
         orchestrator=orchestrator,
         runtime=runtimes,

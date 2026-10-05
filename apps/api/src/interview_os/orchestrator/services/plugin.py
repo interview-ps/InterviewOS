@@ -577,6 +577,10 @@ class PluginService:
                 return ships_company
             if cap == PluginCapability.ROLE_PACK:
                 return ships_roles
+            if cap == PluginCapability.UI:
+                # A `ui` section (declarative blocks or a frame) backs the
+                # capability on its own; a ui.render/ui.frameRun hook is optional.
+                return manifest.ui is not None or any(h in hooks for h in _capability_hooks(cap))
             return any(h in hooks for h in _capability_hooks(cap))
 
         for cap in caps:
@@ -590,6 +594,8 @@ class PluginService:
                 expected = "packs/companies/"
             elif cap == PluginCapability.ROLE_PACK:
                 expected = "packs/roles/"
+            elif cap == PluginCapability.UI:
+                expected = 'a "ui" section or ui.render / ui.frameRun'
             else:
                 expected = ", ".join(_capability_hooks(cap))
             raise AppError(
