@@ -1,38 +1,38 @@
 # Phase 8 — cut-over
 
-Status: **in progress**. The contract suite's default backend is now FastAPI
-(`tests/contract/harness/server.py`); `uv run pytest` in `tests/contract` is green
-with no `CONTRACT_BACKEND` set (exit 0).
+Status: **code cut-over done**; the §15 documentation rewrite remains (the
+doc files are entangled with unrelated in-progress work in this worktree).
 
 ## Done
 
-- **Test gate flipped**: `CONTRACT_BACKEND` defaults to `fastapi`; "hono" is the
-  legacy reference backend, retired here. Full contract suite green on the
-  default (zero snapshot changes), and `apps/api` ruff + mypy --strict + pytest
-  green.
+- **Test gate**: contract suite defaults to FastAPI (`tests/contract` green with
+  no `CONTRACT_BACKEND`; commit `75cbe6b`).
+- **Frontend types**: `@interview-os/frontend-types` holds generated model types
+  (`apps/api/scripts/generate_ts_types.py`) + the relocated UI vocabulary,
+  taxonomy and voice constant. `packages/ui` and `apps/web` are repointed; all
+  three typecheck clean under the strict tsconfig (`4a400f6`, `f2d6afe`,
+  `0253f8d`, `690efd7`).
+- **Deletion** (`2ec94b2`): `apps/server`, `packages/runtime`, `packages/core`
+  and `packages/plugin-sdk` are gone (the SDK depended on the deleted runtime +
+  core, and all plugins are Python now), along with the TS suites that imported
+  them (`tests/integration`, the TS-only parts of `tests/golden`,
+  `tests/fixtures/runtime-provider`).
+- **Scripts**: root `package.json` runs the Python backend — `dev`/`build` build
+  the SPA, `dev:api` runs uvicorn, `start` builds then serves UI+API from
+  FastAPI, `test` → apps/api pytest, `test:contract` → the Python contract
+  suite. `tests/e2e/serve.mjs` (Playwright webServer) spawns uvicorn.
+- **Golden fixtures restored** (`2fc3547`): `tests/golden/*.json` are the Python
+  parity oracle (`apps/api/tests/test_golden.py`); only the TS-only parts stay
+  deleted.
 
-## Remaining (destructive / shared — needs sign-off)
+Surviving workspace: `apps/api` (FastAPI), `apps/web`, `packages/ui`,
+`packages/frontend-types`. Gate: `apps/api` ruff + mypy --strict + pytest green;
+contract suite green on FastAPI; `tsc` clean for frontend-types/ui/web.
 
-The design's phase 8 also says: `pnpm dev`/`start` run FastAPI; **delete
-`apps/server`, `packages/runtime`, and the hand-written `packages/core`**; and
-rewrite the docs (§15). Those are gated because:
+## Remaining
 
-1. `apps/server`, `packages/`, and `apps/web` are the read-only reference areas
-   and currently hold **unrelated uncommitted work** from a parallel TS effort;
-   deleting them discards that work.
-2. `apps/web` imports `@interview-os/core` (e.g. `type UINode`). Removing the
-   hand-written `packages/core` requires the generated Python→TS types/client to
-   replace it first (design §13.1 "schema export + TS codegen"), which is not yet
-   wired.
-3. Root `package.json` `dev`/`start` currently drive the TS server + Vite; moving
-   them to uvicorn changes the shared dev workflow the parallel effort uses.
-
-Proposed order once approved: (a) wire codegen so `apps/web` builds without
-`packages/core`; (b) point `dev`/`start` at uvicorn + the built SPA; (c) delete
-the retired trees in a dedicated commit; (d) rewrite the docs (§15).
-
-## Note
-
-Hono's plugin tests are red from phase 7 (its loader reads the removed
-`skill.yaml`). With FastAPI now the default, they no longer run by default; the
-Hono backend is removed in step (c).
+- **§15 documentation rewrite** (root `AGENTS.md`, `ARCHITECTURE.md`,
+  `docs/plugins.md`, `CONTRIBUTING.md`, `apps/api/AGENTS.md`). These files carry
+  unrelated uncommitted changes, so they are deferred rather than staged.
+- `pnpm test:e2e` against FastAPI (Playwright) — the launcher is rewired; the
+  suite itself is unaffected.
