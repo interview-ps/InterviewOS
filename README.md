@@ -79,23 +79,13 @@ Security model: [docs/security.md](docs/security.md). Plugin guide: [docs/plugin
 
 ## 🧠 AI runtimes
 
-<p align="center">
-  <picture><source media="(prefers-color-scheme: dark)" srcset="docs/assets/logos/opencode-dark.svg" /><img src="docs/assets/logos/opencode.svg" width="40" height="40" alt="opencode" /></picture>
-  &nbsp;&nbsp;&nbsp;&nbsp;
-  <img src="docs/assets/logos/claude.svg" width="40" height="40" alt="Claude Code" />
-  &nbsp;&nbsp;&nbsp;&nbsp;
-  <img src="docs/assets/logos/codex.svg" width="40" height="40" alt="Codex" />
-  &nbsp;&nbsp;&nbsp;&nbsp;
-  <picture><source media="(prefers-color-scheme: dark)" srcset="docs/assets/logos/devin-dark.png" /><img src="docs/assets/logos/devin.png" width="40" height="40" alt="Devin" /></picture>
-</p>
-
 | Runtime | Select with `INTERVIEW_OS_RUNTIME` | How to start |
 | --- | --- | --- |
-| Codex (default) | `codex` or unset | Install and sign in to the Codex CLI, then run `pnpm dev:api`. |
-| Claude Code | `claude` | Sign in with the Claude Code CLI, then `INTERVIEW_OS_RUNTIME=claude pnpm dev:api`. |
-| opencode | `opencode` | `opencode auth login`, then `INTERVIEW_OS_RUNTIME=opencode pnpm dev:api`. |
-| Devin | `devin` | `devin auth login`, then `INTERVIEW_OS_RUNTIME=devin pnpm dev:api`. |
-| Mock | `mock` | `INTERVIEW_OS_RUNTIME=mock pnpm dev:api` — no AI provider required. |
+| <img src="docs/assets/logos/codex.svg" width="20" height="20" alt="" /> **Codex** (default) | `codex` or unset | Install and sign in to the Codex CLI, then run `pnpm dev:api`. |
+| <img src="docs/assets/logos/claude.svg" width="20" height="20" alt="" /> **Claude Code** | `claude` | Sign in with the Claude Code CLI, then `INTERVIEW_OS_RUNTIME=claude pnpm dev:api`. |
+| <picture><source media="(prefers-color-scheme: dark)" srcset="docs/assets/logos/opencode-dark.svg" /><img src="docs/assets/logos/opencode.svg" width="20" height="20" alt="" /></picture> **opencode** | `opencode` | `opencode auth login`, then `INTERVIEW_OS_RUNTIME=opencode pnpm dev:api`. |
+| <picture><source media="(prefers-color-scheme: dark)" srcset="docs/assets/logos/devin-dark.png" /><img src="docs/assets/logos/devin.png" width="20" height="20" alt="" /></picture> **Devin** | `devin` | `devin auth login`, then `INTERVIEW_OS_RUNTIME=devin pnpm dev:api`. |
+| **Mock** | `mock` | `INTERVIEW_OS_RUNTIME=mock pnpm dev:api` — no AI provider required. |
 
 State lives in local SQLite (`data/interview-os.db` by default). With a real runtime, the content needed for analysis and interviewing is sent through that provider's local tooling. See [ARCHITECTURE.md](ARCHITECTURE.md) for the data flow.
 
