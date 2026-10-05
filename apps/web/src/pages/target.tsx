@@ -27,6 +27,8 @@ export default function TargetRole() {
   const [targets, setTargets] = useState<TargetListItem[]>([]);
   const [profiles, setProfiles] = useState<CompanyProfileInfo[]>([]);
   const [result, setResult] = useState<SetupResult | null>(null);
+  const [showProfile, setShowProfile] = useState(false);
+  const [showAdd, setShowAdd] = useState(false);
   const [error, setError] = useState<unknown>(null);
   const hasCandidate = targets.length > 0;
 
@@ -83,11 +85,17 @@ export default function TargetRole() {
           </ul>
 
           {activeTarget && (
-            <details className="mt-4" data-testid="company-profile">
-              <summary className="cursor-pointer text-sm font-medium text-navy">
-                Advanced options — company interview style
-              </summary>
-              <div className="mt-3 rounded-[0.6rem] border border-line bg-page p-3 text-sm">
+            <div className="mt-4" data-testid="company-profile">
+              <button
+                type="button"
+                aria-expanded={showProfile}
+                onClick={() => setShowProfile((v) => !v)}
+                className="cursor-pointer text-sm font-medium text-navy"
+              >
+                {showProfile ? "▾" : "▸"} Advanced options — company interview style
+              </button>
+              {showProfile && (
+                <div className="mt-3 rounded-[0.6rem] border border-line bg-page p-3 text-sm">
                 {(() => {
                   const info =
                     profiles.find((p) => p.id === activeTarget.companyProfileId) ??
@@ -153,39 +161,47 @@ export default function TargetRole() {
                     </>
                   );
                 })()}
-              </div>
-            </details>
+                </div>
+              )}
+            </div>
           )}
         </Card>
       )}
 
-      {hasCandidate ? (
-        <Card id="add-target">
-          <SetupForm
-            mode="target"
-            title="Add another target role"
-            onDone={() => {
-              loadTargets();
-              refresh();
-            }}
-          />
-          <details className="mt-4">
-            <summary className="cursor-pointer text-sm font-medium text-navy">
-              Start over with a new resume
-            </summary>
-            <div className="mt-3">
-              <SetupForm
-                mode="workspace"
-                onDone={(r) => {
-                  if (r) setResult(r);
-                  loadTargets();
-                }}
-              />
+      <Card id="add-target">
+        {hasCandidate ? (
+          <>
+            <SetupForm
+              mode="workspace"
+              title="Resume & job description"
+              onDone={(r) => {
+                if (r) setResult(r);
+                loadTargets();
+              }}
+            />
+            <div className="mt-6 border-t border-line pt-4">
+              <button
+                type="button"
+                aria-expanded={showAdd}
+                onClick={() => setShowAdd((v) => !v)}
+                className="cursor-pointer text-sm font-medium text-navy"
+              >
+                {showAdd ? "▾" : "▸"} Add another target role
+              </button>
+              {showAdd && (
+                <div className="mt-3">
+                  <SetupForm
+                    mode="target"
+                    onDone={() => {
+                      loadTargets();
+                      refresh();
+                    }}
+                  />
+                </div>
+              )}
             </div>
-          </details>
-        </Card>
-      ) : (
-        <Card>
+          </>
+        ) : (
           <SetupForm
             mode="workspace"
             title="Set up your workspace"
@@ -194,8 +210,8 @@ export default function TargetRole() {
               loadTargets();
             }}
           />
-        </Card>
-      )}
+        )}
+      </Card>
 
       {result && (
         <div className="space-y-5" aria-live="polite">

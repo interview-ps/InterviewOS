@@ -214,6 +214,10 @@ export default function Dashboard() {
         }
       />
 
+      <SectionHeading
+        title="Overall readiness"
+        description="Your evidence-backed readiness for this role."
+      />
       <ReadinessHero
         overall={readiness.overall}
         confidence={readiness.overallConfidence}
