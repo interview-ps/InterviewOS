@@ -79,15 +79,17 @@ Security model: [docs/security.md](docs/security.md). Plugin guide: [docs/plugin
 
 ## 🧠 AI runtimes
 
-<p align="center">
-  <picture><source media="(prefers-color-scheme: dark)" srcset="docs/assets/logos/opencode-dark.svg" /><img src="docs/assets/logos/opencode.svg" width="40" height="40" alt="opencode" /></picture>
-  &nbsp;&nbsp;&nbsp;&nbsp;
-  <img src="docs/assets/logos/claude.svg" width="40" height="40" alt="Claude Code" />
-  &nbsp;&nbsp;&nbsp;&nbsp;
-  <img src="docs/assets/logos/codex.svg" width="40" height="40" alt="Codex" />
-  &nbsp;&nbsp;&nbsp;&nbsp;
-  <picture><source media="(prefers-color-scheme: dark)" srcset="docs/assets/logos/devin-dark.png" /><img src="docs/assets/logos/devin.png" width="40" height="40" alt="Devin" /></picture>
-</p>
+<div align="center">
+<table>
+  <tr>
+    <td align="center"><strong>Works<br/>with</strong></td>
+    <td align="center" valign="top"><picture><source media="(prefers-color-scheme: dark)" srcset="docs/assets/logos/opencode-dark.svg" /><img src="docs/assets/logos/opencode.svg" width="32" height="32" alt="opencode" /></picture><br/><sub>opencode</sub></td>
+    <td align="center" valign="top"><img src="docs/assets/logos/claude.svg" width="32" height="32" alt="Claude Code" /><br/><sub>Claude Code</sub></td>
+    <td align="center" valign="top"><img src="docs/assets/logos/codex.svg" width="32" height="32" alt="Codex" /><br/><sub>Codex</sub></td>
+    <td align="center" valign="top"><picture><source media="(prefers-color-scheme: dark)" srcset="docs/assets/logos/devin-dark.png" /><img src="docs/assets/logos/devin.png" width="32" height="32" alt="Devin" /></picture><br/><sub>Devin</sub></td>
+  </tr>
+</table>
+</div>
 
 | Runtime | Select with `INTERVIEW_OS_RUNTIME` | How to start |
 | --- | --- | --- |
