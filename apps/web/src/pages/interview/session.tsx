@@ -455,7 +455,7 @@ export default function InterviewSession() {
               <textarea
                 value={answer}
                 onChange={(e) => setAnswer(e.target.value)}
-                rows={acceptsCode ? 4 : 7}
+                rows={acceptsCode ? 6 : 8}
                 placeholder={
                   acceptsCode ? "Explain your approach…" : "Type your answer…"
                 }
@@ -491,7 +491,7 @@ export default function InterviewSession() {
                     requestAnimationFrame(() => el.setSelectionRange(s + 2, s + 2));
                   }
                 }}
-                rows={9}
+                rows={14}
                 spellCheck={false}
                 placeholder="Paste or write your solution — reviewed, not executed."
                 aria-label="Code answer"
@@ -503,9 +503,10 @@ export default function InterviewSession() {
           <div className="flex items-center gap-3">
             <Button
               onClick={submit}
+              loading={busy}
               disabled={busy || (fieldsMode ? missingRequired : !answer.trim())}
             >
-              {busy ? "Evaluating…" : "Submit Answer"}
+              Submit Answer
             </Button>
             {busy && (
               <span role="status" aria-live="polite" className="text-sm text-muted">
@@ -651,7 +652,7 @@ export default function InterviewSession() {
   );
 
   return (
-    <div className="max-w-3xl space-y-5">
+    <div className="max-w-5xl space-y-5">
       <h1 className="flex items-center gap-2 text-xl font-bold text-navy">
         {detail?.session.mode === "practice" ? "Practice" : modeLabel}
         {detail?.session.mode === "practice" && <Pill tone="amber">Practice</Pill>}
@@ -782,7 +783,19 @@ export default function InterviewSession() {
             })()}
         </Card>
       )}
-      {done && <PluginSlot slot="interview.sidebar" params={{ sessionId: id }} />}
+      {done && detail && (
+        /* D1: the debrief must stay mode-scoped, or another mode's panel (e.g.
+           system-design inside a coding debrief) leaks in. */
+        <PluginModeSlot
+          slot="interview.sidebar"
+          modeId={detail.session.roundType}
+          params={{
+            sessionId: id,
+            modeId: detail.session.roundType,
+            state: detail.session.modeState ?? {},
+          }}
+        />
+      )}
     </div>
   );
 }

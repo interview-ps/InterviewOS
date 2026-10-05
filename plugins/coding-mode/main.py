@@ -279,7 +279,9 @@ def _interviewer_output(input_: dict[str, Any]) -> dict[str, Any]:
     )
     problem = PROBLEM_BY_ID.get(id(template)) or CODING_PROBLEM_DATA[0]
     return {
-        "question": f"{problem['title']}: {rendered}",
+        # The problem title is carried by the panel card and the topic pill; the
+        # question itself is the prompt, so it must not repeat the title (D8).
+        "question": rendered,
         "topic": problem["title"],
         "skillId": skill_id,
         "subSkills": list(template.sub_skills),

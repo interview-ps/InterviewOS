@@ -119,11 +119,13 @@ export default function LoopPage() {
                 {r.status === "complete" && <SkillDeltas deltas={r.skillDeltas} />}
                 {r.handoff && (r.handoff.weakSkills.length > 0 || r.handoff.strongSkills.length > 0) && (
                   <div className="mt-2 rounded bg-page p-2 text-xs text-muted" data-testid={`handoff-${i}`}>
-                    Carried forward:{" "}
+                    {loop.status === "complete" ? "Carried between rounds: " : "Carried forward: "}
                     {r.handoff.weakSkills.length > 0 && (
                       <span>
-                        weak {r.handoff.weakSkills.map((w) => w.label || skillLabel(w.skillId)).join(", ")} →
-                        next rounds will probe related skills.{" "}
+                        weak {r.handoff.weakSkills.map((w) => w.label || skillLabel(w.skillId)).join(", ")}{" "}
+                        {loop.status === "complete"
+                          ? "— later rounds probed related skills. "
+                          : "→ next rounds will probe related skills. "}
                       </span>
                     )}
                     {r.handoff.strongSkills.length > 0 && (

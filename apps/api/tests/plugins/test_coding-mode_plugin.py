@@ -102,7 +102,7 @@ async def test_mode_mock_interviewer_attaches_a_coding_problem() -> None:
     )
     output = response.output
     assert output["question"] == (
-        "Top-K recent items: Solve this problem: first explain your approach, then write the code."
+        "Solve this problem: first explain your approach, then write the code."
     )
     assert output["topic"] == "Top-K recent items"
     assert output["subSkills"] == ["coding.data-structures"]
