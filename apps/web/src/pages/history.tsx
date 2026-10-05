@@ -2,10 +2,27 @@ import { Link } from "react-router";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { api, type HistoryEntry, type HistoryQuestion, type TargetListItem, type InterviewLoop } from "@/lib/api";
 import { useAvailableModes } from "@/lib/modes";
-import { Bar, Button, Card, CardTitle, EmptyState, ErrorNote, PageHeader, Pill, SkeletonCard, Spinner, humanize, skillLabel } from "@/components/ui";
+import { Bar, Button, Card, CardTitle, EmptyState, ErrorNote, PageHeader, Pill, SkeletonCard, Spinner, displayLabel, humanize } from "@/components/ui";
 
 const fmtScore = (n: number | null | undefined) =>
   n === null || n === undefined ? "—" : `${Math.round(n * 100)}%`;
+
+/** Readiness moves for a session row — the outcome, not the metadata. */
+function rowDeltas(
+  e: HistoryEntry,
+): { skillId: string; label: string; before: number | null; after: number | null }[] {
+  const map = new Map<string, { before: number | null; after: number | null }>();
+  for (const q of e.questions ?? []) {
+    for (const d of q.readinessDelta ?? []) {
+      const cur = map.get(d.skillId);
+      if (!cur) map.set(d.skillId, { before: d.before, after: d.after });
+      else cur.after = d.after;
+    }
+  }
+  return [...map]
+    .slice(0, 3)
+    .map(([skillId, v]) => ({ skillId, label: displayLabel(skillId), ...v }));
+}
 
 function QuestionNode({ node, depth = 0 }: { node: HistoryQuestion; depth?: number }) {
   const ev = node.evaluation;
@@ -18,7 +35,7 @@ function QuestionNode({ node, depth = 0 }: { node: HistoryQuestion; depth?: numb
     >
       <div className="flex flex-wrap items-center gap-2">
         {node.question.followUpOf && <Pill tone="amber">follow-up{node.question.followUpFocus ? `: ${node.question.followUpFocus}` : ""}</Pill>}
-        <Pill tone="muted">{skillLabel(node.question.skillId)}</Pill>
+        <Pill tone="muted">{displayLabel(node.question.skillId)}</Pill>
         {node.weak && <Pill tone="red">weak</Pill>}
       </div>
       <p className="mt-1 font-medium">{node.question.text}</p>
@@ -76,7 +93,7 @@ function QuestionNode({ node, depth = 0 }: { node: HistoryQuestion; depth?: numb
             <p className="mt-2 text-xs text-muted">
               Readiness:{" "}
               {readinessDelta
-                .map((d) => `${skillLabel(d.skillId)} ${fmtScore(d.before)}→${fmtScore(d.after)}`)
+                .map((d) => `${displayLabel(d.skillId)} ${fmtScore(d.before)}→${fmtScore(d.after)}`)
                 .join(" · ")}
             </p>
           )}
@@ -241,25 +258,60 @@ export default function History() {
       {(entries ?? []).slice(0, shown).map((e) => (
         <Card key={e.session.id}>
           <button onClick={() => toggle(e.session.id)} aria-expanded={expanded === e.session.id} className="w-full text-left">
-            <div className="flex flex-wrap items-center gap-2">
-              <span className="font-medium">{new Date(e.session.createdAt).toLocaleString()}</span>
-              <Pill tone="blue">{e.session.modeLabel ?? e.session.roundType}</Pill>
-              {e.session.mode === "practice" && <Pill tone="amber">Practice</Pill>}
-              {e.target && (
-                <span className="text-sm text-muted">{e.target.role} — {e.target.company}</span>
+            <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
+              <span className="font-medium text-ink">
+                {e.session.mode === "practice"
+                  ? "Practice session"
+                  : `${e.session.modeLabel ?? displayLabel(e.session.roundType)} interview`}
+              </span>
+              <span className="text-sm text-muted">
+                {new Date(e.session.createdAt).toLocaleDateString()}
+              </span>
+              {e.target && targetId !== e.target.id && (
+                <span className="text-sm text-muted">{e.target.company}</span>
               )}
-              {e.target && <Pill tone="muted">{humanize(e.target.companyProfileId)} profile</Pill>}
-              {e.loop && (
-                <Pill tone="blue">loop round {e.loop.round}/{e.loop.totalRounds}</Pill>
-              )}
-              {e.hasWeakAnswer && <Pill tone="red">weak answer</Pill>}
-              <Pill tone={e.session.status === "debrief" ? "green" : "muted"}>{e.session.status}</Pill>
-              <span className="text-sm text-muted">{(e.questions ?? []).length} questions</span>
-              <span className="ml-auto text-muted" aria-hidden>{expanded === e.session.id ? "▾" : "▸"}</span>
+              <span className="ml-auto flex items-center gap-2 text-sm text-muted">
+                <span>
+                  {(e.questions ?? []).length === 1
+                    ? "1 question"
+                    : `${(e.questions ?? []).length} questions`}
+                </span>
+                <span aria-hidden>{expanded === e.session.id ? "▾" : "▸"}</span>
+              </span>
+            </div>
+            <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted">
+              <Pill tone={e.hasWeakAnswer ? "amber" : "green"}>
+                {e.hasWeakAnswer ? "Needs improvement" : "Completed"}
+              </Pill>
+              {rowDeltas(e).map((d) => (
+                <span key={d.skillId}>
+                  {d.label}{" "}
+                  {d.before !== null && d.after !== null
+                    ? d.after >= d.before
+                      ? "↑"
+                      : "↓"
+                    : ""}
+                </span>
+              ))}
             </div>
           </button>
           {expanded === e.session.id && (
             <div className="mt-3 space-y-3 border-t border-line pt-3">
+              <div className="flex flex-wrap items-center gap-2 text-xs text-muted">
+                {e.session.mode === "practice" && <Pill tone="amber">Practice</Pill>}
+                <Pill tone={e.session.status === "debrief" ? "green" : "muted"}>
+                  {displayLabel(e.session.status)}
+                </Pill>
+                {e.target && (
+                  <Pill tone="muted">{humanize(e.target.companyProfileId)} profile</Pill>
+                )}
+                {e.loop && (
+                  <Pill tone="blue">
+                    loop round {e.loop.round}/{e.loop.totalRounds}
+                  </Pill>
+                )}
+                {e.hasWeakAnswer && <Pill tone="red">weak answer</Pill>}
+              </div>
               {expanded === e.session.id && !detail && <Spinner />}
               {(detail?.questions ?? []).map((m) => (
                 <div key={m.question.id}>
@@ -277,7 +329,7 @@ export default function History() {
                   <ul className="mt-1 list-disc pl-5 text-xs text-muted">
                     {(detail.actionsCreated ?? []).map((a) => (
                       <li key={a.id}>
-                        {a.action} <span className="text-blue">({skillLabel(a.skillId)})</span>
+                        {a.action} <span className="text-blue">({displayLabel(a.skillId)})</span>
                       </li>
                     ))}
                   </ul>
