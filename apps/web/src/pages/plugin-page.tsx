@@ -1,11 +1,11 @@
 import { useCallback, useEffect, useState } from "react";
-import { useNavigate, useParams } from "react-router";
+import { Link, useNavigate, useParams } from "react-router";
 import { DeclarativeRenderer } from "@interview-os/ui";
 import type { UINode } from "@interview-os/frontend-types";
 import { api } from "@/lib/api";
 import { runUIAction } from "@/lib/plugin-actions";
 import { PluginFrame, useUIContributions } from "@/components/plugin-ui";
-import { EmptyState, PageHeader, Skeleton } from "@/components/ui";
+import { Button, EmptyState, PageHeader, Skeleton } from "@/components/ui";
 
 /** v0.4: full plugin pages at /plugins/<id>/<path> (manifest-declared). */
 export default function PluginPage() {
@@ -47,6 +47,11 @@ export default function PluginPage() {
       <EmptyState
         title="Plugin page not found"
         description="This plugin doesn't declare a page at this path — or the plugin is disabled."
+        action={
+          <Link to="/skills">
+            <Button variant="secondary">Back to Extensions</Button>
+          </Link>
+        }
       />
     );
   }
@@ -57,6 +62,11 @@ export default function PluginPage() {
         title={page.title}
         subtitle={`from plugin ${plugin.pluginName}`}
       />
+      <p className="mb-3 -mt-3 text-sm">
+        <Link to="/skills" className="text-blue underline">
+          ← Back to Extensions
+        </Link>
+      </p>
       {page.kind === "frame" ? (
         <PluginFrame
           plugin={plugin}

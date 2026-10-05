@@ -271,8 +271,11 @@ export default function Settings() {
   }
 
   return (
-    <div className="max-w-2xl space-y-5">
-      <PageHeader title="Settings" subtitle="Runtime connection and model preferences." />
+    <div className="max-w-3xl space-y-5">
+      <PageHeader
+        title="Settings"
+        subtitle="AI runtime, preferences, integrations and your data."
+      />
       <ErrorNote error={error} />
 
       <Card>
@@ -333,6 +336,13 @@ export default function Settings() {
             <dt className="text-muted">Mode</dt>
             <dd>{status.mode}</dd>
             {status.message && (<><dt className="text-muted">Message</dt><dd>{status.message}</dd></>)}
+            <dt className="text-muted">Sandbox</dt>
+            <dd>read-only workspace</dd>
+            <dt className="text-muted">Approvals</dt>
+            <dd className="text-muted">
+              Runs with an allowlisted environment; approval requests are declined
+              automatically.
+            </dd>
           </dl>
         )}
         <div className="mt-4">
@@ -682,7 +692,7 @@ export default function Settings() {
                   className="rounded-[0.6rem] border border-line px-3 py-1.5 text-sm"
                 />
                 <Button
-                  variant="secondary"
+                  variant="danger"
                   disabled={importing || confirmText !== "replace" || importCounts.length === 0}
                   onClick={() => {
                     setImporting(true);
@@ -724,20 +734,6 @@ export default function Settings() {
             </div>
           )}
         </div>
-      </Card>
-
-      <Card>
-        <CardTitle>Advanced</CardTitle>
-        <dl className="grid grid-cols-[8rem_1fr] gap-y-2 text-sm">
-          <dt className="text-muted">Runtime mode</dt><dd>{status?.mode ?? "—"}</dd>
-          <dt className="text-muted">Sandbox</dt><dd>read-only</dd>
-          <dt className="text-muted">Approvals</dt>
-          <dd>
-            {runtimeLabel(status?.mode ?? "codex")} runs with an allowlisted
-            environment in a read-only workspace; approval requests are declined
-            automatically.
-          </dd>
-        </dl>
       </Card>
       <PluginSlot slot="settings.sections" />
       {plugins.some((p) => p.enabled) && (

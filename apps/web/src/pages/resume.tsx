@@ -8,6 +8,7 @@ import {
 import {
   Bar,
   Button,
+  Callout,
   Card,
   CardTitle,
   EmptyState,
@@ -134,6 +135,14 @@ export default function Resume() {
       </p>
       <ErrorNote error={error} />
 
+      {hasResume !== false && !review && !busy && (
+        <Callout title="What the review does">
+          It scores your resume against ATS basics, suggests stronger bullets using only
+          facts already in it, and shows how well it is tailored to your target role. It
+          takes a few seconds.
+        </Callout>
+      )}
+
       {hasResume === false && (
         <Card>
           <EmptyState
@@ -249,10 +258,10 @@ export default function Resume() {
               Bullet suggestions{" "}
               {review.guard.substitutions + review.guard.dropped > 0 && (
                 <span className="ml-2 text-xs font-normal text-muted">
-                  guard: {review.guard.substitutions} metric
-                  {review.guard.substitutions === 1 ? "" : "s"} substituted
+                  trust guard: {review.guard.substitutions} number
+                  {review.guard.substitutions === 1 ? "" : "s"} taken from your resume
                   {review.guard.dropped > 0 &&
-                    ` · ${review.guard.dropped} suggestion${review.guard.dropped === 1 ? "" : "s"} dropped (invented entity)`}
+                    ` · ${review.guard.dropped} suggestion${review.guard.dropped === 1 ? "" : "s"} dropped to avoid inventing facts`}
                 </span>
               )}
             </CardTitle>
@@ -296,7 +305,7 @@ export default function Resume() {
                     </div>
                     {s.dropped && (
                       <p className="mt-2 rounded-[0.4rem] bg-[#fdeef2] px-2 py-1 text-xs text-danger">
-                        Guard dropped an invented fact: {s.dropped}
+                        Dropped to avoid inventing a fact: {s.dropped}
                       </p>
                     )}
                     <div className="mt-2 flex flex-wrap items-center gap-2">

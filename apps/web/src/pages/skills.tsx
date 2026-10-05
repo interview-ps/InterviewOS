@@ -8,6 +8,7 @@ import {
 } from "@/lib/api";
 import {
   Button,
+  Callout,
   Card,
   CardTitle,
   ErrorNote,
@@ -178,12 +179,15 @@ function PluginOutput({ output }: { output: unknown }) {
     );
   }
   return (
-    <pre
-      data-testid="plugin-output"
-      className="mt-3 max-h-64 overflow-auto rounded-[0.6rem] bg-page p-3 text-xs text-muted"
-    >
-      {JSON.stringify(output, null, 2)}
-    </pre>
+    <details className="mt-3">
+      <summary className="cursor-pointer text-xs text-muted">View raw output</summary>
+      <pre
+        data-testid="plugin-output"
+        className="mt-2 max-h-64 overflow-auto rounded-[0.6rem] bg-page p-3 text-xs text-muted"
+      >
+        {JSON.stringify(output, null, 2)}
+      </pre>
+    </details>
   );
 }
 
@@ -537,7 +541,7 @@ export default function Skills() {
   if (!data && !error) {
     return (
       <div className="space-y-5">
-        <PageHeader title="Skills &amp; plugins" />
+        <PageHeader title="Extensions" />
         <SkeletonCard lines={5} />
       </div>
     );
@@ -548,9 +552,14 @@ export default function Skills() {
   return (
     <div className="space-y-5">
       <PageHeader
-        title="Skills &amp; plugins"
-        subtitle="Plugins are local code you trust; they can only receive the data their manifest declares."
+        title="Extensions"
+        subtitle="Plugins and built-in skills. Plugins are local code you choose to trust — they only receive the data their manifest declares."
       />
+      <Callout tone="blue" title="How plugins stay safe">
+        Extensions run in-process and can only <em>propose</em> evidence — nothing reaches
+        your readiness model without the permission you grant below. Review what each one
+        asks for before enabling it.
+      </Callout>
       <ErrorNote error={error} />
 
       {data && data.pluginErrors.length > 0 && (
