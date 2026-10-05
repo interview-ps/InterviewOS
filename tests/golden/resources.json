@@ -1,0 +1,454 @@
+{
+  "area": "resources",
+  "cases": [
+    {
+      "fn": "builtinResourcesFor",
+      "input": {
+        "skillId": "sql.indexing"
+      },
+      "name": "exact catalog hit sql.indexing",
+      "output": [
+        {
+          "kind": "docs",
+          "skillId": "sql.indexing",
+          "source": "builtin",
+          "title": "PostgreSQL documentation — Indexes",
+          "url": "https://www.postgresql.org/docs/current/indexes.html"
+        },
+        {
+          "kind": "article",
+          "skillId": "sql.indexing",
+          "source": "builtin",
+          "title": "Use The Index, Luke",
+          "url": "https://use-the-index-luke.com/"
+        },
+        {
+          "kind": "practice",
+          "skillId": "sql.indexing",
+          "source": "builtin",
+          "summary": "Start a practice session in Interview OS to verify this skill.",
+          "title": "Practice a SQL Indexing question"
+        }
+      ]
+    },
+    {
+      "fn": "builtinResourcesFor",
+      "input": {
+        "skillId": "apis.rest"
+      },
+      "name": "exact catalog hit apis.rest",
+      "output": [
+        {
+          "kind": "docs",
+          "skillId": "apis.rest",
+          "source": "builtin",
+          "title": "MDN — HTTP overview",
+          "url": "https://developer.mozilla.org/en-US/docs/Web/HTTP/Overview"
+        },
+        {
+          "kind": "practice",
+          "skillId": "apis.rest",
+          "source": "builtin",
+          "summary": "Start a practice session in Interview OS to verify this skill.",
+          "title": "Practice a REST APIs question"
+        }
+      ]
+    },
+    {
+      "fn": "builtinResourcesFor",
+      "input": {
+        "skillId": "sql.no-such-subskill"
+      },
+      "name": "unknown child walks up to parent catalog",
+      "output": [
+        {
+          "kind": "docs",
+          "skillId": "sql.no-such-subskill",
+          "source": "builtin",
+          "title": "PostgreSQL documentation — SQL tutorial",
+          "url": "https://www.postgresql.org/docs/current/tutorial-sql.html"
+        },
+        {
+          "kind": "practice",
+          "skillId": "sql.no-such-subskill",
+          "source": "builtin",
+          "summary": "Start a practice session in Interview OS to verify this skill.",
+          "title": "Practice a No Such Subskill question"
+        }
+      ]
+    },
+    {
+      "fn": "builtinResourcesFor",
+      "input": {
+        "skillId": "distributed-systems.caching.cache-invalidation"
+      },
+      "name": "grandchild walks up to caching",
+      "output": [
+        {
+          "kind": "explanation",
+          "skillId": "distributed-systems.caching.cache-invalidation",
+          "source": "builtin",
+          "summary": "Cache-aside, read/write-through, TTLs and invalidation — the vocabulary interviewers probe for.",
+          "title": "Interview OS explanation: caching patterns"
+        },
+        {
+          "kind": "practice",
+          "skillId": "distributed-systems.caching.cache-invalidation",
+          "source": "builtin",
+          "summary": "Start a practice session in Interview OS to verify this skill.",
+          "title": "Practice a Cache Invalidation question"
+        }
+      ]
+    },
+    {
+      "fn": "builtinResourcesFor",
+      "input": {
+        "skillId": "infrastructure.kubernetes"
+      },
+      "name": "infrastructure.kubernetes",
+      "output": [
+        {
+          "kind": "docs",
+          "skillId": "infrastructure.kubernetes",
+          "source": "builtin",
+          "title": "Kubernetes documentation",
+          "url": "https://kubernetes.io/docs/home/"
+        },
+        {
+          "kind": "practice",
+          "skillId": "infrastructure.kubernetes",
+          "source": "builtin",
+          "summary": "Start a practice session in Interview OS to verify this skill.",
+          "title": "Practice a Kubernetes question"
+        }
+      ]
+    },
+    {
+      "fn": "builtinResourcesFor",
+      "input": {
+        "skillId": "python"
+      },
+      "name": "python root",
+      "output": [
+        {
+          "kind": "docs",
+          "skillId": "python",
+          "source": "builtin",
+          "title": "Python documentation",
+          "url": "https://docs.python.org/3/"
+        },
+        {
+          "kind": "practice",
+          "skillId": "python",
+          "source": "builtin",
+          "summary": "Start a practice session in Interview OS to verify this skill.",
+          "title": "Practice a Python question"
+        }
+      ]
+    },
+    {
+      "fn": "builtinResourcesFor",
+      "input": {
+        "skillId": "behavioral"
+      },
+      "name": "behavioral root",
+      "output": [
+        {
+          "kind": "explanation",
+          "skillId": "behavioral",
+          "source": "builtin",
+          "summary": "Situation, Task, Action, Result — keep the result measurable and your own actions first-person.",
+          "title": "Interview OS explanation: STAR structure"
+        },
+        {
+          "kind": "practice",
+          "skillId": "behavioral",
+          "source": "builtin",
+          "summary": "Start a practice session in Interview OS to verify this skill.",
+          "title": "Practice a Behavioral question"
+        }
+      ]
+    },
+    {
+      "fn": "builtinResourcesFor",
+      "input": {
+        "skillId": "totally-unknown"
+      },
+      "name": "unknown skill gets only the practice entry",
+      "output": [
+        {
+          "kind": "practice",
+          "skillId": "totally-unknown",
+          "source": "builtin",
+          "summary": "Start a practice session in Interview OS to verify this skill.",
+          "title": "Practice a Totally Unknown question"
+        }
+      ]
+    },
+    {
+      "fn": "builtinResourcesFor",
+      "input": {
+        "skillId": "system-design"
+      },
+      "name": "system-design exact",
+      "output": [
+        {
+          "kind": "explanation",
+          "skillId": "system-design",
+          "source": "builtin",
+          "summary": "Clarify requirements, estimate capacity, sketch the high-level design, then drill into bottlenecks and trade-offs.",
+          "title": "Interview OS explanation: the design-interview frame"
+        },
+        {
+          "kind": "practice",
+          "skillId": "system-design",
+          "source": "builtin",
+          "summary": "Start a practice session in Interview OS to verify this skill.",
+          "title": "Practice a System Design question"
+        }
+      ]
+    },
+    {
+      "fn": "mergeResources",
+      "input": {
+        "lists": [
+          [
+            {
+              "kind": "article",
+              "skillId": "sql",
+              "source": "test",
+              "title": "A"
+            },
+            {
+              "kind": "article",
+              "skillId": "sql",
+              "source": "test",
+              "title": "B"
+            }
+          ],
+          [
+            {
+              "kind": "article",
+              "skillId": "sql",
+              "source": "test",
+              "title": "C"
+            },
+            {
+              "kind": "article",
+              "skillId": "sql",
+              "source": "test",
+              "title": "D"
+            }
+          ]
+        ]
+      },
+      "name": "two disjoint lists keep order",
+      "output": [
+        {
+          "kind": "article",
+          "skillId": "sql",
+          "source": "test",
+          "title": "A"
+        },
+        {
+          "kind": "article",
+          "skillId": "sql",
+          "source": "test",
+          "title": "B"
+        },
+        {
+          "kind": "article",
+          "skillId": "sql",
+          "source": "test",
+          "title": "C"
+        },
+        {
+          "kind": "article",
+          "skillId": "sql",
+          "source": "test",
+          "title": "D"
+        }
+      ]
+    },
+    {
+      "fn": "mergeResources",
+      "input": {
+        "lists": [
+          [
+            {
+              "kind": "article",
+              "skillId": "sql",
+              "source": "test",
+              "title": "Same",
+              "url": "https://a.example"
+            },
+            {
+              "kind": "article",
+              "skillId": "sql",
+              "source": "test",
+              "title": "B"
+            }
+          ],
+          [
+            {
+              "kind": "article",
+              "skillId": "sql",
+              "source": "test",
+              "title": "Same",
+              "url": "https://a.example"
+            },
+            {
+              "kind": "article",
+              "skillId": "sql",
+              "source": "test",
+              "title": "E"
+            }
+          ]
+        ]
+      },
+      "name": "duplicate title and url is dropped",
+      "output": [
+        {
+          "kind": "article",
+          "skillId": "sql",
+          "source": "test",
+          "title": "Same",
+          "url": "https://a.example"
+        },
+        {
+          "kind": "article",
+          "skillId": "sql",
+          "source": "test",
+          "title": "B"
+        },
+        {
+          "kind": "article",
+          "skillId": "sql",
+          "source": "test",
+          "title": "E"
+        }
+      ]
+    },
+    {
+      "fn": "mergeResources",
+      "input": {
+        "lists": [
+          [
+            {
+              "kind": "article",
+              "skillId": "sql",
+              "source": "test",
+              "title": "Same",
+              "url": "https://a.example"
+            }
+          ],
+          [
+            {
+              "kind": "article",
+              "skillId": "sql",
+              "source": "test",
+              "title": "Same",
+              "url": "https://b.example"
+            }
+          ]
+        ]
+      },
+      "name": "same title with different url is kept",
+      "output": [
+        {
+          "kind": "article",
+          "skillId": "sql",
+          "source": "test",
+          "title": "Same",
+          "url": "https://a.example"
+        },
+        {
+          "kind": "article",
+          "skillId": "sql",
+          "source": "test",
+          "title": "Same",
+          "url": "https://b.example"
+        }
+      ]
+    },
+    {
+      "fn": "mergeResources",
+      "input": {
+        "lists": [
+          [
+            {
+              "kind": "article",
+              "skillId": "sql",
+              "source": "test",
+              "title": "NoUrl"
+            }
+          ],
+          [
+            {
+              "kind": "article",
+              "skillId": "sql",
+              "source": "test",
+              "title": "NoUrl"
+            }
+          ]
+        ]
+      },
+      "name": "missing url participates in the dedup key",
+      "output": [
+        {
+          "kind": "article",
+          "skillId": "sql",
+          "source": "test",
+          "title": "NoUrl"
+        }
+      ]
+    },
+    {
+      "fn": "mergeResources",
+      "input": {
+        "lists": [
+          [],
+          [
+            {
+              "kind": "article",
+              "skillId": "sql",
+              "source": "test",
+              "title": "X"
+            }
+          ],
+          [],
+          [
+            {
+              "kind": "article",
+              "skillId": "sql",
+              "source": "test",
+              "title": "Y"
+            },
+            {
+              "kind": "article",
+              "skillId": "sql",
+              "source": "test",
+              "title": "X"
+            }
+          ]
+        ]
+      },
+      "name": "empty lists and three-way merge",
+      "output": [
+        {
+          "kind": "article",
+          "skillId": "sql",
+          "source": "test",
+          "title": "X"
+        },
+        {
+          "kind": "article",
+          "skillId": "sql",
+          "source": "test",
+          "title": "Y"
+        }
+      ]
+    }
+  ],
+  "generatedFrom": "packages/core"
+}

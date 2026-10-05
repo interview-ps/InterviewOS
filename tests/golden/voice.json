@@ -1,0 +1,552 @@
+{
+  "area": "voice",
+  "cases": [
+    {
+      "fn": "countFillers",
+      "input": {
+        "text": ""
+      },
+      "name": "empty text",
+      "output": 0
+    },
+    {
+      "fn": "countFillers",
+      "input": {
+        "text": "I designed the caching layer for our API."
+      },
+      "name": "clean text",
+      "output": 0
+    },
+    {
+      "fn": "countFillers",
+      "input": {
+        "text": "um uh er erm"
+      },
+      "name": "hesitation family",
+      "output": 4
+    },
+    {
+      "fn": "countFillers",
+      "input": {
+        "text": "you know, I mean, it was fine"
+      },
+      "name": "verbal crutches",
+      "output": 2
+    },
+    {
+      "fn": "countFillers",
+      "input": {
+        "text": "sort of a kind of problem"
+      },
+      "name": "hedges",
+      "output": 2
+    },
+    {
+      "fn": "countFillers",
+      "input": {
+        "text": "I like turtles. Like, really."
+      },
+      "name": "like as verb is not a filler, pausal like is",
+      "output": 1
+    },
+    {
+      "fn": "countFillers",
+      "input": {
+        "text": "Basically, it worked. Actually, it did, literally."
+      },
+      "name": "intensifier crutches",
+      "output": 3
+    },
+    {
+      "fn": "countFillers",
+      "input": {
+        "text": "UM Uh you KNOW"
+      },
+      "name": "case insensitive",
+      "output": 3
+    },
+    {
+      "fn": "countFillers",
+      "input": {
+        "text": "First. Actually, second. Basically, third."
+      },
+      "name": "punctuation and clause-initial positions",
+      "output": 2
+    },
+    {
+      "fn": "countFillers",
+      "input": {
+        "text": "tools like Redis or systems like Kafka"
+      },
+      "name": "embedded like within clause stays clean",
+      "output": 0
+    },
+    {
+      "fn": "voiceFeedback",
+      "input": {
+        "metrics": {
+          "durationSec": 90,
+          "longPauseCount": 0,
+          "longestPauseSec": 1
+        },
+        "transcript": "First, I clarified the requirements with the interviewer. Then I sketched the data model and named the consistency trade-offs. Next I described the caching layer and its invalidation strategy. After that I walked through failure handling and retries. Finally I reviewed the monitoring plan. So, in summary, the design reduced p99 latency by 40% overall."
+      },
+      "name": "structured answer all clear",
+      "output": {
+        "disclaimer": "Delivery hints only. Interview OS does not assess accent, pronunciation or voice characteristics, and these signals do not predict job performance.",
+        "fillerCount": 0,
+        "signals": [
+          {
+            "id": "structure",
+            "message": "Answer reads as structured.",
+            "status": "ok"
+          },
+          {
+            "id": "filler",
+            "message": "Filler usage is within a normal range.",
+            "status": "ok"
+          },
+          {
+            "id": "pauses",
+            "message": "Pacing looks comfortable.",
+            "status": "ok"
+          },
+          {
+            "id": "length",
+            "message": "Length is within a good range.",
+            "status": "ok"
+          },
+          {
+            "id": "conclusion",
+            "message": "Answer lands on a conclusion.",
+            "status": "ok"
+          },
+          {
+            "id": "clarity",
+            "message": "Sentences are easy to parse.",
+            "status": "ok"
+          }
+        ],
+        "wordCount": 55,
+        "wordsPerMinute": 37
+      }
+    },
+    {
+      "fn": "voiceFeedback",
+      "input": {
+        "metrics": {
+          "durationSec": 5,
+          "longPauseCount": 0,
+          "longestPauseSec": 0
+        },
+        "transcript": "A very brief answer."
+      },
+      "name": "short clip has null wordsPerMinute",
+      "output": {
+        "disclaimer": "Delivery hints only. Interview OS does not assess accent, pronunciation or voice characteristics, and these signals do not predict job performance.",
+        "fillerCount": 0,
+        "signals": [
+          {
+            "id": "structure",
+            "message": "Answer reads as structured.",
+            "status": "ok"
+          },
+          {
+            "id": "filler",
+            "message": "Filler usage is within a normal range.",
+            "status": "ok"
+          },
+          {
+            "id": "pauses",
+            "message": "Pacing looks comfortable.",
+            "status": "ok"
+          },
+          {
+            "id": "length",
+            "message": "Length is within a good range.",
+            "status": "ok"
+          },
+          {
+            "id": "conclusion",
+            "message": "Answer lands on a conclusion.",
+            "status": "ok"
+          },
+          {
+            "id": "clarity",
+            "message": "Sentences are easy to parse.",
+            "status": "ok"
+          }
+        ],
+        "wordCount": 4,
+        "wordsPerMinute": null
+      }
+    },
+    {
+      "fn": "voiceFeedback",
+      "input": {
+        "metrics": {
+          "durationSec": 90,
+          "longPauseCount": 0,
+          "longestPauseSec": 1
+        },
+        "transcript": "Um, so, like, I think, uh, the cache, you know, basically, um, it sort of works, er, because, I mean, it does."
+      },
+      "name": "filler heavy transcript",
+      "output": {
+        "disclaimer": "Delivery hints only. Interview OS does not assess accent, pronunciation or voice characteristics, and these signals do not predict job performance.",
+        "fillerCount": 9,
+        "signals": [
+          {
+            "id": "structure",
+            "message": "Answer reads as structured.",
+            "status": "ok"
+          },
+          {
+            "id": "filler",
+            "message": "9 filler words in 22 words — pause silently instead of filling.",
+            "status": "watch"
+          },
+          {
+            "id": "pauses",
+            "message": "Pacing looks comfortable.",
+            "status": "ok"
+          },
+          {
+            "id": "length",
+            "message": "Length is within a good range.",
+            "status": "ok"
+          },
+          {
+            "id": "conclusion",
+            "message": "Answer lands on a conclusion.",
+            "status": "ok"
+          },
+          {
+            "id": "clarity",
+            "message": "Sentences are easy to parse.",
+            "status": "ok"
+          }
+        ],
+        "wordCount": 22,
+        "wordsPerMinute": 15
+      }
+    },
+    {
+      "fn": "voiceFeedback",
+      "input": {
+        "metrics": {
+          "durationSec": 120,
+          "longPauseCount": 4,
+          "longestPauseSec": 3
+        },
+        "transcript": "First, I clarified the requirements with the interviewer. Then I sketched the data model and named the consistency trade-offs. Next I described the caching layer and its invalidation strategy. After that I walked through failure handling and retries. Finally I reviewed the monitoring plan. So, in summary, the design reduced p99 latency by 40% overall."
+      },
+      "name": "many long pauses",
+      "output": {
+        "disclaimer": "Delivery hints only. Interview OS does not assess accent, pronunciation or voice characteristics, and these signals do not predict job performance.",
+        "fillerCount": 0,
+        "signals": [
+          {
+            "id": "structure",
+            "message": "Answer reads as structured.",
+            "status": "ok"
+          },
+          {
+            "id": "filler",
+            "message": "Filler usage is within a normal range.",
+            "status": "ok"
+          },
+          {
+            "id": "pauses",
+            "message": "4 long pause(s), longest 3s — practice a bridging phrase.",
+            "status": "watch"
+          },
+          {
+            "id": "length",
+            "message": "Length is within a good range.",
+            "status": "ok"
+          },
+          {
+            "id": "conclusion",
+            "message": "Answer lands on a conclusion.",
+            "status": "ok"
+          },
+          {
+            "id": "clarity",
+            "message": "Sentences are easy to parse.",
+            "status": "ok"
+          }
+        ],
+        "wordCount": 55,
+        "wordsPerMinute": 28
+      }
+    },
+    {
+      "fn": "voiceFeedback",
+      "input": {
+        "metrics": {
+          "durationSec": 90,
+          "longPauseCount": 1,
+          "longestPauseSec": 9
+        },
+        "transcript": "First, I clarified the requirements with the interviewer. Then I sketched the data model and named the consistency trade-offs. Next I described the caching layer and its invalidation strategy. After that I walked through failure handling and retries. Finally I reviewed the monitoring plan. So, in summary, the design reduced p99 latency by 40% overall."
+      },
+      "name": "single very long pause",
+      "output": {
+        "disclaimer": "Delivery hints only. Interview OS does not assess accent, pronunciation or voice characteristics, and these signals do not predict job performance.",
+        "fillerCount": 0,
+        "signals": [
+          {
+            "id": "structure",
+            "message": "Answer reads as structured.",
+            "status": "ok"
+          },
+          {
+            "id": "filler",
+            "message": "Filler usage is within a normal range.",
+            "status": "ok"
+          },
+          {
+            "id": "pauses",
+            "message": "1 long pause(s), longest 9s — practice a bridging phrase.",
+            "status": "watch"
+          },
+          {
+            "id": "length",
+            "message": "Length is within a good range.",
+            "status": "ok"
+          },
+          {
+            "id": "conclusion",
+            "message": "Answer lands on a conclusion.",
+            "status": "ok"
+          },
+          {
+            "id": "clarity",
+            "message": "Sentences are easy to parse.",
+            "status": "ok"
+          }
+        ],
+        "wordCount": 55,
+        "wordsPerMinute": 37
+      }
+    },
+    {
+      "fn": "voiceFeedback",
+      "input": {
+        "metrics": {
+          "durationSec": 200,
+          "longPauseCount": 0,
+          "longestPauseSec": 1
+        },
+        "transcript": "First, I clarified the requirements with the interviewer. Then I sketched the data model and named the consistency trade-offs. Next I described the caching layer and its invalidation strategy. After that I walked through failure handling and retries. Finally I reviewed the monitoring plan. So, in summary, the design reduced p99 latency by 40% overall."
+      },
+      "name": "overlong duration",
+      "output": {
+        "disclaimer": "Delivery hints only. Interview OS does not assess accent, pronunciation or voice characteristics, and these signals do not predict job performance.",
+        "fillerCount": 0,
+        "signals": [
+          {
+            "id": "structure",
+            "message": "Answer reads as structured.",
+            "status": "ok"
+          },
+          {
+            "id": "filler",
+            "message": "Filler usage is within a normal range.",
+            "status": "ok"
+          },
+          {
+            "id": "pauses",
+            "message": "Pacing looks comfortable.",
+            "status": "ok"
+          },
+          {
+            "id": "length",
+            "message": "Long answer — aim for ~2 minutes; lead with the headline, then detail.",
+            "status": "watch"
+          },
+          {
+            "id": "conclusion",
+            "message": "Answer lands on a conclusion.",
+            "status": "ok"
+          },
+          {
+            "id": "clarity",
+            "message": "Sentences are easy to parse.",
+            "status": "ok"
+          }
+        ],
+        "wordCount": 55,
+        "wordsPerMinute": 17
+      }
+    },
+    {
+      "fn": "voiceFeedback",
+      "input": {
+        "metrics": {
+          "durationSec": 90,
+          "longPauseCount": 0,
+          "longestPauseSec": 1
+        },
+        "transcript": "well word0 word1 word2 word3 word4 word5 word6 word7 word8 word9 word10 word11 word12 word13 word14 word15 word16 word17 word18 word19 word20 word21 word22 word23 word24 word25 word26 word27 word28 word29 word30 word31 word32 word33 word34 word35 word36 word37 word38 word39 word40 word41 word42 word43 word44 word45 word46 word47 word48 word49 word50 word51 word52 word53 word54 word55 word56 word57 word58 word59 word60 word61 word62 word63 word64 word65 word66 word67 word68 word69 word70 word71 word72 word73 word74 word75 word76 word77 word78 word79 word80 word81 word82 word83 word84 word85 word86 word87 word88 word89 word90 word91 word92 word93 word94 word95 word96 word97 word98 word99 word100 word101 word102 word103 word104 word105 word106 word107 word108 word109 word110 word111 word112 word113 word114 word115 word116 word117 word118 word119 word120 word121 word122 word123 word124 word125 word126 word127 word128 word129 and that covers everything"
+      },
+      "name": "run-on answer trips structure and clarity",
+      "output": {
+        "disclaimer": "Delivery hints only. Interview OS does not assess accent, pronunciation or voice characteristics, and these signals do not predict job performance.",
+        "fillerCount": 0,
+        "signals": [
+          {
+            "id": "structure",
+            "message": "Hard to follow — break the answer into more sentences or use sequencing markers (first / then / finally).",
+            "status": "watch"
+          },
+          {
+            "id": "filler",
+            "message": "Filler usage is within a normal range.",
+            "status": "ok"
+          },
+          {
+            "id": "pauses",
+            "message": "Pacing looks comfortable.",
+            "status": "ok"
+          },
+          {
+            "id": "length",
+            "message": "Length is within a good range.",
+            "status": "ok"
+          },
+          {
+            "id": "conclusion",
+            "message": "No clear wrap-up — end on the result or a one-line takeaway.",
+            "status": "watch"
+          },
+          {
+            "id": "clarity",
+            "message": "Average sentence is 135 words — shorter sentences sound clearer.",
+            "status": "watch"
+          }
+        ],
+        "wordCount": 135,
+        "wordsPerMinute": 90
+      }
+    },
+    {
+      "fn": "voiceFeedback",
+      "input": {
+        "metrics": {
+          "durationSec": 90,
+          "longPauseCount": 0,
+          "longestPauseSec": 1
+        },
+        "transcript": "I set up the service with a postgres primary and two replicas. Writes go to the primary while reads fan out across the replicas. The schema is normalized up to the order_items table. Background jobs handle cleanup through a scheduled worker."
+      },
+      "name": "long answer without a wrap-up trips conclusion",
+      "output": {
+        "disclaimer": "Delivery hints only. Interview OS does not assess accent, pronunciation or voice characteristics, and these signals do not predict job performance.",
+        "fillerCount": 0,
+        "signals": [
+          {
+            "id": "structure",
+            "message": "Answer reads as structured.",
+            "status": "ok"
+          },
+          {
+            "id": "filler",
+            "message": "Filler usage is within a normal range.",
+            "status": "ok"
+          },
+          {
+            "id": "pauses",
+            "message": "Pacing looks comfortable.",
+            "status": "ok"
+          },
+          {
+            "id": "length",
+            "message": "Length is within a good range.",
+            "status": "ok"
+          },
+          {
+            "id": "conclusion",
+            "message": "No clear wrap-up — end on the result or a one-line takeaway.",
+            "status": "watch"
+          },
+          {
+            "id": "clarity",
+            "message": "Sentences are easy to parse.",
+            "status": "ok"
+          }
+        ],
+        "wordCount": 41,
+        "wordsPerMinute": 27
+      }
+    },
+    {
+      "fn": "voiceFeedback",
+      "input": {
+        "metrics": {
+          "durationSec": 90,
+          "longPauseCount": 0,
+          "longestPauseSec": 1
+        },
+        "transcript": ""
+      },
+      "name": "empty transcript",
+      "output": {
+        "disclaimer": "Delivery hints only. Interview OS does not assess accent, pronunciation or voice characteristics, and these signals do not predict job performance.",
+        "fillerCount": 0,
+        "signals": [
+          {
+            "id": "structure",
+            "message": "Answer reads as structured.",
+            "status": "ok"
+          },
+          {
+            "id": "filler",
+            "message": "Filler usage is within a normal range.",
+            "status": "ok"
+          },
+          {
+            "id": "pauses",
+            "message": "Pacing looks comfortable.",
+            "status": "ok"
+          },
+          {
+            "id": "length",
+            "message": "Length is within a good range.",
+            "status": "ok"
+          },
+          {
+            "id": "conclusion",
+            "message": "Answer lands on a conclusion.",
+            "status": "ok"
+          },
+          {
+            "id": "clarity",
+            "message": "Sentences are easy to parse.",
+            "status": "ok"
+          }
+        ],
+        "wordCount": 0,
+        "wordsPerMinute": 0
+      }
+    },
+    {
+      "error": {
+        "message": "[\n  {\n    \"origin\": \"number\",\n    \"code\": \"too_small\",\n    \"minimum\": 0,\n    \"inclusive\": true,\n    \"path\": [\n      \"durationSec\"\n    ],\n    \"message\": \"Too small: expected number to be >=0\"\n  }\n]",
+        "name": "ZodError"
+      },
+      "fn": "voiceFeedback",
+      "input": {
+        "metrics": {
+          "durationSec": -5,
+          "longPauseCount": 0,
+          "longestPauseSec": 0
+        },
+        "transcript": "hi"
+      },
+      "name": "invalid metrics throw a ZodError"
+    }
+  ],
+  "generatedFrom": "packages/core"
+}
