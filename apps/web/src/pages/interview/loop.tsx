@@ -1,33 +1,19 @@
 import { Link, useParams } from "react-router";
 import { useCallback, useEffect, useState } from "react";
 import { api, type InterviewLoop, type LoopRound } from "@/lib/api";
-import { Button, Card, CardTitle, ErrorNote, PageHeader, Pill, SkeletonCard, signalTone, statusTone } from "@/components/ui";
-import { skillLabel } from "@/components/ui";
-
-function fmt(n: number | null | undefined) {
-  return n === null || n === undefined ? "—" : n.toFixed(2);
-}
+import { Button, Card, DeltaList, ErrorNote, PageHeader, Pill, SectionHeading, SkeletonCard, pct, signalTone, skillLabel, statusTone } from "@/components/ui";
 
 function SkillDeltas({ deltas }: { deltas: LoopRound["skillDeltas"] }) {
   if (!deltas?.length) return null;
   return (
-    <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted">
-      {deltas.map((d) => {
-        const delta =
-          d.before !== null && d.after !== null ? d.after - d.before : null;
-        return (
-          <span key={d.skillId}>
-            {d.label || skillLabel(d.skillId)} {fmt(d.before)} → {fmt(d.after)}
-            {delta !== null && (
-              <span className={delta > 0 ? "text-green" : delta < 0 ? "text-danger" : ""}>
-                {" "}({delta >= 0 ? "+" : ""}
-                {delta.toFixed(2)})
-              </span>
-            )}
-          </span>
-        );
-      })}
-    </div>
+    <DeltaList
+      items={deltas.map((d) => ({
+        key: d.skillId,
+        label: d.label || skillLabel(d.skillId),
+        before: d.before,
+        after: d.after,
+      }))}
+    />
   );
 }
 
@@ -91,7 +77,7 @@ export default function LoopPage() {
       />
 
       <Card>
-        <CardTitle>Rounds</CardTitle>
+        <SectionHeading title="Rounds" description="Each round and how readiness moved." />
         <ol className="space-y-3">
           {loop.rounds.map((r: LoopRound, i: number) => {
             const signal = signalFor(i);
@@ -110,7 +96,7 @@ export default function LoopPage() {
                   </div>
                   <div className="flex items-center gap-3 text-sm">
                     <span className="text-muted">
-                      readiness {fmt(r.readinessBefore?.overall)} → {fmt(r.readinessAfter?.overall)}
+                      readiness {pct(r.readinessBefore?.overall)} → {pct(r.readinessAfter?.overall)}
                     </span>
                     {r.sessionId && (
                       <Link to={`/interview/${r.sessionId}`} className="text-blue underline">
@@ -149,11 +135,11 @@ export default function LoopPage() {
 
       {loop.debrief && (
         <Card data-testid="loop-debrief">
-          <CardTitle>Loop debrief</CardTitle>
+          <SectionHeading title="Loop debrief" description="How the whole loop went." />
           <p className="text-sm">{loop.debrief.summary}</p>
           <p className="mt-2 text-sm text-muted">
-            Readiness change: {fmt(loop.debrief.readinessChange.before)} →{" "}
-            {fmt(loop.debrief.readinessChange.after)}
+            Readiness change: {pct(loop.debrief.readinessChange.before)} →{" "}
+            {pct(loop.debrief.readinessChange.after)}
           </p>
           {loop.rounds.some((r) => r.skillDeltas?.length > 0) && (
             <div className="mt-3 space-y-1.5" data-testid="debrief-deltas">
@@ -187,7 +173,7 @@ export default function LoopPage() {
 
       {loop.status === "in_progress" && currentRound?.sessionId && (
         <Card>
-          <CardTitle>Current round</CardTitle>
+          <SectionHeading title="Current round" />
           <p className="text-sm text-muted">
             Round {loop.currentRound} of {loop.rounds.length}: {currentRound.label || currentRound.mode}
           </p>

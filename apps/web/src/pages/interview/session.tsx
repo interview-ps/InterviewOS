@@ -1,4 +1,4 @@
-import { Link, useParams } from "react-router";
+import { Link, useNavigate, useParams } from "react-router";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { VOICE_DISCLAIMER } from "@interview-os/frontend-types";
 import {
@@ -14,7 +14,7 @@ import {
   type VoiceFeedback,
 } from "@/lib/api";
 import { speechSupported, useSpeakQuestion, useVoiceCapture } from "@/lib/voice";
-import { Bar, Button, Card, CardTitle, ErrorNote, Pill, SkeletonCard, severityTone, skillLabel } from "@/components/ui";
+import { Bar, Button, Card, CardTitle, DeltaList, ErrorNote, Pill, SkeletonCard, severityTone, skillLabel } from "@/components/ui";
 import { PluginModeSlot, PluginSlot } from "@/components/plugin-ui";
 
 const CODE_LANGUAGES = [
@@ -86,7 +86,7 @@ function DeliveryHints({ feedback }: { feedback: VoiceFeedback }) {
   );
 }
 
-/** §9.2: expandable factor breakdown behind "Why this question". */
+/** §9.2: "Why this question" in plain language, with the scoring detail nested. */
 function WhyThisQuestion({ q }: { q: SessionQuestion }) {
   if (!q.selectionReason && !q.selectionFactors) return null;
   const f = q.selectionFactors;
@@ -95,31 +95,34 @@ function WhyThisQuestion({ q }: { q: SessionQuestion }) {
       <summary className="cursor-pointer">Why this question</summary>
       {q.selectionReason && <p className="mt-1">{q.selectionReason}</p>}
       {f && (
-        <dl className="mt-1 grid grid-cols-2 gap-x-4 gap-y-0.5 sm:grid-cols-3">
-          {(
-            [
-              ["role importance", f.roleImportance],
-              ["readiness gap", f.readinessGap],
-              ["uncertainty", f.uncertainty],
-              ["weakness boost", f.weaknessBoost],
-              ["recency", f.recencyFactor],
-              ["novelty", f.noveltyFactor],
-            ] as const
-          ).map(([name, v]) => (
-            <div key={name} className="flex justify-between gap-2">
-              <dt>{name}</dt>
-              <dd className="font-mono text-ink">{v.toFixed(2)}</dd>
+        <details className="mt-1">
+          <summary className="cursor-pointer text-[0.7rem]">Show scoring detail</summary>
+          <dl className="mt-1 grid grid-cols-2 gap-x-4 gap-y-0.5 sm:grid-cols-3">
+            {(
+              [
+                ["role importance", f.roleImportance],
+                ["readiness gap", f.readinessGap],
+                ["uncertainty", f.uncertainty],
+                ["weakness boost", f.weaknessBoost],
+                ["recency", f.recencyFactor],
+                ["novelty", f.noveltyFactor],
+              ] as const
+            ).map(([name, v]) => (
+              <div key={name} className="flex justify-between gap-2">
+                <dt>{name}</dt>
+                <dd className="font-mono text-ink">{v.toFixed(2)}</dd>
+              </div>
+            ))}
+            <div className="flex justify-between gap-2">
+              <dt>priority</dt>
+              <dd className="font-mono text-ink">{q.selectionPriority?.toFixed(2) ?? "—"}</dd>
             </div>
-          ))}
-          <div className="flex justify-between gap-2">
-            <dt>priority</dt>
-            <dd className="font-mono text-ink">{q.selectionPriority?.toFixed(2) ?? "—"}</dd>
-          </div>
-          <div className="flex justify-between gap-2">
-            <dt>difficulty</dt>
-            <dd className="font-mono text-ink">{q.difficulty}</dd>
-          </div>
-        </dl>
+            <div className="flex justify-between gap-2">
+              <dt>difficulty</dt>
+              <dd className="font-mono text-ink">{q.difficulty}</dd>
+            </div>
+          </dl>
+        </details>
       )}
     </details>
   );
@@ -217,6 +220,7 @@ function AnswerFieldsEditor({
 
 export default function InterviewSession() {
   const id = useParams().id ?? "";
+  const navigate = useNavigate();
   const [detail, setDetail] = useState<SessionDetail | null>(null);
   const [current, setCurrent] = useState<SessionQuestion | null>(null);
   const [answer, setAnswer] = useState("");
@@ -346,6 +350,16 @@ export default function InterviewSession() {
         if (d) setDebrief(d);
         await load().catch(() => {});
       })
+      .finally(() => setBusy(false));
+  };
+
+  /** Turn a fresh prep action straight into practice — feedback becomes work. */
+  const practiceAction = (a: { id: string; skillId: string }) => {
+    setBusy(true);
+    api
+      .startInterview({ mode: "practice", focusSkillId: a.skillId, actionId: a.id })
+      .then((r) => r.session && navigate(`/interview/${r.session.id}`))
+      .catch((e) => setError(e))
       .finally(() => setBusy(false));
   };
 
@@ -557,27 +571,35 @@ export default function InterviewSession() {
             </div>
           )}
           <div>
-            <h3 className="text-sm font-semibold text-navy">Skill impact</h3>
-            <ul className="mt-1 space-y-1.5">
-              {result.skillImpact.map((s) => (
-                <li key={s.skillId} className="flex items-center gap-3 text-sm">
-                  <span className="w-48 truncate text-muted" title={s.skillId}>
-                    {skillLabel(s.skillId)}
-                  </span>
-                  <div className="w-40"><Bar value={s.after ?? 0} /></div>
-                  <span className="text-xs text-muted">
-                    {s.before === null ? "new" : Math.round(s.before * 100) + "%"} →{" "}
-                    {s.after === null ? "—" : Math.round(s.after * 100) + "%"}
-                  </span>
-                </li>
-              ))}
-            </ul>
+            <h3 className="text-sm font-semibold text-navy">Readiness change</h3>
+            <div className="mt-1">
+              <DeltaList
+                items={result.skillImpact.map((s) => ({
+                  key: s.skillId,
+                  label: skillLabel(s.skillId),
+                  before: s.before,
+                  after: s.after,
+                }))}
+              />
+            </div>
           </div>
           {result.newActions.length > 0 && (
             <div>
-              <h3 className="text-sm font-semibold text-navy">New prep actions</h3>
-              <ul className="mt-1 list-disc space-y-0.5 pl-5 text-sm text-muted">
-                {result.newActions.map((a) => <li key={a.id}>{a.action}</li>)}
+              <h3 className="text-sm font-semibold text-navy">Next steps</h3>
+              <ul className="mt-1 space-y-2">
+                {result.newActions.map((a) => (
+                  <li key={a.id} className="flex items-center justify-between gap-3">
+                    <span className="text-sm text-muted">{a.action}</span>
+                    <Button
+                      variant="secondary"
+                      size="small"
+                      disabled={busy}
+                      onClick={() => practiceAction(a)}
+                    >
+                      Practice
+                    </Button>
+                  </li>
+                ))}
               </ul>
             </div>
           )}
@@ -647,6 +669,13 @@ export default function InterviewSession() {
           </Link>
         )}
       </h1>
+      {detail && !done && (
+        <p className="text-sm text-muted" aria-live="polite">
+          Question{" "}
+          {Math.min(detail.answers.length + 1, detail.session.plannedQuestions)} of{" "}
+          {detail.session.plannedQuestions}
+        </p>
+      )}
       <PluginSlot slot="interview.toolbar" params={{ sessionId: id }} />
       <ErrorNote error={error} />
 
@@ -745,7 +774,7 @@ export default function InterviewSession() {
             })()}
         </Card>
       )}
-      <PluginSlot slot="interview.sidebar" params={{ sessionId: id }} />
+      {done && <PluginSlot slot="interview.sidebar" params={{ sessionId: id }} />}
     </div>
   );
 }
