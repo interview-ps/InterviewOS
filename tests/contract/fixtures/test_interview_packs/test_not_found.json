@@ -1,0 +1,31 @@
+{
+  "snapshots": {
+    "delete": {
+      "body": {
+        "error": {
+          "code": "NOT_FOUND",
+          "message": "no interview pack \"ipack_00000000-0000-0000-0000-000000000000\""
+        }
+      },
+      "status": 404
+    },
+    "export": {
+      "body": {
+        "error": {
+          "code": "NOT_FOUND",
+          "message": "no interview pack \"ipack_00000000-0000-0000-0000-000000000000\""
+        }
+      },
+      "status": 404
+    },
+    "start": {
+      "body": {
+        "error": {
+          "code": "NOT_FOUND",
+          "message": "no interview pack \"ipack_00000000-0000-0000-0000-000000000000\""
+        }
+      },
+      "status": 404
+    }
+  }
+}

@@ -1,0 +1,46 @@
+{
+  "snapshots": {
+    "resources": {
+      "body": {
+        "action": "Design the caching layer for a read-heavy product catalog on a whiteboard, then explain it aloud",
+        "createdAt": "<ts>",
+        "id": "<action#1>",
+        "priority": 1,
+        "reason": "no evidence for required skill; senior target is 0.8",
+        "resources": [
+          {
+            "kind": "explanation",
+            "skillId": "distributed-systems.caching",
+            "source": "builtin",
+            "summary": "Cache-aside, read/write-through, TTLs and invalidation — the vocabulary interviewers probe for.",
+            "title": "Interview OS explanation: caching patterns"
+          },
+          {
+            "kind": "practice",
+            "skillId": "distributed-systems.caching",
+            "source": "builtin",
+            "summary": "Start a practice session in Interview OS to verify this skill.",
+            "title": "Practice a Caching question"
+          },
+          {
+            "kind": "article",
+            "skillId": "distributed-systems.caching",
+            "source": "plugin:learning-resources",
+            "summary": "Replication, partitioning, consistency — the core vocabulary.",
+            "title": "Distributed systems primer"
+          }
+        ],
+        "severity": "high",
+        "skillId": "distributed-systems.caching",
+        "sourceEvidenceIds": [],
+        "status": "open",
+        "successCriteria": [
+          "Name the caching pattern you chose (cache-aside/read-through/write-through)",
+          "Explain how entries expire or get invalidated",
+          "Explain what happens on a cache stampede"
+        ]
+      },
+      "status": 200
+    }
+  }
+}

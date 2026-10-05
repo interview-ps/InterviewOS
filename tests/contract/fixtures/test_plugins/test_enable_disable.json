@@ -1,0 +1,523 @@
+{
+  "snapshots": {
+    "disable": {
+      "body": {
+        "plugin": {
+          "compatible": true,
+          "enabled": false,
+          "grantedPermissions": [
+            "candidate.read",
+            "target.read",
+            "readiness.read",
+            "taxonomy.read",
+            "answers.read"
+          ],
+          "manifest": {
+            "appliesTo": {
+              "skillPrefixes": [
+                "sql"
+              ]
+            },
+            "author": "community",
+            "capabilities": [
+              "interview",
+              "evaluation",
+              "question_source",
+              "ui"
+            ],
+            "description": "A deterministic PostgreSQL question bank with a self-check evidence path.",
+            "engines": {
+              "interview-os": ">=0.4.0"
+            },
+            "hooks": [
+              "questions.suggest",
+              "ui.render",
+              "ui.frameRun",
+              "evaluation.review"
+            ],
+            "id": "postgres-interviewer",
+            "inputs": [
+              {
+                "key": "candidate",
+                "permission": "candidate.read"
+              },
+              {
+                "key": "target",
+                "permission": "target.read"
+              },
+              {
+                "key": "readiness",
+                "permission": "readiness.read"
+              },
+              {
+                "key": "gaps",
+                "permission": "readiness.read"
+              },
+              {
+                "key": "request",
+                "permission": "taxonomy.read"
+              }
+            ],
+            "interviewModes": [
+              {
+                "description": "Focused PostgreSQL round on indexing, transactions, and query plans.",
+                "focusSkills": [
+                  "sql.indexing",
+                  "sql.transactions",
+                  "sql.query-optimization"
+                ],
+                "id": "pg-deep-dive",
+                "label": "PostgreSQL Deep Dive",
+                "plannedQuestions": 4,
+                "roundType": "technical"
+              }
+            ],
+            "kind": "plugin",
+            "name": "PostgreSQL Interviewer",
+            "outputs": [],
+            "permissions": [
+              "candidate.read",
+              "target.read",
+              "readiness.read",
+              "taxonomy.read",
+              "answers.read",
+              "evidence.write"
+            ],
+            "settings": [
+              {
+                "default": "medium",
+                "description": "Bias suggested PostgreSQL questions toward this difficulty.",
+                "key": "difficulty-bias",
+                "label": "Question difficulty bias",
+                "options": [
+                  "easy",
+                  "medium",
+                  "hard"
+                ],
+                "type": "enum"
+              }
+            ],
+            "taxonomy": [
+              {
+                "id": "sql.locking",
+                "keywords": [
+                  "locks",
+                  "deadlock",
+                  "mvcc"
+                ],
+                "label": "Locking"
+              }
+            ],
+            "ui": {
+              "commands": [
+                {
+                  "action": {
+                    "modeId": "pg-deep-dive",
+                    "type": "startInterview"
+                  },
+                  "id": "start-pg",
+                  "label": "Start PostgreSQL Deep Dive"
+                }
+              ],
+              "navigation": [
+                {
+                  "icon": "database",
+                  "label": "PostgreSQL",
+                  "page": "/"
+                }
+              ],
+              "pages": [
+                {
+                  "component": "home",
+                  "kind": "declarative",
+                  "path": "/",
+                  "title": "PostgreSQL"
+                }
+              ],
+              "slots": {
+                "dashboard.cards": [
+                  {
+                    "component": "readiness-card",
+                    "kind": "declarative",
+                    "title": "PostgreSQL readiness"
+                  }
+                ],
+                "prepare.activities": [
+                  {
+                    "component": "explain-analyze",
+                    "kind": "declarative",
+                    "title": "Practice EXPLAIN ANALYZE"
+                  }
+                ],
+                "readiness.panels": [
+                  {
+                    "component": "postgres-skill-tree",
+                    "entry": "ui/index.js",
+                    "kind": "frame"
+                  }
+                ]
+              }
+            },
+            "version": "1.2.0"
+          },
+          "permissions": [
+            {
+              "access": "READ",
+              "category": "Candidate Profile",
+              "granted": true,
+              "requested": true
+            },
+            {
+              "access": "DENIED",
+              "category": "Resume",
+              "granted": false,
+              "requested": false
+            },
+            {
+              "access": "READ",
+              "category": "Target",
+              "granted": true,
+              "requested": true
+            },
+            {
+              "access": "READ",
+              "category": "Readiness",
+              "granted": true,
+              "requested": true
+            },
+            {
+              "access": "DENIED",
+              "category": "Interview History",
+              "granted": false,
+              "requested": false
+            },
+            {
+              "access": "READ",
+              "category": "Interview Answers",
+              "granted": true,
+              "requested": true
+            },
+            {
+              "access": "DENIED",
+              "category": "STAR Stories",
+              "granted": false,
+              "requested": false
+            },
+            {
+              "access": "DENIED",
+              "category": "Evidence (write)",
+              "granted": false,
+              "requested": true
+            },
+            {
+              "access": "DENIED",
+              "category": "AI Runtime",
+              "granted": false,
+              "requested": false
+            },
+            {
+              "access": "DENIED",
+              "category": "Local Files",
+              "granted": false,
+              "requested": false
+            },
+            {
+              "access": "DENIED",
+              "category": "Network",
+              "granted": false,
+              "requested": false
+            },
+            {
+              "access": "DENIED",
+              "category": "Environment/Secrets",
+              "granted": false,
+              "requested": false
+            },
+            {
+              "access": "DENIED",
+              "category": "Commands",
+              "granted": false,
+              "requested": false
+            },
+            {
+              "access": "UI",
+              "category": "UI Contributions",
+              "detail": "slots: dashboard.cards, readiness.panels, prepare.activities · pages: / · commands: Start PostgreSQL Deep Dive · nav: PostgreSQL · interview modes: PostgreSQL Deep Dive",
+              "granted": false,
+              "requested": true
+            }
+          ],
+          "source": "bundled"
+        }
+      },
+      "status": 200
+    },
+    "enable": {
+      "body": {
+        "plugin": {
+          "compatible": true,
+          "enabled": true,
+          "grantedPermissions": [
+            "candidate.read",
+            "target.read"
+          ],
+          "manifest": {
+            "appliesTo": {
+              "skillPrefixes": [
+                "sql"
+              ]
+            },
+            "author": "community",
+            "capabilities": [
+              "interview",
+              "evaluation",
+              "question_source",
+              "ui"
+            ],
+            "description": "A deterministic PostgreSQL question bank with a self-check evidence path.",
+            "engines": {
+              "interview-os": ">=0.4.0"
+            },
+            "hooks": [
+              "questions.suggest",
+              "ui.render",
+              "ui.frameRun",
+              "evaluation.review"
+            ],
+            "id": "postgres-interviewer",
+            "inputs": [
+              {
+                "key": "candidate",
+                "permission": "candidate.read"
+              },
+              {
+                "key": "target",
+                "permission": "target.read"
+              },
+              {
+                "key": "readiness",
+                "permission": "readiness.read"
+              },
+              {
+                "key": "gaps",
+                "permission": "readiness.read"
+              },
+              {
+                "key": "request",
+                "permission": "taxonomy.read"
+              }
+            ],
+            "interviewModes": [
+              {
+                "description": "Focused PostgreSQL round on indexing, transactions, and query plans.",
+                "focusSkills": [
+                  "sql.indexing",
+                  "sql.transactions",
+                  "sql.query-optimization"
+                ],
+                "id": "pg-deep-dive",
+                "label": "PostgreSQL Deep Dive",
+                "plannedQuestions": 4,
+                "roundType": "technical"
+              }
+            ],
+            "kind": "plugin",
+            "name": "PostgreSQL Interviewer",
+            "outputs": [],
+            "permissions": [
+              "candidate.read",
+              "target.read",
+              "readiness.read",
+              "taxonomy.read",
+              "answers.read",
+              "evidence.write"
+            ],
+            "settings": [
+              {
+                "default": "medium",
+                "description": "Bias suggested PostgreSQL questions toward this difficulty.",
+                "key": "difficulty-bias",
+                "label": "Question difficulty bias",
+                "options": [
+                  "easy",
+                  "medium",
+                  "hard"
+                ],
+                "type": "enum"
+              }
+            ],
+            "taxonomy": [
+              {
+                "id": "sql.locking",
+                "keywords": [
+                  "locks",
+                  "deadlock",
+                  "mvcc"
+                ],
+                "label": "Locking"
+              }
+            ],
+            "ui": {
+              "commands": [
+                {
+                  "action": {
+                    "modeId": "pg-deep-dive",
+                    "type": "startInterview"
+                  },
+                  "id": "start-pg",
+                  "label": "Start PostgreSQL Deep Dive"
+                }
+              ],
+              "navigation": [
+                {
+                  "icon": "database",
+                  "label": "PostgreSQL",
+                  "page": "/"
+                }
+              ],
+              "pages": [
+                {
+                  "component": "home",
+                  "kind": "declarative",
+                  "path": "/",
+                  "title": "PostgreSQL"
+                }
+              ],
+              "slots": {
+                "dashboard.cards": [
+                  {
+                    "component": "readiness-card",
+                    "kind": "declarative",
+                    "title": "PostgreSQL readiness"
+                  }
+                ],
+                "prepare.activities": [
+                  {
+                    "component": "explain-analyze",
+                    "kind": "declarative",
+                    "title": "Practice EXPLAIN ANALYZE"
+                  }
+                ],
+                "readiness.panels": [
+                  {
+                    "component": "postgres-skill-tree",
+                    "entry": "ui/index.js",
+                    "kind": "frame"
+                  }
+                ]
+              }
+            },
+            "version": "1.2.0"
+          },
+          "permissions": [
+            {
+              "access": "READ",
+              "category": "Candidate Profile",
+              "granted": true,
+              "requested": true
+            },
+            {
+              "access": "DENIED",
+              "category": "Resume",
+              "granted": false,
+              "requested": false
+            },
+            {
+              "access": "READ",
+              "category": "Target",
+              "granted": true,
+              "requested": true
+            },
+            {
+              "access": "DENIED",
+              "category": "Readiness",
+              "granted": false,
+              "requested": true
+            },
+            {
+              "access": "DENIED",
+              "category": "Interview History",
+              "granted": false,
+              "requested": false
+            },
+            {
+              "access": "DENIED",
+              "category": "Interview Answers",
+              "granted": false,
+              "requested": true
+            },
+            {
+              "access": "DENIED",
+              "category": "STAR Stories",
+              "granted": false,
+              "requested": false
+            },
+            {
+              "access": "DENIED",
+              "category": "Evidence (write)",
+              "granted": false,
+              "requested": true
+            },
+            {
+              "access": "DENIED",
+              "category": "AI Runtime",
+              "granted": false,
+              "requested": false
+            },
+            {
+              "access": "DENIED",
+              "category": "Local Files",
+              "granted": false,
+              "requested": false
+            },
+            {
+              "access": "DENIED",
+              "category": "Network",
+              "granted": false,
+              "requested": false
+            },
+            {
+              "access": "DENIED",
+              "category": "Environment/Secrets",
+              "granted": false,
+              "requested": false
+            },
+            {
+              "access": "DENIED",
+              "category": "Commands",
+              "granted": false,
+              "requested": false
+            },
+            {
+              "access": "UI",
+              "category": "UI Contributions",
+              "detail": "slots: dashboard.cards, readiness.panels, prepare.activities · pages: / · commands: Start PostgreSQL Deep Dive · nav: PostgreSQL · interview modes: PostgreSQL Deep Dive",
+              "granted": true,
+              "requested": true
+            }
+          ],
+          "source": "bundled"
+        }
+      },
+      "status": 200
+    },
+    "enable-404": {
+      "body": {
+        "error": {
+          "code": "NOT_FOUND",
+          "message": "unknown plugin \"no-such-plugin\""
+        }
+      },
+      "status": 404
+    },
+    "enable-invalid": {
+      "body": {
+        "error": {
+          "code": "VALIDATION",
+          "message": "invalid request body: enabled: Invalid input: expected boolean, received undefined"
+        }
+      },
+      "status": 400
+    }
+  }
+}

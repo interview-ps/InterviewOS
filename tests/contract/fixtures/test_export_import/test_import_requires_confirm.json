@@ -1,0 +1,13 @@
+{
+  "snapshots": {
+    "no-confirm": {
+      "body": {
+        "error": {
+          "code": "VALIDATION",
+          "message": "invalid request body: confirm: Invalid input: expected \"replace\""
+        }
+      },
+      "status": 400
+    }
+  }
+}

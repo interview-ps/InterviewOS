@@ -1,0 +1,368 @@
+{
+  "snapshots": {
+    "list": {
+      "body": {
+        "companies": [
+          {
+            "aliases": [
+              "stripe inc"
+            ],
+            "communityCount": 5,
+            "description": "Community-observed interview patterns for Stripe-style API companies.",
+            "id": "stripe",
+            "items": [
+              {
+                "group": "competencies",
+                "provenance": "community",
+                "text": "Candidates often report being asked to write real, runnable code rather than pseudocode."
+              },
+              {
+                "group": "competencies",
+                "provenance": "community",
+                "text": "API design and correctness details are commonly emphasized."
+              },
+              {
+                "group": "competencies",
+                "provenance": "community",
+                "text": "Communication quality while coding is reportedly part of the evaluation."
+              },
+              {
+                "group": "question style",
+                "provenance": "community",
+                "text": "Questions often start practical and drill into edge cases and correctness."
+              },
+              {
+                "group": "evaluation guidance",
+                "provenance": "community",
+                "text": "Interviewers reportedly value working code and clear reasoning over cleverness."
+              }
+            ],
+            "name": "Stripe",
+            "source": "bundled",
+            "sourcedCount": 0,
+            "sources": [],
+            "stages": [
+              {
+                "label": "Technical screen",
+                "mode": "technical",
+                "plannedQuestions": 4,
+                "provenance": "community"
+              },
+              {
+                "label": "Coding round",
+                "mode": "coding",
+                "plannedQuestions": 3,
+                "provenance": "community"
+              },
+              {
+                "label": "System design",
+                "mode": "system_design",
+                "plannedQuestions": 3,
+                "provenance": "community"
+              },
+              {
+                "label": "Behavioral / hiring manager",
+                "mode": "behavioral",
+                "plannedQuestions": 3,
+                "provenance": "community"
+              }
+            ],
+            "version": "1.0.0"
+          }
+        ],
+        "loadErrors": [],
+        "roles": [
+          {
+            "defaultQuestionCategories": [
+              "technical",
+              "coding",
+              "system_design",
+              "behavioral"
+            ],
+            "description": "Common expectations for backend service/API engineering roles.",
+            "dimensions": [
+              {
+                "skillId": "apis.rest",
+                "weight": 0.9
+              },
+              {
+                "skillId": "sql",
+                "weight": 0.85
+              },
+              {
+                "skillId": "distributed-systems",
+                "weight": 0.8
+              },
+              {
+                "skillId": "system-design",
+                "weight": 0.75
+              },
+              {
+                "skillId": "coding",
+                "weight": 0.8
+              },
+              {
+                "skillId": "behavioral.ownership",
+                "weight": 0.5
+              }
+            ],
+            "id": "backend-engineer",
+            "name": "Backend Engineer",
+            "resources": [
+              {
+                "kind": "docs",
+                "skillId": "sql.indexing",
+                "title": "PostgreSQL indexes documentation",
+                "url": "https://www.postgresql.org/docs/current/indexes.html"
+              },
+              {
+                "kind": "explanation",
+                "skillId": "distributed-systems",
+                "summary": "Replication, partitioning, consistency models.",
+                "title": "Distributed systems review checklist"
+              }
+            ],
+            "source": "bundled",
+            "version": "1.0.0"
+          },
+          {
+            "defaultQuestionCategories": [
+              "technical",
+              "coding",
+              "behavioral"
+            ],
+            "description": "Common expectations for data engineering roles.",
+            "dimensions": [
+              {
+                "skillId": "data-engineering.pipelines",
+                "weight": 0.9
+              },
+              {
+                "skillId": "data-engineering.modeling",
+                "weight": 0.85
+              },
+              {
+                "skillId": "sql",
+                "weight": 0.85
+              },
+              {
+                "skillId": "coding",
+                "weight": 0.6
+              },
+              {
+                "skillId": "distributed-systems",
+                "weight": 0.6
+              }
+            ],
+            "id": "data-engineer",
+            "name": "Data Engineer",
+            "resources": [
+              {
+                "kind": "docs",
+                "skillId": "sql.query-optimization",
+                "title": "PostgreSQL EXPLAIN documentation",
+                "url": "https://www.postgresql.org/docs/current/using-explain.html"
+              }
+            ],
+            "source": "bundled",
+            "version": "1.0.0"
+          },
+          {
+            "defaultQuestionCategories": [
+              "technical",
+              "behavioral"
+            ],
+            "description": "Common expectations for data science roles.",
+            "dimensions": [
+              {
+                "skillId": "data-science",
+                "weight": 0.85
+              },
+              {
+                "skillId": "data-science.experimentation",
+                "weight": 0.8
+              },
+              {
+                "skillId": "product.metrics",
+                "weight": 0.7
+              },
+              {
+                "skillId": "sql",
+                "weight": 0.7
+              },
+              {
+                "skillId": "communication",
+                "weight": 0.6
+              }
+            ],
+            "id": "data-scientist",
+            "name": "Data Scientist",
+            "resources": [],
+            "source": "bundled",
+            "version": "1.0.0"
+          },
+          {
+            "defaultQuestionCategories": [
+              "behavioral",
+              "hiring_manager",
+              "system_design"
+            ],
+            "description": "Common expectations for engineering management roles.",
+            "dimensions": [
+              {
+                "skillId": "hiring-manager.leadership-style",
+                "weight": 0.9
+              },
+              {
+                "skillId": "hiring-manager.scope-impact",
+                "weight": 0.8
+              },
+              {
+                "skillId": "hiring-manager.prioritization",
+                "weight": 0.75
+              },
+              {
+                "skillId": "behavioral.leadership",
+                "weight": 0.8
+              },
+              {
+                "skillId": "communication",
+                "weight": 0.7
+              },
+              {
+                "skillId": "system-design",
+                "weight": 0.5
+              }
+            ],
+            "id": "engineering-manager",
+            "name": "Engineering Manager",
+            "resources": [],
+            "source": "bundled",
+            "version": "1.0.0"
+          },
+          {
+            "defaultQuestionCategories": [
+              "technical",
+              "coding",
+              "behavioral"
+            ],
+            "description": "Common expectations for frontend/web engineering roles.",
+            "dimensions": [
+              {
+                "skillId": "frontend",
+                "weight": 0.9
+              },
+              {
+                "skillId": "frontend.performance",
+                "weight": 0.7
+              },
+              {
+                "skillId": "coding",
+                "weight": 0.75
+              },
+              {
+                "skillId": "communication",
+                "weight": 0.6
+              },
+              {
+                "skillId": "behavioral.collaboration",
+                "weight": 0.5
+              }
+            ],
+            "id": "frontend-engineer",
+            "name": "Frontend Engineer",
+            "resources": [
+              {
+                "kind": "docs",
+                "skillId": "frontend.performance",
+                "title": "Web performance overview (MDN)",
+                "url": "https://developer.mozilla.org/en-US/docs/Web/Performance"
+              }
+            ],
+            "source": "bundled",
+            "version": "1.0.0"
+          },
+          {
+            "defaultQuestionCategories": [
+              "behavioral",
+              "hiring_manager",
+              "technical"
+            ],
+            "description": "Common expectations for product management roles.",
+            "dimensions": [
+              {
+                "skillId": "product.metrics",
+                "weight": 0.8
+              },
+              {
+                "skillId": "product.prioritization",
+                "weight": 0.85
+              },
+              {
+                "skillId": "product.product-sense",
+                "weight": 0.85
+              },
+              {
+                "skillId": "communication",
+                "weight": 0.75
+              },
+              {
+                "skillId": "behavioral.leadership",
+                "weight": 0.6
+              }
+            ],
+            "id": "product-manager",
+            "name": "Product Manager",
+            "resources": [],
+            "source": "bundled",
+            "version": "1.0.0"
+          },
+          {
+            "defaultQuestionCategories": [
+              "technical",
+              "system_design",
+              "coding",
+              "behavioral"
+            ],
+            "description": "Common expectations for SRE/production engineering roles.",
+            "dimensions": [
+              {
+                "skillId": "infrastructure",
+                "weight": 0.9
+              },
+              {
+                "skillId": "infrastructure.observability",
+                "weight": 0.85
+              },
+              {
+                "skillId": "system-design.reliability",
+                "weight": 0.8
+              },
+              {
+                "skillId": "system-design.reliability",
+                "weight": 0.75
+              },
+              {
+                "skillId": "coding",
+                "weight": 0.6
+              }
+            ],
+            "id": "sre",
+            "name": "Site Reliability Engineer",
+            "resources": [
+              {
+                "kind": "docs",
+                "skillId": "infrastructure.kubernetes",
+                "title": "Kubernetes documentation",
+                "url": "https://kubernetes.io/docs/home/"
+              }
+            ],
+            "source": "bundled",
+            "version": "1.0.0"
+          }
+        ]
+      },
+      "status": 200
+    }
+  }
+}

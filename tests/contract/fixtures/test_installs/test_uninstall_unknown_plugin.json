@@ -1,0 +1,13 @@
+{
+  "snapshots": {
+    "unknown": {
+      "body": {
+        "error": {
+          "code": "NOT_FOUND",
+          "message": "unknown plugin \"no-such-plugin\""
+        }
+      },
+      "status": 404
+    }
+  }
+}

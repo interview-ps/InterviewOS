@@ -1,0 +1,13 @@
+{
+  "snapshots": {
+    "binary": {
+      "body": {
+        "error": {
+          "code": "UNSUPPORTED_FORMAT",
+          "message": "unsupported file format (not pdf/docx/text)"
+        }
+      },
+      "status": 415
+    }
+  }
+}

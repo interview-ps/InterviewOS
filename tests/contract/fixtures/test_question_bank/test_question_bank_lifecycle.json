@@ -1,0 +1,40 @@
+{
+  "snapshots": {
+    "add": {
+      "body": {
+        "createdAt": "<ts>",
+        "difficulty": "hard",
+        "id": "<uq#1>",
+        "mode": "technical",
+        "skillId": "sql.transactions",
+        "text": "How does snapshot isolation differ from serializable?"
+      },
+      "status": 201
+    },
+    "delete": {
+      "body": {
+        "ok": true
+      },
+      "status": 200
+    },
+    "empty": {
+      "body": [],
+      "status": 200
+    },
+    "list": {
+      "body": [
+        {
+          "difficulty": "hard",
+          "mode": "technical",
+          "skillId": "sql.transactions",
+          "source": {
+            "id": "<uq#1>",
+            "kind": "user_bank"
+          },
+          "text": "How does snapshot isolation differ from serializable?"
+        }
+      ],
+      "status": 200
+    }
+  }
+}

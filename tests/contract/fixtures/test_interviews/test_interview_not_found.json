@@ -1,0 +1,49 @@
+{
+  "snapshots": {
+    "answer": {
+      "body": {
+        "error": {
+          "code": "NOT_FOUND",
+          "message": "no session int_00000000-0000-0000-0000-000000000000"
+        }
+      },
+      "status": 404
+    },
+    "complete": {
+      "body": {
+        "error": {
+          "code": "NOT_FOUND",
+          "message": "no session int_00000000-0000-0000-0000-000000000000"
+        }
+      },
+      "status": 404
+    },
+    "debrief": {
+      "body": {
+        "error": {
+          "code": "NOT_FOUND",
+          "message": "no session int_00000000-0000-0000-0000-000000000000"
+        }
+      },
+      "status": 404
+    },
+    "get": {
+      "body": {
+        "error": {
+          "code": "NOT_FOUND",
+          "message": "no session int_00000000-0000-0000-0000-000000000000"
+        }
+      },
+      "status": 404
+    },
+    "next": {
+      "body": {
+        "error": {
+          "code": "NOT_FOUND",
+          "message": "no session int_00000000-0000-0000-0000-000000000000"
+        }
+      },
+      "status": 404
+    }
+  }
+}

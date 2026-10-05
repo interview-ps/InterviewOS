@@ -1,0 +1,15 @@
+{
+  "snapshots": {
+    "unknown": {
+      "body": {
+        "actions": [],
+        "evidence": [],
+        "history": [],
+        "readiness": null,
+        "recommendedAction": null,
+        "skillId": "no-such-skill"
+      },
+      "status": 200
+    }
+  }
+}

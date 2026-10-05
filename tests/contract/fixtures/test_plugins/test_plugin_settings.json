@@ -1,0 +1,52 @@
+{
+  "snapshots": {
+    "get": {
+      "body": {
+        "fields": [
+          {
+            "default": "medium",
+            "description": "Bias suggested PostgreSQL questions toward this difficulty.",
+            "key": "difficulty-bias",
+            "label": "Question difficulty bias",
+            "options": [
+              "easy",
+              "medium",
+              "hard"
+            ],
+            "type": "enum"
+          }
+        ],
+        "values": {
+          "difficulty-bias": "medium"
+        }
+      },
+      "status": 200
+    },
+    "get-404": {
+      "body": {
+        "error": {
+          "code": "NOT_FOUND",
+          "message": "unknown plugin \"no-such-plugin\""
+        }
+      },
+      "status": 404
+    },
+    "put": {
+      "body": {
+        "values": {
+          "difficulty-bias": "hard"
+        }
+      },
+      "status": 200
+    },
+    "put-invalid": {
+      "body": {
+        "error": {
+          "code": "VALIDATION",
+          "message": "setting \"difficulty-bias\": must be one of easy, medium, hard"
+        }
+      },
+      "status": 400
+    }
+  }
+}

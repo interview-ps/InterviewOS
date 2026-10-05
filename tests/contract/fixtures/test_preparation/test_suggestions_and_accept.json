@@ -1,0 +1,56 @@
+{
+  "snapshots": {
+    "accept": {
+      "body": {
+        "id": "<action#1>"
+      },
+      "status": 200
+    },
+    "accept-unknown": {
+      "body": {
+        "error": {
+          "code": "NOT_FOUND",
+          "message": "unknown plugin \"no-such-plugin\""
+        }
+      },
+      "status": 404
+    },
+    "suggestions": {
+      "body": {
+        "suggestions": [
+          {
+            "activities": [
+              {
+                "action": "Weak area for this role (severity high) — 10 minutes of review before the interview.",
+                "skillId": "distributed-systems.caching",
+                "successCriteria": [
+                  "Can explain the core concept unprompted"
+                ],
+                "title": "Skim Caching"
+              },
+              {
+                "action": "Weak area for this role (severity high) — 10 minutes of review before the interview.",
+                "skillId": "distributed-systems.message-queues",
+                "successCriteria": [
+                  "Can explain the core concept unprompted"
+                ],
+                "title": "Skim Message Queues"
+              },
+              {
+                "action": "Weak area for this role (severity high) — 10 minutes of review before the interview.",
+                "skillId": "system-design",
+                "successCriteria": [
+                  "Can explain the core concept unprompted"
+                ],
+                "title": "Skim System Design"
+              }
+            ],
+            "pluginId": "interview-day-checklist",
+            "pluginName": "Interview Day Checklist"
+          }
+        ]
+      },
+      "status": 200
+    }
+  }
+}

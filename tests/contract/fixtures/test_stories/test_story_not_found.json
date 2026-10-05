@@ -1,0 +1,31 @@
+{
+  "snapshots": {
+    "coach-404": {
+      "body": {
+        "error": {
+          "code": "NOT_FOUND",
+          "message": "no story story_00000000-0000-0000-0000-000000000000"
+        }
+      },
+      "status": 404
+    },
+    "coach-no-profile": {
+      "body": {
+        "error": {
+          "code": "NO_ACTIVE_PROFILE",
+          "message": "no active candidate/target — call /api/workspace/setup first"
+        }
+      },
+      "status": 409
+    },
+    "patch": {
+      "body": {
+        "error": {
+          "code": "NOT_FOUND",
+          "message": "no story story_00000000-0000-0000-0000-000000000000"
+        }
+      },
+      "status": 404
+    }
+  }
+}

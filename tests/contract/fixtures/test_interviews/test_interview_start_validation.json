@@ -1,0 +1,22 @@
+{
+  "snapshots": {
+    "bad-mode": {
+      "body": {
+        "error": {
+          "code": "VALIDATION",
+          "message": "interview mode \"not-a-mode\" is unavailable — its plugin is not installed or not enabled"
+        }
+      },
+      "status": 400
+    },
+    "bad-type": {
+      "body": {
+        "error": {
+          "code": "VALIDATION",
+          "message": "invalid request body"
+        }
+      },
+      "status": 400
+    }
+  }
+}

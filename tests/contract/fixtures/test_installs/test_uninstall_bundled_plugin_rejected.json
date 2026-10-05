@@ -1,0 +1,13 @@
+{
+  "snapshots": {
+    "bundled": {
+      "body": {
+        "error": {
+          "code": "VALIDATION",
+          "message": "plugin \"interview-day-checklist\" is bundled and cannot be uninstalled"
+        }
+      },
+      "status": 400
+    }
+  }
+}

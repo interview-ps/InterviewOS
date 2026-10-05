@@ -1,0 +1,13 @@
+{
+  "snapshots": {
+    "invalid": {
+      "body": {
+        "error": {
+          "code": "VALIDATION",
+          "message": "invalid request body: text: Too small: expected string to have >=10 characters"
+        }
+      },
+      "status": 400
+    }
+  }
+}

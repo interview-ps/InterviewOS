@@ -1,0 +1,39 @@
+{
+  "snapshots": {
+    "enable": {
+      "body": {
+        "allowedTools": [
+          "get_repository"
+        ],
+        "args": [
+          "<repo>\\tests\\fixtures\\fake-mcp-server.mjs"
+        ],
+        "command": "C:\\Program Files\\nodejs\\node.EXE",
+        "enabled": true,
+        "envPassthrough": [],
+        "id": "fake",
+        "name": "Fake MCP"
+      },
+      "status": 200
+    },
+    "tools": {
+      "body": {
+        "tools": [
+          {
+            "description": "Return a fake README and file tree for a repository.",
+            "name": "get_repository"
+          },
+          {
+            "description": "List the NAMES of env vars visible to this process.",
+            "name": "echo_env"
+          },
+          {
+            "description": "Return a large (50 KB) text blob.",
+            "name": "big_output"
+          }
+        ]
+      },
+      "status": 200
+    }
+  }
+}

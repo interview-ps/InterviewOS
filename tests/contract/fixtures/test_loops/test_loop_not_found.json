@@ -1,0 +1,22 @@
+{
+  "snapshots": {
+    "abandon": {
+      "body": {
+        "error": {
+          "code": "NOT_FOUND",
+          "message": "no loop loop_00000000-0000-0000-0000-000000000000"
+        }
+      },
+      "status": 404
+    },
+    "get": {
+      "body": {
+        "error": {
+          "code": "NOT_FOUND",
+          "message": "no loop loop_00000000-0000-0000-0000-000000000000"
+        }
+      },
+      "status": 404
+    }
+  }
+}

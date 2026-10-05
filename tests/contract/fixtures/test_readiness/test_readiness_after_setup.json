@@ -1,0 +1,140 @@
+{
+  "snapshots": {
+    "graph": {
+      "body": {
+        "dimensions": {
+          "apis": {
+            "children": [
+              "apis.rest"
+            ],
+            "confidence": 0.194709,
+            "evidenceIds": [
+              "<ev#2>"
+            ],
+            "label": "APIs",
+            "score": 0.9,
+            "skillId": "apis",
+            "status": "strong"
+          },
+          "apis.rest": {
+            "children": [],
+            "confidence": 0.124827,
+            "evidenceIds": [
+              "<ev#1>"
+            ],
+            "label": "REST APIs",
+            "score": 0.9,
+            "skillId": "apis.rest",
+            "status": "strong"
+          },
+          "distributed-systems": {
+            "children": [
+              "distributed-systems.caching",
+              "distributed-systems.message-queues"
+            ],
+            "confidence": 0,
+            "evidenceIds": [],
+            "label": "Distributed Systems",
+            "score": null,
+            "skillId": "distributed-systems",
+            "status": "unknown"
+          },
+          "distributed-systems.caching": {
+            "children": [],
+            "confidence": 0,
+            "evidenceIds": [],
+            "label": "Caching",
+            "score": null,
+            "skillId": "distributed-systems.caching",
+            "status": "unknown"
+          },
+          "distributed-systems.message-queues": {
+            "children": [],
+            "confidence": 0,
+            "evidenceIds": [],
+            "label": "Message Queues",
+            "score": null,
+            "skillId": "distributed-systems.message-queues",
+            "status": "unknown"
+          },
+          "infrastructure": {
+            "children": [
+              "infrastructure.kubernetes",
+              "infrastructure.observability"
+            ],
+            "confidence": 0,
+            "evidenceIds": [],
+            "label": "Infrastructure",
+            "score": null,
+            "skillId": "infrastructure",
+            "status": "unknown"
+          },
+          "infrastructure.kubernetes": {
+            "children": [],
+            "confidence": 0,
+            "evidenceIds": [],
+            "label": "Kubernetes",
+            "score": null,
+            "skillId": "infrastructure.kubernetes",
+            "status": "unknown"
+          },
+          "infrastructure.observability": {
+            "children": [],
+            "confidence": 0,
+            "evidenceIds": [],
+            "label": "Observability",
+            "score": null,
+            "skillId": "infrastructure.observability",
+            "status": "unknown"
+          },
+          "python": {
+            "children": [],
+            "confidence": 0.124827,
+            "evidenceIds": [
+              "<ev#3>"
+            ],
+            "label": "Python",
+            "score": 0.9,
+            "skillId": "python",
+            "status": "strong"
+          },
+          "sql": {
+            "children": [],
+            "confidence": 0.124827,
+            "evidenceIds": [
+              "<ev#4>"
+            ],
+            "label": "SQL",
+            "score": 0.6,
+            "skillId": "sql",
+            "status": "developing"
+          },
+          "system-design": {
+            "children": [
+              "system-design.async-processing"
+            ],
+            "confidence": 0,
+            "evidenceIds": [],
+            "label": "System Design",
+            "score": null,
+            "skillId": "system-design",
+            "status": "unknown"
+          },
+          "system-design.async-processing": {
+            "children": [],
+            "confidence": 0,
+            "evidenceIds": [],
+            "label": "Async Processing",
+            "score": null,
+            "skillId": "system-design.async-processing",
+            "status": "unknown"
+          }
+        },
+        "lastUpdated": "<ts>",
+        "overall": 0.47303,
+        "overallConfidence": 0.055618
+      },
+      "status": 200
+    }
+  }
+}

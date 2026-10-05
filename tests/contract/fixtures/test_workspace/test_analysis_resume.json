@@ -1,0 +1,89 @@
+{
+  "snapshots": {
+    "resume": {
+      "body": {
+        "achievements": [],
+        "education": [
+          {
+            "degree": "BSc Computer Science",
+            "institution": "Ridgeview University"
+          }
+        ],
+        "experience": [
+          {
+            "company": "Acme Payments",
+            "highlights": [
+              "designed Python REST APIs for payment processing"
+            ],
+            "title": "Senior Backend Engineer"
+          },
+          {
+            "company": "Blue Harbor Apps",
+            "highlights": [
+              "owned Python services and a SQL datastore"
+            ],
+            "title": "Backend Engineer"
+          },
+          {
+            "company": "Copperline Labs",
+            "highlights": [
+              "shipped Python tooling and internal REST APIs"
+            ],
+            "title": "Software Engineer"
+          }
+        ],
+        "id": "<cand#1>",
+        "name": "Jordan Reyes",
+        "projects": [
+          {
+            "description": "a Python reconciliation service exposing a REST API",
+            "name": "LedgerSync ",
+            "technologies": []
+          },
+          {
+            "description": "a Python document intake service with a REST API",
+            "name": "DocPipe ",
+            "technologies": []
+          }
+        ],
+        "skills": [
+          {
+            "evidence": "Backend engineer who builds REST APIs and Python services.",
+            "level": 0.9,
+            "skillId": "apis.rest",
+            "source": "resume"
+          },
+          {
+            "evidence": "Backend engineer who builds REST APIs and Python services.",
+            "level": 0.9,
+            "skillId": "python",
+            "source": "resume"
+          },
+          {
+            "evidence": "Backend engineer who builds REST APIs and Python services.",
+            "level": 0.9,
+            "skillId": "apis",
+            "source": "resume"
+          },
+          {
+            "evidence": "- Backend Engineer — Blue Harbor Apps — owned Python services and a SQL datastore",
+            "level": 0.6,
+            "skillId": "sql",
+            "source": "resume"
+          }
+        ],
+        "starStories": []
+      },
+      "status": 200
+    },
+    "resume-empty": {
+      "body": {
+        "error": {
+          "code": "VALIDATION",
+          "message": "invalid request body: resumeText: Too small: expected string to have >=1 characters"
+        }
+      },
+      "status": 400
+    }
+  }
+}

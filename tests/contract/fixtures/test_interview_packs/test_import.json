@@ -1,0 +1,43 @@
+{
+  "snapshots": {
+    "import": {
+      "body": {
+        "pack": {
+          "author": "",
+          "description": "Imported via the contract suite.",
+          "durationMinutes": 30,
+          "format": "interview-os.interview-pack",
+          "id": "contract-imported",
+          "name": "Contract Imported Pack",
+          "rounds": [
+            {
+              "label": "Tech",
+              "mode": "technical",
+              "plannedQuestions": 1
+            },
+            {
+              "label": "Behav",
+              "mode": "behavioral",
+              "plannedQuestions": 1
+            }
+          ],
+          "skills": [
+            "sql"
+          ],
+          "version": "1.0.0"
+        },
+        "source": "imported"
+      },
+      "status": 201
+    },
+    "import-bad": {
+      "body": {
+        "error": {
+          "code": "VALIDATION",
+          "message": "interview pack content is not valid YAML/JSON"
+        }
+      },
+      "status": 400
+    }
+  }
+}

@@ -1,0 +1,22 @@
+{
+  "snapshots": {
+    "check": {
+      "body": {
+        "available": true,
+        "mode": "mock",
+        "runtime": "mock",
+        "status": "ready"
+      },
+      "status": 200
+    },
+    "status": {
+      "body": {
+        "available": true,
+        "mode": "mock",
+        "runtime": "mock",
+        "status": "ready"
+      },
+      "status": 200
+    }
+  }
+}

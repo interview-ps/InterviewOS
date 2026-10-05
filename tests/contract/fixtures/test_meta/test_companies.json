@@ -1,0 +1,481 @@
+{
+  "snapshots": {
+    "companies": {
+      "body": [
+        {
+          "aliases": [],
+          "behavioralFramework": {
+            "guidance": "Probe for a specific past situation; expect Situation → Task → Action → Result with at least one concrete outcome.",
+            "name": "STAR",
+            "themes": [
+              "ownership",
+              "collaboration",
+              "conflict resolution",
+              "learning from failure"
+            ]
+          },
+          "disclaimer": "Based on commonly reported public interview patterns; real loops vary by team, role and level.",
+          "emphasis": [],
+          "followUpDepth": 1,
+          "id": "generic",
+          "name": "Generic",
+          "roleExpectations": {
+            "junior": [
+              "solid fundamentals",
+              "learns quickly",
+              "asks good clarifying questions"
+            ],
+            "mid": [
+              "delivers independently",
+              "owns medium-sized features end to end"
+            ],
+            "senior": [
+              "drives projects across teams",
+              "mentors others",
+              "makes sound trade-offs"
+            ],
+            "staff": [
+              "sets technical direction",
+              "influences beyond own team",
+              "unblocks ambiguous programs"
+            ]
+          },
+          "rubricEmphasis": {},
+          "typicalLoop": [
+            {
+              "label": "Technical screen",
+              "mode": "technical",
+              "plannedQuestions": 4
+            },
+            {
+              "label": "Coding round",
+              "mode": "coding",
+              "plannedQuestions": 2
+            },
+            {
+              "label": "System design",
+              "mode": "system_design",
+              "plannedQuestions": 4
+            },
+            {
+              "label": "Behavioral",
+              "mode": "behavioral",
+              "plannedQuestions": 4
+            },
+            {
+              "label": "HR / culture",
+              "mode": "hr",
+              "plannedQuestions": 3
+            }
+          ]
+        },
+        {
+          "aliases": [
+            "google",
+            "alphabet"
+          ],
+          "behavioralFramework": {
+            "guidance": "Favor stories about navigating ambiguity, helping others succeed, and pushing back respectfully with data.",
+            "name": "Googleyness",
+            "themes": [
+              "comfort with ambiguity",
+              "collaboration across teams",
+              "humility and learning",
+              "doing the right thing for users"
+            ]
+          },
+          "disclaimer": "Based on commonly reported public interview patterns; real loops vary by team, role and level.",
+          "emphasis": [
+            {
+              "skillId": "coding",
+              "weight": 0.08
+            },
+            {
+              "skillId": "coding.complexity",
+              "weight": 0.06
+            },
+            {
+              "skillId": "system-design",
+              "weight": 0.05
+            }
+          ],
+          "followUpDepth": 2,
+          "id": "google",
+          "name": "Google",
+          "roleExpectations": {
+            "junior": [
+              "strong CS fundamentals",
+              "clean coding under guidance"
+            ],
+            "mid": [
+              "solves novel coding problems independently",
+              "clear complexity reasoning"
+            ],
+            "senior": [
+              "designs systems at scale",
+              "handles ambiguous requirements"
+            ],
+            "staff": [
+              "industry-level design depth",
+              "leads technical strategy discussions"
+            ]
+          },
+          "rubricEmphasis": {
+            "complexity": 1.2,
+            "problemUnderstanding": 1.1
+          },
+          "typicalLoop": [
+            {
+              "label": "Coding I",
+              "mode": "coding",
+              "plannedQuestions": 2
+            },
+            {
+              "label": "Coding II",
+              "mode": "coding",
+              "plannedQuestions": 2
+            },
+            {
+              "label": "System design",
+              "mode": "system_design",
+              "plannedQuestions": 4
+            },
+            {
+              "label": "Behavioral (Googleyness)",
+              "mode": "behavioral",
+              "plannedQuestions": 4
+            }
+          ]
+        },
+        {
+          "aliases": [
+            "meta",
+            "facebook"
+          ],
+          "behavioralFramework": {
+            "guidance": "Favor stories about shipping quickly under uncertainty, choosing impact over polish, and resolving disagreement directly.",
+            "name": "Meta values",
+            "themes": [
+              "move fast",
+              "focus on impact",
+              "be bold",
+              "build social value"
+            ]
+          },
+          "disclaimer": "Based on commonly reported public interview patterns; real loops vary by team, role and level.",
+          "emphasis": [
+            {
+              "skillId": "coding",
+              "weight": 0.08
+            },
+            {
+              "skillId": "coding.data-structures",
+              "weight": 0.05
+            },
+            {
+              "skillId": "system-design",
+              "weight": 0.05
+            }
+          ],
+          "followUpDepth": 1,
+          "id": "meta",
+          "name": "Meta",
+          "roleExpectations": {
+            "junior": [
+              "productive coder",
+              "ramp quickly with support"
+            ],
+            "mid": [
+              "ships end-to-end",
+              "strong debugging instincts"
+            ],
+            "senior": [
+              "drives ambiguous projects",
+              "cross-functional influence"
+            ],
+            "staff": [
+              "org-level technical leadership",
+              "multiplies team output"
+            ]
+          },
+          "rubricEmphasis": {
+            "approach": 1.1,
+            "impact": 1.1
+          },
+          "typicalLoop": [
+            {
+              "label": "Coding I",
+              "mode": "coding",
+              "plannedQuestions": 2
+            },
+            {
+              "label": "Coding II",
+              "mode": "coding",
+              "plannedQuestions": 2
+            },
+            {
+              "label": "Product/system design",
+              "mode": "system_design",
+              "plannedQuestions": 4
+            },
+            {
+              "label": "Behavioral",
+              "mode": "behavioral",
+              "plannedQuestions": 4
+            },
+            {
+              "label": "Hiring manager",
+              "mode": "hiring_manager",
+              "plannedQuestions": 3
+            }
+          ]
+        },
+        {
+          "aliases": [
+            "amazon",
+            "aws",
+            "amazon web services"
+          ],
+          "behavioralFramework": {
+            "guidance": "Each behavioral answer should map to a Leadership Principle; probe two levels deep on the candidate's personal contribution and the measurable result.",
+            "name": "Leadership Principles",
+            "themes": [
+              "customer obsession",
+              "ownership",
+              "bias for action",
+              "dive deep",
+              "deliver results",
+              "earn trust",
+              "have backbone; disagree and commit",
+              "learn and be curious"
+            ]
+          },
+          "disclaimer": "Based on commonly reported public interview patterns; real loops vary by team, role and level.",
+          "emphasis": [
+            {
+              "skillId": "behavioral",
+              "weight": 0.08
+            },
+            {
+              "skillId": "behavioral.ownership",
+              "weight": 0.06
+            },
+            {
+              "skillId": "coding",
+              "weight": 0.04
+            }
+          ],
+          "followUpDepth": 2,
+          "id": "amazon",
+          "name": "Amazon",
+          "roleExpectations": {
+            "junior": [
+              "delivers with guidance",
+              "learns quickly",
+              "bias for action"
+            ],
+            "mid": [
+              "owns features end to end",
+              "dives deep into data"
+            ],
+            "senior": [
+              "owns services/systems",
+              "influences without authority",
+              "develops others"
+            ],
+            "staff": [
+              "org-wide ownership",
+              "long-term technical vision"
+            ]
+          },
+          "rubricEmphasis": {
+            "decisionMaking": 1.1,
+            "ownership": 1.2,
+            "results": 1.2
+          },
+          "typicalLoop": [
+            {
+              "label": "Coding",
+              "mode": "coding",
+              "plannedQuestions": 2
+            },
+            {
+              "label": "Leadership Principles I",
+              "mode": "behavioral",
+              "plannedQuestions": 4
+            },
+            {
+              "label": "Leadership Principles II",
+              "mode": "behavioral",
+              "plannedQuestions": 4
+            },
+            {
+              "label": "System design",
+              "mode": "system_design",
+              "plannedQuestions": 4
+            },
+            {
+              "label": "Hiring manager",
+              "mode": "hiring_manager",
+              "plannedQuestions": 3
+            }
+          ]
+        },
+        {
+          "aliases": [
+            "microsoft",
+            "msft"
+          ],
+          "behavioralFramework": {
+            "guidance": "Favor stories about learning from feedback, inclusive collaboration across teams, and putting customer outcomes first.",
+            "name": "Growth mindset",
+            "themes": [
+              "growth mindset",
+              "customer obsession",
+              "diverse and inclusive collaboration",
+              "making others around you better"
+            ]
+          },
+          "disclaimer": "Based on commonly reported public interview patterns; real loops vary by team, role and level.",
+          "emphasis": [
+            {
+              "skillId": "coding",
+              "weight": 0.06
+            },
+            {
+              "skillId": "system-design",
+              "weight": 0.05
+            },
+            {
+              "skillId": "hiring-manager",
+              "weight": 0.04
+            }
+          ],
+          "followUpDepth": 1,
+          "id": "microsoft",
+          "name": "Microsoft",
+          "roleExpectations": {
+            "junior": [
+              "solid fundamentals",
+              "openness to feedback"
+            ],
+            "mid": [
+              "independent delivery",
+              "good collaboration hygiene"
+            ],
+            "senior": [
+              "drives multi-team work",
+              "mentors",
+              "customer-focused design"
+            ],
+            "staff": [
+              "division-level influence",
+              "technical strategy"
+            ]
+          },
+          "rubricEmphasis": {
+            "collaboration": 1.1,
+            "leadership": 1.1
+          },
+          "typicalLoop": [
+            {
+              "label": "Coding",
+              "mode": "coding",
+              "plannedQuestions": 2
+            },
+            {
+              "label": "Technical deep dive",
+              "mode": "technical",
+              "plannedQuestions": 4
+            },
+            {
+              "label": "Design",
+              "mode": "system_design",
+              "plannedQuestions": 4
+            },
+            {
+              "label": "Behavioral",
+              "mode": "behavioral",
+              "plannedQuestions": 4
+            },
+            {
+              "label": "As-appropriate (hiring manager)",
+              "mode": "hiring_manager",
+              "plannedQuestions": 3
+            }
+          ]
+        },
+        {
+          "aliases": [
+            "stripe inc"
+          ],
+          "behavioralFramework": {
+            "guidance": "Answers are expected to be concrete, well-structured and written-communication-friendly.",
+            "name": "Operating principles",
+            "themes": [
+              "craftsmanship",
+              "rigor",
+              "written communication"
+            ]
+          },
+          "disclaimer": "Based on commonly reported public interview patterns; real loops vary by team, role and level. Community pack — items marked community are unverified observations.",
+          "emphasis": [
+            {
+              "skillId": "apis.rest",
+              "weight": 0.1
+            },
+            {
+              "skillId": "coding.code-quality",
+              "weight": 0.05
+            },
+            {
+              "skillId": "communication",
+              "weight": 0.05
+            }
+          ],
+          "followUpDepth": 2,
+          "id": "stripe",
+          "name": "Stripe",
+          "pack": {
+            "communityCount": 19,
+            "kind": "company",
+            "sourcedCount": 0,
+            "version": "1.0.0"
+          },
+          "roleExpectations": {
+            "senior": [
+              "Designs APIs and systems with explicit trade-off discussion."
+            ],
+            "staff": [
+              "Drives ambiguous problems to a crisp, well-communicated plan."
+            ]
+          },
+          "rubricEmphasis": {},
+          "typicalLoop": [
+            {
+              "label": "Technical screen",
+              "mode": "technical",
+              "plannedQuestions": 4
+            },
+            {
+              "label": "Coding round",
+              "mode": "coding",
+              "plannedQuestions": 3
+            },
+            {
+              "label": "System design",
+              "mode": "system_design",
+              "plannedQuestions": 3
+            },
+            {
+              "label": "Behavioral / hiring manager",
+              "mode": "behavioral",
+              "plannedQuestions": 3
+            }
+          ]
+        }
+      ],
+      "status": 200
+    }
+  }
+}

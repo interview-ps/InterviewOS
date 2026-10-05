@@ -1,0 +1,55 @@
+{
+  "snapshots": {
+    "available": {
+      "body": {
+        "active": "mock",
+        "providers": [
+          {
+            "available": true,
+            "executable": "<env>",
+            "message": "<env>",
+            "runtime": "codex",
+            "status": "ready",
+            "version": "<env>",
+            "workspace": "<repo>\\data\\codex-workspace"
+          },
+          {
+            "available": true,
+            "message": "<env>",
+            "runtime": "mock",
+            "status": "ready",
+            "workspace": "<repo>\\data\\codex-workspace"
+          },
+          {
+            "available": true,
+            "executable": "<env>",
+            "message": "<env>",
+            "runtime": "claude",
+            "status": "ready",
+            "version": "<env>",
+            "workspace": "<repo>\\data\\claude-workspace"
+          },
+          {
+            "available": true,
+            "executable": "<env>",
+            "message": "<env>",
+            "runtime": "opencode",
+            "status": "ready",
+            "version": "<env>",
+            "workspace": "<repo>\\data\\opencode-workspace"
+          },
+          {
+            "available": true,
+            "executable": "<env>",
+            "message": "<env>",
+            "runtime": "devin",
+            "status": "ready",
+            "version": "<env>",
+            "workspace": "<repo>\\data\\devin-workspace"
+          }
+        ]
+      },
+      "status": 200
+    }
+  }
+}

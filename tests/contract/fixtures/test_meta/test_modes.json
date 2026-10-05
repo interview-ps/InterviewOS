@@ -1,0 +1,281 @@
+{
+  "snapshots": {
+    "modes": {
+      "body": {
+        "modes": [
+          {
+            "answerFields": [],
+            "answerFormat": "text",
+            "description": "STAR stories from your experience — a specific situation, your actions, measurable results.",
+            "id": "behavioral",
+            "label": "Behavioral",
+            "pluginId": "behavioral-mode",
+            "rubric": [
+              {
+                "description": "Sets clear context — when, where, what was at stake.",
+                "id": "situationClarity",
+                "label": "Situation clarity"
+              },
+              {
+                "description": "Shows personal accountability rather than team-only framing.",
+                "id": "ownership",
+                "label": "Ownership"
+              },
+              {
+                "description": "Describes what the candidate personally did, in first person.",
+                "id": "actions",
+                "label": "Actions"
+              },
+              {
+                "description": "Explains reasoning and trade-offs behind choices.",
+                "id": "decisionMaking",
+                "label": "Decision making"
+              },
+              {
+                "description": "Shows the outcome mattered to the business or team.",
+                "id": "impact",
+                "label": "Impact"
+              },
+              {
+                "description": "Reports concrete, ideally quantified, results.",
+                "id": "results",
+                "label": "Results"
+              },
+              {
+                "description": "Shows learning — what changed or what they would do differently.",
+                "id": "reflection",
+                "label": "Reflection"
+              },
+              {
+                "description": "Concise, well-structured story under ~2 minutes.",
+                "id": "communication",
+                "label": "Communication"
+              }
+            ]
+          },
+          {
+            "answerFields": [],
+            "answerFormat": "text+code",
+            "description": "Solve a small algorithmic problem — explain your approach, then write code (reviewed, not executed).",
+            "id": "coding",
+            "label": "Coding",
+            "pluginId": "coding-mode",
+            "rubric": [
+              {
+                "description": "Restates the goal, clarifies inputs, constraints and edge conditions before coding.",
+                "id": "problemUnderstanding",
+                "label": "Problem understanding"
+              },
+              {
+                "description": "Describes a workable plan before or while writing code.",
+                "id": "approach",
+                "label": "Approach"
+              },
+              {
+                "description": "The proposed logic/code solves the stated problem.",
+                "id": "correctness",
+                "label": "Correctness"
+              },
+              {
+                "description": "States and reasons about time/space complexity (big-O).",
+                "id": "complexity",
+                "label": "Complexity"
+              },
+              {
+                "description": "Identifies and handles edge cases (empty input, duplicates, bounds).",
+                "id": "edgeCases",
+                "label": "Edge cases"
+              },
+              {
+                "description": "Readable, structured code — good naming, no dead paths.",
+                "id": "codeQuality",
+                "label": "Code quality"
+              },
+              {
+                "description": "Thinks aloud clearly; the interviewer could follow along.",
+                "id": "communication",
+                "label": "Communication"
+              }
+            ]
+          },
+          {
+            "answerFields": [],
+            "answerFormat": "text",
+            "description": "Scope, impact, priorities and leadership style — the conversation a hiring manager would have.",
+            "id": "hiring_manager",
+            "label": "Hiring manager",
+            "pluginId": "hiring-manager-mode",
+            "rubric": [
+              {
+                "description": "Understands the role and articulates mutual fit.",
+                "id": "roleFit",
+                "label": "Role fit"
+              },
+              {
+                "description": "Describes scope of influence and business impact credibly.",
+                "id": "scopeImpact",
+                "label": "Scope & impact"
+              },
+              {
+                "description": "Makes and explains hard prioritization trade-offs.",
+                "id": "prioritization",
+                "label": "Prioritization"
+              },
+              {
+                "description": "Leads through ambiguity; develops people and direction.",
+                "id": "leadership",
+                "label": "Leadership"
+              },
+              {
+                "description": "Works across teams and manages stakeholders.",
+                "id": "collaboration",
+                "label": "Collaboration"
+              },
+              {
+                "description": "Genuine, specific motivation for this team and role.",
+                "id": "motivation",
+                "label": "Motivation"
+              }
+            ]
+          },
+          {
+            "answerFields": [],
+            "answerFormat": "text",
+            "description": "Motivation, career goals, culture fit and work style — friendly but probing.",
+            "id": "hr",
+            "label": "HR",
+            "pluginId": "hr-mode",
+            "rubric": [
+              {
+                "description": "Specific, genuine interest in the role and company.",
+                "id": "motivation",
+                "label": "Motivation"
+              },
+              {
+                "description": "Coherent direction that this role plausibly serves.",
+                "id": "careerGoals",
+                "label": "Career goals"
+              },
+              {
+                "description": "Working preferences align with the company context.",
+                "id": "cultureFit",
+                "label": "Culture fit"
+              },
+              {
+                "description": "Concrete habits for communication, feedback and delivery.",
+                "id": "workStyle",
+                "label": "Work style"
+              },
+              {
+                "description": "Direct, personable, concise answers.",
+                "id": "communication",
+                "label": "Communication"
+              }
+            ]
+          },
+          {
+            "answerFields": [],
+            "answerFormat": "text",
+            "description": "Open-ended design of a larger system with concrete scale numbers — requirements → estimation → design → trade-offs.",
+            "id": "system_design",
+            "label": "System design",
+            "pluginId": "system-design-mode",
+            "rubric": [
+              {
+                "description": "Clarifies functional scope before designing.",
+                "id": "requirements",
+                "label": "Requirements"
+              },
+              {
+                "description": "Surfaces constraints and non-functional goals.",
+                "id": "constraints",
+                "label": "Constraints"
+              },
+              {
+                "description": "Quantifies load — QPS, storage, users — with numbers.",
+                "id": "scaleAssumptions",
+                "label": "Scale assumptions"
+              },
+              {
+                "description": "Presents a coherent high-level component design.",
+                "id": "architecture",
+                "label": "Architecture"
+              },
+              {
+                "description": "Defines entities, schema and access patterns.",
+                "id": "dataModel",
+                "label": "Data model"
+              },
+              {
+                "description": "Specifies the external API surface.",
+                "id": "apis",
+                "label": "APIs"
+              },
+              {
+                "description": "Chooses and justifies storage technology.",
+                "id": "storage",
+                "label": "Storage"
+              },
+              {
+                "description": "Uses caching appropriately with invalidation reasoning.",
+                "id": "caching",
+                "label": "Caching"
+              },
+              {
+                "description": "Covers failure modes, redundancy, monitoring.",
+                "id": "reliability",
+                "label": "Reliability"
+              },
+              {
+                "description": "Shows how the design scales with growth.",
+                "id": "scalability",
+                "label": "Scalability"
+              },
+              {
+                "description": "Discusses alternatives and justifies decisions.",
+                "id": "tradeOffs",
+                "label": "Trade-offs"
+              }
+            ]
+          },
+          {
+            "answerFields": [],
+            "answerFormat": "text",
+            "description": "Deep technical Q&A — mechanics, edge cases and trade-offs for a selected skill.",
+            "id": "technical",
+            "label": "Technical",
+            "pluginId": "technical-mode",
+            "rubric": [
+              {
+                "description": "Factual correctness.",
+                "id": "correctness",
+                "label": "Correctness"
+              },
+              {
+                "description": "Depth beyond surface definitions.",
+                "id": "technicalDepth",
+                "label": "Technical depth"
+              },
+              {
+                "description": "Quality of the reasoning chain.",
+                "id": "reasoning",
+                "label": "Reasoning"
+              },
+              {
+                "description": "Clarity and structure.",
+                "id": "communication",
+                "label": "Communication"
+              },
+              {
+                "description": "Relevance to the target role.",
+                "id": "roleRelevance",
+                "label": "Role relevance"
+              }
+            ]
+          }
+        ]
+      },
+      "status": 200
+    }
+  }
+}

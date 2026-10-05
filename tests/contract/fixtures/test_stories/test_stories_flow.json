@@ -1,0 +1,103 @@
+{
+  "snapshots": {
+    "coach": {
+      "body": {
+        "feedback": "\"Retitled story\" needs work for a Senior Backend Engineer interview: Situation is missing or still a placeholder; Task is missing or still a placeholder; Result is missing or still a placeholder; Result lacks a measurable outcome. Tighten it so each STAR part is concrete.",
+        "improvedDraft": {
+          "action": "I worked on LedgerSync : a Python reconciliation service exposing a REST API",
+          "result": "[add metric — quantify the outcome: %, time, users, revenue]",
+          "situation": "[add situation — one sentence: when, where, what was at stake]",
+          "task": "[add task — the goal or responsibility you owned]"
+        },
+        "missing": [
+          "Situation is missing or still a placeholder",
+          "Task is missing or still a placeholder",
+          "Result is missing or still a placeholder",
+          "Result lacks a measurable outcome"
+        ],
+        "suggestions": [
+          "Write the situation in 1–2 concrete sentences",
+          "Write the task in 1–2 concrete sentences",
+          "Write the result in 1–2 concrete sentences",
+          "Add a number or percentage to the Result (time saved, %, users)"
+        ]
+      },
+      "status": 200
+    },
+    "empty": {
+      "body": [],
+      "status": 200
+    },
+    "generate": {
+      "body": {
+        "created": 4,
+        "stories": [
+          {
+            "action": "I worked on LedgerSync : a Python reconciliation service exposing a REST API",
+            "candidateId": "<cand#1>",
+            "id": "<story#1>",
+            "result": "[add metric]",
+            "situation": "[add situation — why LedgerSync  was needed]",
+            "skillIds": [],
+            "source": "generated",
+            "task": "[add your goal]",
+            "title": "Project: LedgerSync ",
+            "updatedAt": "<ts>"
+          },
+          {
+            "action": "I shipped Python tooling and internal REST APIs",
+            "candidateId": "<cand#1>",
+            "id": "<story#2>",
+            "result": "[add metric]",
+            "situation": "[add situation — when/where at Copperline Labs]",
+            "skillIds": [],
+            "source": "generated",
+            "task": "[add your goal as Software Engineer]",
+            "title": "Copperline Labs: shipped Python tooling and internal REST APIs",
+            "updatedAt": "<ts>"
+          },
+          {
+            "action": "I owned Python services and a SQL datastore",
+            "candidateId": "<cand#1>",
+            "id": "<story#3>",
+            "result": "[add metric]",
+            "situation": "[add situation — when/where at Blue Harbor Apps]",
+            "skillIds": [],
+            "source": "generated",
+            "task": "[add your goal as Backend Engineer]",
+            "title": "Blue Harbor Apps: owned Python services and a SQL datastore",
+            "updatedAt": "<ts>"
+          },
+          {
+            "action": "I designed Python REST APIs for payment processing",
+            "candidateId": "<cand#1>",
+            "id": "<story#4>",
+            "result": "[add metric]",
+            "situation": "[add situation — when/where at Acme Payments]",
+            "skillIds": [],
+            "source": "generated",
+            "task": "[add your goal as Senior Backend Engineer]",
+            "title": "Acme Payments: designed Python REST APIs for payment processing",
+            "updatedAt": "<ts>"
+          }
+        ]
+      },
+      "status": 200
+    },
+    "patch": {
+      "body": {
+        "action": "I worked on LedgerSync : a Python reconciliation service exposing a REST API",
+        "candidateId": "<cand#1>",
+        "id": "<story#1>",
+        "result": "[add metric]",
+        "situation": "[add situation — why LedgerSync  was needed]",
+        "skillIds": [],
+        "source": "user",
+        "task": "[add your goal]",
+        "title": "Retitled story",
+        "updatedAt": "<ts>"
+      },
+      "status": 200
+    }
+  }
+}

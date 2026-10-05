@@ -1,0 +1,133 @@
+{
+  "snapshots": {
+    "install": {
+      "body": {
+        "plugin": {
+          "compatible": true,
+          "enabled": false,
+          "grantedPermissions": [],
+          "manifest": {
+            "author": "contract-tests",
+            "capabilities": [],
+            "description": "Minimal deterministic plugin used by the HTTP contract suite.",
+            "engines": {
+              "interview-os": ">=0.4.0"
+            },
+            "id": "contract-demo-plugin",
+            "inputs": [
+              {
+                "key": "request",
+                "permission": "taxonomy.read"
+              }
+            ],
+            "kind": "plugin",
+            "name": "Contract Demo Plugin",
+            "outputs": [],
+            "permissions": [],
+            "version": "1.0.0"
+          },
+          "permissions": [
+            {
+              "access": "DENIED",
+              "category": "Candidate Profile",
+              "granted": false,
+              "requested": false
+            },
+            {
+              "access": "DENIED",
+              "category": "Resume",
+              "granted": false,
+              "requested": false
+            },
+            {
+              "access": "DENIED",
+              "category": "Target",
+              "granted": false,
+              "requested": false
+            },
+            {
+              "access": "DENIED",
+              "category": "Readiness",
+              "granted": false,
+              "requested": false
+            },
+            {
+              "access": "DENIED",
+              "category": "Interview History",
+              "granted": false,
+              "requested": false
+            },
+            {
+              "access": "DENIED",
+              "category": "Interview Answers",
+              "granted": false,
+              "requested": false
+            },
+            {
+              "access": "DENIED",
+              "category": "STAR Stories",
+              "granted": false,
+              "requested": false
+            },
+            {
+              "access": "DENIED",
+              "category": "Evidence (write)",
+              "granted": false,
+              "requested": false
+            },
+            {
+              "access": "DENIED",
+              "category": "AI Runtime",
+              "granted": false,
+              "requested": false
+            },
+            {
+              "access": "DENIED",
+              "category": "Local Files",
+              "granted": false,
+              "requested": false
+            },
+            {
+              "access": "DENIED",
+              "category": "Network",
+              "granted": false,
+              "requested": false
+            },
+            {
+              "access": "DENIED",
+              "category": "Environment/Secrets",
+              "granted": false,
+              "requested": false
+            },
+            {
+              "access": "DENIED",
+              "category": "Commands",
+              "granted": false,
+              "requested": false
+            }
+          ],
+          "source": "git"
+        }
+      },
+      "status": 201
+    },
+    "run": {
+      "body": {
+        "evidenceIgnored": 0,
+        "evidenceWritten": 0,
+        "output": {
+          "echo": null,
+          "from": "contract-demo-plugin",
+          "ok": true
+        }
+      },
+      "status": 200
+    },
+    "uninstall": {
+      "body": {
+        "ok": true
+      },
+      "status": 200
+    }
+  }
+}

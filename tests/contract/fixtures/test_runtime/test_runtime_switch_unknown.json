@@ -1,0 +1,22 @@
+{
+  "snapshots": {
+    "switch-missing": {
+      "body": {
+        "error": {
+          "code": "VALIDATION",
+          "message": "invalid request body: kind: Invalid input: expected string, received undefined"
+        }
+      },
+      "status": 400
+    },
+    "switch-unknown": {
+      "body": {
+        "error": {
+          "code": "VALIDATION",
+          "message": "unknown runtime \"bogus-runtime\""
+        }
+      },
+      "status": 400
+    }
+  }
+}

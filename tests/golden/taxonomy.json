@@ -1,0 +1,1270 @@
+{
+  "area": "taxonomy",
+  "cases": [
+    {
+      "fn": "allNodes",
+      "input": {},
+      "name": "default seed",
+      "output": [
+        {
+          "id": "python",
+          "keywords": [
+            "python",
+            "python3",
+            "pandas",
+            "numpy",
+            "django",
+            "flask",
+            "fastapi"
+          ],
+          "label": "Python"
+        },
+        {
+          "id": "apis",
+          "keywords": [
+            "api",
+            "apis",
+            "endpoint",
+            "endpoints",
+            "http",
+            "openapi"
+          ],
+          "label": "APIs"
+        },
+        {
+          "id": "apis.rest",
+          "keywords": [
+            "rest",
+            "restful",
+            "rest api",
+            "resource",
+            "idempotent",
+            "status code"
+          ],
+          "label": "REST APIs"
+        },
+        {
+          "id": "sql",
+          "keywords": [
+            "sql",
+            "postgres",
+            "postgresql",
+            "mysql",
+            "sqlite",
+            "relational",
+            "query",
+            "queries"
+          ],
+          "label": "SQL"
+        },
+        {
+          "id": "sql.query-optimization",
+          "keywords": [
+            "query optimization",
+            "explain plan",
+            "query plan",
+            "slow query",
+            "n+1"
+          ],
+          "label": "SQL Query Optimization"
+        },
+        {
+          "id": "sql.indexing",
+          "keywords": [
+            "index",
+            "indexes",
+            "indexing",
+            "b-tree",
+            "composite index",
+            "covering index"
+          ],
+          "label": "SQL Indexing"
+        },
+        {
+          "id": "sql.transactions",
+          "keywords": [
+            "transaction",
+            "transactions",
+            "acid",
+            "isolation level",
+            "rollback",
+            "deadlock",
+            "optimistic locking",
+            "serializable"
+          ],
+          "label": "SQL Transactions"
+        },
+        {
+          "id": "distributed-systems",
+          "keywords": [
+            "distributed system",
+            "distributed-systems",
+            "microservices",
+            "distributed"
+          ],
+          "label": "Distributed Systems"
+        },
+        {
+          "id": "distributed-systems.caching",
+          "keywords": [
+            "cache",
+            "caching",
+            "cached",
+            "redis",
+            "memcached",
+            "cdn"
+          ],
+          "label": "Caching"
+        },
+        {
+          "id": "distributed-systems.caching.cache-strategies",
+          "keywords": [
+            "cache-aside",
+            "write-through",
+            "write-behind",
+            "read-through",
+            "ttl",
+            "time-to-live",
+            "refresh-ahead"
+          ],
+          "label": "Cache Strategies"
+        },
+        {
+          "id": "distributed-systems.caching.cache-invalidation",
+          "keywords": [
+            "invalidation",
+            "invalidate",
+            "invalidates",
+            "stale",
+            "staleness",
+            "eviction",
+            "evict",
+            "purge",
+            "expire",
+            "expiration"
+          ],
+          "label": "Cache Invalidation"
+        },
+        {
+          "id": "distributed-systems.message-queues",
+          "keywords": [
+            "message queue",
+            "queue",
+            "queues",
+            "kafka",
+            "rabbitmq",
+            "sqs",
+            "pub/sub",
+            "pubsub",
+            "consumer",
+            "producer",
+            "topic"
+          ],
+          "label": "Message Queues"
+        },
+        {
+          "id": "distributed-systems.consistency",
+          "keywords": [
+            "consistency",
+            "consistent",
+            "eventual consistency",
+            "strong consistency",
+            "cap theorem",
+            "quorum",
+            "linearizable"
+          ],
+          "label": "Consistency"
+        },
+        {
+          "id": "distributed-systems.partitioning",
+          "keywords": [
+            "partitioning",
+            "partition",
+            "partitions",
+            "sharding",
+            "shard",
+            "shards",
+            "consistent hashing",
+            "hot partition"
+          ],
+          "label": "Partitioning"
+        },
+        {
+          "id": "distributed-systems.replication",
+          "keywords": [
+            "replication",
+            "replica",
+            "replicas",
+            "leader-follower",
+            "leader election",
+            "failover",
+            "primary-replica"
+          ],
+          "label": "Replication"
+        },
+        {
+          "id": "system-design",
+          "keywords": [
+            "system design",
+            "architecture",
+            "design a",
+            "high-level design"
+          ],
+          "label": "System Design"
+        },
+        {
+          "id": "system-design.requirements-analysis",
+          "keywords": [
+            "functional requirements",
+            "non-functional requirements",
+            "requirements analysis",
+            "clarifying questions",
+            "scoping"
+          ],
+          "label": "Requirements Analysis"
+        },
+        {
+          "id": "system-design.capacity-estimation",
+          "keywords": [
+            "capacity estimation",
+            "back-of-envelope",
+            "qps",
+            "throughput",
+            "storage estimate",
+            "bandwidth",
+            "estimation"
+          ],
+          "label": "Capacity Estimation"
+        },
+        {
+          "id": "system-design.scalability",
+          "keywords": [
+            "scalability",
+            "scale",
+            "scaling",
+            "horizontal scaling",
+            "vertical scaling",
+            "load balancer",
+            "load balancing",
+            "autoscaling"
+          ],
+          "label": "Scalability"
+        },
+        {
+          "id": "system-design.reliability",
+          "keywords": [
+            "reliability",
+            "availability",
+            "fault tolerance",
+            "fault-tolerant",
+            "redundancy",
+            "sla",
+            "slo",
+            "disaster recovery"
+          ],
+          "label": "Reliability"
+        },
+        {
+          "id": "system-design.data-modeling",
+          "keywords": [
+            "data model",
+            "data modeling",
+            "entity",
+            "entities",
+            "schema design",
+            "er diagram",
+            "relational model"
+          ],
+          "label": "Data Modeling (Design)"
+        },
+        {
+          "id": "system-design.async-processing",
+          "keywords": [
+            "async processing",
+            "asynchronous",
+            "background job",
+            "background jobs",
+            "worker queue",
+            "event-driven",
+            "task queue"
+          ],
+          "label": "Async Processing"
+        },
+        {
+          "id": "coding",
+          "keywords": [
+            "coding",
+            "coding challenge",
+            "algorithm",
+            "algorithms",
+            "live coding",
+            "whiteboard",
+            "leetcode"
+          ],
+          "label": "Coding & Algorithms"
+        },
+        {
+          "id": "coding.algorithms",
+          "keywords": [
+            "algorithm",
+            "algorithms",
+            "two pointers",
+            "sliding window",
+            "binary search",
+            "recursion",
+            "dynamic programming",
+            "bfs",
+            "dfs",
+            "sorting"
+          ],
+          "label": "Algorithms"
+        },
+        {
+          "id": "coding.data-structures",
+          "keywords": [
+            "data structure",
+            "data structures",
+            "hash map",
+            "hash table",
+            "linked list",
+            "binary tree",
+            "heap",
+            "trie",
+            "stack",
+            "deque"
+          ],
+          "label": "Data Structures"
+        },
+        {
+          "id": "coding.complexity",
+          "keywords": [
+            "big-o",
+            "o(n",
+            "time complexity",
+            "space complexity",
+            "complexity analysis",
+            "runtime complexity"
+          ],
+          "label": "Complexity Analysis"
+        },
+        {
+          "id": "coding.edge-cases",
+          "keywords": [
+            "edge case",
+            "edge cases",
+            "corner case",
+            "boundary condition",
+            "empty input",
+            "off-by-one",
+            "unit test",
+            "unit tests",
+            "test case"
+          ],
+          "label": "Edge Cases & Testing"
+        },
+        {
+          "id": "coding.code-quality",
+          "keywords": [
+            "clean code",
+            "readable code",
+            "code quality",
+            "refactor",
+            "refactoring",
+            "naming",
+            "modular"
+          ],
+          "label": "Code Quality"
+        },
+        {
+          "id": "hiring-manager",
+          "keywords": [
+            "hiring manager",
+            "skip level",
+            "org design",
+            "cross-team",
+            "team strategy"
+          ],
+          "label": "Hiring Manager"
+        },
+        {
+          "id": "hiring-manager.role-fit",
+          "keywords": [
+            "why this team",
+            "role fit",
+            "fit for this role",
+            "what attracts you"
+          ],
+          "label": "Role Fit"
+        },
+        {
+          "id": "hiring-manager.scope-impact",
+          "keywords": [
+            "scope and impact",
+            "grew the scope",
+            "influence without authority",
+            "org-wide",
+            "company-wide"
+          ],
+          "label": "Scope & Impact"
+        },
+        {
+          "id": "hiring-manager.prioritization",
+          "keywords": [
+            "reprioritize",
+            "reprioritized",
+            "priority call",
+            "what not to build",
+            "ruthless prioritization",
+            "roadmap trade"
+          ],
+          "label": "Prioritization Decisions"
+        },
+        {
+          "id": "hiring-manager.leadership-style",
+          "keywords": [
+            "leadership style",
+            "manage up",
+            "managing up",
+            "grew engineers",
+            "grew the team",
+            "coached"
+          ],
+          "label": "Leadership Style"
+        },
+        {
+          "id": "behavioral",
+          "keywords": [
+            "behavioral",
+            "tell me about a time",
+            "star",
+            "soft skills"
+          ],
+          "label": "Behavioral"
+        },
+        {
+          "id": "behavioral.leadership",
+          "keywords": [
+            "leadership",
+            "led",
+            "mentored",
+            "mentorship",
+            "initiative",
+            "influence"
+          ],
+          "label": "Leadership"
+        },
+        {
+          "id": "behavioral.conflict",
+          "keywords": [
+            "conflict",
+            "disagreement",
+            "disagreed",
+            "difficult coworker",
+            "pushback",
+            "tension"
+          ],
+          "label": "Conflict"
+        },
+        {
+          "id": "behavioral.ownership",
+          "keywords": [
+            "ownership",
+            "took ownership",
+            "accountability",
+            "end-to-end",
+            "drove",
+            "saw it through"
+          ],
+          "label": "Ownership"
+        },
+        {
+          "id": "behavioral.failure-learning",
+          "keywords": [
+            "failure",
+            "failed",
+            "mistake",
+            "postmortem",
+            "post-mortem",
+            "learned from",
+            "retrospective",
+            "went wrong"
+          ],
+          "label": "Learning from Failure"
+        },
+        {
+          "id": "behavioral.collaboration",
+          "keywords": [
+            "collaboration",
+            "collaborated",
+            "cross-functional",
+            "pairing",
+            "teamwork",
+            "worked closely with"
+          ],
+          "label": "Collaboration"
+        },
+        {
+          "id": "hr",
+          "keywords": [
+            "culture",
+            "values",
+            "motivation",
+            "career goals",
+            "work style",
+            "why join"
+          ],
+          "label": "HR & Motivation"
+        },
+        {
+          "id": "hr.motivation",
+          "keywords": [
+            "motivation",
+            "motivated",
+            "why this role",
+            "why us",
+            "why join",
+            "excited about",
+            "passion"
+          ],
+          "label": "Motivation"
+        },
+        {
+          "id": "hr.career-goals",
+          "keywords": [
+            "career goals",
+            "career growth",
+            "five years",
+            "5 years",
+            "growth path",
+            "next step",
+            "career direction"
+          ],
+          "label": "Career Goals"
+        },
+        {
+          "id": "hr.culture-fit",
+          "keywords": [
+            "culture fit",
+            "culture add",
+            "team culture",
+            "our values",
+            "company values"
+          ],
+          "label": "Culture Fit"
+        },
+        {
+          "id": "hr.work-style",
+          "keywords": [
+            "work style",
+            "working style",
+            "remote",
+            "autonomy",
+            "feedback style",
+            "how do you work"
+          ],
+          "label": "Work Style"
+        },
+        {
+          "id": "communication",
+          "keywords": [
+            "communication",
+            "communicate",
+            "explaining",
+            "presentation",
+            "stakeholder"
+          ],
+          "label": "Communication"
+        },
+        {
+          "id": "product",
+          "keywords": [
+            "product",
+            "product sense",
+            "user research",
+            "roadmap"
+          ],
+          "label": "Product"
+        },
+        {
+          "id": "product.metrics",
+          "keywords": [
+            "product metrics",
+            "north star",
+            "kpi",
+            "kpis",
+            "a/b test",
+            "a/b testing",
+            "experimentation",
+            "retention",
+            "activation",
+            "funnel",
+            "engagement metrics"
+          ],
+          "label": "Product Metrics"
+        },
+        {
+          "id": "product.prioritization",
+          "keywords": [
+            "prioritization",
+            "prioritize",
+            "rice",
+            "trade-off",
+            "tradeoff",
+            "mvp"
+          ],
+          "label": "Product Prioritization"
+        },
+        {
+          "id": "data-engineering",
+          "keywords": [
+            "data engineering",
+            "data engineer",
+            "big data",
+            "data warehouse"
+          ],
+          "label": "Data Engineering"
+        },
+        {
+          "id": "data-engineering.pipelines",
+          "keywords": [
+            "etl",
+            "elt",
+            "pipeline",
+            "pipelines",
+            "airflow",
+            "dag",
+            "spark",
+            "batch processing"
+          ],
+          "label": "Data Pipelines"
+        },
+        {
+          "id": "data-engineering.modeling",
+          "keywords": [
+            "data modeling",
+            "dimensional modeling",
+            "star schema",
+            "schema design",
+            "warehouse",
+            "fact table"
+          ],
+          "label": "Data Modeling"
+        },
+        {
+          "id": "infrastructure",
+          "keywords": [
+            "infrastructure",
+            "devops",
+            "platform engineering",
+            "ci/cd"
+          ],
+          "label": "Infrastructure"
+        },
+        {
+          "id": "infrastructure.kubernetes",
+          "keywords": [
+            "kubernetes",
+            "k8s",
+            "container orchestration",
+            "helm",
+            "docker"
+          ],
+          "label": "Kubernetes"
+        },
+        {
+          "id": "infrastructure.observability",
+          "keywords": [
+            "observability",
+            "monitoring",
+            "tracing",
+            "prometheus",
+            "grafana",
+            "opentelemetry",
+            "instrumentation"
+          ],
+          "label": "Observability"
+        }
+      ]
+    },
+    {
+      "fn": "hasNode",
+      "input": {
+        "id": "sql"
+      },
+      "name": "root exists",
+      "output": true
+    },
+    {
+      "fn": "hasNode",
+      "input": {
+        "id": "distributed-systems.caching.cache-invalidation"
+      },
+      "name": "leaf exists",
+      "output": true
+    },
+    {
+      "fn": "hasNode",
+      "input": {
+        "id": "totally.unknown"
+      },
+      "name": "unknown id",
+      "output": false
+    },
+    {
+      "fn": "hasNode",
+      "input": {
+        "id": ""
+      },
+      "name": "empty id",
+      "output": false
+    },
+    {
+      "fn": "parentOf",
+      "input": {
+        "id": "sql.indexing"
+      },
+      "name": "leaf parent",
+      "output": "sql"
+    },
+    {
+      "fn": "parentOf",
+      "input": {
+        "id": "sql"
+      },
+      "name": "root has no parent",
+      "output": null
+    },
+    {
+      "fn": "parentOf",
+      "input": {
+        "id": "a.b.c.d"
+      },
+      "name": "deep unknown id still has a syntactic parent",
+      "output": "a.b.c"
+    },
+    {
+      "fn": "ancestors",
+      "input": {
+        "id": "distributed-systems.caching.cache-invalidation"
+      },
+      "name": "leaf walks up to root",
+      "output": [
+        "distributed-systems.caching",
+        "distributed-systems"
+      ]
+    },
+    {
+      "fn": "ancestors",
+      "input": {
+        "id": "sql"
+      },
+      "name": "root has none",
+      "output": []
+    },
+    {
+      "fn": "childrenOf",
+      "input": {
+        "id": "sql"
+      },
+      "name": "root children sorted",
+      "output": [
+        "sql.indexing",
+        "sql.query-optimization",
+        "sql.transactions"
+      ]
+    },
+    {
+      "fn": "childrenOf",
+      "input": {
+        "id": "distributed-systems"
+      },
+      "name": "mid-level children",
+      "output": [
+        "distributed-systems.caching",
+        "distributed-systems.consistency",
+        "distributed-systems.message-queues",
+        "distributed-systems.partitioning",
+        "distributed-systems.replication"
+      ]
+    },
+    {
+      "fn": "childrenOf",
+      "input": {
+        "id": "sql.indexing"
+      },
+      "name": "leaf has none",
+      "output": []
+    },
+    {
+      "fn": "childrenOf",
+      "input": {
+        "id": "totally.unknown"
+      },
+      "name": "unknown id has none",
+      "output": []
+    },
+    {
+      "fn": "relatedTo",
+      "input": {
+        "id": "sql.transactions"
+      },
+      "name": "sql.transactions cross-branch edges",
+      "output": [
+        "distributed-systems.consistency",
+        "system-design.data-modeling"
+      ]
+    },
+    {
+      "fn": "relatedTo",
+      "input": {
+        "id": "distributed-systems.consistency"
+      },
+      "name": "reverse direction is symmetric",
+      "output": [
+        "distributed-systems.caching.cache-invalidation",
+        "sql.transactions"
+      ]
+    },
+    {
+      "fn": "relatedTo",
+      "input": {
+        "id": "coding.complexity"
+      },
+      "name": "coding.complexity edge",
+      "output": [
+        "system-design.scalability"
+      ]
+    },
+    {
+      "fn": "relatedTo",
+      "input": {
+        "id": "apis"
+      },
+      "name": "unrelated skill",
+      "output": []
+    },
+    {
+      "fn": "labelFor",
+      "input": {
+        "id": "sql"
+      },
+      "name": "seeded label",
+      "output": "SQL"
+    },
+    {
+      "fn": "labelFor",
+      "input": {
+        "id": "distributed-systems.consistency"
+      },
+      "name": "seeded mid label",
+      "output": "Consistency"
+    },
+    {
+      "fn": "labelFor",
+      "input": {
+        "id": "zzz.unknown-skill"
+      },
+      "name": "unknown id humanizes the last segment",
+      "output": "Unknown Skill"
+    },
+    {
+      "fn": "normalizeSkillId",
+      "input": {
+        "raw": "Python"
+      },
+      "name": "case folded",
+      "output": "python"
+    },
+    {
+      "fn": "normalizeSkillId",
+      "input": {
+        "raw": "  sql  "
+      },
+      "name": "whitespace trimmed",
+      "output": "sql"
+    },
+    {
+      "fn": "normalizeSkillId",
+      "input": {
+        "raw": "APIS"
+      },
+      "name": "uppercase root",
+      "output": "apis"
+    },
+    {
+      "fn": "normalizeSkillId",
+      "input": {
+        "raw": "rest-api"
+      },
+      "name": "extra alias rest-api",
+      "output": "apis.rest"
+    },
+    {
+      "fn": "normalizeSkillId",
+      "input": {
+        "raw": "REST API"
+      },
+      "name": "spaced alias rest api",
+      "output": "apis.rest"
+    },
+    {
+      "fn": "normalizeSkillId",
+      "input": {
+        "raw": "mq"
+      },
+      "name": "extra alias mq",
+      "output": "distributed-systems.message-queues"
+    },
+    {
+      "fn": "normalizeSkillId",
+      "input": {
+        "raw": "cap-theorem"
+      },
+      "name": "extra alias cap-theorem",
+      "output": "distributed-systems.consistency"
+    },
+    {
+      "fn": "normalizeSkillId",
+      "input": {
+        "raw": "cache-strategy"
+      },
+      "name": "extra alias cache-strategy",
+      "output": "distributed-systems.caching.cache-strategies"
+    },
+    {
+      "fn": "normalizeSkillId",
+      "input": {
+        "raw": "system-design.requirements"
+      },
+      "name": "dotted extra alias snaps to canonical",
+      "output": "system-design.requirements-analysis"
+    },
+    {
+      "fn": "normalizeSkillId",
+      "input": {
+        "raw": "postgres"
+      },
+      "name": "keyword alias postgres",
+      "output": "sql"
+    },
+    {
+      "fn": "normalizeSkillId",
+      "input": {
+        "raw": "Kubernetes"
+      },
+      "name": "keyword alias kubernetes",
+      "output": "infrastructure.kubernetes"
+    },
+    {
+      "fn": "normalizeSkillId",
+      "input": {
+        "raw": "coding.complexity-analysis"
+      },
+      "name": "unknown dotted id snaps last segment via alias",
+      "output": "coding.complexity"
+    },
+    {
+      "fn": "normalizeSkillId",
+      "input": {
+        "raw": "nonexistent-thing"
+      },
+      "name": "unknown well-formed id passes through",
+      "output": "nonexistent-thing"
+    },
+    {
+      "fn": "normalizeSkillId",
+      "input": {
+        "raw": "UPPER.CASE"
+      },
+      "name": "mixed case dotted passes through normalized",
+      "output": "upper.case"
+    },
+    {
+      "fn": "normalizeSkillId",
+      "input": {
+        "raw": ""
+      },
+      "name": "empty string",
+      "output": null
+    },
+    {
+      "fn": "normalizeSkillId",
+      "input": {
+        "raw": "!!!"
+      },
+      "name": "punctuation soup",
+      "output": null
+    },
+    {
+      "fn": "normalizeSkillId",
+      "input": {
+        "raw": "a..b"
+      },
+      "name": "double dots rejected",
+      "output": null
+    },
+    {
+      "fn": "matchSkills",
+      "input": {
+        "text": "# Senior Backend Engineer — Northwind Cloud\r\n\r\nNorthwind Cloud runs managed cloud backends for mid-size SaaS companies. You will own\r\nbackend services end to end.\r\n\r\n## Requirements\r\n- Strong Python: you write production Python services daily\r\n- Designing REST APIs and HTTP endpoints that other teams consume\r\n- SQL and relational modeling on production workloads\r\n- Distributed systems: you reason about services that fail independently\r\n- Caching: you have designed caching layers, tuned caches for hot paths, and reasoned about\r\n  cache hit rates and cache-friendly data layouts\r\n- Message queues: experience with Kafka or SQS for asynchronous work\r\n- System design: comfortable reasoning about architecture and trade-offs in a design review\r\n\r\n## Nice to have\r\n- Kubernetes or container orchestration\r\n- Observability tooling (metrics, tracing)\r\n"
+      },
+      "name": "backend-engineer example job description",
+      "output": [
+        {
+          "mentions": 4,
+          "skillId": "distributed-systems.caching"
+        },
+        {
+          "mentions": 3,
+          "skillId": "apis"
+        },
+        {
+          "mentions": 3,
+          "skillId": "distributed-systems.message-queues"
+        },
+        {
+          "mentions": 2,
+          "skillId": "infrastructure.kubernetes"
+        },
+        {
+          "mentions": 2,
+          "skillId": "infrastructure.observability"
+        },
+        {
+          "mentions": 2,
+          "skillId": "python"
+        },
+        {
+          "mentions": 2,
+          "skillId": "sql"
+        },
+        {
+          "mentions": 2,
+          "skillId": "system-design"
+        },
+        {
+          "mentions": 1,
+          "skillId": "apis.rest"
+        },
+        {
+          "mentions": 1,
+          "skillId": "distributed-systems"
+        },
+        {
+          "mentions": 1,
+          "skillId": "system-design.async-processing"
+        }
+      ]
+    },
+    {
+      "fn": "matchSkills",
+      "input": {
+        "text": "Strong Redis and Kafka experience with PostgreSQL"
+      },
+      "name": "datastore keywords",
+      "output": [
+        {
+          "mentions": 1,
+          "skillId": "distributed-systems.caching"
+        },
+        {
+          "mentions": 1,
+          "skillId": "distributed-systems.message-queues"
+        },
+        {
+          "mentions": 1,
+          "skillId": "sql"
+        }
+      ]
+    },
+    {
+      "fn": "matchSkills",
+      "input": {
+        "text": "We need REST API design and HTTP endpoints"
+      },
+      "name": "api keywords",
+      "output": [
+        {
+          "mentions": 3,
+          "skillId": "apis"
+        },
+        {
+          "mentions": 2,
+          "skillId": "apis.rest"
+        }
+      ]
+    },
+    {
+      "fn": "matchSkills",
+      "input": {
+        "text": "kubernetes and observability tooling required"
+      },
+      "name": "infrastructure keywords",
+      "output": [
+        {
+          "mentions": 1,
+          "skillId": "infrastructure.kubernetes"
+        },
+        {
+          "mentions": 1,
+          "skillId": "infrastructure.observability"
+        }
+      ]
+    },
+    {
+      "fn": "matchSkills",
+      "input": {
+        "text": ""
+      },
+      "name": "empty text",
+      "output": []
+    },
+    {
+      "fn": "matchSkills",
+      "input": {
+        "text": "I like pandas and numpy for data work"
+      },
+      "name": "python ecosystem keywords",
+      "output": [
+        {
+          "mentions": 2,
+          "skillId": "python"
+        }
+      ]
+    },
+    {
+      "fn": "matchSkills",
+      "input": {
+        "text": "system design and architecture discussion"
+      },
+      "name": "design keywords",
+      "output": [
+        {
+          "mentions": 2,
+          "skillId": "system-design"
+        }
+      ]
+    },
+    {
+      "fn": "matchSkills",
+      "input": {
+        "text": "SQL! PostgreSQL? transactions, acid."
+      },
+      "name": "punctuation separated keywords",
+      "output": [
+        {
+          "mentions": 2,
+          "skillId": "sql"
+        },
+        {
+          "mentions": 2,
+          "skillId": "sql.transactions"
+        }
+      ]
+    },
+    {
+      "fn": "matchSkills",
+      "input": {
+        "text": "classification apiculture respected"
+      },
+      "name": "keyword inside a word does not match",
+      "output": []
+    },
+    {
+      "fn": "getNode",
+      "input": {
+        "id": "sql"
+      },
+      "name": "root node",
+      "output": {
+        "id": "sql",
+        "keywords": [
+          "sql",
+          "postgres",
+          "postgresql",
+          "mysql",
+          "sqlite",
+          "relational",
+          "query",
+          "queries"
+        ],
+        "label": "SQL"
+      }
+    },
+    {
+      "fn": "getNode",
+      "input": {
+        "id": "distributed-systems.caching"
+      },
+      "name": "mid node",
+      "output": {
+        "id": "distributed-systems.caching",
+        "keywords": [
+          "cache",
+          "caching",
+          "cached",
+          "redis",
+          "memcached",
+          "cdn"
+        ],
+        "label": "Caching"
+      }
+    },
+    {
+      "fn": "getNode",
+      "input": {
+        "id": "sql.indexing"
+      },
+      "name": "leaf node",
+      "output": {
+        "id": "sql.indexing",
+        "keywords": [
+          "index",
+          "indexes",
+          "indexing",
+          "b-tree",
+          "composite index",
+          "covering index"
+        ],
+        "label": "SQL Indexing"
+      }
+    },
+    {
+      "fn": "getNode",
+      "input": {
+        "id": "custom.deep-skill"
+      },
+      "name": "unknown valid id creates an on-demand node",
+      "output": {
+        "id": "custom.deep-skill",
+        "keywords": [],
+        "label": "Deep Skill"
+      }
+    },
+    {
+      "fn": "getNode",
+      "input": {
+        "id": "Not A Skill!"
+      },
+      "name": "malformed id is undefined",
+      "output": null
+    },
+    {
+      "fn": "getNode",
+      "input": {
+        "id": ""
+      },
+      "name": "empty id is undefined",
+      "output": null
+    },
+    {
+      "fn": "getNode",
+      "input": {
+        "id": "a..b"
+      },
+      "name": "double-dot id is undefined",
+      "output": null
+    }
+  ],
+  "generatedFrom": "packages/core"
+}

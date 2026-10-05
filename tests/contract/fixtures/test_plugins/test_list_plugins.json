@@ -1,0 +1,1705 @@
+{
+  "snapshots": {
+    "list": {
+      "body": {
+        "plugins": [
+          {
+            "compatible": true,
+            "enabled": true,
+            "grantedPermissions": [
+              "answers.read"
+            ],
+            "manifest": {
+              "author": "interview-os",
+              "capabilities": [
+                "interview_mode"
+              ],
+              "description": "STAR stories from your experience — a specific situation, your actions, measurable results.",
+              "engines": {
+                "interview-os": ">=0.4.0",
+                "plugin-api": "^1.1.0"
+              },
+              "hooks": [
+                "mode.reduce",
+                "mode.mock"
+              ],
+              "id": "behavioral-mode",
+              "inputs": [],
+              "kind": "plugin",
+              "modes": [
+                {
+                  "answerFields": [],
+                  "answerFormat": "text",
+                  "context": {
+                    "companyThemes": true,
+                    "storyTitles": true
+                  },
+                  "description": "STAR stories from your experience — a specific situation, your actions, measurable results.",
+                  "evaluatorPrompt": "prompts/evaluator.md",
+                  "fallbackSkills": [],
+                  "id": "behavioral",
+                  "initialState": {
+                    "competenciesCovered": [],
+                    "storyIdsUsed": []
+                  },
+                  "interviewerPrompt": "prompts/interviewer.md",
+                  "label": "Behavioral",
+                  "rubric": [
+                    {
+                      "description": "Sets clear context — when, where, what was at stake.",
+                      "id": "situationClarity",
+                      "label": "Situation clarity"
+                    },
+                    {
+                      "description": "Shows personal accountability rather than team-only framing.",
+                      "id": "ownership",
+                      "label": "Ownership"
+                    },
+                    {
+                      "description": "Describes what the candidate personally did, in first person.",
+                      "id": "actions",
+                      "label": "Actions"
+                    },
+                    {
+                      "description": "Explains reasoning and trade-offs behind choices.",
+                      "id": "decisionMaking",
+                      "label": "Decision making"
+                    },
+                    {
+                      "description": "Shows the outcome mattered to the business or team.",
+                      "id": "impact",
+                      "label": "Impact"
+                    },
+                    {
+                      "description": "Reports concrete, ideally quantified, results.",
+                      "id": "results",
+                      "label": "Results"
+                    },
+                    {
+                      "description": "Shows learning — what changed or what they would do differently.",
+                      "id": "reflection",
+                      "label": "Reflection"
+                    },
+                    {
+                      "description": "Concise, well-structured story under ~2 minutes.",
+                      "id": "communication",
+                      "label": "Communication"
+                    }
+                  ],
+                  "scope": {
+                    "exclude": [],
+                    "include": [
+                      "behavioral",
+                      "communication"
+                    ]
+                  }
+                }
+              ],
+              "name": "Behavioral Mode",
+              "outputs": [],
+              "permissions": [
+                "answers.read"
+              ],
+              "version": "1.0.0"
+            },
+            "permissions": [
+              {
+                "access": "DENIED",
+                "category": "Candidate Profile",
+                "granted": false,
+                "requested": false
+              },
+              {
+                "access": "DENIED",
+                "category": "Resume",
+                "granted": false,
+                "requested": false
+              },
+              {
+                "access": "DENIED",
+                "category": "Target",
+                "granted": false,
+                "requested": false
+              },
+              {
+                "access": "DENIED",
+                "category": "Readiness",
+                "granted": false,
+                "requested": false
+              },
+              {
+                "access": "DENIED",
+                "category": "Interview History",
+                "granted": false,
+                "requested": false
+              },
+              {
+                "access": "READ",
+                "category": "Interview Answers",
+                "granted": true,
+                "requested": true
+              },
+              {
+                "access": "DENIED",
+                "category": "STAR Stories",
+                "granted": false,
+                "requested": false
+              },
+              {
+                "access": "DENIED",
+                "category": "Evidence (write)",
+                "granted": false,
+                "requested": false
+              },
+              {
+                "access": "DENIED",
+                "category": "AI Runtime",
+                "granted": false,
+                "requested": false
+              },
+              {
+                "access": "DENIED",
+                "category": "Local Files",
+                "granted": false,
+                "requested": false
+              },
+              {
+                "access": "DENIED",
+                "category": "Network",
+                "granted": false,
+                "requested": false
+              },
+              {
+                "access": "DENIED",
+                "category": "Environment/Secrets",
+                "granted": false,
+                "requested": false
+              },
+              {
+                "access": "DENIED",
+                "category": "Commands",
+                "granted": false,
+                "requested": false
+              },
+              {
+                "access": "UI",
+                "category": "UI Contributions",
+                "detail": "plugin modes: Behavioral (answer scores feed readiness)",
+                "granted": true,
+                "requested": true
+              }
+            ],
+            "source": "bundled"
+          },
+          {
+            "compatible": true,
+            "enabled": true,
+            "grantedPermissions": [
+              "answers.read"
+            ],
+            "manifest": {
+              "author": "interview-os",
+              "capabilities": [
+                "interview_mode",
+                "ui"
+              ],
+              "description": "Live-coding interview round — solve a small algorithmic problem, explain your approach, then write code (reviewed, not executed).",
+              "engines": {
+                "interview-os": ">=0.4.0",
+                "plugin-api": "^1.1.0"
+              },
+              "hooks": [
+                "mode.mock",
+                "ui.render"
+              ],
+              "id": "coding-mode",
+              "inputs": [],
+              "kind": "plugin",
+              "modes": [
+                {
+                  "answerFields": [],
+                  "answerFormat": "text+code",
+                  "context": {
+                    "companyThemes": false,
+                    "storyTitles": false
+                  },
+                  "description": "Solve a small algorithmic problem — explain your approach, then write code (reviewed, not executed).",
+                  "evaluatorPrompt": "prompts/evaluator.md",
+                  "fallbackSkills": [
+                    "coding",
+                    "coding.algorithms",
+                    "coding.data-structures",
+                    "coding.complexity",
+                    "coding.edge-cases",
+                    "coding.code-quality"
+                  ],
+                  "followUpRules": [
+                    {
+                      "below": 0.6,
+                      "focus": "complexity analysis",
+                      "rubricId": "complexity"
+                    },
+                    {
+                      "below": 0.6,
+                      "focus": "edge cases",
+                      "rubricId": "edgeCases"
+                    }
+                  ],
+                  "id": "coding",
+                  "initialState": {
+                    "phase": "briefing",
+                    "problem": null
+                  },
+                  "interviewerPrompt": "prompts/interviewer.md",
+                  "label": "Coding",
+                  "reduce": {
+                    "copyExtra": [
+                      "problem"
+                    ],
+                    "set": {
+                      "phase": "working"
+                    }
+                  },
+                  "rubric": [
+                    {
+                      "description": "Restates the goal, clarifies inputs, constraints and edge conditions before coding.",
+                      "id": "problemUnderstanding",
+                      "label": "Problem understanding"
+                    },
+                    {
+                      "description": "Describes a workable plan before or while writing code.",
+                      "id": "approach",
+                      "label": "Approach"
+                    },
+                    {
+                      "description": "The proposed logic/code solves the stated problem.",
+                      "id": "correctness",
+                      "label": "Correctness"
+                    },
+                    {
+                      "description": "States and reasons about time/space complexity (big-O).",
+                      "id": "complexity",
+                      "label": "Complexity"
+                    },
+                    {
+                      "description": "Identifies and handles edge cases (empty input, duplicates, bounds).",
+                      "id": "edgeCases",
+                      "label": "Edge cases"
+                    },
+                    {
+                      "description": "Readable, structured code — good naming, no dead paths.",
+                      "id": "codeQuality",
+                      "label": "Code quality"
+                    },
+                    {
+                      "description": "Thinks aloud clearly; the interviewer could follow along.",
+                      "id": "communication",
+                      "label": "Communication"
+                    }
+                  ],
+                  "scope": {
+                    "exclude": [],
+                    "include": [
+                      "coding"
+                    ]
+                  }
+                }
+              ],
+              "name": "Coding Mode",
+              "outputs": [],
+              "permissions": [
+                "answers.read"
+              ],
+              "ui": {
+                "commands": [],
+                "navigation": [],
+                "pages": [],
+                "slots": {
+                  "interview.question": [
+                    {
+                      "component": "coding-problem",
+                      "kind": "declarative",
+                      "title": "Problem"
+                    }
+                  ]
+                }
+              },
+              "version": "1.0.0"
+            },
+            "permissions": [
+              {
+                "access": "DENIED",
+                "category": "Candidate Profile",
+                "granted": false,
+                "requested": false
+              },
+              {
+                "access": "DENIED",
+                "category": "Resume",
+                "granted": false,
+                "requested": false
+              },
+              {
+                "access": "DENIED",
+                "category": "Target",
+                "granted": false,
+                "requested": false
+              },
+              {
+                "access": "DENIED",
+                "category": "Readiness",
+                "granted": false,
+                "requested": false
+              },
+              {
+                "access": "DENIED",
+                "category": "Interview History",
+                "granted": false,
+                "requested": false
+              },
+              {
+                "access": "READ",
+                "category": "Interview Answers",
+                "granted": true,
+                "requested": true
+              },
+              {
+                "access": "DENIED",
+                "category": "STAR Stories",
+                "granted": false,
+                "requested": false
+              },
+              {
+                "access": "DENIED",
+                "category": "Evidence (write)",
+                "granted": false,
+                "requested": false
+              },
+              {
+                "access": "DENIED",
+                "category": "AI Runtime",
+                "granted": false,
+                "requested": false
+              },
+              {
+                "access": "DENIED",
+                "category": "Local Files",
+                "granted": false,
+                "requested": false
+              },
+              {
+                "access": "DENIED",
+                "category": "Network",
+                "granted": false,
+                "requested": false
+              },
+              {
+                "access": "DENIED",
+                "category": "Environment/Secrets",
+                "granted": false,
+                "requested": false
+              },
+              {
+                "access": "DENIED",
+                "category": "Commands",
+                "granted": false,
+                "requested": false
+              },
+              {
+                "access": "UI",
+                "category": "UI Contributions",
+                "detail": "slots: interview.question · plugin modes: Coding (answer scores feed readiness)",
+                "granted": true,
+                "requested": true
+              }
+            ],
+            "source": "bundled"
+          },
+          {
+            "compatible": true,
+            "enabled": true,
+            "grantedPermissions": [
+              "answers.read"
+            ],
+            "manifest": {
+              "author": "interview-os",
+              "capabilities": [
+                "interview_mode"
+              ],
+              "description": "Scope, impact, priorities and leadership style — the conversation a hiring manager would have.",
+              "engines": {
+                "interview-os": ">=0.4.0",
+                "plugin-api": "^1.1.0"
+              },
+              "hooks": [
+                "mode.reduce",
+                "mode.mock"
+              ],
+              "id": "hiring-manager-mode",
+              "inputs": [],
+              "kind": "plugin",
+              "modes": [
+                {
+                  "answerFields": [],
+                  "answerFormat": "text",
+                  "context": {
+                    "companyThemes": true,
+                    "storyTitles": true
+                  },
+                  "description": "Scope, impact, priorities and leadership style — the conversation a hiring manager would have.",
+                  "evaluatorPrompt": "prompts/evaluator.md",
+                  "fallbackSkills": [],
+                  "id": "hiring_manager",
+                  "initialState": {
+                    "themesCovered": []
+                  },
+                  "interviewerPrompt": "prompts/interviewer.md",
+                  "label": "Hiring manager",
+                  "rubric": [
+                    {
+                      "description": "Understands the role and articulates mutual fit.",
+                      "id": "roleFit",
+                      "label": "Role fit"
+                    },
+                    {
+                      "description": "Describes scope of influence and business impact credibly.",
+                      "id": "scopeImpact",
+                      "label": "Scope & impact"
+                    },
+                    {
+                      "description": "Makes and explains hard prioritization trade-offs.",
+                      "id": "prioritization",
+                      "label": "Prioritization"
+                    },
+                    {
+                      "description": "Leads through ambiguity; develops people and direction.",
+                      "id": "leadership",
+                      "label": "Leadership"
+                    },
+                    {
+                      "description": "Works across teams and manages stakeholders.",
+                      "id": "collaboration",
+                      "label": "Collaboration"
+                    },
+                    {
+                      "description": "Genuine, specific motivation for this team and role.",
+                      "id": "motivation",
+                      "label": "Motivation"
+                    }
+                  ],
+                  "scope": {
+                    "exclude": [],
+                    "include": [
+                      "hiring-manager",
+                      "behavioral.leadership",
+                      "communication"
+                    ]
+                  }
+                }
+              ],
+              "name": "Hiring Manager Mode",
+              "outputs": [],
+              "permissions": [
+                "answers.read"
+              ],
+              "version": "1.0.0"
+            },
+            "permissions": [
+              {
+                "access": "DENIED",
+                "category": "Candidate Profile",
+                "granted": false,
+                "requested": false
+              },
+              {
+                "access": "DENIED",
+                "category": "Resume",
+                "granted": false,
+                "requested": false
+              },
+              {
+                "access": "DENIED",
+                "category": "Target",
+                "granted": false,
+                "requested": false
+              },
+              {
+                "access": "DENIED",
+                "category": "Readiness",
+                "granted": false,
+                "requested": false
+              },
+              {
+                "access": "DENIED",
+                "category": "Interview History",
+                "granted": false,
+                "requested": false
+              },
+              {
+                "access": "READ",
+                "category": "Interview Answers",
+                "granted": true,
+                "requested": true
+              },
+              {
+                "access": "DENIED",
+                "category": "STAR Stories",
+                "granted": false,
+                "requested": false
+              },
+              {
+                "access": "DENIED",
+                "category": "Evidence (write)",
+                "granted": false,
+                "requested": false
+              },
+              {
+                "access": "DENIED",
+                "category": "AI Runtime",
+                "granted": false,
+                "requested": false
+              },
+              {
+                "access": "DENIED",
+                "category": "Local Files",
+                "granted": false,
+                "requested": false
+              },
+              {
+                "access": "DENIED",
+                "category": "Network",
+                "granted": false,
+                "requested": false
+              },
+              {
+                "access": "DENIED",
+                "category": "Environment/Secrets",
+                "granted": false,
+                "requested": false
+              },
+              {
+                "access": "DENIED",
+                "category": "Commands",
+                "granted": false,
+                "requested": false
+              },
+              {
+                "access": "UI",
+                "category": "UI Contributions",
+                "detail": "plugin modes: Hiring manager (answer scores feed readiness)",
+                "granted": true,
+                "requested": true
+              }
+            ],
+            "source": "bundled"
+          },
+          {
+            "compatible": true,
+            "enabled": true,
+            "grantedPermissions": [
+              "answers.read"
+            ],
+            "manifest": {
+              "author": "interview-os",
+              "capabilities": [
+                "interview_mode"
+              ],
+              "description": "Motivation, career goals, culture fit and work style — friendly but probing.",
+              "engines": {
+                "interview-os": ">=0.4.0",
+                "plugin-api": "^1.1.0"
+              },
+              "hooks": [
+                "mode.reduce",
+                "mode.mock"
+              ],
+              "id": "hr-mode",
+              "inputs": [],
+              "kind": "plugin",
+              "modes": [
+                {
+                  "answerFields": [],
+                  "answerFormat": "text",
+                  "context": {
+                    "companyThemes": true,
+                    "storyTitles": true
+                  },
+                  "description": "Motivation, career goals, culture fit and work style — friendly but probing.",
+                  "evaluatorPrompt": "prompts/evaluator.md",
+                  "fallbackSkills": [],
+                  "id": "hr",
+                  "initialState": {
+                    "themesCovered": []
+                  },
+                  "interviewerPrompt": "prompts/interviewer.md",
+                  "label": "HR",
+                  "rubric": [
+                    {
+                      "description": "Specific, genuine interest in the role and company.",
+                      "id": "motivation",
+                      "label": "Motivation"
+                    },
+                    {
+                      "description": "Coherent direction that this role plausibly serves.",
+                      "id": "careerGoals",
+                      "label": "Career goals"
+                    },
+                    {
+                      "description": "Working preferences align with the company context.",
+                      "id": "cultureFit",
+                      "label": "Culture fit"
+                    },
+                    {
+                      "description": "Concrete habits for communication, feedback and delivery.",
+                      "id": "workStyle",
+                      "label": "Work style"
+                    },
+                    {
+                      "description": "Direct, personable, concise answers.",
+                      "id": "communication",
+                      "label": "Communication"
+                    }
+                  ],
+                  "scope": {
+                    "exclude": [],
+                    "include": [
+                      "hr"
+                    ]
+                  }
+                }
+              ],
+              "name": "HR Mode",
+              "outputs": [],
+              "permissions": [
+                "answers.read"
+              ],
+              "version": "1.0.0"
+            },
+            "permissions": [
+              {
+                "access": "DENIED",
+                "category": "Candidate Profile",
+                "granted": false,
+                "requested": false
+              },
+              {
+                "access": "DENIED",
+                "category": "Resume",
+                "granted": false,
+                "requested": false
+              },
+              {
+                "access": "DENIED",
+                "category": "Target",
+                "granted": false,
+                "requested": false
+              },
+              {
+                "access": "DENIED",
+                "category": "Readiness",
+                "granted": false,
+                "requested": false
+              },
+              {
+                "access": "DENIED",
+                "category": "Interview History",
+                "granted": false,
+                "requested": false
+              },
+              {
+                "access": "READ",
+                "category": "Interview Answers",
+                "granted": true,
+                "requested": true
+              },
+              {
+                "access": "DENIED",
+                "category": "STAR Stories",
+                "granted": false,
+                "requested": false
+              },
+              {
+                "access": "DENIED",
+                "category": "Evidence (write)",
+                "granted": false,
+                "requested": false
+              },
+              {
+                "access": "DENIED",
+                "category": "AI Runtime",
+                "granted": false,
+                "requested": false
+              },
+              {
+                "access": "DENIED",
+                "category": "Local Files",
+                "granted": false,
+                "requested": false
+              },
+              {
+                "access": "DENIED",
+                "category": "Network",
+                "granted": false,
+                "requested": false
+              },
+              {
+                "access": "DENIED",
+                "category": "Environment/Secrets",
+                "granted": false,
+                "requested": false
+              },
+              {
+                "access": "DENIED",
+                "category": "Commands",
+                "granted": false,
+                "requested": false
+              },
+              {
+                "access": "UI",
+                "category": "UI Contributions",
+                "detail": "plugin modes: HR (answer scores feed readiness)",
+                "granted": true,
+                "requested": true
+              }
+            ],
+            "source": "bundled"
+          },
+          {
+            "compatible": true,
+            "enabled": true,
+            "grantedPermissions": [
+              "target.read",
+              "readiness.read"
+            ],
+            "manifest": {
+              "author": "interview-os",
+              "capabilities": [
+                "preparation"
+              ],
+              "description": "A short checklist for interview day: the weakest requirement areas to skim, a STAR reminder, and logistics.",
+              "engines": {
+                "interview-os": ">=0.4.0"
+              },
+              "hooks": [
+                "preparation.suggest"
+              ],
+              "id": "interview-day-checklist",
+              "inputs": [
+                {
+                  "key": "target",
+                  "permission": "target.read"
+                },
+                {
+                  "key": "readiness",
+                  "permission": "readiness.read"
+                },
+                {
+                  "key": "gaps",
+                  "permission": "readiness.read"
+                }
+              ],
+              "kind": "plugin",
+              "name": "Interview Day Checklist",
+              "outputs": [
+                "checklist"
+              ],
+              "permissions": [
+                "target.read",
+                "readiness.read"
+              ],
+              "version": "1.1.0"
+            },
+            "permissions": [
+              {
+                "access": "DENIED",
+                "category": "Candidate Profile",
+                "granted": false,
+                "requested": false
+              },
+              {
+                "access": "DENIED",
+                "category": "Resume",
+                "granted": false,
+                "requested": false
+              },
+              {
+                "access": "READ",
+                "category": "Target",
+                "granted": true,
+                "requested": true
+              },
+              {
+                "access": "READ",
+                "category": "Readiness",
+                "granted": true,
+                "requested": true
+              },
+              {
+                "access": "DENIED",
+                "category": "Interview History",
+                "granted": false,
+                "requested": false
+              },
+              {
+                "access": "DENIED",
+                "category": "Interview Answers",
+                "granted": false,
+                "requested": false
+              },
+              {
+                "access": "DENIED",
+                "category": "STAR Stories",
+                "granted": false,
+                "requested": false
+              },
+              {
+                "access": "DENIED",
+                "category": "Evidence (write)",
+                "granted": false,
+                "requested": false
+              },
+              {
+                "access": "DENIED",
+                "category": "AI Runtime",
+                "granted": false,
+                "requested": false
+              },
+              {
+                "access": "DENIED",
+                "category": "Local Files",
+                "granted": false,
+                "requested": false
+              },
+              {
+                "access": "DENIED",
+                "category": "Network",
+                "granted": false,
+                "requested": false
+              },
+              {
+                "access": "DENIED",
+                "category": "Environment/Secrets",
+                "granted": false,
+                "requested": false
+              },
+              {
+                "access": "DENIED",
+                "category": "Commands",
+                "granted": false,
+                "requested": false
+              }
+            ],
+            "source": "bundled"
+          },
+          {
+            "compatible": true,
+            "enabled": true,
+            "grantedPermissions": [
+              "taxonomy.read"
+            ],
+            "manifest": {
+              "author": "interview-os",
+              "capabilities": [
+                "resources"
+              ],
+              "description": "A small deterministic catalog of learning resources keyed by skill.",
+              "engines": {
+                "interview-os": ">=0.4.0"
+              },
+              "id": "learning-resources",
+              "inputs": [
+                {
+                  "key": "request",
+                  "permission": "taxonomy.read"
+                }
+              ],
+              "kind": "plugin",
+              "name": "Learning Resources",
+              "outputs": [],
+              "permissions": [
+                "taxonomy.read"
+              ],
+              "version": "1.0.0"
+            },
+            "permissions": [
+              {
+                "access": "DENIED",
+                "category": "Candidate Profile",
+                "granted": false,
+                "requested": false
+              },
+              {
+                "access": "DENIED",
+                "category": "Resume",
+                "granted": false,
+                "requested": false
+              },
+              {
+                "access": "DENIED",
+                "category": "Target",
+                "granted": false,
+                "requested": false
+              },
+              {
+                "access": "READ",
+                "category": "Readiness",
+                "granted": true,
+                "requested": true
+              },
+              {
+                "access": "DENIED",
+                "category": "Interview History",
+                "granted": false,
+                "requested": false
+              },
+              {
+                "access": "DENIED",
+                "category": "Interview Answers",
+                "granted": false,
+                "requested": false
+              },
+              {
+                "access": "DENIED",
+                "category": "STAR Stories",
+                "granted": false,
+                "requested": false
+              },
+              {
+                "access": "DENIED",
+                "category": "Evidence (write)",
+                "granted": false,
+                "requested": false
+              },
+              {
+                "access": "DENIED",
+                "category": "AI Runtime",
+                "granted": false,
+                "requested": false
+              },
+              {
+                "access": "DENIED",
+                "category": "Local Files",
+                "granted": false,
+                "requested": false
+              },
+              {
+                "access": "DENIED",
+                "category": "Network",
+                "granted": false,
+                "requested": false
+              },
+              {
+                "access": "DENIED",
+                "category": "Environment/Secrets",
+                "granted": false,
+                "requested": false
+              },
+              {
+                "access": "DENIED",
+                "category": "Commands",
+                "granted": false,
+                "requested": false
+              }
+            ],
+            "source": "bundled"
+          },
+          {
+            "compatible": true,
+            "enabled": true,
+            "grantedPermissions": [
+              "candidate.read",
+              "target.read",
+              "readiness.read",
+              "taxonomy.read",
+              "answers.read"
+            ],
+            "manifest": {
+              "appliesTo": {
+                "skillPrefixes": [
+                  "sql"
+                ]
+              },
+              "author": "community",
+              "capabilities": [
+                "interview",
+                "evaluation",
+                "question_source",
+                "ui"
+              ],
+              "description": "A deterministic PostgreSQL question bank with a self-check evidence path.",
+              "engines": {
+                "interview-os": ">=0.4.0"
+              },
+              "hooks": [
+                "questions.suggest",
+                "ui.render",
+                "ui.frameRun",
+                "evaluation.review"
+              ],
+              "id": "postgres-interviewer",
+              "inputs": [
+                {
+                  "key": "candidate",
+                  "permission": "candidate.read"
+                },
+                {
+                  "key": "target",
+                  "permission": "target.read"
+                },
+                {
+                  "key": "readiness",
+                  "permission": "readiness.read"
+                },
+                {
+                  "key": "gaps",
+                  "permission": "readiness.read"
+                },
+                {
+                  "key": "request",
+                  "permission": "taxonomy.read"
+                }
+              ],
+              "interviewModes": [
+                {
+                  "description": "Focused PostgreSQL round on indexing, transactions, and query plans.",
+                  "focusSkills": [
+                    "sql.indexing",
+                    "sql.transactions",
+                    "sql.query-optimization"
+                  ],
+                  "id": "pg-deep-dive",
+                  "label": "PostgreSQL Deep Dive",
+                  "plannedQuestions": 4,
+                  "roundType": "technical"
+                }
+              ],
+              "kind": "plugin",
+              "name": "PostgreSQL Interviewer",
+              "outputs": [],
+              "permissions": [
+                "candidate.read",
+                "target.read",
+                "readiness.read",
+                "taxonomy.read",
+                "answers.read",
+                "evidence.write"
+              ],
+              "settings": [
+                {
+                  "default": "medium",
+                  "description": "Bias suggested PostgreSQL questions toward this difficulty.",
+                  "key": "difficulty-bias",
+                  "label": "Question difficulty bias",
+                  "options": [
+                    "easy",
+                    "medium",
+                    "hard"
+                  ],
+                  "type": "enum"
+                }
+              ],
+              "taxonomy": [
+                {
+                  "id": "sql.locking",
+                  "keywords": [
+                    "locks",
+                    "deadlock",
+                    "mvcc"
+                  ],
+                  "label": "Locking"
+                }
+              ],
+              "ui": {
+                "commands": [
+                  {
+                    "action": {
+                      "modeId": "pg-deep-dive",
+                      "type": "startInterview"
+                    },
+                    "id": "start-pg",
+                    "label": "Start PostgreSQL Deep Dive"
+                  }
+                ],
+                "navigation": [
+                  {
+                    "icon": "database",
+                    "label": "PostgreSQL",
+                    "page": "/"
+                  }
+                ],
+                "pages": [
+                  {
+                    "component": "home",
+                    "kind": "declarative",
+                    "path": "/",
+                    "title": "PostgreSQL"
+                  }
+                ],
+                "slots": {
+                  "dashboard.cards": [
+                    {
+                      "component": "readiness-card",
+                      "kind": "declarative",
+                      "title": "PostgreSQL readiness"
+                    }
+                  ],
+                  "prepare.activities": [
+                    {
+                      "component": "explain-analyze",
+                      "kind": "declarative",
+                      "title": "Practice EXPLAIN ANALYZE"
+                    }
+                  ],
+                  "readiness.panels": [
+                    {
+                      "component": "postgres-skill-tree",
+                      "entry": "ui/index.js",
+                      "kind": "frame"
+                    }
+                  ]
+                }
+              },
+              "version": "1.2.0"
+            },
+            "permissions": [
+              {
+                "access": "READ",
+                "category": "Candidate Profile",
+                "granted": true,
+                "requested": true
+              },
+              {
+                "access": "DENIED",
+                "category": "Resume",
+                "granted": false,
+                "requested": false
+              },
+              {
+                "access": "READ",
+                "category": "Target",
+                "granted": true,
+                "requested": true
+              },
+              {
+                "access": "READ",
+                "category": "Readiness",
+                "granted": true,
+                "requested": true
+              },
+              {
+                "access": "DENIED",
+                "category": "Interview History",
+                "granted": false,
+                "requested": false
+              },
+              {
+                "access": "READ",
+                "category": "Interview Answers",
+                "granted": true,
+                "requested": true
+              },
+              {
+                "access": "DENIED",
+                "category": "STAR Stories",
+                "granted": false,
+                "requested": false
+              },
+              {
+                "access": "DENIED",
+                "category": "Evidence (write)",
+                "granted": false,
+                "requested": true
+              },
+              {
+                "access": "DENIED",
+                "category": "AI Runtime",
+                "granted": false,
+                "requested": false
+              },
+              {
+                "access": "DENIED",
+                "category": "Local Files",
+                "granted": false,
+                "requested": false
+              },
+              {
+                "access": "DENIED",
+                "category": "Network",
+                "granted": false,
+                "requested": false
+              },
+              {
+                "access": "DENIED",
+                "category": "Environment/Secrets",
+                "granted": false,
+                "requested": false
+              },
+              {
+                "access": "DENIED",
+                "category": "Commands",
+                "granted": false,
+                "requested": false
+              },
+              {
+                "access": "UI",
+                "category": "UI Contributions",
+                "detail": "slots: dashboard.cards, readiness.panels, prepare.activities · pages: / · commands: Start PostgreSQL Deep Dive · nav: PostgreSQL · interview modes: PostgreSQL Deep Dive",
+                "granted": true,
+                "requested": true
+              }
+            ],
+            "source": "bundled"
+          },
+          {
+            "compatible": true,
+            "enabled": true,
+            "grantedPermissions": [
+              "answers.read"
+            ],
+            "manifest": {
+              "author": "interview-os",
+              "capabilities": [
+                "interview_mode",
+                "ui"
+              ],
+              "description": "Open-ended design of a larger system with concrete scale numbers — requirements → estimation → design → trade-offs.",
+              "engines": {
+                "interview-os": ">=0.4.0",
+                "plugin-api": "^1.1.0"
+              },
+              "hooks": [
+                "mode.reduce",
+                "mode.prepareTurn",
+                "mode.mock",
+                "ui.render"
+              ],
+              "id": "system-design-mode",
+              "inputs": [],
+              "kind": "plugin",
+              "modes": [
+                {
+                  "answerFields": [],
+                  "answerFormat": "text",
+                  "context": {
+                    "companyThemes": false,
+                    "storyTitles": false
+                  },
+                  "description": "Open-ended design of a larger system with concrete scale numbers — requirements → estimation → design → trade-offs.",
+                  "evaluatorPrompt": "prompts/evaluator.md",
+                  "fallbackSkills": [],
+                  "followUp": "never",
+                  "followUpReason": "system-design sessions walk uncovered dimensions directly",
+                  "id": "system_design",
+                  "initialState": {
+                    "dimensions": {
+                      "apis": {
+                        "notes": "",
+                        "status": "not_covered"
+                      },
+                      "architecture": {
+                        "notes": "",
+                        "status": "not_covered"
+                      },
+                      "caching": {
+                        "notes": "",
+                        "status": "not_covered"
+                      },
+                      "constraints": {
+                        "notes": "",
+                        "status": "not_covered"
+                      },
+                      "dataModel": {
+                        "notes": "",
+                        "status": "not_covered"
+                      },
+                      "reliability": {
+                        "notes": "",
+                        "status": "not_covered"
+                      },
+                      "requirements": {
+                        "notes": "",
+                        "status": "not_covered"
+                      },
+                      "scalability": {
+                        "notes": "",
+                        "status": "not_covered"
+                      },
+                      "scaleAssumptions": {
+                        "notes": "",
+                        "status": "not_covered"
+                      },
+                      "storage": {
+                        "notes": "",
+                        "status": "not_covered"
+                      },
+                      "tradeOffs": {
+                        "notes": "",
+                        "status": "not_covered"
+                      }
+                    },
+                    "focusDimension": null,
+                    "problem": null
+                  },
+                  "interviewerPrompt": "prompts/interviewer.md",
+                  "label": "System design",
+                  "reduce": {
+                    "copyExtra": [
+                      "problem",
+                      "focusDimension"
+                    ]
+                  },
+                  "rubric": [
+                    {
+                      "description": "Clarifies functional scope before designing.",
+                      "id": "requirements",
+                      "label": "Requirements"
+                    },
+                    {
+                      "description": "Surfaces constraints and non-functional goals.",
+                      "id": "constraints",
+                      "label": "Constraints"
+                    },
+                    {
+                      "description": "Quantifies load — QPS, storage, users — with numbers.",
+                      "id": "scaleAssumptions",
+                      "label": "Scale assumptions"
+                    },
+                    {
+                      "description": "Presents a coherent high-level component design.",
+                      "id": "architecture",
+                      "label": "Architecture"
+                    },
+                    {
+                      "description": "Defines entities, schema and access patterns.",
+                      "id": "dataModel",
+                      "label": "Data model"
+                    },
+                    {
+                      "description": "Specifies the external API surface.",
+                      "id": "apis",
+                      "label": "APIs"
+                    },
+                    {
+                      "description": "Chooses and justifies storage technology.",
+                      "id": "storage",
+                      "label": "Storage"
+                    },
+                    {
+                      "description": "Uses caching appropriately with invalidation reasoning.",
+                      "id": "caching",
+                      "label": "Caching"
+                    },
+                    {
+                      "description": "Covers failure modes, redundancy, monitoring.",
+                      "id": "reliability",
+                      "label": "Reliability"
+                    },
+                    {
+                      "description": "Shows how the design scales with growth.",
+                      "id": "scalability",
+                      "label": "Scalability"
+                    },
+                    {
+                      "description": "Discusses alternatives and justifies decisions.",
+                      "id": "tradeOffs",
+                      "label": "Trade-offs"
+                    }
+                  ],
+                  "scope": {
+                    "exclude": [],
+                    "include": [
+                      "system-design",
+                      "distributed-systems"
+                    ]
+                  }
+                }
+              ],
+              "name": "System Design Mode",
+              "outputs": [],
+              "permissions": [
+                "answers.read"
+              ],
+              "ui": {
+                "commands": [],
+                "navigation": [],
+                "pages": [],
+                "slots": {
+                  "interview.sidebar": [
+                    {
+                      "component": "design-dimensions",
+                      "kind": "declarative",
+                      "title": "Design dimensions"
+                    }
+                  ]
+                }
+              },
+              "version": "1.0.0"
+            },
+            "permissions": [
+              {
+                "access": "DENIED",
+                "category": "Candidate Profile",
+                "granted": false,
+                "requested": false
+              },
+              {
+                "access": "DENIED",
+                "category": "Resume",
+                "granted": false,
+                "requested": false
+              },
+              {
+                "access": "DENIED",
+                "category": "Target",
+                "granted": false,
+                "requested": false
+              },
+              {
+                "access": "DENIED",
+                "category": "Readiness",
+                "granted": false,
+                "requested": false
+              },
+              {
+                "access": "DENIED",
+                "category": "Interview History",
+                "granted": false,
+                "requested": false
+              },
+              {
+                "access": "READ",
+                "category": "Interview Answers",
+                "granted": true,
+                "requested": true
+              },
+              {
+                "access": "DENIED",
+                "category": "STAR Stories",
+                "granted": false,
+                "requested": false
+              },
+              {
+                "access": "DENIED",
+                "category": "Evidence (write)",
+                "granted": false,
+                "requested": false
+              },
+              {
+                "access": "DENIED",
+                "category": "AI Runtime",
+                "granted": false,
+                "requested": false
+              },
+              {
+                "access": "DENIED",
+                "category": "Local Files",
+                "granted": false,
+                "requested": false
+              },
+              {
+                "access": "DENIED",
+                "category": "Network",
+                "granted": false,
+                "requested": false
+              },
+              {
+                "access": "DENIED",
+                "category": "Environment/Secrets",
+                "granted": false,
+                "requested": false
+              },
+              {
+                "access": "DENIED",
+                "category": "Commands",
+                "granted": false,
+                "requested": false
+              },
+              {
+                "access": "UI",
+                "category": "UI Contributions",
+                "detail": "slots: interview.sidebar · plugin modes: System design (answer scores feed readiness)",
+                "granted": true,
+                "requested": true
+              }
+            ],
+            "source": "bundled"
+          },
+          {
+            "compatible": true,
+            "enabled": true,
+            "grantedPermissions": [
+              "answers.read"
+            ],
+            "manifest": {
+              "author": "interview-os",
+              "capabilities": [
+                "interview_mode"
+              ],
+              "description": "Deep technical interview round — one question per skill, probing mechanics, edge cases and trade-offs.",
+              "engines": {
+                "interview-os": ">=0.4.0",
+                "plugin-api": "^1.1.0"
+              },
+              "hooks": [
+                "mode.mock"
+              ],
+              "id": "technical-mode",
+              "inputs": [],
+              "kind": "plugin",
+              "modes": [
+                {
+                  "answerFields": [],
+                  "answerFormat": "text",
+                  "context": {
+                    "companyThemes": false,
+                    "storyTitles": false
+                  },
+                  "description": "Deep technical Q&A — mechanics, edge cases and trade-offs for a selected skill.",
+                  "evaluatorPrompt": "prompts/evaluator.md",
+                  "fallbackSkills": [],
+                  "id": "technical",
+                  "initialState": {},
+                  "interviewerPrompt": "prompts/interviewer.md",
+                  "label": "Technical",
+                  "rubric": [
+                    {
+                      "description": "Factual correctness.",
+                      "id": "correctness",
+                      "label": "Correctness"
+                    },
+                    {
+                      "description": "Depth beyond surface definitions.",
+                      "id": "technicalDepth",
+                      "label": "Technical depth"
+                    },
+                    {
+                      "description": "Quality of the reasoning chain.",
+                      "id": "reasoning",
+                      "label": "Reasoning"
+                    },
+                    {
+                      "description": "Clarity and structure.",
+                      "id": "communication",
+                      "label": "Communication"
+                    },
+                    {
+                      "description": "Relevance to the target role.",
+                      "id": "roleRelevance",
+                      "label": "Role relevance"
+                    }
+                  ],
+                  "scope": {
+                    "exclude": [
+                      "system-design",
+                      "behavioral",
+                      "communication",
+                      "hr",
+                      "coding",
+                      "hiring-manager"
+                    ],
+                    "include": []
+                  }
+                }
+              ],
+              "name": "Technical Mode",
+              "outputs": [],
+              "permissions": [
+                "answers.read"
+              ],
+              "version": "1.0.0"
+            },
+            "permissions": [
+              {
+                "access": "DENIED",
+                "category": "Candidate Profile",
+                "granted": false,
+                "requested": false
+              },
+              {
+                "access": "DENIED",
+                "category": "Resume",
+                "granted": false,
+                "requested": false
+              },
+              {
+                "access": "DENIED",
+                "category": "Target",
+                "granted": false,
+                "requested": false
+              },
+              {
+                "access": "DENIED",
+                "category": "Readiness",
+                "granted": false,
+                "requested": false
+              },
+              {
+                "access": "DENIED",
+                "category": "Interview History",
+                "granted": false,
+                "requested": false
+              },
+              {
+                "access": "READ",
+                "category": "Interview Answers",
+                "granted": true,
+                "requested": true
+              },
+              {
+                "access": "DENIED",
+                "category": "STAR Stories",
+                "granted": false,
+                "requested": false
+              },
+              {
+                "access": "DENIED",
+                "category": "Evidence (write)",
+                "granted": false,
+                "requested": false
+              },
+              {
+                "access": "DENIED",
+                "category": "AI Runtime",
+                "granted": false,
+                "requested": false
+              },
+              {
+                "access": "DENIED",
+                "category": "Local Files",
+                "granted": false,
+                "requested": false
+              },
+              {
+                "access": "DENIED",
+                "category": "Network",
+                "granted": false,
+                "requested": false
+              },
+              {
+                "access": "DENIED",
+                "category": "Environment/Secrets",
+                "granted": false,
+                "requested": false
+              },
+              {
+                "access": "DENIED",
+                "category": "Commands",
+                "granted": false,
+                "requested": false
+              },
+              {
+                "access": "UI",
+                "category": "UI Contributions",
+                "detail": "plugin modes: Technical (answer scores feed readiness)",
+                "granted": true,
+                "requested": true
+              }
+            ],
+            "source": "bundled"
+          }
+        ]
+      },
+      "status": 200
+    }
+  }
+}

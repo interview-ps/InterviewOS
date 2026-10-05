@@ -1,0 +1,22 @@
+{
+  "snapshots": {
+    "bad-level": {
+      "body": {
+        "error": {
+          "code": "VALIDATION",
+          "message": "invalid request body: level: Invalid option: expected one of \"junior\"|\"mid\"|\"senior\"|\"staff\""
+        }
+      },
+      "status": 400
+    },
+    "empty": {
+      "body": {
+        "error": {
+          "code": "VALIDATION",
+          "message": "invalid request body: resumeText: Invalid input: expected string, received undefined; jobDescription: Invalid input: expected string, received undefined; company: Invalid input: expected string, received undefined; role: Invalid input: expected string, received undefined; level: Invalid option: expected one of \"junior\"|\"mid\"|\"senior\"|\"staff\""
+        }
+      },
+      "status": 400
+    }
+  }
+}

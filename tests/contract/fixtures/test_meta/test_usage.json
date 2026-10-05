@@ -1,0 +1,49 @@
+{
+  "snapshots": {
+    "event": {
+      "body": {
+        "ok": true
+      },
+      "status": 200
+    },
+    "event-invalid": {
+      "body": {
+        "error": {
+          "code": "VALIDATION",
+          "message": "invalid request body: event: Too small: expected string to have >=1 characters"
+        }
+      },
+      "status": 400
+    },
+    "metrics": {
+      "body": {
+        "improvementAfterPrep": null,
+        "loopsCompleted": 0,
+        "loopsStarted": 0,
+        "prepCompletionRate": {
+          "done": 0,
+          "rate": null,
+          "total": 0
+        },
+        "readinessCoverage": {
+          "covered": 0,
+          "rate": null,
+          "total": 0
+        },
+        "sessionsPerMode": {},
+        "usage": {
+          "history.viewed": 0,
+          "palette.used": 1,
+          "resume.coach.used": 0,
+          "target.switched": 0
+        },
+        "weaknessRetestRate": {
+          "rate": null,
+          "retested": 0,
+          "weakSkills": 0
+        }
+      },
+      "status": 200
+    }
+  }
+}

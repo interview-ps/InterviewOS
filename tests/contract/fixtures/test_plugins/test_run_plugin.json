@@ -1,0 +1,33 @@
+{
+  "snapshots": {
+    "run": {
+      "body": {
+        "evidenceIgnored": 0,
+        "evidenceWritten": 0,
+        "output": {
+          "items": [
+            {
+              "detail": "Every behavioral answer: Situation → Task → Action → Result. Land the result with a number.",
+              "title": "STAR reminder"
+            },
+            {
+              "detail": "Test your camera/mic, water nearby, notebook for questions.",
+              "title": "Logistics"
+            }
+          ],
+          "title": "Interview day checklist"
+        }
+      },
+      "status": 200
+    },
+    "run-404": {
+      "body": {
+        "error": {
+          "code": "NOT_FOUND",
+          "message": "unknown plugin \"no-such-plugin\""
+        }
+      },
+      "status": 404
+    }
+  }
+}

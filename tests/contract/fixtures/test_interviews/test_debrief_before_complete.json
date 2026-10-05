@@ -1,0 +1,13 @@
+{
+  "snapshots": {
+    "no-debrief": {
+      "body": {
+        "error": {
+          "code": "NOT_FOUND",
+          "message": "no debrief for this session"
+        }
+      },
+      "status": 404
+    }
+  }
+}

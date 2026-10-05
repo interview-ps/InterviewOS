@@ -1,0 +1,13 @@
+{
+  "snapshots": {
+    "missing": {
+      "body": {
+        "error": {
+          "code": "VALIDATION",
+          "message": "multipart field 'file' is required"
+        }
+      },
+      "status": 400
+    }
+  }
+}

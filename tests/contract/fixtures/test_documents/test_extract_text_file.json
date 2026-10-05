@@ -1,0 +1,12 @@
+{
+  "snapshots": {
+    "txt": {
+      "body": {
+        "format": "txt",
+        "text": "Some plain text notes.\nSecond line.",
+        "warnings": []
+      },
+      "status": 200
+    }
+  }
+}

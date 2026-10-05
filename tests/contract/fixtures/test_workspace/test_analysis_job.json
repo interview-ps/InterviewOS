@@ -1,0 +1,116 @@
+{
+  "snapshots": {
+    "job": {
+      "body": {
+        "company": "Northwind Cloud",
+        "companyProfileId": "generic",
+        "id": "<target#1>",
+        "jobDescription": "# Senior Backend Engineer — Northwind Cloud\r\n\r\nNorthwind Cloud runs managed cloud backends for mid-size SaaS companies. You will own\r\nbackend services end to end.\r\n\r\n## Requirements\r\n- Strong Python: you write production Python services daily\r\n- Designing REST APIs and HTTP endpoints that other teams consume\r\n- SQL and relational modeling on production workloads\r\n- Distributed systems: you reason about services that fail independently\r\n- Caching: you have designed caching layers, tuned caches for hot paths, and reasoned about\r\n  cache hit rates and cache-friendly data layouts\r\n- Message queues: experience with Kafka or SQS for asynchronous work\r\n- System design: comfortable reasoning about architecture and trade-offs in a design review\r\n\r\n## Nice to have\r\n- Kubernetes or container orchestration\r\n- Observability tooling (metrics, tracing)\r\n",
+        "level": "senior",
+        "preferredSkills": [
+          {
+            "baseImportance": 0.5,
+            "evidence": "- Kubernetes or container orchestration",
+            "importance": 0.5,
+            "kind": "preferred",
+            "label": "Kubernetes",
+            "skillId": "infrastructure.kubernetes"
+          },
+          {
+            "baseImportance": 0.5,
+            "evidence": "- Observability tooling (metrics, tracing)",
+            "importance": 0.5,
+            "kind": "preferred",
+            "label": "Observability",
+            "skillId": "infrastructure.observability"
+          }
+        ],
+        "requirements": [
+          {
+            "baseImportance": 0.9,
+            "evidence": "- Caching: you have designed caching layers, tuned caches for hot paths, and reasoned about",
+            "importance": 0.9,
+            "kind": "required",
+            "label": "Caching",
+            "skillId": "distributed-systems.caching"
+          },
+          {
+            "baseImportance": 0.85,
+            "evidence": "- Designing REST APIs and HTTP endpoints that other teams consume",
+            "importance": 0.85,
+            "kind": "required",
+            "label": "APIs",
+            "skillId": "apis"
+          },
+          {
+            "baseImportance": 0.85,
+            "evidence": "- Message queues: experience with Kafka or SQS for asynchronous work",
+            "importance": 0.85,
+            "kind": "required",
+            "label": "Message Queues",
+            "skillId": "distributed-systems.message-queues"
+          },
+          {
+            "baseImportance": 0.8,
+            "evidence": "- Strong Python: you write production Python services daily",
+            "importance": 0.8,
+            "kind": "required",
+            "label": "Python",
+            "skillId": "python"
+          },
+          {
+            "baseImportance": 0.8,
+            "evidence": "- SQL and relational modeling on production workloads",
+            "importance": 0.8,
+            "kind": "required",
+            "label": "SQL",
+            "skillId": "sql"
+          },
+          {
+            "baseImportance": 0.8,
+            "evidence": "- System design: comfortable reasoning about architecture and trade-offs in a design review",
+            "importance": 0.8,
+            "kind": "required",
+            "label": "System Design",
+            "skillId": "system-design"
+          },
+          {
+            "baseImportance": 0.75,
+            "evidence": "- Designing REST APIs and HTTP endpoints that other teams consume",
+            "importance": 0.75,
+            "kind": "required",
+            "label": "REST APIs",
+            "skillId": "apis.rest"
+          },
+          {
+            "baseImportance": 0.75,
+            "evidence": "- Distributed systems: you reason about services that fail independently",
+            "importance": 0.75,
+            "kind": "required",
+            "label": "Distributed Systems",
+            "skillId": "distributed-systems"
+          },
+          {
+            "baseImportance": 0.75,
+            "evidence": "- Message queues: experience with Kafka or SQS for asynchronous work",
+            "importance": 0.75,
+            "kind": "required",
+            "label": "Async Processing",
+            "skillId": "system-design.async-processing"
+          }
+        ],
+        "role": "Senior Backend Engineer"
+      },
+      "status": 200
+    },
+    "job-invalid": {
+      "body": {
+        "error": {
+          "code": "VALIDATION",
+          "message": "invalid request body: company: Invalid input: expected string, received undefined; role: Invalid input: expected string, received undefined; level: Invalid option: expected one of \"junior\"|\"mid\"|\"senior\"|\"staff\""
+        }
+      },
+      "status": 400
+    }
+  }
+}

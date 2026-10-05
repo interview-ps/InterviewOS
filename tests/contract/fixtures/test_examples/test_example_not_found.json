@@ -1,0 +1,22 @@
+{
+  "snapshots": {
+    "bad-name": {
+      "body": {
+        "error": {
+          "code": "NOT_FOUND",
+          "message": "unknown example"
+        }
+      },
+      "status": 404
+    },
+    "missing": {
+      "body": {
+        "error": {
+          "code": "NOT_FOUND",
+          "message": "unknown example"
+        }
+      },
+      "status": 404
+    }
+  }
+}

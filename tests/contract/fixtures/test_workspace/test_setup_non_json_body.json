@@ -1,0 +1,13 @@
+{
+  "snapshots": {
+    "non-json": {
+      "body": {
+        "error": {
+          "code": "VALIDATION",
+          "message": "request body must be JSON"
+        }
+      },
+      "status": 400
+    }
+  }
+}

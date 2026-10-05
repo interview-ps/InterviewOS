@@ -1,0 +1,564 @@
+{
+  "snapshots": {
+    "detail": {
+      "body": {
+        "actionsCreated": [
+          {
+            "action": "Compare cache-aside, read-through and write-through for a concrete service you know",
+            "createdAt": "<ts>",
+            "id": "<action#1>",
+            "priority": 1,
+            "reason": "weak answer: Did not address: cache-aside / read-through",
+            "resources": [
+              {
+                "kind": "explanation",
+                "skillId": "distributed-systems.caching.cache-strategies",
+                "source": "builtin",
+                "summary": "Cache-aside, read/write-through, TTLs and invalidation — the vocabulary interviewers probe for.",
+                "title": "Interview OS explanation: caching patterns"
+              },
+              {
+                "kind": "practice",
+                "skillId": "distributed-systems.caching.cache-strategies",
+                "source": "builtin",
+                "summary": "Start a practice session in Interview OS to verify this skill.",
+                "title": "Practice a Cache Strategies question"
+              }
+            ],
+            "severity": "high",
+            "skillId": "distributed-systems.caching.cache-strategies",
+            "sourceEvidenceIds": [
+              "<ev#1>"
+            ],
+            "status": "open",
+            "successCriteria": [
+              "Describe each strategy in one sentence",
+              "Give one failure mode for each",
+              "Complete one mock question"
+            ]
+          }
+        ],
+        "debrief": {
+          "nextActions": [
+            "Compare cache-aside, read-through and write-through for a concrete service you know",
+            "Design the caching layer for a read-heavy product catalog on a whiteboard, then explain it aloud",
+            "Sketch a producer/consumer design with a queue and explain delivery semantics",
+            "Practice one full system-design question end-to-end with explicit clarifying questions",
+            "Practice Async Processing: prepare a 2-minute explanation covering async processing, asynchronous, background job, then answer one mock question on it."
+          ],
+          "summary": "Mock interview for Senior Backend Engineer: 1 answer(s) across 1 question(s), 1 strength area(s), 1 weak area(s).",
+          "toImprove": [
+            "distributed-systems.caching.cache-strategies: Did not address: cache-aside / read-through"
+          ],
+          "wentWell": [
+            "distributed-systems.consistency: Explained stale reads / race conditions"
+          ]
+        },
+        "hasWeakAnswer": false,
+        "loop": null,
+        "questions": [
+          {
+            "answer": {
+              "code": null,
+              "createdAt": "<ts>",
+              "id": "<ans#1>",
+              "language": null,
+              "text": "For Cache consistency: I would define clear ownership, name the trade-offs, and describe validation criteria; in practice I combine a ttl with explicit invalidation on writes.",
+              "voice": null
+            },
+            "evaluation": {
+              "betterApproach": "A stronger answer would cover: cache-aside / read-through, write-through / write-behind trade-offs.",
+              "designUpdates": null,
+              "dimensions": {
+                "communication": {
+                  "rationale": "deterministic mock evaluation",
+                  "score": 0.52
+                },
+                "correctness": {
+                  "rationale": "deterministic mock evaluation",
+                  "score": 0.66
+                },
+                "evidence": {
+                  "rationale": "deterministic mock evaluation",
+                  "score": 0.56
+                },
+                "reasoning": {
+                  "rationale": "deterministic mock evaluation",
+                  "score": 0.58
+                },
+                "roleRelevance": {
+                  "rationale": "deterministic mock evaluation",
+                  "score": 0.64
+                },
+                "structure": {
+                  "rationale": "deterministic mock evaluation",
+                  "score": 0.4
+                },
+                "technicalDepth": {
+                  "rationale": "deterministic mock evaluation",
+                  "score": 0.62
+                }
+              },
+              "followUpTopics": [
+                "cache-aside / read-through",
+                "write-through / write-behind trade-offs"
+              ],
+              "missingConcepts": [
+                "cache-aside / read-through",
+                "write-through / write-behind trade-offs"
+              ],
+              "modeSignals": null,
+              "rubric": [],
+              "scores": [
+                {
+                  "confidence": 0.63,
+                  "score": 0.15,
+                  "skill": "distributed-systems.caching.cache-strategies"
+                },
+                {
+                  "confidence": 0.63,
+                  "score": 0.68,
+                  "skill": "distributed-systems.caching.cache-invalidation"
+                },
+                {
+                  "confidence": 0.63,
+                  "score": 0.95,
+                  "skill": "distributed-systems.consistency"
+                },
+                {
+                  "confidence": 0.63,
+                  "score": 0.63,
+                  "skill": "distributed-systems.caching"
+                }
+              ],
+              "star": null,
+              "strengths": [
+                {
+                  "evidence": "Explained stale reads / race conditions",
+                  "skill": "distributed-systems.consistency"
+                }
+              ],
+              "summary": "Covered 3 of 5 expected concepts (60%).",
+              "weaknesses": [
+                {
+                  "evidence": "Did not address: cache-aside / read-through",
+                  "severity": "high",
+                  "skill": "distributed-systems.caching.cache-strategies"
+                }
+              ]
+            },
+            "followUps": [],
+            "question": {
+              "createdAt": "<ts>",
+              "difficulty": "medium",
+              "expectedConcepts": [
+                {
+                  "concept": "cache-aside / read-through",
+                  "keywords": [
+                    "cache-aside",
+                    "read-through",
+                    "lazy load"
+                  ],
+                  "skillId": "distributed-systems.caching.cache-strategies"
+                },
+                {
+                  "concept": "TTL / expiration",
+                  "keywords": [
+                    "ttl",
+                    "expir"
+                  ],
+                  "skillId": "distributed-systems.caching.cache-invalidation"
+                },
+                {
+                  "concept": "explicit invalidation on write",
+                  "keywords": [
+                    "invalidat",
+                    "delete the key",
+                    "evict"
+                  ],
+                  "skillId": "distributed-systems.caching.cache-invalidation"
+                },
+                {
+                  "concept": "write-through / write-behind trade-offs",
+                  "keywords": [
+                    "write-through",
+                    "write-behind",
+                    "write-back"
+                  ],
+                  "skillId": "distributed-systems.caching.cache-invalidation"
+                },
+                {
+                  "concept": "stale reads / race conditions",
+                  "keywords": [
+                    "stale",
+                    "race",
+                    "consisten"
+                  ],
+                  "skillId": "distributed-systems.consistency"
+                }
+              ],
+              "extra": {},
+              "followUpFocus": null,
+              "followUpOf": null,
+              "id": "<q#1>",
+              "selectionFactors": {
+                "noveltyFactor": 1,
+                "packFocus": 0,
+                "readinessGap": 1,
+                "recencyFactor": 1,
+                "roleImportance": 0.9,
+                "uncertainty": 1,
+                "weaknessBoost": 1
+              },
+              "selectionPriority": 1.35,
+              "selectionReason": "no evidence yet; not previously asked",
+              "sessionId": "<int#1>",
+              "skillId": "distributed-systems.caching",
+              "source": null,
+              "subSkills": [
+                "distributed-systems.caching.cache-strategies",
+                "distributed-systems.caching.cache-invalidation"
+              ],
+              "text": "How would you keep cache entries consistent with the database when the underlying data changes?",
+              "topic": "Cache consistency"
+            },
+            "readinessDelta": [
+              {
+                "after": 0.15,
+                "before": null,
+                "skillId": "distributed-systems.caching.cache-strategies"
+              },
+              {
+                "after": 0.68,
+                "before": null,
+                "skillId": "distributed-systems.caching.cache-invalidation"
+              },
+              {
+                "after": 0.95,
+                "before": null,
+                "skillId": "distributed-systems.consistency"
+              },
+              {
+                "after": 0.554215,
+                "before": null,
+                "skillId": "distributed-systems.caching"
+              }
+            ],
+            "weak": false
+          }
+        ],
+        "session": {
+          "actionId": null,
+          "candidateId": "<cand#1>",
+          "completedAt": null,
+          "contextId": null,
+          "createdAt": "<ts>",
+          "currentRound": 1,
+          "focusSkillId": null,
+          "focusSkills": [],
+          "id": "<int#1>",
+          "loopId": null,
+          "loopRound": null,
+          "mode": "interview",
+          "modeLabel": "Mixed",
+          "modeState": {},
+          "plannedQuestions": 1,
+          "pluginModeId": null,
+          "roundType": "mixed",
+          "status": "debrief",
+          "targetId": "<target#1>"
+        },
+        "target": {
+          "company": "Northwind Cloud",
+          "companyProfileId": "generic",
+          "id": "<target#1>",
+          "role": "Senior Backend Engineer"
+        }
+      },
+      "status": 200
+    },
+    "filtered": {
+      "body": [],
+      "status": 200
+    },
+    "list": {
+      "body": [
+        {
+          "actionsCreated": [
+            {
+              "action": "Compare cache-aside, read-through and write-through for a concrete service you know",
+              "createdAt": "<ts>",
+              "id": "<action#1>",
+              "priority": 1,
+              "reason": "weak answer: Did not address: cache-aside / read-through",
+              "resources": [
+                {
+                  "kind": "explanation",
+                  "skillId": "distributed-systems.caching.cache-strategies",
+                  "source": "builtin",
+                  "summary": "Cache-aside, read/write-through, TTLs and invalidation — the vocabulary interviewers probe for.",
+                  "title": "Interview OS explanation: caching patterns"
+                },
+                {
+                  "kind": "practice",
+                  "skillId": "distributed-systems.caching.cache-strategies",
+                  "source": "builtin",
+                  "summary": "Start a practice session in Interview OS to verify this skill.",
+                  "title": "Practice a Cache Strategies question"
+                }
+              ],
+              "severity": "high",
+              "skillId": "distributed-systems.caching.cache-strategies",
+              "sourceEvidenceIds": [
+                "<ev#1>"
+              ],
+              "status": "open",
+              "successCriteria": [
+                "Describe each strategy in one sentence",
+                "Give one failure mode for each",
+                "Complete one mock question"
+              ]
+            }
+          ],
+          "debrief": {
+            "nextActions": [
+              "Compare cache-aside, read-through and write-through for a concrete service you know",
+              "Design the caching layer for a read-heavy product catalog on a whiteboard, then explain it aloud",
+              "Sketch a producer/consumer design with a queue and explain delivery semantics",
+              "Practice one full system-design question end-to-end with explicit clarifying questions",
+              "Practice Async Processing: prepare a 2-minute explanation covering async processing, asynchronous, background job, then answer one mock question on it."
+            ],
+            "summary": "Mock interview for Senior Backend Engineer: 1 answer(s) across 1 question(s), 1 strength area(s), 1 weak area(s).",
+            "toImprove": [
+              "distributed-systems.caching.cache-strategies: Did not address: cache-aside / read-through"
+            ],
+            "wentWell": [
+              "distributed-systems.consistency: Explained stale reads / race conditions"
+            ]
+          },
+          "hasWeakAnswer": false,
+          "loop": null,
+          "questions": [
+            {
+              "answer": {
+                "code": null,
+                "createdAt": "<ts>",
+                "id": "<ans#1>",
+                "language": null,
+                "text": "For Cache consistency: I would define clear ownership, name the trade-offs, and describe validation criteria; in practice I combine a ttl with explicit invalidation on writes.",
+                "voice": null
+              },
+              "evaluation": {
+                "betterApproach": "A stronger answer would cover: cache-aside / read-through, write-through / write-behind trade-offs.",
+                "designUpdates": null,
+                "dimensions": {
+                  "communication": {
+                    "rationale": "deterministic mock evaluation",
+                    "score": 0.52
+                  },
+                  "correctness": {
+                    "rationale": "deterministic mock evaluation",
+                    "score": 0.66
+                  },
+                  "evidence": {
+                    "rationale": "deterministic mock evaluation",
+                    "score": 0.56
+                  },
+                  "reasoning": {
+                    "rationale": "deterministic mock evaluation",
+                    "score": 0.58
+                  },
+                  "roleRelevance": {
+                    "rationale": "deterministic mock evaluation",
+                    "score": 0.64
+                  },
+                  "structure": {
+                    "rationale": "deterministic mock evaluation",
+                    "score": 0.4
+                  },
+                  "technicalDepth": {
+                    "rationale": "deterministic mock evaluation",
+                    "score": 0.62
+                  }
+                },
+                "followUpTopics": [
+                  "cache-aside / read-through",
+                  "write-through / write-behind trade-offs"
+                ],
+                "missingConcepts": [
+                  "cache-aside / read-through",
+                  "write-through / write-behind trade-offs"
+                ],
+                "modeSignals": null,
+                "rubric": [],
+                "scores": [
+                  {
+                    "confidence": 0.63,
+                    "score": 0.15,
+                    "skill": "distributed-systems.caching.cache-strategies"
+                  },
+                  {
+                    "confidence": 0.63,
+                    "score": 0.68,
+                    "skill": "distributed-systems.caching.cache-invalidation"
+                  },
+                  {
+                    "confidence": 0.63,
+                    "score": 0.95,
+                    "skill": "distributed-systems.consistency"
+                  },
+                  {
+                    "confidence": 0.63,
+                    "score": 0.63,
+                    "skill": "distributed-systems.caching"
+                  }
+                ],
+                "star": null,
+                "strengths": [
+                  {
+                    "evidence": "Explained stale reads / race conditions",
+                    "skill": "distributed-systems.consistency"
+                  }
+                ],
+                "summary": "Covered 3 of 5 expected concepts (60%).",
+                "weaknesses": [
+                  {
+                    "evidence": "Did not address: cache-aside / read-through",
+                    "severity": "high",
+                    "skill": "distributed-systems.caching.cache-strategies"
+                  }
+                ]
+              },
+              "followUps": [],
+              "question": {
+                "createdAt": "<ts>",
+                "difficulty": "medium",
+                "expectedConcepts": [
+                  {
+                    "concept": "cache-aside / read-through",
+                    "keywords": [
+                      "cache-aside",
+                      "read-through",
+                      "lazy load"
+                    ],
+                    "skillId": "distributed-systems.caching.cache-strategies"
+                  },
+                  {
+                    "concept": "TTL / expiration",
+                    "keywords": [
+                      "ttl",
+                      "expir"
+                    ],
+                    "skillId": "distributed-systems.caching.cache-invalidation"
+                  },
+                  {
+                    "concept": "explicit invalidation on write",
+                    "keywords": [
+                      "invalidat",
+                      "delete the key",
+                      "evict"
+                    ],
+                    "skillId": "distributed-systems.caching.cache-invalidation"
+                  },
+                  {
+                    "concept": "write-through / write-behind trade-offs",
+                    "keywords": [
+                      "write-through",
+                      "write-behind",
+                      "write-back"
+                    ],
+                    "skillId": "distributed-systems.caching.cache-invalidation"
+                  },
+                  {
+                    "concept": "stale reads / race conditions",
+                    "keywords": [
+                      "stale",
+                      "race",
+                      "consisten"
+                    ],
+                    "skillId": "distributed-systems.consistency"
+                  }
+                ],
+                "extra": {},
+                "followUpFocus": null,
+                "followUpOf": null,
+                "id": "<q#1>",
+                "selectionFactors": {
+                  "noveltyFactor": 1,
+                  "packFocus": 0,
+                  "readinessGap": 1,
+                  "recencyFactor": 1,
+                  "roleImportance": 0.9,
+                  "uncertainty": 1,
+                  "weaknessBoost": 1
+                },
+                "selectionPriority": 1.35,
+                "selectionReason": "no evidence yet; not previously asked",
+                "sessionId": "<int#1>",
+                "skillId": "distributed-systems.caching",
+                "source": null,
+                "subSkills": [
+                  "distributed-systems.caching.cache-strategies",
+                  "distributed-systems.caching.cache-invalidation"
+                ],
+                "text": "How would you keep cache entries consistent with the database when the underlying data changes?",
+                "topic": "Cache consistency"
+              },
+              "readinessDelta": [
+                {
+                  "after": 0.15,
+                  "before": null,
+                  "skillId": "distributed-systems.caching.cache-strategies"
+                },
+                {
+                  "after": 0.68,
+                  "before": null,
+                  "skillId": "distributed-systems.caching.cache-invalidation"
+                },
+                {
+                  "after": 0.95,
+                  "before": null,
+                  "skillId": "distributed-systems.consistency"
+                },
+                {
+                  "after": 0.554215,
+                  "before": null,
+                  "skillId": "distributed-systems.caching"
+                }
+              ],
+              "weak": false
+            }
+          ],
+          "session": {
+            "actionId": null,
+            "candidateId": "<cand#1>",
+            "completedAt": null,
+            "contextId": null,
+            "createdAt": "<ts>",
+            "currentRound": 1,
+            "focusSkillId": null,
+            "focusSkills": [],
+            "id": "<int#1>",
+            "loopId": null,
+            "loopRound": null,
+            "mode": "interview",
+            "modeLabel": "Mixed",
+            "modeState": {},
+            "plannedQuestions": 1,
+            "pluginModeId": null,
+            "roundType": "mixed",
+            "status": "debrief",
+            "targetId": "<target#1>"
+          },
+          "target": {
+            "company": "Northwind Cloud",
+            "companyProfileId": "generic",
+            "id": "<target#1>",
+            "role": "Senior Backend Engineer"
+          }
+        }
+      ],
+      "status": 200
+    }
+  }
+}

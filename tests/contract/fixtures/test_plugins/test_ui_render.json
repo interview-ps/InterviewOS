@@ -1,0 +1,49 @@
+{
+  "snapshots": {
+    "render": {
+      "body": {
+        "ui": {
+          "children": [
+            {
+              "label": "PostgreSQL readiness",
+              "tone": "muted",
+              "type": "stat",
+              "value": "—"
+            },
+            {
+              "action": {
+                "modeId": "pg-deep-dive",
+                "type": "startInterview"
+              },
+              "label": "Start PostgreSQL Deep Dive",
+              "type": "button",
+              "variant": "primary"
+            }
+          ],
+          "subtitle": "0 SQL skills assessed",
+          "title": "PostgreSQL readiness",
+          "type": "card"
+        }
+      },
+      "status": 200
+    },
+    "render-404": {
+      "body": {
+        "error": {
+          "code": "NOT_FOUND",
+          "message": "unknown plugin \"no-such-plugin\""
+        }
+      },
+      "status": 404
+    },
+    "render-invalid": {
+      "body": {
+        "error": {
+          "code": "VALIDATION",
+          "message": "invalid request body: component: Invalid input: expected string, received undefined"
+        }
+      },
+      "status": 400
+    }
+  }
+}
