@@ -8,16 +8,15 @@ import {
 } from "@/lib/api";
 import {
   Button,
-  Callout,
   Card,
   CardTitle,
+  displayLabel,
   EmptyState,
   ErrorNote,
   PageHeader,
   Pill,
   SectionHeading,
   SkeletonCard,
-  skillLabel,
   toast,
 } from "@/components/ui";
 import { PluginSlot } from "@/components/plugin-ui";
@@ -132,28 +131,65 @@ function ActionCard({
       }),
     );
 
-  const verify = () =>
+  const practice = () =>
     run(a.id, () =>
       api
         .startInterview({ mode: "practice", focusSkillId: a.skillId, actionId: a.id })
         .then((r) => r.session && navigate(`/interview/${r.session.id}`)),
     );
 
+  const startPrep = () =>
+    run(a.id, () => api.updateAction(a.id, "in_progress").then(onChanged));
+
+  const steps = ["Learn", "Practice", "Verify"];
+  const activeStep = a.status === "open" ? 0 : a.status === "done" ? 3 : 1;
+  const [summary, ...restParts] = a.action.split(/(?<=\.)\s+/);
+  const rest = restParts.join(" ").trim();
+
   return (
     <Card className={a.priority === 1 ? "border-accent" : ""}>
       <div className="flex flex-wrap items-center gap-2">
         <Pill tone={a.priority === 1 ? "amber" : "muted"}>#{a.priority}</Pill>
-        <span className="font-medium">{skillLabel(a.skillId)}</span>
+        <span className="text-base font-medium">{displayLabel(a.skillId)}</span>
         <Pill tone={a.status === "in_progress" ? "blue" : "muted"}>
           {ACTION_STATUS[a.status]}
         </Pill>
       </div>
-      <p className="mt-2 text-base">{a.action}</p>
-      {a.reason && (
-        <div className="mt-2">
-          <Callout title="Why this matters">{a.reason}</Callout>
-        </div>
+
+      <p className="mt-2 text-sm">{summary}</p>
+      {a.reason && <p className="mt-1 text-sm text-muted">{a.reason}</p>}
+
+      <ol className="mt-3 flex flex-wrap items-center gap-1 text-xs text-muted">
+        {steps.map((s, i) => (
+          <li key={s} className="flex items-center gap-1">
+            <span
+              className={`flex h-5 w-5 items-center justify-center rounded-full border text-[0.65rem] ${
+                i < activeStep
+                  ? "border-green bg-green-tint text-green"
+                  : i === activeStep
+                    ? "border-blue text-blue"
+                    : "border-line"
+              }`}
+            >
+              {i + 1}
+            </span>
+            <span className={i === activeStep ? "text-ink" : ""}>{s}</span>
+            {i < steps.length - 1 && (
+              <span aria-hidden className="mx-1">
+                →
+              </span>
+            )}
+          </li>
+        ))}
+      </ol>
+
+      {rest && (
+        <details className="mt-2 text-xs text-muted">
+          <summary className="cursor-pointer">Show full task</summary>
+          <p className="mt-1">{rest}</p>
+        </details>
       )}
+
       <fieldset className="mt-3 space-y-1">
         <legend className="sr-only">Success criteria for {a.action}</legend>
         <p className="text-xs font-semibold uppercase tracking-wide text-muted">
@@ -176,25 +212,24 @@ function ActionCard({
         busy={busy}
         canFetch={canFetchResources}
         onChanged={onChanged}
-        onPractice={verify}
+        onPractice={practice}
         run={run}
       />
       <div className="mt-3 flex flex-wrap items-center gap-2">
         {a.status === "open" && (
-          <Button
-            disabled={busy}
-            onClick={() => run(a.id, () => api.updateAction(a.id, "in_progress").then(onChanged))}
-          >
-            Start
+          <Button disabled={busy} onClick={startPrep}>
+            Start preparation
+          </Button>
+        )}
+        {a.status === "in_progress" && (
+          <Button disabled={busy} onClick={practice}>
+            Practice this skill
           </Button>
         )}
         <Button variant="secondary" disabled={busy} onClick={markDone}>
           {busy
             ? "Working…"
             : `Mark done${checked.size ? ` (${checked.size}/${a.successCriteria.length})` : ""}`}
-        </Button>
-        <Button variant="ghost" disabled={busy} onClick={verify}>
-          Verify with a question
         </Button>
       </div>
     </Card>
@@ -262,10 +297,10 @@ export default function PrepPlan() {
     <div className="space-y-5">
       <PageHeader
         title="Preparation plan"
-        subtitle="An adaptive plan built from your gaps — finish an action, then verify it with a question."
+        subtitle="Learn, practise, verify — one action at a time, chosen from your biggest gaps."
         actions={
           <Button variant="secondary" onClick={recalc} disabled={busy === "recalc"}>
-            {busy === "recalc" ? "Recalculating…" : "Recalculate"}
+            {busy === "recalc" ? "Refreshing…" : "Refresh plan"}
           </Button>
         }
       />
