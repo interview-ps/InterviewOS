@@ -34,12 +34,18 @@ export { SkillScoreCard as SkillScore } from "@/ui";
 /* Reusable product patterns. */
 export {
   Callout,
+  CollapseList,
+  CopyText,
   DeltaList,
+  DeltaText,
   EvidenceTimeline,
   KeyValue,
+  KeyValueRows,
   NextActionCard,
   PriorityList,
   ReadinessHero,
+  ScopeNote,
+  Section,
   SectionHeading,
   StatusBuckets,
   StatusDot,

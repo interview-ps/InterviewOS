@@ -1,8 +1,8 @@
-import type { ReactNode } from "react";
-import { Timeline, Typography } from "antd";
+import { useState, type ReactNode } from "react";
+import { App, Collapse, Descriptions, Timeline, Typography } from "antd";
 import type { UITone as Tone } from "@interview-os/frontend-types";
 
-import { Bar, Card, Pill } from "./index";
+import { Bar, Button, Card, Pill } from "./index";
 
 /* Reusable product patterns. These compose the antd-backed primitives in
    ./index into the recurring Interview OS shapes (command centre, priorities,
@@ -168,6 +168,70 @@ export type Delta = {
   after: number | null;
 };
 
+/**
+ * Canonical readiness-change rendering. A value with no prior measurement is a
+ * *first assessment*, never a fake change. Never shows an arrow without a
+ * prior measurement.
+ */
+export function DeltaText({
+  before,
+  after,
+  compact = false,
+}: {
+  before: number | null;
+  after: number | null;
+  compact?: boolean;
+}) {
+  if (after === null || after === undefined) {
+    return <Typography.Text type="secondary">Not measured</Typography.Text>;
+  }
+  if (before === null || before === undefined) {
+    return (
+      <span className="tabular-nums">
+        {!compact && (
+          <Typography.Text type="secondary">First assessment: </Typography.Text>
+        )}
+        <Typography.Text strong>{pct(after)}</Typography.Text>
+      </span>
+    );
+  }
+  const diff = Math.round((after - before) * 100);
+  if (diff === 0) {
+    return (
+      <span className="tabular-nums">
+        <Typography.Text type="secondary">{pct(before)}</Typography.Text>
+        <span aria-hidden className="mx-1">
+          →
+        </span>
+        <Typography.Text strong>{pct(after)}</Typography.Text>
+        <Typography.Text type="secondary" style={{ marginInlineStart: 8 }}>
+          No change
+        </Typography.Text>
+      </span>
+    );
+  }
+  const up = diff > 0;
+  const color = up ? TONE_COLOR.green : TONE_COLOR.red;
+  return (
+    <span className="tabular-nums">
+      <Typography.Text type="secondary">{pct(before)}</Typography.Text>
+      <span aria-hidden className="mx-1">
+        →
+      </span>
+      <Typography.Text strong style={{ color }}>
+        {pct(after)}
+      </Typography.Text>
+      <Typography.Text style={{ color, marginInlineStart: 8 }}>
+        {up ? "+" : "−"}
+        {Math.abs(diff)} pp
+      </Typography.Text>
+      <span className="sr-only">
+        {up ? "increased" : "decreased"} by {Math.abs(diff)} percentage points
+      </span>
+    </span>
+  );
+}
+
 /** `Caching 48% → 64%` rows, tone by direction. The signature feedback shape. */
 export function DeltaList({
   items,
@@ -181,46 +245,17 @@ export function DeltaList({
   }
   return (
     <ul className="space-y-1.5">
-      {items.map((d, i) => {
-        const dir =
-          d.before === null || d.after === null
-            ? "flat"
-            : d.after > d.before + 0.005
-              ? "up"
-              : d.after < d.before - 0.005
-                ? "down"
-                : "flat";
-        const color =
-          dir === "up"
-            ? TONE_COLOR.green
-            : dir === "down"
-              ? TONE_COLOR.red
-              : TONE_COLOR.muted;
-        const arrow = dir === "up" ? "↑" : dir === "down" ? "↓" : "→";
-        const word =
-          dir === "up" ? "improved" : dir === "down" ? "dropped" : "unchanged";
-        return (
-          <li
-            key={d.key ?? i}
-            className="flex items-center justify-between gap-3 text-sm"
-          >
-            <span className="min-w-0 truncate">{d.label}</span>
-            <span className="shrink-0 tabular-nums">
-              <Typography.Text type="secondary">{pct(d.before)}</Typography.Text>
-              <span aria-hidden className="mx-1">
-                →
-              </span>
-              <Typography.Text strong style={{ color }}>
-                {pct(d.after)}
-              </Typography.Text>
-              <span aria-hidden className="ml-1" style={{ color }}>
-                {arrow}
-              </span>
-              <span className="sr-only">{word}</span>
-            </span>
-          </li>
-        );
-      })}
+      {items.map((d, i) => (
+        <li
+          key={d.key ?? i}
+          className="flex items-center justify-between gap-3 text-sm"
+        >
+          <span className="min-w-0 truncate">{d.label}</span>
+          <span className="shrink-0">
+            <DeltaText before={d.before} after={d.after} />
+          </span>
+        </li>
+      ))}
     </ul>
   );
 }
@@ -562,6 +597,127 @@ export function KeyValue({ label, children }: { label: ReactNode; children: Reac
       </Typography.Text>
       <div>{children}</div>
     </div>
+  );
+}
+
+/* -- layout primitives ------------------------------------------------------ */
+
+/**
+ * A page section: heading + content, no nested card. The density contract's
+ * building block — one prominent Card per screen, everything else is a Section.
+ */
+export function Section({
+  title,
+  description,
+  action,
+  children,
+  level = 5,
+}: {
+  title?: ReactNode;
+  description?: ReactNode;
+  action?: ReactNode;
+  children: ReactNode;
+  level?: 3 | 4 | 5;
+}) {
+  return (
+    <section className="interview-section">
+      {title && (
+        <SectionHeading
+          title={title}
+          description={description}
+          action={action}
+          level={level}
+        />
+      )}
+      {children}
+    </section>
+  );
+}
+
+/** One disclosure pattern for the whole app (antd Collapse, v6 `items`). */
+export function CollapseList({
+  items,
+  defaultActiveKey,
+  bordered = false,
+}: {
+  items: { key: string; label: ReactNode; children: ReactNode }[];
+  defaultActiveKey?: string[];
+  bordered?: boolean;
+}) {
+  return (
+    <Collapse
+      ghost={!bordered}
+      defaultActiveKey={defaultActiveKey}
+      items={items.map((i) => ({
+        key: i.key,
+        label: i.label,
+        children: i.children,
+      }))}
+    />
+  );
+}
+
+/** Aligned label/value rows (antd Descriptions, v6 `items`). */
+export function KeyValueRows({
+  items,
+  column = 1,
+}: {
+  items: { key: string; label: ReactNode; children: ReactNode }[];
+  column?: number;
+}) {
+  return (
+    <Descriptions
+      column={column}
+      size="small"
+      colon={false}
+      items={items.map((i) => ({
+        key: i.key,
+        label: i.label,
+        children: i.children,
+      }))}
+    />
+  );
+}
+
+/** States precisely what a count covers, so different scopes are never confused. */
+export function ScopeNote({ children }: { children: ReactNode }) {
+  return (
+    <Typography.Text
+      type="secondary"
+      style={{ display: "block", fontSize: 12 }}
+    >
+      {children}
+    </Typography.Text>
+  );
+}
+
+/** Copy a value with theme-aware feedback. */
+export function CopyText({
+  value,
+  label = "Copy",
+}: {
+  value: string;
+  label?: string;
+}) {
+  const { message } = App.useApp();
+  const [copied, setCopied] = useState(false);
+  return (
+    <Button
+      variant="secondary"
+      size="small"
+      onClick={() => {
+        void navigator.clipboard?.writeText(value).then(
+          () => {
+            setCopied(true);
+            void message.success("Copied to clipboard");
+            window.setTimeout(() => setCopied(false), 2000);
+          },
+          () => void message.error("Could not copy — select the text instead"),
+        );
+      }}
+    >
+      {copied ? "Copied" : label}
+    </Button>
   );
 }
 

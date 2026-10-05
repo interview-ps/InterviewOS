@@ -199,7 +199,7 @@ export function Stat({
       title={label}
       value={value as string | number}
       suffix={suffix}
-      valueStyle={{ fontSize: 20, fontWeight: 600 }}
+      styles={{ content: { fontSize: 20, fontWeight: 600 } }}
     />
   );
 }
@@ -329,7 +329,7 @@ export function ErrorNote({ error }: { error: unknown }) {
       type="error"
       showIcon
       role="alert"
-      message={heading}
+      title={heading}
       description={
         <div>
           <div>{error instanceof Error ? error.message : String(error)}</div>

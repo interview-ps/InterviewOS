@@ -410,7 +410,7 @@ export function Shell({ children }: { children: ReactNode }) {
           placement="left"
           open={menuOpen}
           onClose={() => setMenuOpen(false)}
-          width={256}
+          size={256}
           styles={{ body: { padding: 8 } }}
         >
           <Menu
