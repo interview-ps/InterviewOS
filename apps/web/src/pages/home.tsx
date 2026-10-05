@@ -19,6 +19,8 @@ import {
   trendOf,
 } from "@/components/ui";
 import { PluginSlot } from "@/components/plugin-ui";
+import { SetupForm } from "@/components/setup-form";
+import { useAppRefresh } from "@/lib/app-refresh";
 
 type SkillDelta = {
   skillId: string;
@@ -39,6 +41,7 @@ function Metric({ label, value, title }: { label: string; value: string; title: 
 
 export default function Dashboard() {
   const navigate = useNavigate();
+  const refresh = useAppRefresh();
   const [state, setState] = useState<AppState | null>(null);
   const [sessions, setSessions] = useState<InterviewListItem[]>([]);
   const [metrics, setMetrics] = useState<Metrics | null>(null);
@@ -100,20 +103,22 @@ export default function Dashboard() {
 
   if (state.candidate.id === "none" || state.target.id === "none") {
     return (
-      <Card className="mx-auto mt-16 max-w-xl">
-        <div className="text-center">
-          <h2 className="text-lg font-semibold">Set up your interview preparation</h2>
-          <p className="mt-2 text-sm text-muted">
-            Add a job description and your resume to build an evidence-backed readiness
-            model and get a preparation plan.
-          </p>
-          <div className="mt-4">
-            <Link to="/target">
-              <Button>Set up target role</Button>
-            </Link>
-          </div>
-        </div>
-      </Card>
+      <div className="space-y-5">
+        <PageHeader
+          title="Welcome to Interview OS"
+          subtitle="Four quick steps and you'll have a personalized preparation plan."
+        />
+        <Card>
+          <SetupForm
+            mode="workspace"
+            showSteps
+            onDone={(r) => {
+              if (r) navigate("/prepare");
+              else refresh();
+            }}
+          />
+        </Card>
+      </div>
     );
   }
 
