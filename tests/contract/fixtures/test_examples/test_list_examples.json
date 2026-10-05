@@ -1,0 +1,12 @@
+{
+  "snapshots": {
+    "list": {
+      "body": [
+        "backend-engineer",
+        "data-engineer",
+        "product-manager"
+      ],
+      "status": 200
+    }
+  }
+}

@@ -1,6 +1,7 @@
 import { defineConfig } from "@playwright/test";
 import os from "node:os";
 import path from "node:path";
+import { fileURLToPath } from "node:url";
 
 const SERVER_PORT = 4310;
 const DB = path.join(os.tmpdir(), "interview-os-e2e.db");
@@ -27,6 +28,11 @@ export default defineConfig({
       INTERVIEW_OS_TEST_MODE: "1",
       // small per-chunk delay so streamed deltas are observable in the UI
       INTERVIEW_OS_MOCK_DELAY_MS: "80",
+      // v0.4 Level 2: load the hostile frame fixture as an "installed" plugin
+      INTERVIEW_OS_INSTALLED_PLUGINS_DIR: path.join(
+        path.dirname(fileURLToPath(import.meta.url)),
+        "tests/fixtures/installed-plugins",
+      ),
     },
     reuseExistingServer: false,
     timeout: 240_000,

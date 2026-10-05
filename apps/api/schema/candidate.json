@@ -1,0 +1,489 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "group": "candidate",
+  "models": {
+    "CandidateProfile": {
+      "$defs": {
+        "CandidateSkill": {
+          "properties": {
+            "evidence": {
+              "title": "Evidence",
+              "type": "string"
+            },
+            "level": {
+              "maximum": 1,
+              "minimum": 0,
+              "title": "Level",
+              "type": "number"
+            },
+            "skillId": {
+              "pattern": "^[a-z0-9-]+(\\.[a-z0-9-]+)*$",
+              "title": "Skillid",
+              "type": "string"
+            },
+            "source": {
+              "const": "resume",
+              "title": "Source",
+              "type": "string"
+            }
+          },
+          "required": [
+            "skillId",
+            "level",
+            "source",
+            "evidence"
+          ],
+          "title": "CandidateSkill",
+          "type": "object"
+        },
+        "Education": {
+          "properties": {
+            "degree": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "title": "Degree"
+            },
+            "end": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "title": "End"
+            },
+            "field": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "title": "Field"
+            },
+            "institution": {
+              "title": "Institution",
+              "type": "string"
+            }
+          },
+          "required": [
+            "institution"
+          ],
+          "title": "Education",
+          "type": "object"
+        },
+        "Experience": {
+          "properties": {
+            "company": {
+              "title": "Company",
+              "type": "string"
+            },
+            "end": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "title": "End"
+            },
+            "highlights": {
+              "items": {
+                "type": "string"
+              },
+              "title": "Highlights",
+              "type": "array"
+            },
+            "start": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "title": "Start"
+            },
+            "title": {
+              "title": "Title",
+              "type": "string"
+            }
+          },
+          "required": [
+            "title",
+            "company"
+          ],
+          "title": "Experience",
+          "type": "object"
+        },
+        "Project": {
+          "properties": {
+            "description": {
+              "title": "Description",
+              "type": "string"
+            },
+            "name": {
+              "title": "Name",
+              "type": "string"
+            },
+            "technologies": {
+              "items": {
+                "type": "string"
+              },
+              "title": "Technologies",
+              "type": "array"
+            }
+          },
+          "required": [
+            "name",
+            "description"
+          ],
+          "title": "Project",
+          "type": "object"
+        },
+        "StarStory": {
+          "properties": {
+            "action": {
+              "title": "Action",
+              "type": "string"
+            },
+            "id": {
+              "title": "Id",
+              "type": "string"
+            },
+            "result": {
+              "title": "Result",
+              "type": "string"
+            },
+            "situation": {
+              "title": "Situation",
+              "type": "string"
+            },
+            "skillIds": {
+              "items": {
+                "pattern": "^[a-z0-9-]+(\\.[a-z0-9-]+)*$",
+                "type": "string"
+              },
+              "title": "Skillids",
+              "type": "array"
+            },
+            "task": {
+              "title": "Task",
+              "type": "string"
+            },
+            "title": {
+              "title": "Title",
+              "type": "string"
+            }
+          },
+          "required": [
+            "id",
+            "title",
+            "situation",
+            "task",
+            "action",
+            "result"
+          ],
+          "title": "StarStory",
+          "type": "object"
+        }
+      },
+      "properties": {
+        "achievements": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Achievements",
+          "type": "array"
+        },
+        "education": {
+          "items": {
+            "$ref": "#/$defs/Education"
+          },
+          "title": "Education",
+          "type": "array"
+        },
+        "experience": {
+          "items": {
+            "$ref": "#/$defs/Experience"
+          },
+          "title": "Experience",
+          "type": "array"
+        },
+        "headline": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Headline"
+        },
+        "id": {
+          "title": "Id",
+          "type": "string"
+        },
+        "name": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Name"
+        },
+        "projects": {
+          "items": {
+            "$ref": "#/$defs/Project"
+          },
+          "title": "Projects",
+          "type": "array"
+        },
+        "skills": {
+          "items": {
+            "$ref": "#/$defs/CandidateSkill"
+          },
+          "title": "Skills",
+          "type": "array"
+        },
+        "starStories": {
+          "items": {
+            "$ref": "#/$defs/StarStory"
+          },
+          "title": "Starstories",
+          "type": "array"
+        }
+      },
+      "required": [
+        "id"
+      ],
+      "title": "CandidateProfile",
+      "type": "object"
+    },
+    "CandidateSkill": {
+      "properties": {
+        "evidence": {
+          "title": "Evidence",
+          "type": "string"
+        },
+        "level": {
+          "maximum": 1,
+          "minimum": 0,
+          "title": "Level",
+          "type": "number"
+        },
+        "skillId": {
+          "pattern": "^[a-z0-9-]+(\\.[a-z0-9-]+)*$",
+          "title": "Skillid",
+          "type": "string"
+        },
+        "source": {
+          "const": "resume",
+          "title": "Source",
+          "type": "string"
+        }
+      },
+      "required": [
+        "skillId",
+        "level",
+        "source",
+        "evidence"
+      ],
+      "title": "CandidateSkill",
+      "type": "object"
+    },
+    "Education": {
+      "properties": {
+        "degree": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Degree"
+        },
+        "end": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "End"
+        },
+        "field": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Field"
+        },
+        "institution": {
+          "title": "Institution",
+          "type": "string"
+        }
+      },
+      "required": [
+        "institution"
+      ],
+      "title": "Education",
+      "type": "object"
+    },
+    "Experience": {
+      "properties": {
+        "company": {
+          "title": "Company",
+          "type": "string"
+        },
+        "end": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "End"
+        },
+        "highlights": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Highlights",
+          "type": "array"
+        },
+        "start": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Start"
+        },
+        "title": {
+          "title": "Title",
+          "type": "string"
+        }
+      },
+      "required": [
+        "title",
+        "company"
+      ],
+      "title": "Experience",
+      "type": "object"
+    },
+    "Project": {
+      "properties": {
+        "description": {
+          "title": "Description",
+          "type": "string"
+        },
+        "name": {
+          "title": "Name",
+          "type": "string"
+        },
+        "technologies": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Technologies",
+          "type": "array"
+        }
+      },
+      "required": [
+        "name",
+        "description"
+      ],
+      "title": "Project",
+      "type": "object"
+    },
+    "StarStory": {
+      "properties": {
+        "action": {
+          "title": "Action",
+          "type": "string"
+        },
+        "id": {
+          "title": "Id",
+          "type": "string"
+        },
+        "result": {
+          "title": "Result",
+          "type": "string"
+        },
+        "situation": {
+          "title": "Situation",
+          "type": "string"
+        },
+        "skillIds": {
+          "items": {
+            "pattern": "^[a-z0-9-]+(\\.[a-z0-9-]+)*$",
+            "type": "string"
+          },
+          "title": "Skillids",
+          "type": "array"
+        },
+        "task": {
+          "title": "Task",
+          "type": "string"
+        },
+        "title": {
+          "title": "Title",
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "title",
+        "situation",
+        "task",
+        "action",
+        "result"
+      ],
+      "title": "StarStory",
+      "type": "object"
+    }
+  }
+}

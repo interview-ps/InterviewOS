@@ -1,0 +1,7 @@
+{
+  "id": "create-require",
+  "version": "1.0.0",
+  "kind": "plugin",
+  "description": "Fixture: requires node:net through createRequire.",
+  "permissions": []
+}

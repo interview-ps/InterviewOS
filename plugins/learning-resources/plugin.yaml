@@ -1,0 +1,11 @@
+id: learning-resources
+name: Learning Resources
+version: 1.0.0
+description: A small deterministic catalog of learning resources keyed by skill.
+kind: hook
+entry: main.py
+author: interview-os
+permissions: [taxonomy.read]
+capabilities: [resources]
+inputs: [request]
+engines: {interview-os: ">=0.4.0"}

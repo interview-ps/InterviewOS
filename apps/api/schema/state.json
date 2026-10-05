@@ -1,0 +1,1176 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "group": "state",
+  "models": {
+    "InterviewOSState": {
+      "$defs": {
+        "Answer": {
+          "properties": {
+            "createdAt": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "title": "Createdat"
+            },
+            "id": {
+              "title": "Id",
+              "type": "string"
+            },
+            "questionId": {
+              "title": "Questionid",
+              "type": "string"
+            },
+            "sessionId": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "title": "Sessionid"
+            },
+            "text": {
+              "title": "Text",
+              "type": "string"
+            }
+          },
+          "required": [
+            "id",
+            "questionId",
+            "text"
+          ],
+          "title": "Answer",
+          "type": "object"
+        },
+        "AssessedItem": {
+          "properties": {
+            "evidenceIds": {
+              "items": {
+                "type": "string"
+              },
+              "title": "Evidenceids",
+              "type": "array"
+            },
+            "note": {
+              "title": "Note",
+              "type": "string"
+            },
+            "skillId": {
+              "pattern": "^[a-z0-9-]+(\\.[a-z0-9-]+)*$",
+              "title": "Skillid",
+              "type": "string"
+            }
+          },
+          "required": [
+            "skillId",
+            "note"
+          ],
+          "title": "AssessedItem",
+          "type": "object"
+        },
+        "AssessmentState": {
+          "properties": {
+            "gaps": {
+              "items": {
+                "$ref": "#/$defs/Gap"
+              },
+              "title": "Gaps",
+              "type": "array"
+            },
+            "observations": {
+              "items": {
+                "type": "string"
+              },
+              "title": "Observations",
+              "type": "array"
+            },
+            "skillAssessments": {
+              "additionalProperties": {
+                "$ref": "#/$defs/SkillReadiness"
+              },
+              "title": "Skillassessments",
+              "type": "object"
+            },
+            "strengths": {
+              "items": {
+                "$ref": "#/$defs/AssessedItem"
+              },
+              "title": "Strengths",
+              "type": "array"
+            },
+            "strongAnswers": {
+              "items": {
+                "$ref": "#/$defs/AssessedItem"
+              },
+              "title": "Stronganswers",
+              "type": "array"
+            },
+            "weakAnswers": {
+              "items": {
+                "$ref": "#/$defs/AssessedItem"
+              },
+              "title": "Weakanswers",
+              "type": "array"
+            }
+          },
+          "title": "AssessmentState",
+          "type": "object"
+        },
+        "CandidateProfile": {
+          "properties": {
+            "achievements": {
+              "items": {
+                "type": "string"
+              },
+              "title": "Achievements",
+              "type": "array"
+            },
+            "education": {
+              "items": {
+                "$ref": "#/$defs/Education"
+              },
+              "title": "Education",
+              "type": "array"
+            },
+            "experience": {
+              "items": {
+                "$ref": "#/$defs/Experience"
+              },
+              "title": "Experience",
+              "type": "array"
+            },
+            "headline": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "title": "Headline"
+            },
+            "id": {
+              "title": "Id",
+              "type": "string"
+            },
+            "name": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "title": "Name"
+            },
+            "projects": {
+              "items": {
+                "$ref": "#/$defs/Project"
+              },
+              "title": "Projects",
+              "type": "array"
+            },
+            "skills": {
+              "items": {
+                "$ref": "#/$defs/CandidateSkill"
+              },
+              "title": "Skills",
+              "type": "array"
+            },
+            "starStories": {
+              "items": {
+                "$ref": "#/$defs/StarStory"
+              },
+              "title": "Starstories",
+              "type": "array"
+            }
+          },
+          "required": [
+            "id"
+          ],
+          "title": "CandidateProfile",
+          "type": "object"
+        },
+        "CandidateSkill": {
+          "properties": {
+            "evidence": {
+              "title": "Evidence",
+              "type": "string"
+            },
+            "level": {
+              "maximum": 1,
+              "minimum": 0,
+              "title": "Level",
+              "type": "number"
+            },
+            "skillId": {
+              "pattern": "^[a-z0-9-]+(\\.[a-z0-9-]+)*$",
+              "title": "Skillid",
+              "type": "string"
+            },
+            "source": {
+              "const": "resume",
+              "title": "Source",
+              "type": "string"
+            }
+          },
+          "required": [
+            "skillId",
+            "level",
+            "source",
+            "evidence"
+          ],
+          "title": "CandidateSkill",
+          "type": "object"
+        },
+        "CompanyNotesProfile": {
+          "description": "§8.4: profile derived from untrusted pasted company notes (an overlay).",
+          "properties": {
+            "behavioralThemes": {
+              "items": {
+                "type": "string"
+              },
+              "title": "Behavioralthemes",
+              "type": "array"
+            },
+            "focusSkillIds": {
+              "items": {
+                "pattern": "^[a-z0-9-]+(\\.[a-z0-9-]+)*$",
+                "type": "string"
+              },
+              "title": "Focusskillids",
+              "type": "array"
+            },
+            "interviewStyle": {
+              "default": "",
+              "title": "Interviewstyle",
+              "type": "string"
+            },
+            "values": {
+              "items": {
+                "type": "string"
+              },
+              "title": "Values",
+              "type": "array"
+            }
+          },
+          "title": "CompanyNotesProfile",
+          "type": "object"
+        },
+        "Education": {
+          "properties": {
+            "degree": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "title": "Degree"
+            },
+            "end": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "title": "End"
+            },
+            "field": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "title": "Field"
+            },
+            "institution": {
+              "title": "Institution",
+              "type": "string"
+            }
+          },
+          "required": [
+            "institution"
+          ],
+          "title": "Education",
+          "type": "object"
+        },
+        "ExpectedConcept": {
+          "properties": {
+            "concept": {
+              "title": "Concept",
+              "type": "string"
+            },
+            "keywords": {
+              "items": {
+                "type": "string"
+              },
+              "title": "Keywords",
+              "type": "array"
+            },
+            "skillId": {
+              "pattern": "^[a-z0-9-]+(\\.[a-z0-9-]+)*$",
+              "title": "Skillid",
+              "type": "string"
+            }
+          },
+          "required": [
+            "concept",
+            "skillId"
+          ],
+          "title": "ExpectedConcept",
+          "type": "object"
+        },
+        "Experience": {
+          "properties": {
+            "company": {
+              "title": "Company",
+              "type": "string"
+            },
+            "end": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "title": "End"
+            },
+            "highlights": {
+              "items": {
+                "type": "string"
+              },
+              "title": "Highlights",
+              "type": "array"
+            },
+            "start": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "title": "Start"
+            },
+            "title": {
+              "title": "Title",
+              "type": "string"
+            }
+          },
+          "required": [
+            "title",
+            "company"
+          ],
+          "title": "Experience",
+          "type": "object"
+        },
+        "Gap": {
+          "properties": {
+            "currentScore": {
+              "anyOf": [
+                {
+                  "maximum": 1,
+                  "minimum": 0,
+                  "type": "number"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "emit_null": true,
+              "title": "Currentscore"
+            },
+            "gap": {
+              "minimum": 0,
+              "title": "Gap",
+              "type": "number"
+            },
+            "importance": {
+              "maximum": 1,
+              "minimum": 0,
+              "title": "Importance",
+              "type": "number"
+            },
+            "label": {
+              "title": "Label",
+              "type": "string"
+            },
+            "reason": {
+              "title": "Reason",
+              "type": "string"
+            },
+            "severity": {
+              "$ref": "#/$defs/GapSeverity"
+            },
+            "skillId": {
+              "pattern": "^[a-z0-9-]+(\\.[a-z0-9-]+)*$",
+              "title": "Skillid",
+              "type": "string"
+            },
+            "targetScore": {
+              "maximum": 1,
+              "minimum": 0,
+              "title": "Targetscore",
+              "type": "number"
+            },
+            "uncertainty": {
+              "maximum": 1,
+              "minimum": 0,
+              "title": "Uncertainty",
+              "type": "number"
+            }
+          },
+          "required": [
+            "skillId",
+            "label",
+            "importance",
+            "targetScore",
+            "gap",
+            "uncertainty",
+            "severity",
+            "reason"
+          ],
+          "title": "Gap",
+          "type": "object"
+        },
+        "GapSeverity": {
+          "enum": [
+            "low",
+            "medium",
+            "high"
+          ],
+          "title": "GapSeverity",
+          "type": "string"
+        },
+        "InterviewStateSlice": {
+          "properties": {
+            "activeQuestion": {
+              "anyOf": [
+                {
+                  "$ref": "#/$defs/Question"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null
+            },
+            "currentRound": {
+              "default": 0,
+              "minimum": 0,
+              "title": "Currentround",
+              "type": "integer"
+            },
+            "interviewerObservations": {
+              "items": {
+                "type": "string"
+              },
+              "title": "Interviewerobservations",
+              "type": "array"
+            },
+            "previousAnswers": {
+              "items": {
+                "$ref": "#/$defs/Answer"
+              },
+              "title": "Previousanswers",
+              "type": "array"
+            },
+            "previousQuestions": {
+              "items": {
+                "$ref": "#/$defs/Question"
+              },
+              "title": "Previousquestions",
+              "type": "array"
+            },
+            "sessionId": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "title": "Sessionid"
+            }
+          },
+          "title": "InterviewStateSlice",
+          "type": "object"
+        },
+        "Level": {
+          "enum": [
+            "junior",
+            "mid",
+            "senior",
+            "staff"
+          ],
+          "title": "Level",
+          "type": "string"
+        },
+        "PracticeRecord": {
+          "properties": {
+            "actionId": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "title": "Actionid"
+            },
+            "createdAt": {
+              "title": "Createdat",
+              "type": "string"
+            },
+            "id": {
+              "title": "Id",
+              "type": "string"
+            },
+            "note": {
+              "title": "Note",
+              "type": "string"
+            },
+            "score": {
+              "anyOf": [
+                {
+                  "maximum": 1,
+                  "minimum": 0,
+                  "type": "number"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "title": "Score"
+            },
+            "skillId": {
+              "pattern": "^[a-z0-9-]+(\\.[a-z0-9-]+)*$",
+              "title": "Skillid",
+              "type": "string"
+            }
+          },
+          "required": [
+            "id",
+            "skillId",
+            "note",
+            "createdAt"
+          ],
+          "title": "PracticeRecord",
+          "type": "object"
+        },
+        "PrepAction": {
+          "properties": {
+            "action": {
+              "title": "Action",
+              "type": "string"
+            },
+            "createdAt": {
+              "title": "Createdat",
+              "type": "string"
+            },
+            "id": {
+              "title": "Id",
+              "type": "string"
+            },
+            "priority": {
+              "title": "Priority",
+              "type": "number"
+            },
+            "reason": {
+              "title": "Reason",
+              "type": "string"
+            },
+            "skillId": {
+              "pattern": "^[a-z0-9-]+(\\.[a-z0-9-]+)*$",
+              "title": "Skillid",
+              "type": "string"
+            },
+            "sourceEvidenceIds": {
+              "items": {
+                "type": "string"
+              },
+              "title": "Sourceevidenceids",
+              "type": "array"
+            },
+            "status": {
+              "$ref": "#/$defs/PrepActionStatus",
+              "default": "open"
+            },
+            "successCriteria": {
+              "items": {
+                "type": "string"
+              },
+              "title": "Successcriteria",
+              "type": "array"
+            }
+          },
+          "required": [
+            "id",
+            "skillId",
+            "priority",
+            "reason",
+            "action",
+            "createdAt"
+          ],
+          "title": "PrepAction",
+          "type": "object"
+        },
+        "PrepActionStatus": {
+          "enum": [
+            "open",
+            "in_progress",
+            "done",
+            "superseded"
+          ],
+          "title": "PrepActionStatus",
+          "type": "string"
+        },
+        "PreparationState": {
+          "properties": {
+            "completedTopics": {
+              "items": {
+                "type": "string"
+              },
+              "title": "Completedtopics",
+              "type": "array"
+            },
+            "nextActions": {
+              "items": {
+                "$ref": "#/$defs/PrepAction"
+              },
+              "title": "Nextactions",
+              "type": "array"
+            },
+            "practiceHistory": {
+              "items": {
+                "$ref": "#/$defs/PracticeRecord"
+              },
+              "title": "Practicehistory",
+              "type": "array"
+            },
+            "priorities": {
+              "items": {
+                "pattern": "^[a-z0-9-]+(\\.[a-z0-9-]+)*$",
+                "type": "string"
+              },
+              "title": "Priorities",
+              "type": "array"
+            }
+          },
+          "title": "PreparationState",
+          "type": "object"
+        },
+        "Project": {
+          "properties": {
+            "description": {
+              "title": "Description",
+              "type": "string"
+            },
+            "name": {
+              "title": "Name",
+              "type": "string"
+            },
+            "technologies": {
+              "items": {
+                "type": "string"
+              },
+              "title": "Technologies",
+              "type": "array"
+            }
+          },
+          "required": [
+            "name",
+            "description"
+          ],
+          "title": "Project",
+          "type": "object"
+        },
+        "Question": {
+          "properties": {
+            "createdAt": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "title": "Createdat"
+            },
+            "difficulty": {
+              "$ref": "#/$defs/QuestionDifficulty"
+            },
+            "expectedConcepts": {
+              "items": {
+                "$ref": "#/$defs/ExpectedConcept"
+              },
+              "title": "Expectedconcepts",
+              "type": "array"
+            },
+            "followUpOf": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "title": "Followupof"
+            },
+            "id": {
+              "title": "Id",
+              "type": "string"
+            },
+            "sessionId": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "title": "Sessionid"
+            },
+            "skillId": {
+              "pattern": "^[a-z0-9-]+(\\.[a-z0-9-]+)*$",
+              "title": "Skillid",
+              "type": "string"
+            },
+            "subSkills": {
+              "items": {
+                "pattern": "^[a-z0-9-]+(\\.[a-z0-9-]+)*$",
+                "type": "string"
+              },
+              "title": "Subskills",
+              "type": "array"
+            },
+            "text": {
+              "title": "Text",
+              "type": "string"
+            },
+            "topic": {
+              "title": "Topic",
+              "type": "string"
+            }
+          },
+          "required": [
+            "id",
+            "skillId",
+            "topic",
+            "text",
+            "difficulty"
+          ],
+          "title": "Question",
+          "type": "object"
+        },
+        "QuestionDifficulty": {
+          "enum": [
+            "easy",
+            "medium",
+            "hard"
+          ],
+          "title": "QuestionDifficulty",
+          "type": "string"
+        },
+        "ReadinessGraph": {
+          "properties": {
+            "dimensions": {
+              "additionalProperties": {
+                "$ref": "#/$defs/SkillReadiness"
+              },
+              "title": "Dimensions",
+              "type": "object"
+            },
+            "lastUpdated": {
+              "title": "Lastupdated",
+              "type": "string"
+            },
+            "overall": {
+              "maximum": 1,
+              "minimum": 0,
+              "title": "Overall",
+              "type": "number"
+            },
+            "overallConfidence": {
+              "maximum": 1,
+              "minimum": 0,
+              "title": "Overallconfidence",
+              "type": "number"
+            }
+          },
+          "required": [
+            "overall",
+            "overallConfidence",
+            "lastUpdated"
+          ],
+          "title": "ReadinessGraph",
+          "type": "object"
+        },
+        "ReadinessStatus": {
+          "enum": [
+            "unknown",
+            "weak",
+            "developing",
+            "strong"
+          ],
+          "title": "ReadinessStatus",
+          "type": "string"
+        },
+        "Requirement": {
+          "properties": {
+            "baseImportance": {
+              "anyOf": [
+                {
+                  "maximum": 1,
+                  "minimum": 0,
+                  "type": "number"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "title": "Baseimportance"
+            },
+            "boostedBy": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "title": "Boostedby"
+            },
+            "evidence": {
+              "title": "Evidence",
+              "type": "string"
+            },
+            "importance": {
+              "maximum": 1,
+              "minimum": 0,
+              "title": "Importance",
+              "type": "number"
+            },
+            "kind": {
+              "$ref": "#/$defs/RequirementKind"
+            },
+            "label": {
+              "title": "Label",
+              "type": "string"
+            },
+            "origin": {
+              "anyOf": [
+                {
+                  "maxLength": 64,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "title": "Origin"
+            },
+            "skillId": {
+              "pattern": "^[a-z0-9-]+(\\.[a-z0-9-]+)*$",
+              "title": "Skillid",
+              "type": "string"
+            }
+          },
+          "required": [
+            "skillId",
+            "label",
+            "importance",
+            "kind",
+            "evidence"
+          ],
+          "title": "Requirement",
+          "type": "object"
+        },
+        "RequirementKind": {
+          "enum": [
+            "required",
+            "preferred"
+          ],
+          "title": "RequirementKind",
+          "type": "string"
+        },
+        "SkillReadiness": {
+          "properties": {
+            "children": {
+              "items": {
+                "pattern": "^[a-z0-9-]+(\\.[a-z0-9-]+)*$",
+                "type": "string"
+              },
+              "title": "Children",
+              "type": "array"
+            },
+            "confidence": {
+              "maximum": 1,
+              "minimum": 0,
+              "title": "Confidence",
+              "type": "number"
+            },
+            "evidenceIds": {
+              "items": {
+                "type": "string"
+              },
+              "title": "Evidenceids",
+              "type": "array"
+            },
+            "label": {
+              "title": "Label",
+              "type": "string"
+            },
+            "score": {
+              "anyOf": [
+                {
+                  "maximum": 1,
+                  "minimum": 0,
+                  "type": "number"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "emit_null": true,
+              "title": "Score"
+            },
+            "skillId": {
+              "pattern": "^[a-z0-9-]+(\\.[a-z0-9-]+)*$",
+              "title": "Skillid",
+              "type": "string"
+            },
+            "status": {
+              "$ref": "#/$defs/ReadinessStatus"
+            }
+          },
+          "required": [
+            "skillId",
+            "label",
+            "confidence",
+            "status"
+          ],
+          "title": "SkillReadiness",
+          "type": "object"
+        },
+        "StarStory": {
+          "properties": {
+            "action": {
+              "title": "Action",
+              "type": "string"
+            },
+            "id": {
+              "title": "Id",
+              "type": "string"
+            },
+            "result": {
+              "title": "Result",
+              "type": "string"
+            },
+            "situation": {
+              "title": "Situation",
+              "type": "string"
+            },
+            "skillIds": {
+              "items": {
+                "pattern": "^[a-z0-9-]+(\\.[a-z0-9-]+)*$",
+                "type": "string"
+              },
+              "title": "Skillids",
+              "type": "array"
+            },
+            "task": {
+              "title": "Task",
+              "type": "string"
+            },
+            "title": {
+              "title": "Title",
+              "type": "string"
+            }
+          },
+          "required": [
+            "id",
+            "title",
+            "situation",
+            "task",
+            "action",
+            "result"
+          ],
+          "title": "StarStory",
+          "type": "object"
+        },
+        "TargetRole": {
+          "properties": {
+            "company": {
+              "title": "Company",
+              "type": "string"
+            },
+            "companyNotes": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "title": "Companynotes"
+            },
+            "companyProfile": {
+              "anyOf": [
+                {
+                  "$ref": "#/$defs/CompanyNotesProfile"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null
+            },
+            "companyProfileId": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "title": "Companyprofileid"
+            },
+            "id": {
+              "title": "Id",
+              "type": "string"
+            },
+            "jobDescription": {
+              "title": "Jobdescription",
+              "type": "string"
+            },
+            "level": {
+              "$ref": "#/$defs/Level"
+            },
+            "preferredSkills": {
+              "items": {
+                "$ref": "#/$defs/Requirement"
+              },
+              "title": "Preferredskills",
+              "type": "array"
+            },
+            "requirements": {
+              "items": {
+                "$ref": "#/$defs/Requirement"
+              },
+              "title": "Requirements",
+              "type": "array"
+            },
+            "role": {
+              "title": "Role",
+              "type": "string"
+            },
+            "rolePackId": {
+              "anyOf": [
+                {
+                  "maxLength": 80,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "title": "Rolepackid"
+            }
+          },
+          "required": [
+            "id",
+            "company",
+            "role",
+            "level",
+            "jobDescription"
+          ],
+          "title": "TargetRole",
+          "type": "object"
+        }
+      },
+      "properties": {
+        "assessment": {
+          "$ref": "#/$defs/AssessmentState"
+        },
+        "candidate": {
+          "$ref": "#/$defs/CandidateProfile"
+        },
+        "interview": {
+          "$ref": "#/$defs/InterviewStateSlice"
+        },
+        "preparation": {
+          "$ref": "#/$defs/PreparationState"
+        },
+        "readiness": {
+          "$ref": "#/$defs/ReadinessGraph"
+        },
+        "target": {
+          "$ref": "#/$defs/TargetRole"
+        }
+      },
+      "required": [
+        "candidate",
+        "target",
+        "assessment",
+        "preparation",
+        "interview",
+        "readiness"
+      ],
+      "title": "InterviewOSState",
+      "type": "object"
+    }
+  }
+}

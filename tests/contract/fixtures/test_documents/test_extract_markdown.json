@@ -1,0 +1,12 @@
+{
+  "snapshots": {
+    "md": {
+      "body": {
+        "format": "md",
+        "text": "# Heading\n\nBody text.",
+        "warnings": []
+      },
+      "status": 200
+    }
+  }
+}

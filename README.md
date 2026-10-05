@@ -8,7 +8,7 @@
 
 **A local-first, open-source workspace for turning a resume and job description into a targeted prep plan, realistic mock interviews, and an evidence-backed view of your readiness.**
 
-[![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg?style=for-the-badge)](LICENSE) [![CI](https://img.shields.io/github/actions/workflow/status/interview-ps/InterviewOS/ci.yml?branch=main&style=for-the-badge&label=CI)](https://github.com/interview-ps/InterviewOS/actions/workflows/ci.yml) [![Node](https://img.shields.io/badge/node-24-339933?logo=node.js&logoColor=white&style=for-the-badge)](https://nodejs.org/) [![pnpm](https://img.shields.io/badge/pnpm-12-F69220?logo=pnpm&logoColor=white&style=for-the-badge)](https://pnpm.io/) [![TypeScript](https://img.shields.io/badge/TypeScript-strict-3178C6?logo=typescript&logoColor=white&style=for-the-badge)](https://www.typescriptlang.org/) [![PRs welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg?style=for-the-badge)](CONTRIBUTING.md) [![GitHub stars](https://img.shields.io/github/stars/interview-ps/InterviewOS?style=for-the-badge&logo=github)](https://github.com/interview-ps/InterviewOS/stargazers) [![Last commit](https://img.shields.io/github/last-commit/interview-ps/InterviewOS?style=for-the-badge)](https://github.com/interview-ps/InterviewOS/commits/main) [![Open issues](https://img.shields.io/github/issues/interview-ps/InterviewOS?style=for-the-badge)](https://github.com/interview-ps/InterviewOS/issues) [![Discord](https://img.shields.io/badge/Discord-join%20the%20community-5865F2?style=for-the-badge&logo=discord&logoColor=white)](https://discord.gg/J3KxYCtPv)
+[![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg?style=for-the-badge)](LICENSE) [![CI](https://img.shields.io/github/actions/workflow/status/interview-ps/InterviewOS/ci.yml?branch=main&style=for-the-badge&label=CI)](https://github.com/interview-ps/InterviewOS/actions/workflows/ci.yml) [![Python](https://img.shields.io/badge/Python-3.13-3776AB?logo=python&logoColor=white&style=for-the-badge)](https://www.python.org/) [![FastAPI](https://img.shields.io/badge/FastAPI-009688?logo=fastapi&logoColor=white&style=for-the-badge)](https://fastapi.tiangolo.com/) [![Node](https://img.shields.io/badge/node-24-339933?logo=node.js&logoColor=white&style=for-the-badge)](https://nodejs.org/) [![pnpm](https://img.shields.io/badge/pnpm-12-F69220?logo=pnpm&logoColor=white&style=for-the-badge)](https://pnpm.io/) [![PRs welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg?style=for-the-badge)](CONTRIBUTING.md) [![GitHub stars](https://img.shields.io/github/stars/interview-ps/InterviewOS?style=for-the-badge&logo=github)](https://github.com/interview-ps/InterviewOS/stargazers) [![Last commit](https://img.shields.io/github/last-commit/interview-ps/InterviewOS?style=for-the-badge)](https://github.com/interview-ps/InterviewOS/commits/main) [![Open issues](https://img.shields.io/github/issues/interview-ps/InterviewOS?style=for-the-badge)](https://github.com/interview-ps/InterviewOS/issues) [![Discord](https://img.shields.io/badge/Discord-join%20the%20community-5865F2?style=for-the-badge&logo=discord&logoColor=white)](https://discord.gg/J3KxYCtPv)
 
 **[Quickstart](#quickstart)**&nbsp;•&nbsp;**[How it works](#how-it-works)**&nbsp;•&nbsp;**[Features](#features)**<br/>**[Runtimes](#ai-runtimes-and-local-data)**&nbsp;•&nbsp;**[Architecture](#under-the-hood)**&nbsp;•&nbsp;**[Contributing](#contributing)**
 
@@ -85,9 +85,11 @@ For example, if you give a vague answer about cache invalidation, Interview OS r
   </tr>
   <tr>
     <td width="50%" valign="top"><h4>📊 One place to follow progress</h4><p>Browse interview history, answer feedback, per-skill readiness changes, prep actions, and progress metrics. Use the command palette with <code>Ctrl/Cmd+K</code> to jump to common actions.</p></td>
-    <td width="50%" valign="top"><h4>🔌 Local runtimes and plugins</h4><p>Use a locally installed Codex CLI by default, choose Claude Code, opencode, or Devin, or use the deterministic mock runtime. Skills declare their inputs and permissions; local plugins can read declared state slices and cannot write application state. Only install plugin code you trust, because plugins run in the server process.</p></td>
+    <td width="50%" valign="top"><h4>🔌 Local runtimes and plugins</h4><p>Use a locally installed Codex CLI by default, choose Claude Code, opencode, or Devin, or use the deterministic mock runtime. Skills declare their inputs and permissions; plugins run in-process, see only the state slices you grant, and can only propose evidence — the orchestrator decides what gets written.</p></td>
   </tr>
 </table>
+
+**v0.4 platform additions:** a Python [plugin system](docs/plugins.md) (`plugin.yaml` + `main.py`), community [company](docs/company-packs.md) and [role](docs/role-packs.md) packs plus shareable [interview packs](docs/interview-packs.md), [MCP server context](docs/security.md) (`interview-os.mcp.json`, per-tool allowlists), voice answers with delivery hints, a per-skill question bank, and full state [export/import](docs/security.md). Security model: [docs/security.md](docs/security.md).
 
 ### Screenshots
 
@@ -118,19 +120,20 @@ For example, if you give a vague answer about cache invalidation, Interview OS r
 
 ## Quickstart
 
-**Requirements:** Node.js 24, [pnpm](https://pnpm.io/) 12, and Git. The default AI runtime also needs a locally installed and signed-in [Codex CLI](https://github.com/openai/codex). You can try the complete workflow without Codex using mock mode.
+**Requirements:** Python 3.13 with [uv](https://docs.astral.sh/uv/), Node.js 24, [pnpm](https://pnpm.io/) 12, and Git. The default AI runtime also needs a locally installed and signed-in [Codex CLI](https://github.com/openai/codex). You can try the complete workflow without Codex using mock mode.
 
 ```sh
 git clone https://github.com/interview-ps/InterviewOS.git
 cd InterviewOS
-pnpm install
-INTERVIEW_OS_RUNTIME=mock pnpm dev
+uv sync --project apps/api            # backend (FastAPI) deps
+pnpm install                          # web + ui deps
+INTERVIEW_OS_RUNTIME=mock pnpm start  # build the SPA, serve UI + API on :4100
 ```
 
-Open [http://localhost:3000](http://localhost:3000). In dev, the Vite UI runs on port 3000 and proxies `/api` to the API on port 4100; `pnpm start` instead builds the SPA and serves UI + API together from port 4100. To use your local Codex installation instead, stop the mock server and run `pnpm dev`.
+Open [http://localhost:4100](http://localhost:4100). `pnpm start` builds the SPA and serves UI + API together from the FastAPI server on port 4100. For development with hot reload, run the API and the Vite UI in two terminals — `INTERVIEW_OS_RUNTIME=mock pnpm dev:api` (API on :4100) and `pnpm dev` (UI on :3000, proxying `/api` to :4100) — then open [http://localhost:3000](http://localhost:3000). To use your local Codex installation instead, drop `INTERVIEW_OS_RUNTIME=mock`.
 
 > [!TIP]
-> On Windows PowerShell, start mock mode with `$env:INTERVIEW_OS_RUNTIME="mock"; pnpm dev`. If your machine blocks `pnpm.exe` under Application Control, use `corepack pnpm` for the commands above. For other Windows install failures — `corepack pnpm` not launching — see the [Windows setup notes](CONTRIBUTING.md#setup), which also cover the test-runner caveat.
+> On Windows PowerShell, start mock mode with `$env:INTERVIEW_OS_RUNTIME="mock"; pnpm dev:api`. If your machine blocks `pnpm.exe` under Application Control, use `corepack pnpm` for the web/ui commands (the Python side uses `uv` directly). For other Windows install failures — `corepack pnpm` not launching — see the [Windows setup notes](CONTRIBUTING.md#setup).
 
 ### Try the feedback loop
 
@@ -160,11 +163,11 @@ The mock runtime makes this walkthrough repeatable without AI calls. For your ow
 
 | Runtime | Select with `INTERVIEW_OS_RUNTIME` | How to start |
 | --- | --- | --- |
-| Codex (default) | `codex` or unset | Install and sign in to the Codex CLI, then run `pnpm dev`. |
-| Claude Code | `claude` | Sign in with the Claude Code CLI, then run `INTERVIEW_OS_RUNTIME=claude pnpm dev`. |
-| opencode | `opencode` | Sign in with `opencode auth login`, then run `INTERVIEW_OS_RUNTIME=opencode pnpm dev`. |
-| Devin | `devin` | Sign in with `devin auth login`, then run `INTERVIEW_OS_RUNTIME=devin pnpm dev`. |
-| Mock | `mock` | Run `INTERVIEW_OS_RUNTIME=mock pnpm dev`; no AI provider required. |
+| Codex (default) | `codex` or unset | Install and sign in to the Codex CLI, then run `pnpm dev:api`. |
+| Claude Code | `claude` | Sign in with the Claude Code CLI, then run `INTERVIEW_OS_RUNTIME=claude pnpm dev:api`. |
+| opencode | `opencode` | Sign in with `opencode auth login`, then run `INTERVIEW_OS_RUNTIME=opencode pnpm dev:api`. |
+| Devin | `devin` | Sign in with `devin auth login`, then run `INTERVIEW_OS_RUNTIME=devin pnpm dev:api`. |
+| Mock | `mock` | Run `INTERVIEW_OS_RUNTIME=mock pnpm dev:api`; no AI provider required. |
 
 Interview OS keeps application state in a local SQLite database (`data/interview-os.db` by default). When you select a real AI runtime, the content needed for analysis and interviewing is sent through that provider's local tooling. The app does not ask you to paste an API key into Interview OS. See [Architecture](ARCHITECTURE.md) for the runtime and data flow.
 
@@ -182,7 +185,7 @@ Interview OS keeps application state in a local SQLite database (`data/interview
 | `INTERVIEW_OS_DB` | `data/interview-os.db` | SQLite database path |
 | `INTERVIEW_OS_PLUGINS_DIR` | `<repo>/plugins` | Local plugin discovery directory |
 
-Runtime model, reasoning effort, and task mode can be changed in **Settings**. For provider-specific paths, timeouts, and test settings, see [Architecture](ARCHITECTURE.md) and the runtime code in [`packages/runtime`](packages/runtime).
+Runtime model, reasoning effort, and task mode can be changed in **Settings**. For provider-specific paths, timeouts, and test settings, see [Architecture](ARCHITECTURE.md) and the runtime code in [`apps/api/src/interview_os/ai`](apps/api/src/interview_os/ai).
 
 </details>
 
@@ -194,11 +197,11 @@ Runtime model, reasoning effort, and task mode can be changed in **Settings**. F
 
 <div align="center">
 
-[![Vite](https://img.shields.io/badge/Vite-646CFF?style=flat-square&logo=vite&logoColor=white)](https://vite.dev/) [![React Router](https://img.shields.io/badge/React_Router-CA4245?style=flat-square&logo=reactrouter&logoColor=white)](https://reactrouter.com/) [![Hono](https://img.shields.io/badge/Hono-E36002?style=flat-square&logo=hono&logoColor=white)](https://hono.dev/) [![SQLite](https://img.shields.io/badge/SQLite-003B57?style=flat-square&logo=sqlite&logoColor=white)](https://www.sqlite.org/) [![Zod](https://img.shields.io/badge/Zod-3E67B1?style=flat-square&logo=zod&logoColor=white)](https://zod.dev/) [![Tailwind CSS](https://img.shields.io/badge/Tailwind_CSS-06B6D4?style=flat-square&logo=tailwindcss&logoColor=white)](https://tailwindcss.com/) [![Vitest](https://img.shields.io/badge/Vitest-6E9F18?style=flat-square&logo=vitest&logoColor=white)](https://vitest.dev/) [![Playwright](https://img.shields.io/badge/Playwright-2EAD33?style=flat-square&logo=playwright&logoColor=white)](https://playwright.dev/)
+[![Vite](https://img.shields.io/badge/Vite-646CFF?style=flat-square&logo=vite&logoColor=white)](https://vite.dev/) [![React Router](https://img.shields.io/badge/React_Router-CA4245?style=flat-square&logo=reactrouter&logoColor=white)](https://reactrouter.com/) [![FastAPI](https://img.shields.io/badge/FastAPI-009688?style=flat-square&logo=fastapi&logoColor=white)](https://fastapi.tiangolo.com/) [![Pydantic](https://img.shields.io/badge/Pydantic-E92063?style=flat-square&logo=pydantic&logoColor=white)](https://docs.pydantic.dev/) [![SQLite](https://img.shields.io/badge/SQLite-003B57?style=flat-square&logo=sqlite&logoColor=white)](https://www.sqlite.org/) [![Tailwind CSS](https://img.shields.io/badge/Tailwind_CSS-06B6D4?style=flat-square&logo=tailwindcss&logoColor=white)](https://tailwindcss.com/) [![pytest](https://img.shields.io/badge/pytest-0A9EDC?style=flat-square&logo=pytest&logoColor=white)](https://pytest.org/) [![Playwright](https://img.shields.io/badge/Playwright-2EAD33?style=flat-square&logo=playwright&logoColor=white)](https://playwright.dev/)
 
 </div>
 
-<img src="docs/assets/readme/architecture.svg" width="100%" alt="Architecture: apps/web Vite + React Router interface on port 3000, apps/server Hono API on port 4100 with local SQLite containing the orchestrator and skills, over packages/core schemas and packages/runtime provider adapters" />
+<img src="docs/assets/readme/architecture.svg" width="100%" alt="Architecture: apps/web Vite + React Router interface on port 3000, apps/api FastAPI server on port 4100 with local SQLite containing the orchestrator and skills, over interview_os.core models and the ai/ provider adapters" />
 
 <details>
 <summary>Repository layout</summary>
@@ -206,12 +209,15 @@ Runtime model, reasoning effort, and task mode can be changed in **Settings**. F
 ```text
 apps/web             Vite + React Router SPA (dev :3000, built SPA served by the API)
         ↓
-apps/server          Hono API (port 4100) + local SQLite
-                     src/orchestrator — Interview and preparation workflows
-                     src/skills       — Analyzers, planner, interviewer, evaluator, coaches
+apps/api             FastAPI server (port 4100) + local SQLite
+                     src/interview_os/orchestrator — Interview and preparation workflows
+                     src/interview_os/skills       — Analyzers, planner, interviewer, evaluator, coaches
+                     src/interview_os/plugins      — In-process plugin host
         ↓
-packages/core        Shared schemas, readiness, gaps, prioritization
-packages/runtime     Codex, Claude Code, opencode, Devin, and mock adapters
+apps/api/src/interview_os/core   Pydantic models, readiness, gaps, prioritization
+apps/api/src/interview_os/ai     Codex, Claude Code, opencode, Devin, and mock adapters
+packages/frontend-types   Generated model types + plugin-UI vocabulary (from apps/api/schema)
+packages/ui              Shared design system (declarative UINode renderer, frames)
 ```
 
 </details>
@@ -230,13 +236,13 @@ Contributions are welcome. Start with [CONTRIBUTING.md](CONTRIBUTING.md) and the
 <summary><b>Development commands</b></summary>
 
 ```sh
-pnpm typecheck
-pnpm test
-pnpm test:coverage
-pnpm test:e2e
+pnpm typecheck              # tsc for web / ui / frontend-types
+pnpm test                   # apps/api pytest (unit + runtime + integration)
+pnpm test:contract          # Python HTTP contract suite (spawns FastAPI, mock runtime)
+pnpm test:e2e               # Playwright e2e (mock runtime)
 ```
 
-The integration test in `tests/integration/feedback-loop.test.ts` covers the product's central promise: a weak answer changes readiness and is retested. Live provider tests are opt-in. See [Contributing](CONTRIBUTING.md) for setup, testing, and how to add a skill, mode, plugin, or runtime.
+The integration test in `apps/api/tests/integration/test_feedback_loop.py` covers the product's central promise: a weak answer changes readiness and is retested. Live provider tests are opt-in. See [Contributing](CONTRIBUTING.md) for setup, testing, and how to add a skill, mode, plugin, or runtime.
 
 </details>
 

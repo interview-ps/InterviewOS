@@ -2,6 +2,7 @@ import { Link, useNavigate } from "react-router";
 import { useCallback, useEffect, useState } from "react";
 import { api, type AppState, type InterviewListItem, type Metrics } from "@/lib/api";
 import { Bar, Button, Card, CardTitle, EmptyState, ErrorNote, PageHeader, Pill, SkeletonCard, StatusPill, skillLabel } from "@/components/ui";
+import { PluginSlot } from "@/components/plugin-ui";
 
 /** One metric in the Progress card; `title` carries the explanation. */
 function Metric({ label, value, title }: { label: string; value: string; title: string }) {
@@ -142,6 +143,8 @@ export default function Dashboard() {
         </Card>
       </div>
 
+      <PluginSlot slot="dashboard.cards" />
+
       <Card>
         <CardTitle>Skill readiness</CardTitle>
         {requirements.length === 0 ? (
@@ -196,6 +199,7 @@ export default function Dashboard() {
           </Link>
         </Card>
       )}
+      <PluginSlot slot="dashboard.sidebar" />
     </div>
   );
 }

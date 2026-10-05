@@ -1,0 +1,34 @@
+{
+  "snapshots": {
+    "delete": {
+      "body": {
+        "ok": true
+      },
+      "status": 200
+    },
+    "fetch": {
+      "body": {
+        "createdAt": "<ts>",
+        "id": "<ctx#1>",
+        "serverId": "fake",
+        "text": "# acme/widgets\n\nA sample repository used by tests.\n\n## File tree\n- src/index.ts\n- src/api/routes.ts\n- src/store/db.ts\n- test/api.test.ts\n- package.json\n- README.md\n\n## Architecture\nLayered: routes -> services -> store.",
+        "title": "acme-widgets-repo",
+        "tool": "get_repository"
+      },
+      "status": 201
+    },
+    "list": {
+      "body": [
+        {
+          "createdAt": "<ts>",
+          "id": "<ctx#1>",
+          "serverId": "fake",
+          "text": "# acme/widgets\n\nA sample repository used by tests.\n\n## File tree\n- src/index.ts\n- src/api/routes.ts\n- src/store/db.ts\n- test/api.test.ts\n- package.json\n- README.md\n\n## Architecture\nLayered: routes -> services -> store.",
+          "title": "acme-widgets-repo",
+          "tool": "get_repository"
+        }
+      ],
+      "status": 200
+    }
+  }
+}

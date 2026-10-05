@@ -1,0 +1,166 @@
+{
+  "snapshots": {
+    "contributions": {
+      "body": {
+        "contributions": [
+          {
+            "commands": [],
+            "interviewModes": [],
+            "modes": [
+              "behavioral"
+            ],
+            "navigation": [],
+            "pages": [],
+            "pluginId": "behavioral-mode",
+            "pluginName": "Behavioral Mode",
+            "slots": {}
+          },
+          {
+            "commands": [],
+            "interviewModes": [],
+            "modes": [
+              "coding"
+            ],
+            "navigation": [],
+            "pages": [],
+            "pluginId": "coding-mode",
+            "pluginName": "Coding Mode",
+            "slots": {
+              "interview.question": [
+                {
+                  "component": "coding-problem",
+                  "kind": "declarative",
+                  "title": "Problem"
+                }
+              ]
+            }
+          },
+          {
+            "commands": [],
+            "interviewModes": [],
+            "modes": [
+              "hiring_manager"
+            ],
+            "navigation": [],
+            "pages": [],
+            "pluginId": "hiring-manager-mode",
+            "pluginName": "Hiring Manager Mode",
+            "slots": {}
+          },
+          {
+            "commands": [],
+            "interviewModes": [],
+            "modes": [
+              "hr"
+            ],
+            "navigation": [],
+            "pages": [],
+            "pluginId": "hr-mode",
+            "pluginName": "HR Mode",
+            "slots": {}
+          },
+          {
+            "commands": [
+              {
+                "action": {
+                  "modeId": "pg-deep-dive",
+                  "type": "startInterview"
+                },
+                "id": "start-pg",
+                "label": "Start PostgreSQL Deep Dive"
+              }
+            ],
+            "interviewModes": [
+              {
+                "description": "Focused PostgreSQL round on indexing, transactions, and query plans.",
+                "focusSkills": [
+                  "sql.indexing",
+                  "sql.transactions",
+                  "sql.query-optimization"
+                ],
+                "id": "pg-deep-dive",
+                "label": "PostgreSQL Deep Dive",
+                "plannedQuestions": 4,
+                "roundType": "technical"
+              }
+            ],
+            "modes": [],
+            "navigation": [
+              {
+                "icon": "database",
+                "label": "PostgreSQL",
+                "page": "/"
+              }
+            ],
+            "pages": [
+              {
+                "component": "home",
+                "kind": "declarative",
+                "path": "/",
+                "title": "PostgreSQL"
+              }
+            ],
+            "pluginId": "postgres-interviewer",
+            "pluginName": "PostgreSQL Interviewer",
+            "slots": {
+              "dashboard.cards": [
+                {
+                  "component": "readiness-card",
+                  "kind": "declarative",
+                  "title": "PostgreSQL readiness"
+                }
+              ],
+              "prepare.activities": [
+                {
+                  "component": "explain-analyze",
+                  "kind": "declarative",
+                  "title": "Practice EXPLAIN ANALYZE"
+                }
+              ],
+              "readiness.panels": [
+                {
+                  "component": "postgres-skill-tree",
+                  "entry": "ui/index.js",
+                  "kind": "frame"
+                }
+              ]
+            }
+          },
+          {
+            "commands": [],
+            "interviewModes": [],
+            "modes": [
+              "system_design"
+            ],
+            "navigation": [],
+            "pages": [],
+            "pluginId": "system-design-mode",
+            "pluginName": "System Design Mode",
+            "slots": {
+              "interview.sidebar": [
+                {
+                  "component": "design-dimensions",
+                  "kind": "declarative",
+                  "title": "Design dimensions"
+                }
+              ]
+            }
+          },
+          {
+            "commands": [],
+            "interviewModes": [],
+            "modes": [
+              "technical"
+            ],
+            "navigation": [],
+            "pages": [],
+            "pluginId": "technical-mode",
+            "pluginName": "Technical Mode",
+            "slots": {}
+          }
+        ]
+      },
+      "status": 200
+    }
+  }
+}

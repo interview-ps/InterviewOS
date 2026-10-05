@@ -1,0 +1,40 @@
+{
+  "snapshots": {
+    "get": {
+      "body": {
+        "model": null,
+        "questionSources": {
+          "companyPacks": true,
+          "plugins": [],
+          "rolePacks": true,
+          "userBank": true
+        },
+        "reasoningEffort": null,
+        "taskMode": "app-server",
+        "voice": {
+          "enabled": false,
+          "speakQuestions": true
+        }
+      },
+      "status": 200
+    },
+    "put": {
+      "body": {
+        "model": "mock",
+        "questionSources": {
+          "companyPacks": true,
+          "plugins": [],
+          "rolePacks": true,
+          "userBank": true
+        },
+        "reasoningEffort": "low",
+        "taskMode": "app-server",
+        "voice": {
+          "enabled": false,
+          "speakQuestions": true
+        }
+      },
+      "status": 200
+    }
+  }
+}

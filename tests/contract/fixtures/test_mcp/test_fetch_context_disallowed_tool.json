@@ -1,0 +1,31 @@
+{
+  "snapshots": {
+    "disallowed": {
+      "body": {
+        "error": {
+          "code": "VALIDATION",
+          "message": "tool \"echo_env\" is not in allowedTools for MCP server \"fake\""
+        }
+      },
+      "status": 400
+    },
+    "invalid": {
+      "body": {
+        "error": {
+          "code": "VALIDATION",
+          "message": "invalid request body: serverId: Invalid input: expected string, received undefined; tool: Invalid input: expected string, received undefined"
+        }
+      },
+      "status": 400
+    },
+    "unknown-server": {
+      "body": {
+        "error": {
+          "code": "NOT_FOUND",
+          "message": "no MCP server \"nope\""
+        }
+      },
+      "status": 404
+    }
+  }
+}

@@ -1,0 +1,7 @@
+{
+  "id": "slow",
+  "version": "1.0.0",
+  "kind": "plugin",
+  "description": "Fixture: never resolves.",
+  "permissions": []
+}

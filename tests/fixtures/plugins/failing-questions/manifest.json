@@ -1,0 +1,9 @@
+{
+  "id": "failing-questions",
+  "version": "1.0.0",
+  "kind": "plugin",
+  "description": "Fixture: question source that always throws.",
+  "permissions": [],
+  "capabilities": ["question_source"],
+  "inputs": [{ "key": "request", "permission": "taxonomy.read" }]
+}

@@ -1,0 +1,1061 @@
+{
+  "area": "readiness",
+  "cases": [
+    {
+      "fn": "statusForScore",
+      "input": {
+        "score": null
+      },
+      "name": "null score",
+      "output": "unknown"
+    },
+    {
+      "fn": "statusForScore",
+      "input": {
+        "score": 0
+      },
+      "name": "score 0",
+      "output": "weak"
+    },
+    {
+      "fn": "statusForScore",
+      "input": {
+        "score": 0.4999
+      },
+      "name": "score just below weak boundary",
+      "output": "weak"
+    },
+    {
+      "fn": "statusForScore",
+      "input": {
+        "score": 0.5
+      },
+      "name": "score at weak/developing boundary",
+      "output": "developing"
+    },
+    {
+      "fn": "statusForScore",
+      "input": {
+        "score": 0.7499
+      },
+      "name": "score just below strong boundary",
+      "output": "developing"
+    },
+    {
+      "fn": "statusForScore",
+      "input": {
+        "score": 0.75
+      },
+      "name": "score at developing/strong boundary",
+      "output": "strong"
+    },
+    {
+      "fn": "statusForScore",
+      "input": {
+        "score": 1
+      },
+      "name": "score 1",
+      "output": "strong"
+    },
+    {
+      "fn": "confidenceForWeight",
+      "input": {
+        "totalWeight": 0
+      },
+      "name": "zero weight",
+      "output": 0
+    },
+    {
+      "fn": "confidenceForWeight",
+      "input": {
+        "totalWeight": 0.1
+      },
+      "name": "small weight",
+      "output": 0.06449301496838222
+    },
+    {
+      "fn": "confidenceForWeight",
+      "input": {
+        "totalWeight": 1.5
+      },
+      "name": "weight equals saturation constant",
+      "output": 0.6321205588285577
+    },
+    {
+      "fn": "confidenceForWeight",
+      "input": {
+        "totalWeight": 4.5
+      },
+      "name": "weight just past the 0.95 cap",
+      "output": 0.95
+    },
+    {
+      "fn": "confidenceForWeight",
+      "input": {
+        "totalWeight": 10
+      },
+      "name": "large weight saturating at cap",
+      "output": 0.95
+    },
+    {
+      "fn": "computeSkillReadiness",
+      "input": {
+        "evidence": [],
+        "now": "2026-01-01T00:00:00.000Z"
+      },
+      "name": "empty evidence",
+      "output": {
+        "confidence": 0,
+        "evidenceIds": [],
+        "score": null,
+        "status": "unknown",
+        "weight": 0
+      }
+    },
+    {
+      "fn": "computeSkillReadiness",
+      "input": {
+        "evidence": [
+          {
+            "confidence": 0.9,
+            "createdAt": "2026-01-01T00:00:00.000Z",
+            "id": "ev-1",
+            "observation": "obs",
+            "score": 0.8,
+            "skillId": "sql",
+            "type": "interview_answer"
+          }
+        ],
+        "now": "2026-01-01T00:00:00.000Z"
+      },
+      "name": "single evidence",
+      "output": {
+        "confidence": 0.4511883639059735,
+        "evidenceIds": [
+          "ev-1"
+        ],
+        "score": 0.8,
+        "status": "strong",
+        "weight": 0.9
+      }
+    },
+    {
+      "fn": "computeSkillReadiness",
+      "input": {
+        "evidence": [
+          {
+            "confidence": 1,
+            "createdAt": "2026-01-01T00:00:00.000Z",
+            "id": "ev-ia",
+            "observation": "obs",
+            "score": 0.9,
+            "skillId": "sql",
+            "type": "interview_answer"
+          },
+          {
+            "confidence": 0.8,
+            "createdAt": "2025-12-31T00:00:00.000Z",
+            "id": "ev-pr",
+            "observation": "obs",
+            "score": 0.7,
+            "skillId": "sql",
+            "type": "practice"
+          },
+          {
+            "confidence": 0.7,
+            "createdAt": "2025-12-02T00:00:00.000Z",
+            "id": "ev-pl",
+            "observation": "obs",
+            "score": 0.6,
+            "skillId": "sql",
+            "type": "plugin"
+          },
+          {
+            "confidence": 0.9,
+            "createdAt": "2025-11-02T00:00:00.000Z",
+            "id": "ev-rc",
+            "observation": "obs",
+            "score": 0.85,
+            "skillId": "sql",
+            "type": "resume_claim"
+          },
+          {
+            "confidence": 0.5,
+            "createdAt": "2025-07-05T00:00:00.000Z",
+            "id": "ev-sr",
+            "observation": "obs",
+            "score": 0.4,
+            "skillId": "sql",
+            "type": "self_report"
+          }
+        ],
+        "now": "2026-01-01T00:00:00.000Z"
+      },
+      "name": "all five evidence types",
+      "output": {
+        "confidence": 0.6997529016110746,
+        "evidenceIds": [
+          "ev-ia",
+          "ev-pr",
+          "ev-pl",
+          "ev-rc",
+          "ev-sr"
+        ],
+        "score": 0.8163746388579414,
+        "status": "strong",
+        "weight": 1.8047242230785043
+      }
+    },
+    {
+      "fn": "computeSkillReadiness",
+      "input": {
+        "evidence": [
+          {
+            "confidence": 1,
+            "createdAt": "2026-01-01T00:00:00.000Z",
+            "id": "ev-age-0",
+            "observation": "obs",
+            "score": 0.75,
+            "skillId": "sql",
+            "type": "interview_answer"
+          }
+        ],
+        "now": "2026-01-01T00:00:00.000Z"
+      },
+      "name": "interview_answer aged 0 days",
+      "output": {
+        "confidence": 0.486582880967408,
+        "evidenceIds": [
+          "ev-age-0"
+        ],
+        "score": 0.75,
+        "status": "strong",
+        "weight": 1
+      }
+    },
+    {
+      "fn": "computeSkillReadiness",
+      "input": {
+        "evidence": [
+          {
+            "confidence": 1,
+            "createdAt": "2025-12-31T00:00:00.000Z",
+            "id": "ev-age-1",
+            "observation": "obs",
+            "score": 0.75,
+            "skillId": "sql",
+            "type": "interview_answer"
+          }
+        ],
+        "now": "2026-01-01T00:00:00.000Z"
+      },
+      "name": "interview_answer aged 1 days",
+      "output": {
+        "confidence": 0.48263639143148995,
+        "evidenceIds": [
+          "ev-age-1"
+        ],
+        "score": 0.75,
+        "status": "strong",
+        "weight": 0.9885140203528962
+      }
+    },
+    {
+      "fn": "computeSkillReadiness",
+      "input": {
+        "evidence": [
+          {
+            "confidence": 1,
+            "createdAt": "2025-12-02T00:00:00.000Z",
+            "id": "ev-age-30",
+            "observation": "obs",
+            "score": 0.75,
+            "skillId": "sql",
+            "type": "interview_answer"
+          }
+        ],
+        "now": "2026-01-01T00:00:00.000Z"
+      },
+      "name": "interview_answer aged 30 days",
+      "output": {
+        "confidence": 0.37587494422173906,
+        "evidenceIds": [
+          "ev-age-30"
+        ],
+        "score": 0.75,
+        "status": "strong",
+        "weight": 0.7071067811865476
+      }
+    },
+    {
+      "fn": "computeSkillReadiness",
+      "input": {
+        "evidence": [
+          {
+            "confidence": 1,
+            "createdAt": "2025-11-02T00:00:00.000Z",
+            "id": "ev-age-60",
+            "observation": "obs",
+            "score": 0.75,
+            "skillId": "sql",
+            "type": "interview_answer"
+          }
+        ],
+        "now": "2026-01-01T00:00:00.000Z"
+      },
+      "name": "interview_answer aged 60 days",
+      "output": {
+        "confidence": 0.28346868942621073,
+        "evidenceIds": [
+          "ev-age-60"
+        ],
+        "score": 0.75,
+        "status": "strong",
+        "weight": 0.5
+      }
+    },
+    {
+      "fn": "computeSkillReadiness",
+      "input": {
+        "evidence": [
+          {
+            "confidence": 1,
+            "createdAt": "2025-07-05T00:00:00.000Z",
+            "id": "ev-age-180",
+            "observation": "obs",
+            "score": 0.75,
+            "skillId": "sql",
+            "type": "interview_answer"
+          }
+        ],
+        "now": "2026-01-01T00:00:00.000Z"
+      },
+      "name": "interview_answer aged 180 days",
+      "output": {
+        "confidence": 0.07995558537067671,
+        "evidenceIds": [
+          "ev-age-180"
+        ],
+        "score": 0.75,
+        "status": "strong",
+        "weight": 0.125
+      }
+    },
+    {
+      "fn": "computeSkillReadiness",
+      "input": {
+        "evidence": [
+          {
+            "confidence": 1,
+            "createdAt": "2024-11-27T00:00:00.000Z",
+            "id": "ev-age-400",
+            "observation": "obs",
+            "score": 0.75,
+            "skillId": "sql",
+            "type": "interview_answer"
+          }
+        ],
+        "now": "2026-01-01T00:00:00.000Z"
+      },
+      "name": "interview_answer aged 400 days",
+      "output": {
+        "confidence": 0.006540605314685033,
+        "evidenceIds": [
+          "ev-age-400"
+        ],
+        "score": 0.75,
+        "status": "strong",
+        "weight": 0.009843133202303695
+      }
+    },
+    {
+      "fn": "computeSkillReadiness",
+      "input": {
+        "evidence": [
+          {
+            "confidence": 1,
+            "createdAt": "2025-12-27T00:00:00.000Z",
+            "id": "ev-c",
+            "observation": "obs",
+            "score": 0.2,
+            "skillId": "sql",
+            "type": "interview_answer"
+          },
+          {
+            "confidence": 1,
+            "createdAt": "2025-12-27T00:00:00.000Z",
+            "id": "ev-a",
+            "observation": "obs",
+            "score": 0.9,
+            "skillId": "sql",
+            "type": "interview_answer"
+          },
+          {
+            "confidence": 1,
+            "createdAt": "2025-12-27T00:00:00.000Z",
+            "id": "ev-b",
+            "observation": "obs",
+            "score": 0.6,
+            "skillId": "sql",
+            "type": "interview_answer"
+          }
+        ],
+        "now": "2026-01-01T00:00:00.000Z"
+      },
+      "name": "identical createdAt falls back to id order",
+      "output": {
+        "confidence": 0.8018526724118895,
+        "evidenceIds": [
+          "ev-a",
+          "ev-b",
+          "ev-c"
+        ],
+        "score": 0.6042759961127309,
+        "status": "developing",
+        "weight": 2.4281166693736562
+      }
+    },
+    {
+      "fn": "computeSkillReadiness",
+      "input": {
+        "evidence": [
+          {
+            "confidence": 0.9,
+            "createdAt": "2026-01-01T00:00:00.000Z",
+            "id": "ev-r0",
+            "observation": "obs",
+            "score": 0.30000000000000004,
+            "skillId": "sql",
+            "type": "interview_answer"
+          },
+          {
+            "confidence": 0.9,
+            "createdAt": "2025-12-31T00:00:00.000Z",
+            "id": "ev-r1",
+            "observation": "obs",
+            "score": 0.4,
+            "skillId": "sql",
+            "type": "interview_answer"
+          },
+          {
+            "confidence": 0.9,
+            "createdAt": "2025-12-30T00:00:00.000Z",
+            "id": "ev-r2",
+            "observation": "obs",
+            "score": 0.5,
+            "skillId": "sql",
+            "type": "interview_answer"
+          },
+          {
+            "confidence": 0.9,
+            "createdAt": "2025-12-29T00:00:00.000Z",
+            "id": "ev-r3",
+            "observation": "obs",
+            "score": 0.6000000000000001,
+            "skillId": "sql",
+            "type": "interview_answer"
+          },
+          {
+            "confidence": 0.9,
+            "createdAt": "2025-12-28T00:00:00.000Z",
+            "id": "ev-r4",
+            "observation": "obs",
+            "score": 0.7000000000000001,
+            "skillId": "sql",
+            "type": "interview_answer"
+          },
+          {
+            "confidence": 0.9,
+            "createdAt": "2025-12-27T00:00:00.000Z",
+            "id": "ev-r5",
+            "observation": "obs",
+            "score": 0.8,
+            "skillId": "sql",
+            "type": "interview_answer"
+          },
+          {
+            "confidence": 0.9,
+            "createdAt": "2025-12-26T00:00:00.000Z",
+            "id": "ev-r6",
+            "observation": "obs",
+            "score": 0.9,
+            "skillId": "sql",
+            "type": "interview_answer"
+          }
+        ],
+        "now": "2026-01-01T00:00:00.000Z"
+      },
+      "name": "rank decay over seven items",
+      "output": {
+        "confidence": 0.9290046820947101,
+        "evidenceIds": [
+          "ev-r0",
+          "ev-r1",
+          "ev-r2",
+          "ev-r3",
+          "ev-r4",
+          "ev-r5",
+          "ev-r6"
+        ],
+        "score": 0.532069663235208,
+        "status": "developing",
+        "weight": 3.9677120236668078
+      }
+    },
+    {
+      "fn": "computeSkillReadiness",
+      "input": {
+        "evidence": [
+          {
+            "confidence": 1,
+            "createdAt": "2025-11-02T00:00:00.000Z",
+            "id": "ev-ia",
+            "observation": "obs",
+            "score": 0.2,
+            "skillId": "sql",
+            "type": "interview_answer"
+          },
+          {
+            "confidence": 1,
+            "createdAt": "2025-07-05T00:00:00.000Z",
+            "id": "ev-rc",
+            "observation": "obs",
+            "score": 0.9,
+            "skillId": "sql",
+            "type": "resume_claim"
+          }
+        ],
+        "now": "2026-01-01T00:00:00.000Z"
+      },
+      "name": "slow resume_claim outlives fast interview_answer",
+      "output": {
+        "confidence": 0.36024287488827555,
+        "evidenceIds": [
+          "ev-ia",
+          "ev-rc"
+        ],
+        "score": 0.3776119402985074,
+        "status": "weak",
+        "weight": 0.67
+      }
+    },
+    {
+      "fn": "buildReadinessGraph",
+      "input": {
+        "evidence": [],
+        "now": "2026-01-01T00:00:00.000Z",
+        "requirements": []
+      },
+      "name": "empty input",
+      "output": {
+        "dimensions": {},
+        "lastUpdated": "2026-01-01T00:00:00.000Z",
+        "overall": 0,
+        "overallConfidence": 0
+      }
+    },
+    {
+      "fn": "buildReadinessGraph",
+      "input": {
+        "evidence": [
+          {
+            "confidence": 1,
+            "createdAt": "2026-01-01T00:00:00.000Z",
+            "id": "ev-1",
+            "observation": "obs",
+            "score": 0.6,
+            "skillId": "python",
+            "type": "practice"
+          }
+        ],
+        "now": "2026-01-01T00:00:00.000Z",
+        "requirements": []
+      },
+      "name": "evidence but no requirements (importanceSum 0)",
+      "output": {
+        "dimensions": {
+          "python": {
+            "children": [],
+            "confidence": 0.3729109147269438,
+            "evidenceIds": [
+              "ev-1"
+            ],
+            "label": "Python",
+            "score": 0.6,
+            "skillId": "python",
+            "status": "developing"
+          }
+        },
+        "lastUpdated": "2026-01-01T00:00:00.000Z",
+        "overall": 0,
+        "overallConfidence": 0
+      }
+    },
+    {
+      "fn": "buildReadinessGraph",
+      "input": {
+        "evidence": [],
+        "now": "2026-01-01T00:00:00.000Z",
+        "requirements": [
+          {
+            "evidence": "jd",
+            "importance": 1,
+            "kind": "required",
+            "label": "sql",
+            "skillId": "sql"
+          }
+        ]
+      },
+      "name": "requirement without evidence uses unknown prior",
+      "output": {
+        "dimensions": {
+          "sql": {
+            "children": [],
+            "confidence": 0,
+            "evidenceIds": [],
+            "label": "SQL",
+            "score": null,
+            "skillId": "sql",
+            "status": "unknown"
+          }
+        },
+        "lastUpdated": "2026-01-01T00:00:00.000Z",
+        "overall": 0.25,
+        "overallConfidence": 0
+      }
+    },
+    {
+      "fn": "buildReadinessGraph",
+      "input": {
+        "evidence": [
+          {
+            "confidence": 0.9,
+            "createdAt": "2026-01-01T00:00:00.000Z",
+            "id": "ev-1",
+            "observation": "obs",
+            "score": 0.8,
+            "skillId": "distributed-systems.caching.cache-invalidation",
+            "type": "interview_answer"
+          }
+        ],
+        "now": "2026-01-01T00:00:00.000Z",
+        "requirements": [
+          {
+            "evidence": "jd",
+            "importance": 1,
+            "kind": "required",
+            "label": "distributed-systems.caching",
+            "skillId": "distributed-systems.caching"
+          }
+        ]
+      },
+      "name": "leaf evidence rolls up through parent and grandparent",
+      "output": {
+        "dimensions": {
+          "distributed-systems": {
+            "children": [
+              "distributed-systems.caching"
+            ],
+            "confidence": 0.15901290988751915,
+            "evidenceIds": [],
+            "label": "Distributed Systems",
+            "score": 0.8,
+            "skillId": "distributed-systems",
+            "status": "strong"
+          },
+          "distributed-systems.caching": {
+            "children": [
+              "distributed-systems.caching.cache-invalidation"
+            ],
+            "confidence": 0.25976845464923115,
+            "evidenceIds": [],
+            "label": "Caching",
+            "score": 0.8,
+            "skillId": "distributed-systems.caching",
+            "status": "strong"
+          },
+          "distributed-systems.caching.cache-invalidation": {
+            "children": [],
+            "confidence": 0.4511883639059735,
+            "evidenceIds": [
+              "ev-1"
+            ],
+            "label": "Cache Invalidation",
+            "score": 0.8,
+            "skillId": "distributed-systems.caching.cache-invalidation",
+            "status": "strong"
+          }
+        },
+        "lastUpdated": "2026-01-01T00:00:00.000Z",
+        "overall": 0.8,
+        "overallConfidence": 0.25976845464923115
+      }
+    },
+    {
+      "fn": "buildReadinessGraph",
+      "input": {
+        "evidence": [
+          {
+            "confidence": 1,
+            "createdAt": "2025-12-31T00:00:00.000Z",
+            "id": "ev-sql",
+            "observation": "obs",
+            "score": 0.4,
+            "skillId": "sql",
+            "type": "practice"
+          },
+          {
+            "confidence": 1,
+            "createdAt": "2026-01-01T00:00:00.000Z",
+            "id": "ev-idx",
+            "observation": "obs",
+            "score": 0.9,
+            "skillId": "sql.indexing",
+            "type": "interview_answer"
+          }
+        ],
+        "now": "2026-01-01T00:00:00.000Z",
+        "requirements": [
+          {
+            "evidence": "jd",
+            "importance": 1,
+            "kind": "required",
+            "label": "sql",
+            "skillId": "sql"
+          }
+        ]
+      },
+      "name": "parent with direct evidence and scored child",
+      "output": {
+        "dimensions": {
+          "sql": {
+            "children": [
+              "sql.indexing"
+            ],
+            "confidence": 0.543388399379235,
+            "evidenceIds": [
+              "ev-sql"
+            ],
+            "label": "SQL",
+            "score": 0.606901024543973,
+            "skillId": "sql",
+            "status": "developing"
+          },
+          "sql.indexing": {
+            "children": [],
+            "confidence": 0.486582880967408,
+            "evidenceIds": [
+              "ev-idx"
+            ],
+            "label": "SQL Indexing",
+            "score": 0.9,
+            "skillId": "sql.indexing",
+            "status": "strong"
+          }
+        },
+        "lastUpdated": "2026-01-01T00:00:00.000Z",
+        "overall": 0.606901024543973,
+        "overallConfidence": 0.543388399379235
+      }
+    },
+    {
+      "fn": "buildReadinessGraph",
+      "input": {
+        "evidence": [
+          {
+            "confidence": 1,
+            "createdAt": "2026-01-01T00:00:00.000Z",
+            "id": "ev-sql",
+            "observation": "obs",
+            "score": 0.6,
+            "skillId": "sql",
+            "type": "practice"
+          },
+          {
+            "confidence": 1,
+            "createdAt": "2026-01-01T00:00:00.000Z",
+            "id": "ev-tx",
+            "observation": "obs",
+            "score": 0.8,
+            "skillId": "sql.transactions",
+            "type": "interview_answer"
+          }
+        ],
+        "now": "2026-01-01T00:00:00.000Z",
+        "requirements": [
+          {
+            "evidence": "jd",
+            "importance": 1,
+            "kind": "required",
+            "label": "sql",
+            "skillId": "sql"
+          },
+          {
+            "evidence": "jd",
+            "importance": 1,
+            "kind": "required",
+            "label": "sql.indexing",
+            "skillId": "sql.indexing"
+          }
+        ]
+      },
+      "name": "unscored child is ignored by parent rollup",
+      "output": {
+        "dimensions": {
+          "sql": {
+            "children": [
+              "sql.indexing",
+              "sql.transactions"
+            ],
+            "confidence": 0.5466338736403225,
+            "evidenceIds": [
+              "ev-sql"
+            ],
+            "label": "SQL",
+            "score": 0.6820141414092713,
+            "skillId": "sql",
+            "status": "developing"
+          },
+          "sql.indexing": {
+            "children": [],
+            "confidence": 0,
+            "evidenceIds": [],
+            "label": "SQL Indexing",
+            "score": null,
+            "skillId": "sql.indexing",
+            "status": "unknown"
+          },
+          "sql.transactions": {
+            "children": [],
+            "confidence": 0.486582880967408,
+            "evidenceIds": [
+              "ev-tx"
+            ],
+            "label": "SQL Transactions",
+            "score": 0.8,
+            "skillId": "sql.transactions",
+            "status": "strong"
+          }
+        },
+        "lastUpdated": "2026-01-01T00:00:00.000Z",
+        "overall": 0.46600707070463565,
+        "overallConfidence": 0.2733169368201612
+      }
+    },
+    {
+      "fn": "buildReadinessGraph",
+      "input": {
+        "evidence": [
+          {
+            "confidence": 1,
+            "createdAt": "2026-01-01T00:00:00.000Z",
+            "id": "ev-1",
+            "observation": "obs",
+            "score": 0.5,
+            "skillId": "exotic.quantum-computing",
+            "type": "practice"
+          }
+        ],
+        "now": "2026-01-01T00:00:00.000Z",
+        "requirements": [
+          {
+            "evidence": "jd",
+            "importance": 1,
+            "kind": "required",
+            "label": "exotic.quantum-computing",
+            "skillId": "exotic.quantum-computing"
+          }
+        ]
+      },
+      "name": "skill id outside the taxonomy gets humanized label",
+      "output": {
+        "dimensions": {
+          "exotic": {
+            "children": [
+              "exotic.quantum-computing"
+            ],
+            "confidence": 0.22011380710177308,
+            "evidenceIds": [],
+            "label": "Exotic",
+            "score": 0.5,
+            "skillId": "exotic",
+            "status": "developing"
+          },
+          "exotic.quantum-computing": {
+            "children": [],
+            "confidence": 0.3729109147269438,
+            "evidenceIds": [
+              "ev-1"
+            ],
+            "label": "Quantum Computing",
+            "score": 0.5,
+            "skillId": "exotic.quantum-computing",
+            "status": "developing"
+          }
+        },
+        "lastUpdated": "2026-01-01T00:00:00.000Z",
+        "overall": 0.5,
+        "overallConfidence": 0.3729109147269438
+      }
+    },
+    {
+      "fn": "buildReadinessGraph",
+      "input": {
+        "evidence": [
+          {
+            "confidence": 1,
+            "createdAt": "2026-01-01T00:00:00.000Z",
+            "id": "ev-py",
+            "observation": "obs",
+            "score": 1,
+            "skillId": "python",
+            "type": "interview_answer"
+          },
+          {
+            "confidence": 0.6,
+            "createdAt": "2026-01-01T00:00:00.000Z",
+            "id": "ev-sql",
+            "observation": "obs",
+            "score": 0.4,
+            "skillId": "sql",
+            "type": "self_report"
+          }
+        ],
+        "now": "2026-01-01T00:00:00.000Z",
+        "requirements": [
+          {
+            "evidence": "jd",
+            "importance": 0.9,
+            "kind": "required",
+            "label": "python",
+            "skillId": "python"
+          },
+          {
+            "evidence": "jd",
+            "importance": 0.3,
+            "kind": "required",
+            "label": "sql",
+            "skillId": "sql"
+          },
+          {
+            "evidence": "jd",
+            "importance": 0.2,
+            "kind": "required",
+            "label": "kubernetes",
+            "skillId": "kubernetes"
+          }
+        ]
+      },
+      "name": "multiple requirements with different importances",
+      "output": {
+        "dimensions": {
+          "kubernetes": {
+            "children": [],
+            "confidence": 0,
+            "evidenceIds": [],
+            "label": "Kubernetes",
+            "score": null,
+            "skillId": "kubernetes",
+            "status": "unknown"
+          },
+          "python": {
+            "children": [],
+            "confidence": 0.486582880967408,
+            "evidenceIds": [
+              "ev-py"
+            ],
+            "label": "Python",
+            "score": 1,
+            "skillId": "python",
+            "status": "strong"
+          },
+          "sql": {
+            "children": [],
+            "confidence": 0.11307956328284252,
+            "evidenceIds": [
+              "ev-sql"
+            ],
+            "label": "SQL",
+            "score": 0.39999999999999997,
+            "skillId": "sql",
+            "status": "weak"
+          }
+        },
+        "lastUpdated": "2026-01-01T00:00:00.000Z",
+        "overall": 0.7642857142857143,
+        "overallConfidence": 0.3370346156110857
+      }
+    },
+    {
+      "fn": "buildReadinessGraph",
+      "input": {
+        "evidence": [
+          {
+            "confidence": 1,
+            "createdAt": "2026-01-01T00:00:00.000Z",
+            "id": "ev-1",
+            "observation": "obs",
+            "score": 0.7,
+            "skillId": "zz-custom.alpha",
+            "type": "practice"
+          }
+        ],
+        "now": "2026-01-01T00:00:00.000Z",
+        "requirements": [
+          {
+            "evidence": "jd",
+            "importance": 1,
+            "kind": "required",
+            "label": "zz-custom.alpha",
+            "skillId": "zz-custom.alpha"
+          }
+        ],
+        "taxonomy": {
+          "childrenOf": {
+            "zz-custom": [
+              "zz-custom.alpha"
+            ]
+          },
+          "labelFor": {
+            "zz-custom": "Zz Custom",
+            "zz-custom.alpha": "Alpha Custom"
+          },
+          "parentOf": {
+            "zz-custom.alpha": "zz-custom"
+          }
+        }
+      },
+      "name": "custom taxonomy overrides default labels",
+      "output": {
+        "dimensions": {
+          "zz-custom": {
+            "children": [
+              "zz-custom.alpha"
+            ],
+            "confidence": 0.22011380710177308,
+            "evidenceIds": [],
+            "label": "Zz Custom",
+            "score": 0.7,
+            "skillId": "zz-custom",
+            "status": "developing"
+          },
+          "zz-custom.alpha": {
+            "children": [],
+            "confidence": 0.3729109147269438,
+            "evidenceIds": [
+              "ev-1"
+            ],
+            "label": "Alpha Custom",
+            "score": 0.7,
+            "skillId": "zz-custom.alpha",
+            "status": "developing"
+          }
+        },
+        "lastUpdated": "2026-01-01T00:00:00.000Z",
+        "overall": 0.7,
+        "overallConfidence": 0.3729109147269438
+      }
+    }
+  ],
+  "generatedFrom": "packages/core"
+}

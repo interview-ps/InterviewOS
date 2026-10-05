@@ -1,0 +1,79 @@
+id: system-design-mode
+version: 1.0.0
+name: System Design Mode
+kind: hook
+entry: main.py
+author: interview-os
+permissions: [answers.read]
+capabilities: [interview_mode, ui]
+hooks: [mode.reduce, mode.prepareTurn, mode.mock, ui.render]
+inputs: []
+engines: {interview-os: ">=0.4.0", plugin-api: "^1.1.0"}
+description: Open-ended design of a larger system with concrete scale numbers — requirements → estimation → design → trade-offs.
+modes:
+  - id: system_design
+    label: System design
+    description: "Open-ended design of a larger system with concrete scale numbers — requirements → estimation → design → trade-offs."
+    scope:
+      include:
+        - system-design
+        - distributed-systems
+    rubric:
+      - id: requirements
+        label: Requirements
+        description: Clarifies functional scope before designing.
+      - id: constraints
+        label: Constraints
+        description: Surfaces constraints and non-functional goals.
+      - id: scaleAssumptions
+        label: Scale assumptions
+        description: Quantifies load — QPS, storage, users — with numbers.
+      - id: architecture
+        label: Architecture
+        description: Presents a coherent high-level component design.
+      - id: dataModel
+        label: Data model
+        description: Defines entities, schema and access patterns.
+      - id: apis
+        label: APIs
+        description: Specifies the external API surface.
+      - id: storage
+        label: Storage
+        description: Chooses and justifies storage technology.
+      - id: caching
+        label: Caching
+        description: Uses caching appropriately with invalidation reasoning.
+      - id: reliability
+        label: Reliability
+        description: Covers failure modes, redundancy, monitoring.
+      - id: scalability
+        label: Scalability
+        description: Shows how the design scales with growth.
+      - id: tradeOffs
+        label: Trade-offs
+        description: Discusses alternatives and justifies decisions.
+    initialState:
+      problem: null
+      focusDimension: null
+      dimensions:
+        requirements: { status: not_covered, notes: "" }
+        constraints: { status: not_covered, notes: "" }
+        scaleAssumptions: { status: not_covered, notes: "" }
+        architecture: { status: not_covered, notes: "" }
+        dataModel: { status: not_covered, notes: "" }
+        apis: { status: not_covered, notes: "" }
+        storage: { status: not_covered, notes: "" }
+        caching: { status: not_covered, notes: "" }
+        reliability: { status: not_covered, notes: "" }
+        scalability: { status: not_covered, notes: "" }
+        tradeOffs: { status: not_covered, notes: "" }
+    reduce:
+      copyExtra: [problem, focusDimension]
+    followUp: never
+    followUpReason: "system-design sessions walk uncovered dimensions directly"
+    interviewerPrompt: prompts/interviewer.md
+    evaluatorPrompt: prompts/evaluator.md
+ui:
+  slots:
+    interview.sidebar:
+      - { component: design-dimensions, kind: declarative, title: "Design dimensions" }

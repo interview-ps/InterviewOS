@@ -1,0 +1,502 @@
+{
+  "snapshots": {
+    "latest": {
+      "body": {
+        "ats": {
+          "checks": [
+            {
+              "detail": "No email, phone number, or link found — ATS systems cannot contact you.",
+              "id": "contact",
+              "label": "Contact information",
+              "status": "fail",
+              "weight": 2
+            },
+            {
+              "detail": "Found 3 standard sections (experience, education, projects…).",
+              "id": "headings",
+              "label": "Section headings",
+              "status": "pass",
+              "weight": 2
+            },
+            {
+              "detail": "73 words — aim for 300–900 words.",
+              "id": "length",
+              "label": "Length",
+              "status": "fail",
+              "weight": 1
+            },
+            {
+              "detail": "6 bullets — easy to scan.",
+              "id": "bullets",
+              "label": "Bullet points",
+              "status": "pass",
+              "weight": 1
+            },
+            {
+              "detail": "0 of 6 bullets include a number (0%) — aim for ≥30%.",
+              "id": "quantified",
+              "label": "Quantified impact",
+              "status": "fail",
+              "weight": 2
+            },
+            {
+              "detail": "0 of 6 bullets start with an action verb (0%) — aim for ≥50%.",
+              "id": "action_verbs",
+              "label": "Action-verb starts",
+              "status": "fail",
+              "weight": 1
+            },
+            {
+              "detail": "No (or almost no) first-person pronouns — correct resume style.",
+              "id": "first_person",
+              "label": "First-person pronouns",
+              "status": "pass",
+              "weight": 1
+            },
+            {
+              "detail": "No dates found — every role needs a date range like 2021–Present.",
+              "id": "dates",
+              "label": "Dates",
+              "status": "fail",
+              "weight": 1
+            },
+            {
+              "detail": "4 of 9 required skills appear in the resume (44%) — aim for ≥70%.",
+              "id": "keywords",
+              "label": "Required-skill keywords",
+              "status": "warn",
+              "weight": 3
+            }
+          ],
+          "keywordCoverage": {
+            "missing": [
+              {
+                "label": "Caching",
+                "skillId": "distributed-systems.caching"
+              },
+              {
+                "label": "Message Queues",
+                "skillId": "distributed-systems.message-queues"
+              },
+              {
+                "label": "System Design",
+                "skillId": "system-design"
+              },
+              {
+                "label": "Distributed Systems",
+                "skillId": "distributed-systems"
+              },
+              {
+                "label": "Async Processing",
+                "skillId": "system-design.async-processing"
+              }
+            ],
+            "present": [
+              {
+                "label": "APIs",
+                "skillId": "apis",
+                "snippet": "Backend engineer who builds REST APIs and Python services."
+              },
+              {
+                "label": "Python",
+                "skillId": "python",
+                "snippet": "Backend engineer who builds REST APIs and Python services."
+              },
+              {
+                "label": "SQL",
+                "skillId": "sql",
+                "snippet": "- Backend Engineer — Blue Harbor Apps — owned Python services and a SQL datastore"
+              },
+              {
+                "label": "REST APIs",
+                "skillId": "apis.rest",
+                "snippet": "Backend engineer who builds REST APIs and Python services."
+              }
+            ]
+          },
+          "score": 39
+        },
+        "candidateId": "<cand#1>",
+        "createdAt": "<ts>",
+        "guard": {
+          "dropped": 0,
+          "substitutions": 0
+        },
+        "id": "<rev#1>",
+        "linkedGapSkillIds": [
+          "distributed-systems.caching",
+          "distributed-systems.message-queues",
+          "system-design",
+          "distributed-systems",
+          "system-design.async-processing"
+        ],
+        "suggestions": [
+          {
+            "improved": "Designed Python REST APIs for payment processing at Acme Payments, achieving [add metric]",
+            "original": "- Senior Backend Engineer — Acme Payments — designed Python REST APIs for payment processing",
+            "rationale": "Rewritten to be more scannable — moved the employer into the sentence and adds a measurable outcome placeholder.",
+            "skillIds": [
+              "apis",
+              "apis.rest",
+              "python"
+            ]
+          },
+          {
+            "improved": "Owned Python services and a SQL datastore at Blue Harbor Apps, achieving [add metric]",
+            "original": "- Backend Engineer — Blue Harbor Apps — owned Python services and a SQL datastore",
+            "rationale": "Rewritten to be more scannable — moved the employer into the sentence and adds a measurable outcome placeholder.",
+            "skillIds": [
+              "python",
+              "sql"
+            ]
+          },
+          {
+            "improved": "Shipped Python tooling and internal REST APIs at Copperline Labs, achieving [add metric]",
+            "original": "- Software Engineer — Copperline Labs — shipped Python tooling and internal REST APIs",
+            "rationale": "Rewritten to be more scannable — moved the employer into the sentence and adds a measurable outcome placeholder.",
+            "skillIds": [
+              "apis",
+              "apis.rest",
+              "python"
+            ]
+          },
+          {
+            "improved": "Built LedgerSync, a Python reconciliation service exposing a REST API, achieving [add metric]",
+            "original": "- LedgerSync — a Python reconciliation service exposing a REST API",
+            "rationale": "Rewritten to be more scannable — starts with an action verb and adds a measurable outcome placeholder.",
+            "skillIds": [
+              "apis.rest",
+              "apis",
+              "python"
+            ]
+          },
+          {
+            "improved": "Built DocPipe, a Python document intake service with a REST API, achieving [add metric]",
+            "original": "- DocPipe — a Python document intake service with a REST API",
+            "rationale": "Rewritten to be more scannable — starts with an action verb and adds a measurable outcome placeholder.",
+            "skillIds": [
+              "apis.rest",
+              "apis",
+              "python"
+            ]
+          }
+        ],
+        "tailoring": {
+          "alignment": [
+            {
+              "requirement": "Caching",
+              "resumeEvidence": null,
+              "suggestion": "Not in your resume — if you have this experience, add it; otherwise see Prepare."
+            },
+            {
+              "requirement": "APIs",
+              "resumeEvidence": "Backend engineer who builds REST APIs and Python services.",
+              "suggestion": "Keep \"APIs\" prominent — it is a stated requirement."
+            },
+            {
+              "requirement": "Message Queues",
+              "resumeEvidence": null,
+              "suggestion": "Not in your resume — if you have this experience, add it; otherwise see Prepare."
+            },
+            {
+              "requirement": "Python",
+              "resumeEvidence": "Backend engineer who builds REST APIs and Python services.",
+              "suggestion": "Keep \"Python\" prominent — it is a stated requirement."
+            },
+            {
+              "requirement": "SQL",
+              "resumeEvidence": "- Backend Engineer — Blue Harbor Apps — owned Python services and a SQL datastore",
+              "suggestion": "Keep \"SQL\" prominent — it is a stated requirement."
+            },
+            {
+              "requirement": "System Design",
+              "resumeEvidence": null,
+              "suggestion": "Not in your resume — if you have this experience, add it; otherwise see Prepare."
+            },
+            {
+              "requirement": "REST APIs",
+              "resumeEvidence": "Backend engineer who builds REST APIs and Python services.",
+              "suggestion": "Keep \"REST APIs\" prominent — it is a stated requirement."
+            },
+            {
+              "requirement": "Distributed Systems",
+              "resumeEvidence": null,
+              "suggestion": "Not in your resume — if you have this experience, add it; otherwise see Prepare."
+            },
+            {
+              "requirement": "Async Processing",
+              "resumeEvidence": null,
+              "suggestion": "Not in your resume — if you have this experience, add it; otherwise see Prepare."
+            }
+          ],
+          "deEmphasize": [],
+          "emphasize": [
+            "APIs",
+            "Python",
+            "SQL",
+            "REST APIs"
+          ],
+          "prepGaps": [
+            "Caching",
+            "Message Queues",
+            "System Design",
+            "Distributed Systems",
+            "Async Processing"
+          ],
+          "summary": "The resume covers 4 of 9 required skills for Senior Backend Engineer; 5 requirement(s) have no resume evidence — prepare for them rather than padding the resume."
+        },
+        "targetId": "<target#1>"
+      },
+      "status": 200
+    },
+    "review": {
+      "body": {
+        "ats": {
+          "checks": [
+            {
+              "detail": "No email, phone number, or link found — ATS systems cannot contact you.",
+              "id": "contact",
+              "label": "Contact information",
+              "status": "fail",
+              "weight": 2
+            },
+            {
+              "detail": "Found 3 standard sections (experience, education, projects…).",
+              "id": "headings",
+              "label": "Section headings",
+              "status": "pass",
+              "weight": 2
+            },
+            {
+              "detail": "73 words — aim for 300–900 words.",
+              "id": "length",
+              "label": "Length",
+              "status": "fail",
+              "weight": 1
+            },
+            {
+              "detail": "6 bullets — easy to scan.",
+              "id": "bullets",
+              "label": "Bullet points",
+              "status": "pass",
+              "weight": 1
+            },
+            {
+              "detail": "0 of 6 bullets include a number (0%) — aim for ≥30%.",
+              "id": "quantified",
+              "label": "Quantified impact",
+              "status": "fail",
+              "weight": 2
+            },
+            {
+              "detail": "0 of 6 bullets start with an action verb (0%) — aim for ≥50%.",
+              "id": "action_verbs",
+              "label": "Action-verb starts",
+              "status": "fail",
+              "weight": 1
+            },
+            {
+              "detail": "No (or almost no) first-person pronouns — correct resume style.",
+              "id": "first_person",
+              "label": "First-person pronouns",
+              "status": "pass",
+              "weight": 1
+            },
+            {
+              "detail": "No dates found — every role needs a date range like 2021–Present.",
+              "id": "dates",
+              "label": "Dates",
+              "status": "fail",
+              "weight": 1
+            },
+            {
+              "detail": "4 of 9 required skills appear in the resume (44%) — aim for ≥70%.",
+              "id": "keywords",
+              "label": "Required-skill keywords",
+              "status": "warn",
+              "weight": 3
+            }
+          ],
+          "keywordCoverage": {
+            "missing": [
+              {
+                "label": "Caching",
+                "skillId": "distributed-systems.caching"
+              },
+              {
+                "label": "Message Queues",
+                "skillId": "distributed-systems.message-queues"
+              },
+              {
+                "label": "System Design",
+                "skillId": "system-design"
+              },
+              {
+                "label": "Distributed Systems",
+                "skillId": "distributed-systems"
+              },
+              {
+                "label": "Async Processing",
+                "skillId": "system-design.async-processing"
+              }
+            ],
+            "present": [
+              {
+                "label": "APIs",
+                "skillId": "apis",
+                "snippet": "Backend engineer who builds REST APIs and Python services."
+              },
+              {
+                "label": "Python",
+                "skillId": "python",
+                "snippet": "Backend engineer who builds REST APIs and Python services."
+              },
+              {
+                "label": "SQL",
+                "skillId": "sql",
+                "snippet": "- Backend Engineer — Blue Harbor Apps — owned Python services and a SQL datastore"
+              },
+              {
+                "label": "REST APIs",
+                "skillId": "apis.rest",
+                "snippet": "Backend engineer who builds REST APIs and Python services."
+              }
+            ]
+          },
+          "score": 39
+        },
+        "candidateId": "<cand#1>",
+        "createdAt": "<ts>",
+        "guard": {
+          "dropped": 0,
+          "substitutions": 0
+        },
+        "id": "<rev#1>",
+        "linkedGapSkillIds": [
+          "distributed-systems.caching",
+          "distributed-systems.message-queues",
+          "system-design",
+          "distributed-systems",
+          "system-design.async-processing"
+        ],
+        "suggestions": [
+          {
+            "improved": "Designed Python REST APIs for payment processing at Acme Payments, achieving [add metric]",
+            "original": "- Senior Backend Engineer — Acme Payments — designed Python REST APIs for payment processing",
+            "rationale": "Rewritten to be more scannable — moved the employer into the sentence and adds a measurable outcome placeholder.",
+            "skillIds": [
+              "apis",
+              "apis.rest",
+              "python"
+            ]
+          },
+          {
+            "improved": "Owned Python services and a SQL datastore at Blue Harbor Apps, achieving [add metric]",
+            "original": "- Backend Engineer — Blue Harbor Apps — owned Python services and a SQL datastore",
+            "rationale": "Rewritten to be more scannable — moved the employer into the sentence and adds a measurable outcome placeholder.",
+            "skillIds": [
+              "python",
+              "sql"
+            ]
+          },
+          {
+            "improved": "Shipped Python tooling and internal REST APIs at Copperline Labs, achieving [add metric]",
+            "original": "- Software Engineer — Copperline Labs — shipped Python tooling and internal REST APIs",
+            "rationale": "Rewritten to be more scannable — moved the employer into the sentence and adds a measurable outcome placeholder.",
+            "skillIds": [
+              "apis",
+              "apis.rest",
+              "python"
+            ]
+          },
+          {
+            "improved": "Built LedgerSync, a Python reconciliation service exposing a REST API, achieving [add metric]",
+            "original": "- LedgerSync — a Python reconciliation service exposing a REST API",
+            "rationale": "Rewritten to be more scannable — starts with an action verb and adds a measurable outcome placeholder.",
+            "skillIds": [
+              "apis.rest",
+              "apis",
+              "python"
+            ]
+          },
+          {
+            "improved": "Built DocPipe, a Python document intake service with a REST API, achieving [add metric]",
+            "original": "- DocPipe — a Python document intake service with a REST API",
+            "rationale": "Rewritten to be more scannable — starts with an action verb and adds a measurable outcome placeholder.",
+            "skillIds": [
+              "apis.rest",
+              "apis",
+              "python"
+            ]
+          }
+        ],
+        "tailoring": {
+          "alignment": [
+            {
+              "requirement": "Caching",
+              "resumeEvidence": null,
+              "suggestion": "Not in your resume — if you have this experience, add it; otherwise see Prepare."
+            },
+            {
+              "requirement": "APIs",
+              "resumeEvidence": "Backend engineer who builds REST APIs and Python services.",
+              "suggestion": "Keep \"APIs\" prominent — it is a stated requirement."
+            },
+            {
+              "requirement": "Message Queues",
+              "resumeEvidence": null,
+              "suggestion": "Not in your resume — if you have this experience, add it; otherwise see Prepare."
+            },
+            {
+              "requirement": "Python",
+              "resumeEvidence": "Backend engineer who builds REST APIs and Python services.",
+              "suggestion": "Keep \"Python\" prominent — it is a stated requirement."
+            },
+            {
+              "requirement": "SQL",
+              "resumeEvidence": "- Backend Engineer — Blue Harbor Apps — owned Python services and a SQL datastore",
+              "suggestion": "Keep \"SQL\" prominent — it is a stated requirement."
+            },
+            {
+              "requirement": "System Design",
+              "resumeEvidence": null,
+              "suggestion": "Not in your resume — if you have this experience, add it; otherwise see Prepare."
+            },
+            {
+              "requirement": "REST APIs",
+              "resumeEvidence": "Backend engineer who builds REST APIs and Python services.",
+              "suggestion": "Keep \"REST APIs\" prominent — it is a stated requirement."
+            },
+            {
+              "requirement": "Distributed Systems",
+              "resumeEvidence": null,
+              "suggestion": "Not in your resume — if you have this experience, add it; otherwise see Prepare."
+            },
+            {
+              "requirement": "Async Processing",
+              "resumeEvidence": null,
+              "suggestion": "Not in your resume — if you have this experience, add it; otherwise see Prepare."
+            }
+          ],
+          "deEmphasize": [],
+          "emphasize": [
+            "APIs",
+            "Python",
+            "SQL",
+            "REST APIs"
+          ],
+          "prepGaps": [
+            "Caching",
+            "Message Queues",
+            "System Design",
+            "Distributed Systems",
+            "Async Processing"
+          ],
+          "summary": "The resume covers 4 of 9 required skills for Senior Backend Engineer; 5 requirement(s) have no resume evidence — prepare for them rather than padding the resume."
+        },
+        "targetId": "<target#1>"
+      },
+      "status": 200
+    }
+  }
+}

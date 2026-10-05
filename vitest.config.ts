@@ -18,6 +18,7 @@ export default defineConfig({
       "packages/*/test/**/*.test.ts",
       "packages/*/src/**/*.test.ts",
       "apps/*/test/**/*.test.ts",
+      "plugins/*/tests/**/*.test.ts",
       "tests/**/*.test.ts",
     ],
     testTimeout: 20000,

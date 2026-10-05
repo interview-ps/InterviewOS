@@ -1,0 +1,13 @@
+{
+  "snapshots": {
+    "invalid": {
+      "body": {
+        "error": {
+          "code": "VALIDATION",
+          "message": "invalid request body: skills: Invalid input: expected array, received undefined; rounds: Invalid input: expected array, received undefined; durationMinutes: Invalid input: expected number, received undefined"
+        }
+      },
+      "status": 400
+    }
+  }
+}

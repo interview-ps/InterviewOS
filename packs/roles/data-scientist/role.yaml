@@ -1,0 +1,42 @@
+format: interview-os.role-pack
+id: data-scientist
+name: Data Scientist
+version: 1.0.0
+description: Common expectations for data science roles.
+taxonomy:
+  - id: data-science
+    label: Data science
+    keywords:
+      - data science
+      - statistics
+      - experimentation
+  - id: data-science.experimentation
+    label: Experimentation
+    keywords:
+      - a/b test
+      - ab testing
+      - experiment design
+dimensions:
+  - skillId: data-science
+    weight: 0.85
+  - skillId: data-science.experimentation
+    weight: 0.8
+  - skillId: product.metrics
+    weight: 0.7
+  - skillId: sql
+    weight: 0.7
+  - skillId: communication
+    weight: 0.6
+defaultQuestionCategories:
+  - technical
+  - behavioral
+rubrics:
+  - skillId: data-science.experimentation
+    criteria:
+      - Defines the metric and guardrails first
+      - Understands statistical power and bias
+questions:
+  - skillId: data-science.experimentation
+    text: "You want to test a new onboarding flow — walk me through the experiment design end to end."
+    difficulty: medium
+    provenance: community

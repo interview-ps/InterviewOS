@@ -1,0 +1,13 @@
+{
+  "snapshots": {
+    "too-large": {
+      "body": {
+        "error": {
+          "code": "TOO_LARGE",
+          "message": "body exceeds 200KB"
+        }
+      },
+      "status": 413
+    }
+  }
+}

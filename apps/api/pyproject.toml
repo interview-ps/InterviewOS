@@ -1,0 +1,65 @@
+[project]
+name = "interview-os-api"
+version = "0.1.0"
+description = "Interview OS Python backend (FastAPI) — phase 1a: core models, store, Alembic baseline."
+readme = "README.md"
+requires-python = ">=3.13"
+dependencies = [
+    "alembic==1.20.0",
+    "claude-agent-sdk==0.2.161",
+    "fastapi==0.141.1",
+    "mcp==2.2.0",
+    "pydantic==2.13.5",
+    "pyyaml==6.0.3",
+    "sqlalchemy==2.0.54",
+    "uvicorn[standard]==0.54.0",
+]
+
+[dependency-groups]
+dev = [
+    "httpx==0.28.1",
+    "mypy==2.3.1",
+    "pytest==9.1.1",
+    "pytest-asyncio==1.4.0",
+    "ruff==0.16.9",
+    "types-pyyaml==6.0.12.20260906",
+]
+
+[tool.uv]
+# Design doc §3: every dependency is pinned to a version published at least a
+# week earlier. Bump this date deliberately, then re-run `uv lock`.
+exclude-newer = "2026-09-28"
+
+[build-system]
+requires = ["hatchling==1.32.4"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/interview_os"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-q"
+asyncio_mode = "auto"
+asyncio_default_fixture_loop_scope = "function"
+
+[tool.ruff]
+line-length = 100
+target-version = "py313"
+src = ["src", "tests"]
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B", "W"]
+
+[tool.mypy]
+python_version = "3.13"
+strict = true
+files = ["src", "tests"]
+mypy_path = "src"
+
+[tool.ruff.lint.per-file-ignores]
+# Prompt and mock-template strings are content, not code: wrapping them would
+# change the text the model receives.
+"src/interview_os/plugins/testing/mock_helpers.py" = ["E501"]
+# Prompt texts are content, not code: wrapping them would change the prompt.
+"src/interview_os/skills/**/prompts.py" = ["E501"]

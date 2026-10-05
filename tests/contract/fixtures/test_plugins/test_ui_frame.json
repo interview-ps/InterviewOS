@@ -1,0 +1,18 @@
+{
+  "snapshots": {
+    "frame": {
+      "body": "<!doctype html>\n<html lang=\"en\">\n<head>\n<meta charset=\"utf-8\">\n<meta name=\"viewport\" content=\"width=device-width, initial-scale=1\">\n<link rel=\"stylesheet\" href=\"http://127.0.0.1:<port>/api/ui/runtime/plugin-runtime.css\" nonce=\"<nonce>\">\n<script type=\"importmap\" nonce=\"<nonce>\">{\"imports\":{\"@interview-os/ui\":\"http://127.0.0.1:<port>/api/ui/runtime/plugin-runtime.js\",\"@interview-os/plugin-ui\":\"http://127.0.0.1:<port>/api/ui/runtime/plugin-runtime.js\",\"react\":\"http://127.0.0.1:<port>/api/ui/runtime/plugin-runtime.js\",\"react/jsx-runtime\":\"http://127.0.0.1:<port>/api/ui/runtime/plugin-runtime.js\",\"react-dom/client\":\"http://127.0.0.1:<port>/api/ui/runtime/plugin-runtime.js\"}}</script>\n</head>\n<body>\n<div id=\"root\"></div>\n<script type=\"module\" nonce=\"<nonce>\">\nimport { boot } from \"@interview-os/ui\";\nboot({\"entry\":\"http://127.0.0.1:<port>/api/plugins/postgres-interviewer/ui/assets/index.js\",\"component\":\"postgres-skill-tree\"}).catch((err) => {\n  document.getElementById(\"root\").textContent =\n    \"Plugin view failed to start: \" + String(err && err.message ? err.message : err);\n});\n</script>\n</body>\n</html>\n",
+      "contentType": "text/html",
+      "status": 200
+    },
+    "frame-no-selector": {
+      "body": {
+        "error": {
+          "code": "VALIDATION",
+          "message": "component or page query is required"
+        }
+      },
+      "status": 400
+    }
+  }
+}

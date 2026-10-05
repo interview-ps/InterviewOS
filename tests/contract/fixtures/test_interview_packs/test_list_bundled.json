@@ -1,0 +1,49 @@
+{
+  "snapshots": {
+    "list": {
+      "body": [
+        {
+          "pack": {
+            "author": "interview-os",
+            "description": "A standard senior backend loop — technical, coding, system design, behavioral.",
+            "durationMinutes": 180,
+            "format": "interview-os.interview-pack",
+            "id": "senior-backend",
+            "name": "Senior Backend Interview Pack",
+            "rounds": [
+              {
+                "label": "Technical foundations",
+                "mode": "technical",
+                "plannedQuestions": 4
+              },
+              {
+                "label": "Coding",
+                "mode": "coding",
+                "plannedQuestions": 3
+              },
+              {
+                "label": "System design",
+                "mode": "system_design",
+                "plannedQuestions": 3
+              },
+              {
+                "label": "Behavioral",
+                "mode": "behavioral",
+                "plannedQuestions": 3
+              }
+            ],
+            "skills": [
+              "distributed-systems",
+              "sql",
+              "apis",
+              "system-design"
+            ],
+            "version": "1.0.0"
+          },
+          "source": "bundled"
+        }
+      ],
+      "status": 200
+    }
+  }
+}

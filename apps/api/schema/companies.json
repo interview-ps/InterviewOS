@@ -1,0 +1,303 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "group": "companies",
+  "models": {
+    "CompanyBehavioralFramework": {
+      "properties": {
+        "guidance": {
+          "title": "Guidance",
+          "type": "string"
+        },
+        "name": {
+          "title": "Name",
+          "type": "string"
+        },
+        "themes": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Themes",
+          "type": "array"
+        }
+      },
+      "required": [
+        "name",
+        "themes",
+        "guidance"
+      ],
+      "title": "CompanyBehavioralFramework",
+      "type": "object"
+    },
+    "CompanyEmphasis": {
+      "properties": {
+        "skillId": {
+          "pattern": "^[a-z0-9-]+(\\.[a-z0-9-]+)*$",
+          "title": "Skillid",
+          "type": "string"
+        },
+        "weight": {
+          "maximum": 0.1,
+          "minimum": 0,
+          "title": "Weight",
+          "type": "number"
+        }
+      },
+      "required": [
+        "skillId",
+        "weight"
+      ],
+      "title": "CompanyEmphasis",
+      "type": "object"
+    },
+    "CompanyPackInfo": {
+      "properties": {
+        "communityCount": {
+          "minimum": 0,
+          "title": "Communitycount",
+          "type": "integer"
+        },
+        "kind": {
+          "const": "company",
+          "title": "Kind",
+          "type": "string"
+        },
+        "sourcedCount": {
+          "minimum": 0,
+          "title": "Sourcedcount",
+          "type": "integer"
+        },
+        "version": {
+          "title": "Version",
+          "type": "string"
+        }
+      },
+      "required": [
+        "version",
+        "kind",
+        "sourcedCount",
+        "communityCount"
+      ],
+      "title": "CompanyPackInfo",
+      "type": "object"
+    },
+    "CompanyProfile": {
+      "$defs": {
+        "CompanyBehavioralFramework": {
+          "properties": {
+            "guidance": {
+              "title": "Guidance",
+              "type": "string"
+            },
+            "name": {
+              "title": "Name",
+              "type": "string"
+            },
+            "themes": {
+              "items": {
+                "type": "string"
+              },
+              "title": "Themes",
+              "type": "array"
+            }
+          },
+          "required": [
+            "name",
+            "themes",
+            "guidance"
+          ],
+          "title": "CompanyBehavioralFramework",
+          "type": "object"
+        },
+        "CompanyEmphasis": {
+          "properties": {
+            "skillId": {
+              "pattern": "^[a-z0-9-]+(\\.[a-z0-9-]+)*$",
+              "title": "Skillid",
+              "type": "string"
+            },
+            "weight": {
+              "maximum": 0.1,
+              "minimum": 0,
+              "title": "Weight",
+              "type": "number"
+            }
+          },
+          "required": [
+            "skillId",
+            "weight"
+          ],
+          "title": "CompanyEmphasis",
+          "type": "object"
+        },
+        "CompanyPackInfo": {
+          "properties": {
+            "communityCount": {
+              "minimum": 0,
+              "title": "Communitycount",
+              "type": "integer"
+            },
+            "kind": {
+              "const": "company",
+              "title": "Kind",
+              "type": "string"
+            },
+            "sourcedCount": {
+              "minimum": 0,
+              "title": "Sourcedcount",
+              "type": "integer"
+            },
+            "version": {
+              "title": "Version",
+              "type": "string"
+            }
+          },
+          "required": [
+            "version",
+            "kind",
+            "sourcedCount",
+            "communityCount"
+          ],
+          "title": "CompanyPackInfo",
+          "type": "object"
+        },
+        "CompanyTypicalLoopStage": {
+          "properties": {
+            "label": {
+              "title": "Label",
+              "type": "string"
+            },
+            "mode": {
+              "pattern": "^[a-z0-9][a-z0-9_-]{0,63}$",
+              "title": "Mode",
+              "type": "string"
+            },
+            "plannedQuestions": {
+              "exclusiveMinimum": 0,
+              "title": "Plannedquestions",
+              "type": "integer"
+            }
+          },
+          "required": [
+            "mode",
+            "label",
+            "plannedQuestions"
+          ],
+          "title": "CompanyTypicalLoopStage",
+          "type": "object"
+        }
+      },
+      "description": "§9.3 built-in company interview profile — originally-written public patterns.",
+      "properties": {
+        "aliases": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Aliases",
+          "type": "array"
+        },
+        "behavioralFramework": {
+          "$ref": "#/$defs/CompanyBehavioralFramework"
+        },
+        "disclaimer": {
+          "title": "Disclaimer",
+          "type": "string"
+        },
+        "emphasis": {
+          "items": {
+            "$ref": "#/$defs/CompanyEmphasis"
+          },
+          "title": "Emphasis",
+          "type": "array"
+        },
+        "followUpDepth": {
+          "enum": [
+            1,
+            2,
+            3
+          ],
+          "title": "Followupdepth",
+          "type": "integer"
+        },
+        "id": {
+          "title": "Id",
+          "type": "string"
+        },
+        "name": {
+          "title": "Name",
+          "type": "string"
+        },
+        "pack": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/CompanyPackInfo"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "roleExpectations": {
+          "additionalProperties": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "title": "Roleexpectations",
+          "type": "object"
+        },
+        "rubricEmphasis": {
+          "additionalProperties": {
+            "type": "number"
+          },
+          "title": "Rubricemphasis",
+          "type": "object"
+        },
+        "typicalLoop": {
+          "items": {
+            "$ref": "#/$defs/CompanyTypicalLoopStage"
+          },
+          "title": "Typicalloop",
+          "type": "array"
+        }
+      },
+      "required": [
+        "id",
+        "name",
+        "disclaimer",
+        "typicalLoop",
+        "emphasis",
+        "behavioralFramework",
+        "followUpDepth"
+      ],
+      "title": "CompanyProfile",
+      "type": "object"
+    },
+    "CompanyTypicalLoopStage": {
+      "properties": {
+        "label": {
+          "title": "Label",
+          "type": "string"
+        },
+        "mode": {
+          "pattern": "^[a-z0-9][a-z0-9_-]{0,63}$",
+          "title": "Mode",
+          "type": "string"
+        },
+        "plannedQuestions": {
+          "exclusiveMinimum": 0,
+          "title": "Plannedquestions",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "mode",
+        "label",
+        "plannedQuestions"
+      ],
+      "title": "CompanyTypicalLoopStage",
+      "type": "object"
+    }
+  }
+}

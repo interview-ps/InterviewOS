@@ -1,0 +1,66 @@
+{
+  "snapshots": {
+    "data": {
+      "body": {
+        "slices": {
+          "request": {
+            "component": "postgres-skill-tree",
+            "kind": "ui-frame"
+          },
+          "settings": {
+            "difficulty-bias": "medium"
+          }
+        }
+      },
+      "status": 200
+    },
+    "data-invalid": {
+      "body": {
+        "error": {
+          "code": "VALIDATION",
+          "message": "invalid request body: body: component or page is required"
+        }
+      },
+      "status": 400
+    },
+    "run": {
+      "body": {
+        "output": {
+          "questions": [
+            {
+              "difficulty": "medium",
+              "expectedConcepts": [
+                "b-tree",
+                "ordered keys",
+                "page lookups"
+              ],
+              "id": "pg-idx-1",
+              "skillId": "sql.indexing",
+              "text": "How does a B-tree index speed up equality and range lookups in PostgreSQL?"
+            },
+            {
+              "difficulty": "medium",
+              "expectedConcepts": [
+                "index size",
+                "predicate selectivity"
+              ],
+              "id": "pg-idx-2",
+              "skillId": "sql.indexing",
+              "text": "When would you choose a partial index over a full index?"
+            }
+          ]
+        }
+      },
+      "status": 200
+    },
+    "run-invalid": {
+      "body": {
+        "error": {
+          "code": "VALIDATION",
+          "message": "invalid request body: body: component or page is required"
+        }
+      },
+      "status": 400
+    }
+  }
+}

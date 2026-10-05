@@ -1,0 +1,13 @@
+{
+  "snapshots": {
+    "too-few-rounds": {
+      "body": {
+        "error": {
+          "code": "VALIDATION",
+          "message": "invalid request body: rounds: Too small: expected array to have >=2 items"
+        }
+      },
+      "status": 400
+    }
+  }
+}

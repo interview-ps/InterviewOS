@@ -1,0 +1,7 @@
+{
+  "id": "binding-probe",
+  "version": "1.0.0",
+  "kind": "plugin",
+  "description": "Fixture: probes process.binding / dlopen hardening.",
+  "permissions": []
+}

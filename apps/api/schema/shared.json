@@ -1,0 +1,26 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "group": "shared",
+  "models": {
+    "CamelModel": {
+      "description": "Base for every core model: camelCase JSON, snake_case Python.\n\n`populate_by_name` keeps snake_case input working in Python; JSON output is\ncamelCase via `model_dump(by_alias=True)`. Zod objects strip unknown keys by\ndefault, which is Pydantic's `extra=\"ignore\"`.",
+      "properties": {},
+      "title": "CamelModel",
+      "type": "object"
+    },
+    "LooseCamelModel": {
+      "additionalProperties": true,
+      "description": "A `.loose()` Zod object: unknown keys pass through unchanged.",
+      "properties": {},
+      "title": "LooseCamelModel",
+      "type": "object"
+    },
+    "StrictCamelModel": {
+      "additionalProperties": false,
+      "description": "A `z.strictObject(...)`: unknown keys are rejected.",
+      "properties": {},
+      "title": "StrictCamelModel",
+      "type": "object"
+    }
+  }
+}

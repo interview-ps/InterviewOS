@@ -1,0 +1,208 @@
+{
+  "snapshots": {
+    "complete": {
+      "body": {
+        "actions": [
+          {
+            "action": "Sketch a producer/consumer design with a queue and explain delivery semantics",
+            "createdAt": "<ts>",
+            "id": "<action#1>",
+            "priority": 1,
+            "reason": "no evidence for required skill; senior target is 0.8",
+            "resources": [
+              {
+                "kind": "explanation",
+                "skillId": "distributed-systems.message-queues",
+                "source": "builtin",
+                "summary": "At-least-once vs exactly-once delivery, idempotent consumers, dead-letter queues and backpressure.",
+                "title": "Interview OS explanation: delivery semantics"
+              },
+              {
+                "kind": "practice",
+                "skillId": "distributed-systems.message-queues",
+                "source": "builtin",
+                "summary": "Start a practice session in Interview OS to verify this skill.",
+                "title": "Practice a Message Queues question"
+              }
+            ],
+            "severity": "high",
+            "skillId": "distributed-systems.message-queues",
+            "sourceEvidenceIds": [],
+            "status": "open",
+            "successCriteria": [
+              "Explain at-least-once vs exactly-once",
+              "Explain how you handle poison messages",
+              "Complete one mock question"
+            ]
+          },
+          {
+            "action": "Practice one full system-design question end-to-end with explicit clarifying questions",
+            "createdAt": "<ts>",
+            "id": "<action#2>",
+            "priority": 2,
+            "reason": "no evidence for required skill; senior target is 0.8",
+            "resources": [
+              {
+                "kind": "explanation",
+                "skillId": "system-design",
+                "source": "builtin",
+                "summary": "Clarify requirements, estimate capacity, sketch the high-level design, then drill into bottlenecks and trade-offs.",
+                "title": "Interview OS explanation: the design-interview frame"
+              },
+              {
+                "kind": "practice",
+                "skillId": "system-design",
+                "source": "builtin",
+                "summary": "Start a practice session in Interview OS to verify this skill.",
+                "title": "Practice a System Design question"
+              }
+            ],
+            "severity": "high",
+            "skillId": "system-design",
+            "sourceEvidenceIds": [],
+            "status": "open",
+            "successCriteria": [
+              "Write down functional and non-functional requirements first",
+              "Give a back-of-envelope capacity estimate",
+              "Draw a high-level component diagram"
+            ]
+          },
+          {
+            "action": "Practice Async Processing: prepare a 2-minute explanation covering async processing, asynchronous, background job, then answer one mock question on it.",
+            "createdAt": "<ts>",
+            "id": "<action#3>",
+            "priority": 3,
+            "reason": "no evidence for required skill; senior target is 0.8",
+            "resources": [
+              {
+                "kind": "explanation",
+                "skillId": "system-design.async-processing",
+                "source": "builtin",
+                "summary": "Clarify requirements, estimate capacity, sketch the high-level design, then drill into bottlenecks and trade-offs.",
+                "title": "Interview OS explanation: the design-interview frame"
+              },
+              {
+                "kind": "practice",
+                "skillId": "system-design.async-processing",
+                "source": "builtin",
+                "summary": "Start a practice session in Interview OS to verify this skill.",
+                "title": "Practice a Async Processing question"
+              }
+            ],
+            "severity": "high",
+            "skillId": "system-design.async-processing",
+            "sourceEvidenceIds": [],
+            "status": "open",
+            "successCriteria": [
+              "Explain async processing",
+              "Explain asynchronous",
+              "Explain background job",
+              "Explain the key trade-offs"
+            ]
+          },
+          {
+            "action": "Outline a microservice architecture you know and list its failure modes",
+            "createdAt": "<ts>",
+            "id": "<action#4>",
+            "priority": 4,
+            "reason": "no evidence for required skill; senior target is 0.8",
+            "resources": [
+              {
+                "kind": "practice",
+                "skillId": "distributed-systems",
+                "source": "builtin",
+                "summary": "Start a practice session in Interview OS to verify this skill.",
+                "title": "Practice a Distributed Systems question"
+              }
+            ],
+            "severity": "high",
+            "skillId": "distributed-systems",
+            "sourceEvidenceIds": [],
+            "status": "open",
+            "successCriteria": [
+              "Name two consistency challenges",
+              "Explain one resilience pattern you would add"
+            ]
+          },
+          {
+            "action": "Practice Observability: prepare a 2-minute explanation covering observability, monitoring, tracing, then answer one mock question on it.",
+            "createdAt": "<ts>",
+            "id": "<action#5>",
+            "priority": 5,
+            "reason": "no evidence for preferred skill; senior target is 0.8",
+            "resources": [
+              {
+                "kind": "practice",
+                "skillId": "infrastructure.observability",
+                "source": "builtin",
+                "summary": "Start a practice session in Interview OS to verify this skill.",
+                "title": "Practice a Observability question"
+              }
+            ],
+            "severity": "medium",
+            "skillId": "infrastructure.observability",
+            "sourceEvidenceIds": [],
+            "status": "open",
+            "successCriteria": [
+              "Explain observability",
+              "Explain monitoring",
+              "Explain tracing",
+              "Explain the key trade-offs"
+            ]
+          },
+          {
+            "action": "Practice Kubernetes: prepare a 2-minute explanation covering kubernetes, k8s, container orchestration, then answer one mock question on it.",
+            "createdAt": "<ts>",
+            "id": "<action#6>",
+            "priority": 6,
+            "reason": "no evidence for preferred skill; senior target is 0.8",
+            "resources": [
+              {
+                "kind": "docs",
+                "skillId": "infrastructure.kubernetes",
+                "source": "builtin",
+                "title": "Kubernetes documentation",
+                "url": "https://kubernetes.io/docs/home/"
+              },
+              {
+                "kind": "practice",
+                "skillId": "infrastructure.kubernetes",
+                "source": "builtin",
+                "summary": "Start a practice session in Interview OS to verify this skill.",
+                "title": "Practice a Kubernetes question"
+              }
+            ],
+            "severity": "medium",
+            "skillId": "infrastructure.kubernetes",
+            "sourceEvidenceIds": [],
+            "status": "open",
+            "successCriteria": [
+              "Explain kubernetes",
+              "Explain k8s",
+              "Explain container orchestration",
+              "Explain the key trade-offs"
+            ]
+          }
+        ],
+        "evidenceId": "<ev#1>",
+        "ok": true
+      },
+      "status": 200
+    },
+    "complete-bad-criteria": {
+      "body": {
+        "error": {
+          "code": "VALIDATION",
+          "message": "unknown success criteria: not a real criterion"
+        }
+      },
+      "status": 400
+    },
+    "patch": {
+      "body": {
+        "ok": true
+      },
+      "status": 200
+    }
+  }
+}

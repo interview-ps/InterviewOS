@@ -1,0 +1,2224 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "group": "packs",
+  "models": {
+    "CompanyPack": {
+      "$defs": {
+        "CompanyEmphasis": {
+          "properties": {
+            "skillId": {
+              "pattern": "^[a-z0-9-]+(\\.[a-z0-9-]+)*$",
+              "title": "Skillid",
+              "type": "string"
+            },
+            "weight": {
+              "maximum": 0.1,
+              "minimum": 0,
+              "title": "Weight",
+              "type": "number"
+            }
+          },
+          "required": [
+            "skillId",
+            "weight"
+          ],
+          "title": "CompanyEmphasis",
+          "type": "object"
+        },
+        "CompanyPackBehavioralFramework": {
+          "properties": {
+            "guidance": {
+              "default": "",
+              "maxLength": 1500,
+              "title": "Guidance",
+              "type": "string"
+            },
+            "name": {
+              "maxLength": 120,
+              "minLength": 1,
+              "title": "Name",
+              "type": "string"
+            },
+            "themes": {
+              "items": {
+                "maxLength": 120,
+                "minLength": 1,
+                "type": "string"
+              },
+              "title": "Themes",
+              "type": "array"
+            }
+          },
+          "required": [
+            "name"
+          ],
+          "title": "CompanyPackBehavioralFramework",
+          "type": "object"
+        },
+        "CompanyPackStage": {
+          "properties": {
+            "label": {
+              "maxLength": 80,
+              "minLength": 1,
+              "title": "Label",
+              "type": "string"
+            },
+            "mode": {
+              "pattern": "^[a-z0-9][a-z0-9_-]{0,63}$",
+              "title": "Mode",
+              "type": "string"
+            },
+            "plannedQuestions": {
+              "maximum": 6,
+              "minimum": 1,
+              "title": "Plannedquestions",
+              "type": "integer"
+            },
+            "provenance": {
+              "$ref": "#/$defs/Provenance"
+            },
+            "source": {
+              "anyOf": [
+                {
+                  "pattern": "^[a-z0-9][a-z0-9-]{0,63}$",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "title": "Source"
+            }
+          },
+          "required": [
+            "mode",
+            "label",
+            "plannedQuestions",
+            "provenance"
+          ],
+          "title": "CompanyPackStage",
+          "type": "object"
+        },
+        "PackItem": {
+          "description": "A fact-like pack item — must clearly mark sourced vs community material.",
+          "properties": {
+            "provenance": {
+              "$ref": "#/$defs/Provenance"
+            },
+            "source": {
+              "anyOf": [
+                {
+                  "pattern": "^[a-z0-9][a-z0-9-]{0,63}$",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "title": "Source"
+            },
+            "text": {
+              "maxLength": 2000,
+              "minLength": 1,
+              "title": "Text",
+              "type": "string"
+            }
+          },
+          "required": [
+            "text",
+            "provenance"
+          ],
+          "title": "PackItem",
+          "type": "object"
+        },
+        "PackQuestion": {
+          "properties": {
+            "difficulty": {
+              "anyOf": [
+                {
+                  "$ref": "#/$defs/QuestionDifficulty"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null
+            },
+            "mode": {
+              "anyOf": [
+                {
+                  "pattern": "^[a-z0-9][a-z0-9_-]{0,63}$",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "title": "Mode"
+            },
+            "provenance": {
+              "$ref": "#/$defs/Provenance"
+            },
+            "skillId": {
+              "pattern": "^[a-z0-9-]+(\\.[a-z0-9-]+)*$",
+              "title": "Skillid",
+              "type": "string"
+            },
+            "source": {
+              "anyOf": [
+                {
+                  "pattern": "^[a-z0-9][a-z0-9-]{0,63}$",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "title": "Source"
+            },
+            "text": {
+              "maxLength": 1200,
+              "minLength": 10,
+              "title": "Text",
+              "type": "string"
+            }
+          },
+          "required": [
+            "skillId",
+            "text",
+            "provenance"
+          ],
+          "title": "PackQuestion",
+          "type": "object"
+        },
+        "PackSource": {
+          "properties": {
+            "id": {
+              "pattern": "^[a-z0-9][a-z0-9-]{0,63}$",
+              "title": "Id",
+              "type": "string"
+            },
+            "title": {
+              "maxLength": 200,
+              "minLength": 1,
+              "title": "Title",
+              "type": "string"
+            },
+            "url": {
+              "anyOf": [
+                {
+                  "maxLength": 2000,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "title": "Url"
+            }
+          },
+          "required": [
+            "id",
+            "title"
+          ],
+          "title": "PackSource",
+          "type": "object"
+        },
+        "Provenance": {
+          "description": "Whether an item is backed by a declared source or community observation.",
+          "enum": [
+            "sourced",
+            "community"
+          ],
+          "title": "Provenance",
+          "type": "string"
+        },
+        "QuestionDifficulty": {
+          "enum": [
+            "easy",
+            "medium",
+            "hard"
+          ],
+          "title": "QuestionDifficulty",
+          "type": "string"
+        }
+      },
+      "properties": {
+        "aliases": {
+          "items": {
+            "maxLength": 120,
+            "minLength": 1,
+            "type": "string"
+          },
+          "title": "Aliases",
+          "type": "array"
+        },
+        "behavioralFramework": {
+          "$ref": "#/$defs/CompanyPackBehavioralFramework"
+        },
+        "competencies": {
+          "items": {
+            "$ref": "#/$defs/PackItem"
+          },
+          "title": "Competencies",
+          "type": "array"
+        },
+        "description": {
+          "default": "",
+          "maxLength": 2000,
+          "title": "Description",
+          "type": "string"
+        },
+        "emphasis": {
+          "items": {
+            "$ref": "#/$defs/CompanyEmphasis"
+          },
+          "title": "Emphasis",
+          "type": "array"
+        },
+        "evaluationGuidance": {
+          "items": {
+            "$ref": "#/$defs/PackItem"
+          },
+          "title": "Evaluationguidance",
+          "type": "array"
+        },
+        "followUpDepth": {
+          "default": 2,
+          "enum": [
+            1,
+            2,
+            3
+          ],
+          "title": "Followupdepth",
+          "type": "integer"
+        },
+        "format": {
+          "default": "interview-os.company-pack",
+          "title": "Format",
+          "type": "string"
+        },
+        "id": {
+          "pattern": "^[a-z0-9][a-z0-9-]{0,63}$",
+          "title": "Id",
+          "type": "string"
+        },
+        "maintainers": {
+          "items": {
+            "maxLength": 120,
+            "minLength": 1,
+            "type": "string"
+          },
+          "title": "Maintainers",
+          "type": "array"
+        },
+        "name": {
+          "maxLength": 120,
+          "minLength": 1,
+          "title": "Name",
+          "type": "string"
+        },
+        "questionStyle": {
+          "items": {
+            "$ref": "#/$defs/PackItem"
+          },
+          "title": "Questionstyle",
+          "type": "array"
+        },
+        "questions": {
+          "items": {
+            "$ref": "#/$defs/PackQuestion"
+          },
+          "title": "Questions",
+          "type": "array"
+        },
+        "roleExpectations": {
+          "additionalProperties": {
+            "items": {
+              "maxLength": 300,
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "title": "Roleexpectations",
+          "type": "object"
+        },
+        "sources": {
+          "items": {
+            "$ref": "#/$defs/PackSource"
+          },
+          "title": "Sources",
+          "type": "array"
+        },
+        "stages": {
+          "items": {
+            "$ref": "#/$defs/CompanyPackStage"
+          },
+          "maxItems": 7,
+          "minItems": 2,
+          "title": "Stages",
+          "type": "array"
+        },
+        "version": {
+          "maxLength": 32,
+          "minLength": 1,
+          "title": "Version",
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "name",
+        "version",
+        "stages",
+        "behavioralFramework"
+      ],
+      "title": "CompanyPack",
+      "type": "object"
+    },
+    "CompanyPackBehavioralFramework": {
+      "properties": {
+        "guidance": {
+          "default": "",
+          "maxLength": 1500,
+          "title": "Guidance",
+          "type": "string"
+        },
+        "name": {
+          "maxLength": 120,
+          "minLength": 1,
+          "title": "Name",
+          "type": "string"
+        },
+        "themes": {
+          "items": {
+            "maxLength": 120,
+            "minLength": 1,
+            "type": "string"
+          },
+          "title": "Themes",
+          "type": "array"
+        }
+      },
+      "required": [
+        "name"
+      ],
+      "title": "CompanyPackBehavioralFramework",
+      "type": "object"
+    },
+    "CompanyPackOverlay": {
+      "$defs": {
+        "CompanyPackOverlayAppliesTo": {
+          "properties": {
+            "mode": {
+              "anyOf": [
+                {
+                  "pattern": "^[a-z0-9][a-z0-9_-]{0,63}$",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "title": "Mode"
+            },
+            "roleKeywords": {
+              "items": {
+                "maxLength": 80,
+                "minLength": 1,
+                "type": "string"
+              },
+              "title": "Rolekeywords",
+              "type": "array"
+            }
+          },
+          "title": "CompanyPackOverlayAppliesTo",
+          "type": "object"
+        },
+        "CompanyPackStage": {
+          "properties": {
+            "label": {
+              "maxLength": 80,
+              "minLength": 1,
+              "title": "Label",
+              "type": "string"
+            },
+            "mode": {
+              "pattern": "^[a-z0-9][a-z0-9_-]{0,63}$",
+              "title": "Mode",
+              "type": "string"
+            },
+            "plannedQuestions": {
+              "maximum": 6,
+              "minimum": 1,
+              "title": "Plannedquestions",
+              "type": "integer"
+            },
+            "provenance": {
+              "$ref": "#/$defs/Provenance"
+            },
+            "source": {
+              "anyOf": [
+                {
+                  "pattern": "^[a-z0-9][a-z0-9-]{0,63}$",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "title": "Source"
+            }
+          },
+          "required": [
+            "mode",
+            "label",
+            "plannedQuestions",
+            "provenance"
+          ],
+          "title": "CompanyPackStage",
+          "type": "object"
+        },
+        "PackItem": {
+          "description": "A fact-like pack item — must clearly mark sourced vs community material.",
+          "properties": {
+            "provenance": {
+              "$ref": "#/$defs/Provenance"
+            },
+            "source": {
+              "anyOf": [
+                {
+                  "pattern": "^[a-z0-9][a-z0-9-]{0,63}$",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "title": "Source"
+            },
+            "text": {
+              "maxLength": 2000,
+              "minLength": 1,
+              "title": "Text",
+              "type": "string"
+            }
+          },
+          "required": [
+            "text",
+            "provenance"
+          ],
+          "title": "PackItem",
+          "type": "object"
+        },
+        "PackQuestion": {
+          "properties": {
+            "difficulty": {
+              "anyOf": [
+                {
+                  "$ref": "#/$defs/QuestionDifficulty"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null
+            },
+            "mode": {
+              "anyOf": [
+                {
+                  "pattern": "^[a-z0-9][a-z0-9_-]{0,63}$",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "title": "Mode"
+            },
+            "provenance": {
+              "$ref": "#/$defs/Provenance"
+            },
+            "skillId": {
+              "pattern": "^[a-z0-9-]+(\\.[a-z0-9-]+)*$",
+              "title": "Skillid",
+              "type": "string"
+            },
+            "source": {
+              "anyOf": [
+                {
+                  "pattern": "^[a-z0-9][a-z0-9-]{0,63}$",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "title": "Source"
+            },
+            "text": {
+              "maxLength": 1200,
+              "minLength": 10,
+              "title": "Text",
+              "type": "string"
+            }
+          },
+          "required": [
+            "skillId",
+            "text",
+            "provenance"
+          ],
+          "title": "PackQuestion",
+          "type": "object"
+        },
+        "Provenance": {
+          "description": "Whether an item is backed by a declared source or community observation.",
+          "enum": [
+            "sourced",
+            "community"
+          ],
+          "title": "Provenance",
+          "type": "string"
+        },
+        "QuestionDifficulty": {
+          "enum": [
+            "easy",
+            "medium",
+            "hard"
+          ],
+          "title": "QuestionDifficulty",
+          "type": "string"
+        }
+      },
+      "description": "Extra YAML files in a company pack directory are overlays.",
+      "properties": {
+        "appliesTo": {
+          "$ref": "#/$defs/CompanyPackOverlayAppliesTo"
+        },
+        "competencies": {
+          "items": {
+            "$ref": "#/$defs/PackItem"
+          },
+          "title": "Competencies",
+          "type": "array"
+        },
+        "evaluationGuidance": {
+          "items": {
+            "$ref": "#/$defs/PackItem"
+          },
+          "title": "Evaluationguidance",
+          "type": "array"
+        },
+        "questionStyle": {
+          "items": {
+            "$ref": "#/$defs/PackItem"
+          },
+          "title": "Questionstyle",
+          "type": "array"
+        },
+        "questions": {
+          "items": {
+            "$ref": "#/$defs/PackQuestion"
+          },
+          "title": "Questions",
+          "type": "array"
+        },
+        "stages": {
+          "anyOf": [
+            {
+              "items": {
+                "$ref": "#/$defs/CompanyPackStage"
+              },
+              "maxItems": 7,
+              "minItems": 2,
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Stages"
+        }
+      },
+      "title": "CompanyPackOverlay",
+      "type": "object"
+    },
+    "CompanyPackOverlayAppliesTo": {
+      "properties": {
+        "mode": {
+          "anyOf": [
+            {
+              "pattern": "^[a-z0-9][a-z0-9_-]{0,63}$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Mode"
+        },
+        "roleKeywords": {
+          "items": {
+            "maxLength": 80,
+            "minLength": 1,
+            "type": "string"
+          },
+          "title": "Rolekeywords",
+          "type": "array"
+        }
+      },
+      "title": "CompanyPackOverlayAppliesTo",
+      "type": "object"
+    },
+    "CompanyPackStage": {
+      "$defs": {
+        "Provenance": {
+          "description": "Whether an item is backed by a declared source or community observation.",
+          "enum": [
+            "sourced",
+            "community"
+          ],
+          "title": "Provenance",
+          "type": "string"
+        }
+      },
+      "properties": {
+        "label": {
+          "maxLength": 80,
+          "minLength": 1,
+          "title": "Label",
+          "type": "string"
+        },
+        "mode": {
+          "pattern": "^[a-z0-9][a-z0-9_-]{0,63}$",
+          "title": "Mode",
+          "type": "string"
+        },
+        "plannedQuestions": {
+          "maximum": 6,
+          "minimum": 1,
+          "title": "Plannedquestions",
+          "type": "integer"
+        },
+        "provenance": {
+          "$ref": "#/$defs/Provenance"
+        },
+        "source": {
+          "anyOf": [
+            {
+              "pattern": "^[a-z0-9][a-z0-9-]{0,63}$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Source"
+        }
+      },
+      "required": [
+        "mode",
+        "label",
+        "plannedQuestions",
+        "provenance"
+      ],
+      "title": "CompanyPackStage",
+      "type": "object"
+    },
+    "CompanyPackWithOverlays": {
+      "$defs": {
+        "CompanyEmphasis": {
+          "properties": {
+            "skillId": {
+              "pattern": "^[a-z0-9-]+(\\.[a-z0-9-]+)*$",
+              "title": "Skillid",
+              "type": "string"
+            },
+            "weight": {
+              "maximum": 0.1,
+              "minimum": 0,
+              "title": "Weight",
+              "type": "number"
+            }
+          },
+          "required": [
+            "skillId",
+            "weight"
+          ],
+          "title": "CompanyEmphasis",
+          "type": "object"
+        },
+        "CompanyPackBehavioralFramework": {
+          "properties": {
+            "guidance": {
+              "default": "",
+              "maxLength": 1500,
+              "title": "Guidance",
+              "type": "string"
+            },
+            "name": {
+              "maxLength": 120,
+              "minLength": 1,
+              "title": "Name",
+              "type": "string"
+            },
+            "themes": {
+              "items": {
+                "maxLength": 120,
+                "minLength": 1,
+                "type": "string"
+              },
+              "title": "Themes",
+              "type": "array"
+            }
+          },
+          "required": [
+            "name"
+          ],
+          "title": "CompanyPackBehavioralFramework",
+          "type": "object"
+        },
+        "CompanyPackOverlay": {
+          "description": "Extra YAML files in a company pack directory are overlays.",
+          "properties": {
+            "appliesTo": {
+              "$ref": "#/$defs/CompanyPackOverlayAppliesTo"
+            },
+            "competencies": {
+              "items": {
+                "$ref": "#/$defs/PackItem"
+              },
+              "title": "Competencies",
+              "type": "array"
+            },
+            "evaluationGuidance": {
+              "items": {
+                "$ref": "#/$defs/PackItem"
+              },
+              "title": "Evaluationguidance",
+              "type": "array"
+            },
+            "questionStyle": {
+              "items": {
+                "$ref": "#/$defs/PackItem"
+              },
+              "title": "Questionstyle",
+              "type": "array"
+            },
+            "questions": {
+              "items": {
+                "$ref": "#/$defs/PackQuestion"
+              },
+              "title": "Questions",
+              "type": "array"
+            },
+            "stages": {
+              "anyOf": [
+                {
+                  "items": {
+                    "$ref": "#/$defs/CompanyPackStage"
+                  },
+                  "maxItems": 7,
+                  "minItems": 2,
+                  "type": "array"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "title": "Stages"
+            }
+          },
+          "title": "CompanyPackOverlay",
+          "type": "object"
+        },
+        "CompanyPackOverlayAppliesTo": {
+          "properties": {
+            "mode": {
+              "anyOf": [
+                {
+                  "pattern": "^[a-z0-9][a-z0-9_-]{0,63}$",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "title": "Mode"
+            },
+            "roleKeywords": {
+              "items": {
+                "maxLength": 80,
+                "minLength": 1,
+                "type": "string"
+              },
+              "title": "Rolekeywords",
+              "type": "array"
+            }
+          },
+          "title": "CompanyPackOverlayAppliesTo",
+          "type": "object"
+        },
+        "CompanyPackStage": {
+          "properties": {
+            "label": {
+              "maxLength": 80,
+              "minLength": 1,
+              "title": "Label",
+              "type": "string"
+            },
+            "mode": {
+              "pattern": "^[a-z0-9][a-z0-9_-]{0,63}$",
+              "title": "Mode",
+              "type": "string"
+            },
+            "plannedQuestions": {
+              "maximum": 6,
+              "minimum": 1,
+              "title": "Plannedquestions",
+              "type": "integer"
+            },
+            "provenance": {
+              "$ref": "#/$defs/Provenance"
+            },
+            "source": {
+              "anyOf": [
+                {
+                  "pattern": "^[a-z0-9][a-z0-9-]{0,63}$",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "title": "Source"
+            }
+          },
+          "required": [
+            "mode",
+            "label",
+            "plannedQuestions",
+            "provenance"
+          ],
+          "title": "CompanyPackStage",
+          "type": "object"
+        },
+        "PackItem": {
+          "description": "A fact-like pack item — must clearly mark sourced vs community material.",
+          "properties": {
+            "provenance": {
+              "$ref": "#/$defs/Provenance"
+            },
+            "source": {
+              "anyOf": [
+                {
+                  "pattern": "^[a-z0-9][a-z0-9-]{0,63}$",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "title": "Source"
+            },
+            "text": {
+              "maxLength": 2000,
+              "minLength": 1,
+              "title": "Text",
+              "type": "string"
+            }
+          },
+          "required": [
+            "text",
+            "provenance"
+          ],
+          "title": "PackItem",
+          "type": "object"
+        },
+        "PackQuestion": {
+          "properties": {
+            "difficulty": {
+              "anyOf": [
+                {
+                  "$ref": "#/$defs/QuestionDifficulty"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null
+            },
+            "mode": {
+              "anyOf": [
+                {
+                  "pattern": "^[a-z0-9][a-z0-9_-]{0,63}$",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "title": "Mode"
+            },
+            "provenance": {
+              "$ref": "#/$defs/Provenance"
+            },
+            "skillId": {
+              "pattern": "^[a-z0-9-]+(\\.[a-z0-9-]+)*$",
+              "title": "Skillid",
+              "type": "string"
+            },
+            "source": {
+              "anyOf": [
+                {
+                  "pattern": "^[a-z0-9][a-z0-9-]{0,63}$",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "title": "Source"
+            },
+            "text": {
+              "maxLength": 1200,
+              "minLength": 10,
+              "title": "Text",
+              "type": "string"
+            }
+          },
+          "required": [
+            "skillId",
+            "text",
+            "provenance"
+          ],
+          "title": "PackQuestion",
+          "type": "object"
+        },
+        "PackSource": {
+          "properties": {
+            "id": {
+              "pattern": "^[a-z0-9][a-z0-9-]{0,63}$",
+              "title": "Id",
+              "type": "string"
+            },
+            "title": {
+              "maxLength": 200,
+              "minLength": 1,
+              "title": "Title",
+              "type": "string"
+            },
+            "url": {
+              "anyOf": [
+                {
+                  "maxLength": 2000,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "title": "Url"
+            }
+          },
+          "required": [
+            "id",
+            "title"
+          ],
+          "title": "PackSource",
+          "type": "object"
+        },
+        "Provenance": {
+          "description": "Whether an item is backed by a declared source or community observation.",
+          "enum": [
+            "sourced",
+            "community"
+          ],
+          "title": "Provenance",
+          "type": "string"
+        },
+        "QuestionDifficulty": {
+          "enum": [
+            "easy",
+            "medium",
+            "hard"
+          ],
+          "title": "QuestionDifficulty",
+          "type": "string"
+        }
+      },
+      "description": "A company pack plus the overlay files found next to it.",
+      "properties": {
+        "aliases": {
+          "items": {
+            "maxLength": 120,
+            "minLength": 1,
+            "type": "string"
+          },
+          "title": "Aliases",
+          "type": "array"
+        },
+        "behavioralFramework": {
+          "$ref": "#/$defs/CompanyPackBehavioralFramework"
+        },
+        "competencies": {
+          "items": {
+            "$ref": "#/$defs/PackItem"
+          },
+          "title": "Competencies",
+          "type": "array"
+        },
+        "description": {
+          "default": "",
+          "maxLength": 2000,
+          "title": "Description",
+          "type": "string"
+        },
+        "emphasis": {
+          "items": {
+            "$ref": "#/$defs/CompanyEmphasis"
+          },
+          "title": "Emphasis",
+          "type": "array"
+        },
+        "evaluationGuidance": {
+          "items": {
+            "$ref": "#/$defs/PackItem"
+          },
+          "title": "Evaluationguidance",
+          "type": "array"
+        },
+        "followUpDepth": {
+          "default": 2,
+          "enum": [
+            1,
+            2,
+            3
+          ],
+          "title": "Followupdepth",
+          "type": "integer"
+        },
+        "format": {
+          "default": "interview-os.company-pack",
+          "title": "Format",
+          "type": "string"
+        },
+        "id": {
+          "pattern": "^[a-z0-9][a-z0-9-]{0,63}$",
+          "title": "Id",
+          "type": "string"
+        },
+        "maintainers": {
+          "items": {
+            "maxLength": 120,
+            "minLength": 1,
+            "type": "string"
+          },
+          "title": "Maintainers",
+          "type": "array"
+        },
+        "name": {
+          "maxLength": 120,
+          "minLength": 1,
+          "title": "Name",
+          "type": "string"
+        },
+        "overlays": {
+          "items": {
+            "$ref": "#/$defs/CompanyPackOverlay"
+          },
+          "title": "Overlays",
+          "type": "array"
+        },
+        "questionStyle": {
+          "items": {
+            "$ref": "#/$defs/PackItem"
+          },
+          "title": "Questionstyle",
+          "type": "array"
+        },
+        "questions": {
+          "items": {
+            "$ref": "#/$defs/PackQuestion"
+          },
+          "title": "Questions",
+          "type": "array"
+        },
+        "roleExpectations": {
+          "additionalProperties": {
+            "items": {
+              "maxLength": 300,
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "title": "Roleexpectations",
+          "type": "object"
+        },
+        "sources": {
+          "items": {
+            "$ref": "#/$defs/PackSource"
+          },
+          "title": "Sources",
+          "type": "array"
+        },
+        "stages": {
+          "items": {
+            "$ref": "#/$defs/CompanyPackStage"
+          },
+          "maxItems": 7,
+          "minItems": 2,
+          "title": "Stages",
+          "type": "array"
+        },
+        "version": {
+          "maxLength": 32,
+          "minLength": 1,
+          "title": "Version",
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "name",
+        "version",
+        "stages",
+        "behavioralFramework"
+      ],
+      "title": "CompanyPackWithOverlays",
+      "type": "object"
+    },
+    "InterviewPack": {
+      "$defs": {
+        "InterviewPackRound": {
+          "properties": {
+            "label": {
+              "maxLength": 80,
+              "minLength": 1,
+              "title": "Label",
+              "type": "string"
+            },
+            "mode": {
+              "pattern": "^[a-z0-9][a-z0-9_-]{0,63}$",
+              "title": "Mode",
+              "type": "string"
+            },
+            "plannedQuestions": {
+              "maximum": 6,
+              "minimum": 1,
+              "title": "Plannedquestions",
+              "type": "integer"
+            }
+          },
+          "required": [
+            "mode",
+            "label",
+            "plannedQuestions"
+          ],
+          "title": "InterviewPackRound",
+          "type": "object"
+        }
+      },
+      "properties": {
+        "author": {
+          "default": "",
+          "maxLength": 120,
+          "title": "Author",
+          "type": "string"
+        },
+        "description": {
+          "default": "",
+          "maxLength": 2000,
+          "title": "Description",
+          "type": "string"
+        },
+        "durationMinutes": {
+          "maximum": 600,
+          "minimum": 15,
+          "title": "Durationminutes",
+          "type": "integer"
+        },
+        "format": {
+          "default": "interview-os.interview-pack",
+          "title": "Format",
+          "type": "string"
+        },
+        "id": {
+          "pattern": "^[a-z0-9][a-z0-9-]{0,63}$",
+          "title": "Id",
+          "type": "string"
+        },
+        "name": {
+          "maxLength": 120,
+          "minLength": 1,
+          "title": "Name",
+          "type": "string"
+        },
+        "rounds": {
+          "items": {
+            "$ref": "#/$defs/InterviewPackRound"
+          },
+          "maxItems": 7,
+          "minItems": 2,
+          "title": "Rounds",
+          "type": "array"
+        },
+        "skills": {
+          "items": {
+            "pattern": "^[a-z0-9-]+(\\.[a-z0-9-]+)*$",
+            "type": "string"
+          },
+          "maxItems": 12,
+          "minItems": 1,
+          "title": "Skills",
+          "type": "array"
+        },
+        "version": {
+          "maxLength": 32,
+          "minLength": 1,
+          "title": "Version",
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "name",
+        "version",
+        "skills",
+        "rounds",
+        "durationMinutes"
+      ],
+      "title": "InterviewPack",
+      "type": "object"
+    },
+    "InterviewPackRound": {
+      "properties": {
+        "label": {
+          "maxLength": 80,
+          "minLength": 1,
+          "title": "Label",
+          "type": "string"
+        },
+        "mode": {
+          "pattern": "^[a-z0-9][a-z0-9_-]{0,63}$",
+          "title": "Mode",
+          "type": "string"
+        },
+        "plannedQuestions": {
+          "maximum": 6,
+          "minimum": 1,
+          "title": "Plannedquestions",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "mode",
+        "label",
+        "plannedQuestions"
+      ],
+      "title": "InterviewPackRound",
+      "type": "object"
+    },
+    "PackItem": {
+      "$defs": {
+        "Provenance": {
+          "description": "Whether an item is backed by a declared source or community observation.",
+          "enum": [
+            "sourced",
+            "community"
+          ],
+          "title": "Provenance",
+          "type": "string"
+        }
+      },
+      "description": "A fact-like pack item — must clearly mark sourced vs community material.",
+      "properties": {
+        "provenance": {
+          "$ref": "#/$defs/Provenance"
+        },
+        "source": {
+          "anyOf": [
+            {
+              "pattern": "^[a-z0-9][a-z0-9-]{0,63}$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Source"
+        },
+        "text": {
+          "maxLength": 2000,
+          "minLength": 1,
+          "title": "Text",
+          "type": "string"
+        }
+      },
+      "required": [
+        "text",
+        "provenance"
+      ],
+      "title": "PackItem",
+      "type": "object"
+    },
+    "PackQuestion": {
+      "$defs": {
+        "Provenance": {
+          "description": "Whether an item is backed by a declared source or community observation.",
+          "enum": [
+            "sourced",
+            "community"
+          ],
+          "title": "Provenance",
+          "type": "string"
+        },
+        "QuestionDifficulty": {
+          "enum": [
+            "easy",
+            "medium",
+            "hard"
+          ],
+          "title": "QuestionDifficulty",
+          "type": "string"
+        }
+      },
+      "properties": {
+        "difficulty": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/QuestionDifficulty"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "mode": {
+          "anyOf": [
+            {
+              "pattern": "^[a-z0-9][a-z0-9_-]{0,63}$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Mode"
+        },
+        "provenance": {
+          "$ref": "#/$defs/Provenance"
+        },
+        "skillId": {
+          "pattern": "^[a-z0-9-]+(\\.[a-z0-9-]+)*$",
+          "title": "Skillid",
+          "type": "string"
+        },
+        "source": {
+          "anyOf": [
+            {
+              "pattern": "^[a-z0-9][a-z0-9-]{0,63}$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Source"
+        },
+        "text": {
+          "maxLength": 1200,
+          "minLength": 10,
+          "title": "Text",
+          "type": "string"
+        }
+      },
+      "required": [
+        "skillId",
+        "text",
+        "provenance"
+      ],
+      "title": "PackQuestion",
+      "type": "object"
+    },
+    "PackResource": {
+      "$defs": {
+        "PrepResourceKind": {
+          "enum": [
+            "docs",
+            "explanation",
+            "practice",
+            "article",
+            "video"
+          ],
+          "title": "PrepResourceKind",
+          "type": "string"
+        }
+      },
+      "description": "A role-pack resource entry — the pack id is stamped at load time.",
+      "properties": {
+        "kind": {
+          "$ref": "#/$defs/PrepResourceKind"
+        },
+        "skillId": {
+          "pattern": "^[a-z0-9-]+(\\.[a-z0-9-]+)*$",
+          "title": "Skillid",
+          "type": "string"
+        },
+        "summary": {
+          "anyOf": [
+            {
+              "maxLength": 600,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Summary"
+        },
+        "title": {
+          "maxLength": 200,
+          "minLength": 1,
+          "title": "Title",
+          "type": "string"
+        },
+        "url": {
+          "anyOf": [
+            {
+              "maxLength": 2000,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Url"
+        }
+      },
+      "required": [
+        "skillId",
+        "title",
+        "kind"
+      ],
+      "title": "PackResource",
+      "type": "object"
+    },
+    "PackSource": {
+      "properties": {
+        "id": {
+          "pattern": "^[a-z0-9][a-z0-9-]{0,63}$",
+          "title": "Id",
+          "type": "string"
+        },
+        "title": {
+          "maxLength": 200,
+          "minLength": 1,
+          "title": "Title",
+          "type": "string"
+        },
+        "url": {
+          "anyOf": [
+            {
+              "maxLength": 2000,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Url"
+        }
+      },
+      "required": [
+        "id",
+        "title"
+      ],
+      "title": "PackSource",
+      "type": "object"
+    },
+    "QuestionCandidate": {
+      "$defs": {
+        "Provenance": {
+          "description": "Whether an item is backed by a declared source or community observation.",
+          "enum": [
+            "sourced",
+            "community"
+          ],
+          "title": "Provenance",
+          "type": "string"
+        },
+        "QuestionDifficulty": {
+          "enum": [
+            "easy",
+            "medium",
+            "hard"
+          ],
+          "title": "QuestionDifficulty",
+          "type": "string"
+        },
+        "QuestionSource": {
+          "properties": {
+            "id": {
+              "maxLength": 120,
+              "minLength": 1,
+              "title": "Id",
+              "type": "string"
+            },
+            "kind": {
+              "$ref": "#/$defs/QuestionSourceKind"
+            },
+            "provenance": {
+              "anyOf": [
+                {
+                  "$ref": "#/$defs/Provenance"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null
+            }
+          },
+          "required": [
+            "kind",
+            "id"
+          ],
+          "title": "QuestionSource",
+          "type": "object"
+        },
+        "QuestionSourceKind": {
+          "enum": [
+            "company_pack",
+            "role_pack",
+            "user_bank",
+            "plugin"
+          ],
+          "title": "QuestionSourceKind",
+          "type": "string"
+        }
+      },
+      "description": "A candidate question offered by a question source (pack, bank, plugin).",
+      "properties": {
+        "difficulty": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/QuestionDifficulty"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "expectedConcepts": {
+          "anyOf": [
+            {
+              "items": {
+                "maxLength": 200,
+                "minLength": 1,
+                "type": "string"
+              },
+              "maxItems": 8,
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Expectedconcepts"
+        },
+        "mode": {
+          "anyOf": [
+            {
+              "pattern": "^[a-z0-9][a-z0-9_-]{0,63}$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Mode"
+        },
+        "skillId": {
+          "pattern": "^[a-z0-9-]+(\\.[a-z0-9-]+)*$",
+          "title": "Skillid",
+          "type": "string"
+        },
+        "source": {
+          "$ref": "#/$defs/QuestionSource"
+        },
+        "text": {
+          "maxLength": 1200,
+          "minLength": 10,
+          "title": "Text",
+          "type": "string"
+        }
+      },
+      "required": [
+        "skillId",
+        "text",
+        "source"
+      ],
+      "title": "QuestionCandidate",
+      "type": "object"
+    },
+    "QuestionSource": {
+      "$defs": {
+        "Provenance": {
+          "description": "Whether an item is backed by a declared source or community observation.",
+          "enum": [
+            "sourced",
+            "community"
+          ],
+          "title": "Provenance",
+          "type": "string"
+        },
+        "QuestionSourceKind": {
+          "enum": [
+            "company_pack",
+            "role_pack",
+            "user_bank",
+            "plugin"
+          ],
+          "title": "QuestionSourceKind",
+          "type": "string"
+        }
+      },
+      "properties": {
+        "id": {
+          "maxLength": 120,
+          "minLength": 1,
+          "title": "Id",
+          "type": "string"
+        },
+        "kind": {
+          "$ref": "#/$defs/QuestionSourceKind"
+        },
+        "provenance": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Provenance"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        }
+      },
+      "required": [
+        "kind",
+        "id"
+      ],
+      "title": "QuestionSource",
+      "type": "object"
+    },
+    "RolePack": {
+      "$defs": {
+        "PackQuestion": {
+          "properties": {
+            "difficulty": {
+              "anyOf": [
+                {
+                  "$ref": "#/$defs/QuestionDifficulty"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null
+            },
+            "mode": {
+              "anyOf": [
+                {
+                  "pattern": "^[a-z0-9][a-z0-9_-]{0,63}$",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "title": "Mode"
+            },
+            "provenance": {
+              "$ref": "#/$defs/Provenance"
+            },
+            "skillId": {
+              "pattern": "^[a-z0-9-]+(\\.[a-z0-9-]+)*$",
+              "title": "Skillid",
+              "type": "string"
+            },
+            "source": {
+              "anyOf": [
+                {
+                  "pattern": "^[a-z0-9][a-z0-9-]{0,63}$",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "title": "Source"
+            },
+            "text": {
+              "maxLength": 1200,
+              "minLength": 10,
+              "title": "Text",
+              "type": "string"
+            }
+          },
+          "required": [
+            "skillId",
+            "text",
+            "provenance"
+          ],
+          "title": "PackQuestion",
+          "type": "object"
+        },
+        "PackResource": {
+          "description": "A role-pack resource entry — the pack id is stamped at load time.",
+          "properties": {
+            "kind": {
+              "$ref": "#/$defs/PrepResourceKind"
+            },
+            "skillId": {
+              "pattern": "^[a-z0-9-]+(\\.[a-z0-9-]+)*$",
+              "title": "Skillid",
+              "type": "string"
+            },
+            "summary": {
+              "anyOf": [
+                {
+                  "maxLength": 600,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "title": "Summary"
+            },
+            "title": {
+              "maxLength": 200,
+              "minLength": 1,
+              "title": "Title",
+              "type": "string"
+            },
+            "url": {
+              "anyOf": [
+                {
+                  "maxLength": 2000,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "title": "Url"
+            }
+          },
+          "required": [
+            "skillId",
+            "title",
+            "kind"
+          ],
+          "title": "PackResource",
+          "type": "object"
+        },
+        "PackSource": {
+          "properties": {
+            "id": {
+              "pattern": "^[a-z0-9][a-z0-9-]{0,63}$",
+              "title": "Id",
+              "type": "string"
+            },
+            "title": {
+              "maxLength": 200,
+              "minLength": 1,
+              "title": "Title",
+              "type": "string"
+            },
+            "url": {
+              "anyOf": [
+                {
+                  "maxLength": 2000,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "title": "Url"
+            }
+          },
+          "required": [
+            "id",
+            "title"
+          ],
+          "title": "PackSource",
+          "type": "object"
+        },
+        "PrepResourceKind": {
+          "enum": [
+            "docs",
+            "explanation",
+            "practice",
+            "article",
+            "video"
+          ],
+          "title": "PrepResourceKind",
+          "type": "string"
+        },
+        "Provenance": {
+          "description": "Whether an item is backed by a declared source or community observation.",
+          "enum": [
+            "sourced",
+            "community"
+          ],
+          "title": "Provenance",
+          "type": "string"
+        },
+        "QuestionDifficulty": {
+          "enum": [
+            "easy",
+            "medium",
+            "hard"
+          ],
+          "title": "QuestionDifficulty",
+          "type": "string"
+        },
+        "RolePackDimension": {
+          "properties": {
+            "skillId": {
+              "pattern": "^[a-z0-9-]+(\\.[a-z0-9-]+)*$",
+              "title": "Skillid",
+              "type": "string"
+            },
+            "weight": {
+              "maximum": 1,
+              "minimum": 0,
+              "title": "Weight",
+              "type": "number"
+            }
+          },
+          "required": [
+            "skillId",
+            "weight"
+          ],
+          "title": "RolePackDimension",
+          "type": "object"
+        },
+        "RolePackRubric": {
+          "properties": {
+            "criteria": {
+              "items": {
+                "maxLength": 300,
+                "minLength": 1,
+                "type": "string"
+              },
+              "maxItems": 8,
+              "minItems": 1,
+              "title": "Criteria",
+              "type": "array"
+            },
+            "mode": {
+              "anyOf": [
+                {
+                  "pattern": "^[a-z0-9][a-z0-9_-]{0,63}$",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "title": "Mode"
+            },
+            "skillId": {
+              "anyOf": [
+                {
+                  "pattern": "^[a-z0-9-]+(\\.[a-z0-9-]+)*$",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "title": "Skillid"
+            }
+          },
+          "required": [
+            "criteria"
+          ],
+          "title": "RolePackRubric",
+          "type": "object"
+        },
+        "RolePackTaxonomyNode": {
+          "properties": {
+            "id": {
+              "pattern": "^[a-z0-9-]+(\\.[a-z0-9-]+)*$",
+              "title": "Id",
+              "type": "string"
+            },
+            "keywords": {
+              "items": {
+                "maxLength": 80,
+                "minLength": 1,
+                "type": "string"
+              },
+              "title": "Keywords",
+              "type": "array"
+            },
+            "label": {
+              "maxLength": 120,
+              "minLength": 1,
+              "title": "Label",
+              "type": "string"
+            }
+          },
+          "required": [
+            "id",
+            "label"
+          ],
+          "title": "RolePackTaxonomyNode",
+          "type": "object"
+        }
+      },
+      "properties": {
+        "defaultQuestionCategories": {
+          "items": {
+            "pattern": "^[a-z0-9][a-z0-9_-]{0,63}$",
+            "type": "string"
+          },
+          "maxItems": 7,
+          "minItems": 2,
+          "title": "Defaultquestioncategories",
+          "type": "array"
+        },
+        "description": {
+          "default": "",
+          "maxLength": 2000,
+          "title": "Description",
+          "type": "string"
+        },
+        "dimensions": {
+          "items": {
+            "$ref": "#/$defs/RolePackDimension"
+          },
+          "maxItems": 30,
+          "minItems": 1,
+          "title": "Dimensions",
+          "type": "array"
+        },
+        "format": {
+          "default": "interview-os.role-pack",
+          "title": "Format",
+          "type": "string"
+        },
+        "id": {
+          "pattern": "^[a-z0-9][a-z0-9-]{0,63}$",
+          "title": "Id",
+          "type": "string"
+        },
+        "maintainers": {
+          "items": {
+            "maxLength": 120,
+            "minLength": 1,
+            "type": "string"
+          },
+          "title": "Maintainers",
+          "type": "array"
+        },
+        "name": {
+          "maxLength": 120,
+          "minLength": 1,
+          "title": "Name",
+          "type": "string"
+        },
+        "questions": {
+          "items": {
+            "$ref": "#/$defs/PackQuestion"
+          },
+          "title": "Questions",
+          "type": "array"
+        },
+        "resources": {
+          "items": {
+            "$ref": "#/$defs/PackResource"
+          },
+          "title": "Resources",
+          "type": "array"
+        },
+        "rubrics": {
+          "items": {
+            "$ref": "#/$defs/RolePackRubric"
+          },
+          "title": "Rubrics",
+          "type": "array"
+        },
+        "sources": {
+          "items": {
+            "$ref": "#/$defs/PackSource"
+          },
+          "title": "Sources",
+          "type": "array"
+        },
+        "taxonomy": {
+          "items": {
+            "$ref": "#/$defs/RolePackTaxonomyNode"
+          },
+          "title": "Taxonomy",
+          "type": "array"
+        },
+        "version": {
+          "maxLength": 32,
+          "minLength": 1,
+          "title": "Version",
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "name",
+        "version",
+        "dimensions",
+        "defaultQuestionCategories"
+      ],
+      "title": "RolePack",
+      "type": "object"
+    },
+    "RolePackDimension": {
+      "properties": {
+        "skillId": {
+          "pattern": "^[a-z0-9-]+(\\.[a-z0-9-]+)*$",
+          "title": "Skillid",
+          "type": "string"
+        },
+        "weight": {
+          "maximum": 1,
+          "minimum": 0,
+          "title": "Weight",
+          "type": "number"
+        }
+      },
+      "required": [
+        "skillId",
+        "weight"
+      ],
+      "title": "RolePackDimension",
+      "type": "object"
+    },
+    "RolePackRubric": {
+      "properties": {
+        "criteria": {
+          "items": {
+            "maxLength": 300,
+            "minLength": 1,
+            "type": "string"
+          },
+          "maxItems": 8,
+          "minItems": 1,
+          "title": "Criteria",
+          "type": "array"
+        },
+        "mode": {
+          "anyOf": [
+            {
+              "pattern": "^[a-z0-9][a-z0-9_-]{0,63}$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Mode"
+        },
+        "skillId": {
+          "anyOf": [
+            {
+              "pattern": "^[a-z0-9-]+(\\.[a-z0-9-]+)*$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Skillid"
+        }
+      },
+      "required": [
+        "criteria"
+      ],
+      "title": "RolePackRubric",
+      "type": "object"
+    },
+    "RolePackTaxonomyNode": {
+      "properties": {
+        "id": {
+          "pattern": "^[a-z0-9-]+(\\.[a-z0-9-]+)*$",
+          "title": "Id",
+          "type": "string"
+        },
+        "keywords": {
+          "items": {
+            "maxLength": 80,
+            "minLength": 1,
+            "type": "string"
+          },
+          "title": "Keywords",
+          "type": "array"
+        },
+        "label": {
+          "maxLength": 120,
+          "minLength": 1,
+          "title": "Label",
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "label"
+      ],
+      "title": "RolePackTaxonomyNode",
+      "type": "object"
+    }
+  }
+}

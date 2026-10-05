@@ -1,0 +1,227 @@
+{
+  "snapshots": {
+    "platform": {
+      "body": {
+        "answerFieldTypes": [
+          "text",
+          "code",
+          "choice",
+          "number"
+        ],
+        "apiVersion": "1.1.0",
+        "capabilities": [
+          "interview",
+          "evaluation",
+          "question_source",
+          "preparation",
+          "resources",
+          "company_pack",
+          "role_pack",
+          "interview_mode",
+          "checklist",
+          "ui"
+        ],
+        "events": [
+          "sessionCompleted",
+          "readinessUpdated",
+          "answerEvaluated",
+          "loopCompleted",
+          "targetChanged"
+        ],
+        "hooks": [
+          {
+            "capability": "question_source",
+            "description": "Suggest interview questions for a skill/round.",
+            "name": "questions.suggest",
+            "since": "1.0.0"
+          },
+          {
+            "capability": "resources",
+            "description": "Suggest prep resources for skills.",
+            "name": "resources.suggest",
+            "since": "1.0.0"
+          },
+          {
+            "capability": "ui",
+            "description": "Render a declared declarative contribution.",
+            "name": "ui.render",
+            "since": "1.0.0"
+          },
+          {
+            "capability": "ui",
+            "description": "Stateless invocation from a sandboxed frame.",
+            "name": "ui.frameRun",
+            "since": "1.0.0"
+          },
+          {
+            "capability": "evaluation",
+            "description": "Review a persisted answer evaluation; observations shown to the user.",
+            "name": "evaluation.review",
+            "since": "1.0.0"
+          },
+          {
+            "capability": "preparation",
+            "description": "Suggest preparation activities for current gaps.",
+            "name": "preparation.suggest",
+            "since": "1.0.0"
+          },
+          {
+            "capability": "interview_mode",
+            "description": "Reduce a plugin interview mode's session state after an evaluation.",
+            "name": "mode.reduce",
+            "since": "1.1.0"
+          },
+          {
+            "capability": "interview_mode",
+            "description": "Decide whether to dig deeper after an evaluation (declarative rules are the fallback).",
+            "name": "mode.followUp",
+            "since": "1.1.0"
+          },
+          {
+            "capability": "interview_mode",
+            "description": "Deterministic mock-runtime output for a plugin interview mode (test/dev).",
+            "name": "mode.mock",
+            "since": "1.1.0"
+          },
+          {
+            "capability": "interview_mode",
+            "description": "Prepare per-turn input for the interviewer skill (e.g. a focus dimension). Failure falls back to an empty turn.",
+            "name": "mode.prepareTurn",
+            "since": "1.1.0"
+          },
+          {
+            "capability": null,
+            "description": "Fired (outside the lock) when an interview session completes.",
+            "name": "events.sessionCompleted",
+            "since": "1.0.0"
+          },
+          {
+            "capability": null,
+            "description": "Fired (outside the lock) after a readiness recompute that changed scores.",
+            "name": "events.readinessUpdated",
+            "since": "1.0.0"
+          },
+          {
+            "capability": null,
+            "description": "Fired (outside the lock) after an answer evaluation is persisted — rubric/skill scores only, never answer text.",
+            "name": "events.answerEvaluated",
+            "since": "1.1.0"
+          },
+          {
+            "capability": null,
+            "description": "Fired (outside the lock) when an interview loop finishes its rounds.",
+            "name": "events.loopCompleted",
+            "since": "1.1.0"
+          },
+          {
+            "capability": null,
+            "description": "Fired (outside the lock) when the active target is created, added, or switched.",
+            "name": "events.targetChanged",
+            "since": "1.1.0"
+          }
+        ],
+        "manifestFeatures": [
+          {
+            "feature": "inputs",
+            "since": "1.0.0"
+          },
+          {
+            "feature": "outputs",
+            "since": "1.0.0"
+          },
+          {
+            "feature": "permissions",
+            "since": "1.0.0"
+          },
+          {
+            "feature": "capabilities",
+            "since": "1.0.0"
+          },
+          {
+            "feature": "hooks",
+            "since": "1.0.0"
+          },
+          {
+            "feature": "events",
+            "since": "1.0.0"
+          },
+          {
+            "feature": "appliesTo",
+            "since": "1.0.0"
+          },
+          {
+            "feature": "settings",
+            "since": "1.0.0"
+          },
+          {
+            "feature": "ui",
+            "since": "1.0.0"
+          },
+          {
+            "feature": "interviewModes",
+            "since": "1.0.0"
+          },
+          {
+            "feature": "taxonomy",
+            "since": "1.0.0"
+          },
+          {
+            "feature": "modes",
+            "since": "1.1.0"
+          },
+          {
+            "feature": "modes.answerFields",
+            "since": "1.1.0"
+          },
+          {
+            "feature": "ui.slots.interview.question",
+            "since": "1.1.0"
+          },
+          {
+            "feature": "events.answerEvaluated",
+            "since": "1.1.0"
+          },
+          {
+            "feature": "events.loopCompleted",
+            "since": "1.1.0"
+          },
+          {
+            "feature": "events.targetChanged",
+            "since": "1.1.0"
+          }
+        ],
+        "permissions": [
+          "candidate.read",
+          "candidate.write",
+          "target.read",
+          "target.write",
+          "readiness.read",
+          "evidence.write",
+          "interview.read",
+          "interview.write",
+          "stories.read",
+          "stories.write",
+          "resume.read",
+          "resume.write",
+          "preparation.write",
+          "taxonomy.read",
+          "answers.read",
+          "runtime.invoke"
+        ],
+        "uiSlots": [
+          "dashboard.cards",
+          "dashboard.sidebar",
+          "target.tabs",
+          "prepare.activities",
+          "interview.sidebar",
+          "interview.toolbar",
+          "interview.question",
+          "readiness.panels",
+          "resume.tabs",
+          "settings.sections"
+        ]
+      },
+      "status": 200
+    }
+  }
+}

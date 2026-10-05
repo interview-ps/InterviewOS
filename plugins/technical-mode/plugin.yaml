@@ -1,0 +1,42 @@
+id: technical-mode
+version: 1.0.0
+name: Technical Mode
+kind: hook
+entry: main.py
+author: interview-os
+permissions: [answers.read]
+capabilities: [interview_mode]
+hooks: [mode.mock]
+inputs: []
+engines: {interview-os: ">=0.4.0", plugin-api: "^1.1.0"}
+description: Deep technical interview round — one question per skill, probing mechanics, edge cases and trade-offs.
+modes:
+  - id: technical
+    label: Technical
+    description: "Deep technical Q&A — mechanics, edge cases and trade-offs for a selected skill."
+    scope:
+      exclude:
+        - system-design
+        - behavioral
+        - communication
+        - hr
+        - coding
+        - hiring-manager
+    rubric:
+      - id: correctness
+        label: Correctness
+        description: Factual correctness.
+      - id: technicalDepth
+        label: Technical depth
+        description: Depth beyond surface definitions.
+      - id: reasoning
+        label: Reasoning
+        description: Quality of the reasoning chain.
+      - id: communication
+        label: Communication
+        description: Clarity and structure.
+      - id: roleRelevance
+        label: Role relevance
+        description: Relevance to the target role.
+    interviewerPrompt: prompts/interviewer.md
+    evaluatorPrompt: prompts/evaluator.md

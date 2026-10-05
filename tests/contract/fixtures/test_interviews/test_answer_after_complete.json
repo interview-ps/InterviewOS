@@ -1,0 +1,13 @@
+{
+  "snapshots": {
+    "late-answer": {
+      "body": {
+        "error": {
+          "code": "NOT_FOUND",
+          "message": "no unanswered question in session"
+        }
+      },
+      "status": 404
+    }
+  }
+}

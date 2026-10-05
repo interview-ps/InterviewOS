@@ -1,0 +1,693 @@
+{
+  "area": "gaps",
+  "cases": [
+    {
+      "fn": "calculateGaps",
+      "input": {
+        "level": "junior",
+        "readiness": {
+          "sql": {
+            "children": [],
+            "confidence": 0.8,
+            "evidenceIds": [
+              "e1"
+            ],
+            "label": "sql",
+            "score": 0.5,
+            "skillId": "sql",
+            "status": "developing"
+          }
+        },
+        "requirements": [
+          {
+            "evidence": "jd",
+            "importance": 1,
+            "kind": "required",
+            "label": "sql",
+            "skillId": "sql"
+          }
+        ]
+      },
+      "name": "level junior",
+      "output": [
+        {
+          "currentScore": 0.5,
+          "gap": 0.09999999999999998,
+          "importance": 1,
+          "label": "sql",
+          "reason": "current 0.50 vs junior target 0.6 (importance 1)",
+          "severity": "low",
+          "skillId": "sql",
+          "targetScore": 0.6,
+          "uncertainty": 0.19999999999999996
+        }
+      ]
+    },
+    {
+      "fn": "calculateGaps",
+      "input": {
+        "level": "mid",
+        "readiness": {
+          "sql": {
+            "children": [],
+            "confidence": 0.8,
+            "evidenceIds": [
+              "e1"
+            ],
+            "label": "sql",
+            "score": 0.5,
+            "skillId": "sql",
+            "status": "developing"
+          }
+        },
+        "requirements": [
+          {
+            "evidence": "jd",
+            "importance": 1,
+            "kind": "required",
+            "label": "sql",
+            "skillId": "sql"
+          }
+        ]
+      },
+      "name": "level mid",
+      "output": [
+        {
+          "currentScore": 0.5,
+          "gap": 0.19999999999999996,
+          "importance": 1,
+          "label": "sql",
+          "reason": "current 0.50 vs mid target 0.7 (importance 1)",
+          "severity": "low",
+          "skillId": "sql",
+          "targetScore": 0.7,
+          "uncertainty": 0.19999999999999996
+        }
+      ]
+    },
+    {
+      "fn": "calculateGaps",
+      "input": {
+        "level": "senior",
+        "readiness": {
+          "sql": {
+            "children": [],
+            "confidence": 0.8,
+            "evidenceIds": [
+              "e1"
+            ],
+            "label": "sql",
+            "score": 0.5,
+            "skillId": "sql",
+            "status": "developing"
+          }
+        },
+        "requirements": [
+          {
+            "evidence": "jd",
+            "importance": 1,
+            "kind": "required",
+            "label": "sql",
+            "skillId": "sql"
+          }
+        ]
+      },
+      "name": "level senior",
+      "output": [
+        {
+          "currentScore": 0.5,
+          "gap": 0.30000000000000004,
+          "importance": 1,
+          "label": "sql",
+          "reason": "current 0.50 vs senior target 0.8 (importance 1)",
+          "severity": "medium",
+          "skillId": "sql",
+          "targetScore": 0.8,
+          "uncertainty": 0.19999999999999996
+        }
+      ]
+    },
+    {
+      "fn": "calculateGaps",
+      "input": {
+        "level": "staff",
+        "readiness": {
+          "sql": {
+            "children": [],
+            "confidence": 0.8,
+            "evidenceIds": [
+              "e1"
+            ],
+            "label": "sql",
+            "score": 0.5,
+            "skillId": "sql",
+            "status": "developing"
+          }
+        },
+        "requirements": [
+          {
+            "evidence": "jd",
+            "importance": 1,
+            "kind": "required",
+            "label": "sql",
+            "skillId": "sql"
+          }
+        ]
+      },
+      "name": "level staff",
+      "output": [
+        {
+          "currentScore": 0.5,
+          "gap": 0.35,
+          "importance": 1,
+          "label": "sql",
+          "reason": "current 0.50 vs staff target 0.85 (importance 1)",
+          "severity": "medium",
+          "skillId": "sql",
+          "targetScore": 0.85,
+          "uncertainty": 0.19999999999999996
+        }
+      ]
+    },
+    {
+      "fn": "calculateGaps",
+      "input": {
+        "level": "senior",
+        "readiness": {
+          "sql": {
+            "children": [],
+            "confidence": 0,
+            "evidenceIds": [],
+            "label": "sql",
+            "score": null,
+            "skillId": "sql",
+            "status": "unknown"
+          }
+        },
+        "requirements": [
+          {
+            "evidence": "jd",
+            "importance": 1,
+            "kind": "required",
+            "label": "sql",
+            "skillId": "sql"
+          }
+        ]
+      },
+      "name": "null score treated as zero with full uncertainty",
+      "output": [
+        {
+          "currentScore": null,
+          "gap": 0.8,
+          "importance": 1,
+          "label": "sql",
+          "reason": "no evidence for required skill; senior target is 0.8",
+          "severity": "high",
+          "skillId": "sql",
+          "targetScore": 0.8,
+          "uncertainty": 1
+        }
+      ]
+    },
+    {
+      "fn": "calculateGaps",
+      "input": {
+        "level": "senior",
+        "readiness": {},
+        "requirements": [
+          {
+            "evidence": "jd",
+            "importance": 1,
+            "kind": "required",
+            "label": "sql",
+            "skillId": "sql"
+          }
+        ]
+      },
+      "name": "missing readiness entry is also unknown",
+      "output": [
+        {
+          "currentScore": null,
+          "gap": 0.8,
+          "importance": 1,
+          "label": "sql",
+          "reason": "no evidence for required skill; senior target is 0.8",
+          "severity": "high",
+          "skillId": "sql",
+          "targetScore": 0.8,
+          "uncertainty": 1
+        }
+      ]
+    },
+    {
+      "fn": "calculateGaps",
+      "input": {
+        "level": "senior",
+        "readiness": {
+          "sql": {
+            "children": [],
+            "confidence": 0.8,
+            "evidenceIds": [
+              "e1"
+            ],
+            "label": "sql",
+            "score": 0.3,
+            "skillId": "sql",
+            "status": "weak"
+          }
+        },
+        "requirements": [
+          {
+            "evidence": "jd",
+            "importance": 0.9,
+            "kind": "required",
+            "label": "sql",
+            "skillId": "sql"
+          }
+        ]
+      },
+      "name": "weighted exactly 0.45 is high",
+      "output": [
+        {
+          "currentScore": 0.3,
+          "gap": 0.5,
+          "importance": 0.9,
+          "label": "sql",
+          "reason": "current 0.30 vs senior target 0.8 (importance 0.9)",
+          "severity": "high",
+          "skillId": "sql",
+          "targetScore": 0.8,
+          "uncertainty": 0.19999999999999996
+        }
+      ]
+    },
+    {
+      "fn": "calculateGaps",
+      "input": {
+        "level": "senior",
+        "readiness": {
+          "sql": {
+            "children": [],
+            "confidence": 0.8,
+            "evidenceIds": [
+              "e1"
+            ],
+            "label": "sql",
+            "score": 0.31,
+            "skillId": "sql",
+            "status": "weak"
+          }
+        },
+        "requirements": [
+          {
+            "evidence": "jd",
+            "importance": 0.9,
+            "kind": "required",
+            "label": "sql",
+            "skillId": "sql"
+          }
+        ]
+      },
+      "name": "weighted just below 0.45 is medium",
+      "output": [
+        {
+          "currentScore": 0.31,
+          "gap": 0.49000000000000005,
+          "importance": 0.9,
+          "label": "sql",
+          "reason": "current 0.31 vs senior target 0.8 (importance 0.9)",
+          "severity": "medium",
+          "skillId": "sql",
+          "targetScore": 0.8,
+          "uncertainty": 0.19999999999999996
+        }
+      ]
+    },
+    {
+      "fn": "calculateGaps",
+      "input": {
+        "level": "senior",
+        "readiness": {
+          "sql": {
+            "children": [],
+            "confidence": 0.8,
+            "evidenceIds": [
+              "e1"
+            ],
+            "label": "sql",
+            "score": 0.4,
+            "skillId": "sql",
+            "status": "weak"
+          }
+        },
+        "requirements": [
+          {
+            "evidence": "jd",
+            "importance": 0.5,
+            "kind": "required",
+            "label": "sql",
+            "skillId": "sql"
+          }
+        ]
+      },
+      "name": "weighted exactly 0.2 is medium",
+      "output": [
+        {
+          "currentScore": 0.4,
+          "gap": 0.4,
+          "importance": 0.5,
+          "label": "sql",
+          "reason": "current 0.40 vs senior target 0.8 (importance 0.5)",
+          "severity": "medium",
+          "skillId": "sql",
+          "targetScore": 0.8,
+          "uncertainty": 0.19999999999999996
+        }
+      ]
+    },
+    {
+      "fn": "calculateGaps",
+      "input": {
+        "level": "senior",
+        "readiness": {
+          "sql": {
+            "children": [],
+            "confidence": 0.8,
+            "evidenceIds": [
+              "e1"
+            ],
+            "label": "sql",
+            "score": 0.41,
+            "skillId": "sql",
+            "status": "weak"
+          }
+        },
+        "requirements": [
+          {
+            "evidence": "jd",
+            "importance": 0.5,
+            "kind": "required",
+            "label": "sql",
+            "skillId": "sql"
+          }
+        ]
+      },
+      "name": "weighted just below 0.2 is low",
+      "output": [
+        {
+          "currentScore": 0.41,
+          "gap": 0.39000000000000007,
+          "importance": 0.5,
+          "label": "sql",
+          "reason": "current 0.41 vs senior target 0.8 (importance 0.5)",
+          "severity": "low",
+          "skillId": "sql",
+          "targetScore": 0.8,
+          "uncertainty": 0.19999999999999996
+        }
+      ]
+    },
+    {
+      "fn": "calculateGaps",
+      "input": {
+        "level": "mid",
+        "readiness": {},
+        "requirements": [
+          {
+            "evidence": "jd",
+            "importance": 0.8,
+            "kind": "required",
+            "label": "",
+            "skillId": "distributed-systems.caching"
+          }
+        ]
+      },
+      "name": "empty requirement label falls back to taxonomy",
+      "output": [
+        {
+          "currentScore": null,
+          "gap": 0.7,
+          "importance": 0.8,
+          "label": "Caching",
+          "reason": "no evidence for required skill; mid target is 0.7",
+          "severity": "high",
+          "skillId": "distributed-systems.caching",
+          "targetScore": 0.7,
+          "uncertainty": 1
+        }
+      ]
+    },
+    {
+      "fn": "calculateGaps",
+      "input": {
+        "level": "mid",
+        "readiness": {},
+        "requirements": [
+          {
+            "evidence": "jd",
+            "importance": 0.8,
+            "kind": "required",
+            "label": "Structured Query Language",
+            "skillId": "sql"
+          }
+        ]
+      },
+      "name": "explicit requirement label wins over taxonomy",
+      "output": [
+        {
+          "currentScore": null,
+          "gap": 0.7,
+          "importance": 0.8,
+          "label": "Structured Query Language",
+          "reason": "no evidence for required skill; mid target is 0.7",
+          "severity": "high",
+          "skillId": "sql",
+          "targetScore": 0.7,
+          "uncertainty": 1
+        }
+      ]
+    },
+    {
+      "fn": "calculateGaps",
+      "input": {
+        "level": "mid",
+        "readiness": {},
+        "requirements": [
+          {
+            "evidence": "jd",
+            "importance": 0.5,
+            "kind": "required",
+            "label": "zeta-skill",
+            "skillId": "zeta-skill"
+          },
+          {
+            "evidence": "jd",
+            "importance": 0.5,
+            "kind": "required",
+            "label": "alpha-skill",
+            "skillId": "alpha-skill"
+          }
+        ]
+      },
+      "name": "equal weighted gaps sort by skillId",
+      "output": [
+        {
+          "currentScore": null,
+          "gap": 0.7,
+          "importance": 0.5,
+          "label": "alpha-skill",
+          "reason": "no evidence for required skill; mid target is 0.7",
+          "severity": "medium",
+          "skillId": "alpha-skill",
+          "targetScore": 0.7,
+          "uncertainty": 1
+        },
+        {
+          "currentScore": null,
+          "gap": 0.7,
+          "importance": 0.5,
+          "label": "zeta-skill",
+          "reason": "no evidence for required skill; mid target is 0.7",
+          "severity": "medium",
+          "skillId": "zeta-skill",
+          "targetScore": 0.7,
+          "uncertainty": 1
+        }
+      ]
+    },
+    {
+      "fn": "calculateGaps",
+      "input": {
+        "level": "junior",
+        "readiness": {
+          "python": {
+            "children": [],
+            "confidence": 0.8,
+            "evidenceIds": [
+              "e1"
+            ],
+            "label": "python",
+            "score": 0.95,
+            "skillId": "python",
+            "status": "strong"
+          }
+        },
+        "requirements": [
+          {
+            "evidence": "jd",
+            "importance": 1,
+            "kind": "required",
+            "label": "python",
+            "skillId": "python"
+          }
+        ]
+      },
+      "name": "score above target clamps gap to zero",
+      "output": [
+        {
+          "currentScore": 0.95,
+          "gap": 0,
+          "importance": 1,
+          "label": "python",
+          "reason": "current 0.95 vs junior target 0.6 (importance 1)",
+          "severity": "low",
+          "skillId": "python",
+          "targetScore": 0.6,
+          "uncertainty": 0.19999999999999996
+        }
+      ]
+    },
+    {
+      "fn": "calculateGaps",
+      "input": {
+        "level": "senior",
+        "readiness": {
+          "python": {
+            "children": [],
+            "confidence": 0.9,
+            "evidenceIds": [
+              "e1"
+            ],
+            "label": "python",
+            "score": 0.85,
+            "skillId": "python",
+            "status": "strong"
+          },
+          "sql": {
+            "children": [],
+            "confidence": 0.6,
+            "evidenceIds": [
+              "e2"
+            ],
+            "label": "sql",
+            "score": 0.3,
+            "skillId": "sql",
+            "status": "weak"
+          }
+        },
+        "requirements": [
+          {
+            "evidence": "jd",
+            "importance": 0.9,
+            "kind": "required",
+            "label": "python",
+            "skillId": "python"
+          },
+          {
+            "evidence": "jd",
+            "importance": 0.6,
+            "kind": "required",
+            "label": "sql",
+            "skillId": "sql"
+          },
+          {
+            "evidence": "jd",
+            "importance": 0.8,
+            "kind": "required",
+            "label": "distributed-systems.caching",
+            "skillId": "distributed-systems.caching"
+          }
+        ]
+      },
+      "name": "mixed pool sorts by weighted gap then skillId",
+      "output": [
+        {
+          "currentScore": null,
+          "gap": 0.8,
+          "importance": 0.8,
+          "label": "distributed-systems.caching",
+          "reason": "no evidence for required skill; senior target is 0.8",
+          "severity": "high",
+          "skillId": "distributed-systems.caching",
+          "targetScore": 0.8,
+          "uncertainty": 1
+        },
+        {
+          "currentScore": 0.3,
+          "gap": 0.5,
+          "importance": 0.6,
+          "label": "sql",
+          "reason": "current 0.30 vs senior target 0.8 (importance 0.6)",
+          "severity": "medium",
+          "skillId": "sql",
+          "targetScore": 0.8,
+          "uncertainty": 0.4
+        },
+        {
+          "currentScore": 0.85,
+          "gap": 0,
+          "importance": 0.9,
+          "label": "python",
+          "reason": "current 0.85 vs senior target 0.8 (importance 0.9)",
+          "severity": "low",
+          "skillId": "python",
+          "targetScore": 0.8,
+          "uncertainty": 0.09999999999999998
+        }
+      ]
+    },
+    {
+      "fn": "calculateGaps",
+      "input": {
+        "level": "mid",
+        "readiness": {
+          "python": {
+            "children": [],
+            "confidence": 0.5,
+            "evidenceIds": [
+              "e1"
+            ],
+            "label": "python",
+            "score": 0.5,
+            "skillId": "python",
+            "status": "developing"
+          }
+        },
+        "requirements": [
+          {
+            "evidence": "jd",
+            "importance": 0.4,
+            "kind": "preferred",
+            "label": "python",
+            "skillId": "python"
+          }
+        ]
+      },
+      "name": "preferred kind requirement is treated the same",
+      "output": [
+        {
+          "currentScore": 0.5,
+          "gap": 0.19999999999999996,
+          "importance": 0.4,
+          "label": "python",
+          "reason": "current 0.50 vs mid target 0.7 (importance 0.4)",
+          "severity": "low",
+          "skillId": "python",
+          "targetScore": 0.7,
+          "uncertainty": 0.5
+        }
+      ]
+    }
+  ],
+  "generatedFrom": "packages/core"
+}

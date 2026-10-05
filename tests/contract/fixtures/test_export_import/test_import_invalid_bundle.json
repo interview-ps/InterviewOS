@@ -1,0 +1,13 @@
+{
+  "snapshots": {
+    "bad-bundle": {
+      "body": {
+        "error": {
+          "code": "VALIDATION",
+          "message": "invalid export bundle: format Invalid input: expected \"interview-os.export\""
+        }
+      },
+      "status": 400
+    }
+  }
+}

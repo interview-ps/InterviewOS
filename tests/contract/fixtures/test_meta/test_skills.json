@@ -1,0 +1,1449 @@
+{
+  "snapshots": {
+    "skills": {
+      "body": {
+        "pluginErrors": [],
+        "skills": [
+          {
+            "compatible": true,
+            "description": "Extracts a CandidateProfile (experience, skills, projects, STAR seeds) from raw resume text.",
+            "id": "resume-analyzer",
+            "inputs": [
+              {
+                "key": "resumeText",
+                "permission": "resume.read"
+              },
+              {
+                "key": "taxonomy",
+                "permission": "taxonomy.read"
+              }
+            ],
+            "kind": "builtin",
+            "outputs": [
+              "candidateProfile",
+              "evidence",
+              "starStories"
+            ],
+            "permissions": [
+              "resume.read",
+              "taxonomy.read",
+              "runtime.invoke",
+              "candidate.write",
+              "evidence.write",
+              "stories.write"
+            ],
+            "version": "1.0.0"
+          },
+          {
+            "compatible": true,
+            "description": "Extracts a TargetRole's requirements (required/preferred, importance) from a job description.",
+            "id": "jd-analyzer",
+            "inputs": [
+              {
+                "key": "jobDescription",
+                "permission": "target.read"
+              },
+              {
+                "key": "company",
+                "permission": "target.read"
+              },
+              {
+                "key": "role",
+                "permission": "target.read"
+              },
+              {
+                "key": "level",
+                "permission": "target.read"
+              },
+              {
+                "key": "taxonomy",
+                "permission": "taxonomy.read"
+              }
+            ],
+            "kind": "builtin",
+            "outputs": [
+              "requirements",
+              "preferredSkills"
+            ],
+            "permissions": [
+              "target.read",
+              "taxonomy.read",
+              "runtime.invoke",
+              "target.write"
+            ],
+            "version": "1.0.0"
+          },
+          {
+            "compatible": true,
+            "description": "Deterministically diff target requirements against current readiness into a ranked gap list.",
+            "id": "gap-analyzer",
+            "inputs": [
+              {
+                "key": "requirements",
+                "permission": "target.read"
+              },
+              {
+                "key": "readiness",
+                "permission": "readiness.read"
+              },
+              {
+                "key": "level",
+                "permission": "target.read"
+              }
+            ],
+            "kind": "builtin",
+            "outputs": [
+              "gaps"
+            ],
+            "permissions": [
+              "target.read",
+              "readiness.read"
+            ],
+            "version": "1.0.0"
+          },
+          {
+            "compatible": true,
+            "description": "Derives a company profile (values, interview style, focus skills, themes) from untrusted careers-page notes.",
+            "id": "company-profiler",
+            "inputs": [
+              {
+                "key": "company",
+                "permission": "target.read"
+              },
+              {
+                "key": "companyNotes",
+                "permission": "target.read"
+              },
+              {
+                "key": "taxonomy",
+                "permission": "taxonomy.read"
+              }
+            ],
+            "kind": "builtin",
+            "outputs": [
+              "companyProfile"
+            ],
+            "permissions": [
+              "target.read",
+              "taxonomy.read",
+              "runtime.invoke",
+              "target.write"
+            ],
+            "version": "1.0.0"
+          },
+          {
+            "compatible": true,
+            "description": "Turns ranked gaps into concrete preparation actions with success criteria.",
+            "id": "prep-planner",
+            "inputs": [
+              {
+                "key": "targets",
+                "permission": "readiness.read"
+              },
+              {
+                "key": "role",
+                "permission": "target.read"
+              },
+              {
+                "key": "level",
+                "permission": "target.read"
+              }
+            ],
+            "kind": "builtin",
+            "outputs": [
+              "actions"
+            ],
+            "permissions": [
+              "target.read",
+              "readiness.read",
+              "runtime.invoke",
+              "preparation.write"
+            ],
+            "version": "1.0.0"
+          },
+          {
+            "compatible": true,
+            "description": "Generates resume-grounded STAR story drafts and reviews user stories against the STAR shape.",
+            "id": "star-coach",
+            "inputs": [
+              {
+                "key": "mode",
+                "permission": "stories.read"
+              },
+              {
+                "key": "experience",
+                "permission": "candidate.read"
+              },
+              {
+                "key": "achievements",
+                "permission": "candidate.read"
+              },
+              {
+                "key": "projects",
+                "permission": "candidate.read"
+              },
+              {
+                "key": "behavioralSkillIds",
+                "permission": "target.read"
+              },
+              {
+                "key": "existingTitles",
+                "permission": "stories.read"
+              },
+              {
+                "key": "story",
+                "permission": "stories.read"
+              },
+              {
+                "key": "role",
+                "permission": "target.read"
+              },
+              {
+                "key": "level",
+                "permission": "target.read"
+              }
+            ],
+            "kind": "builtin",
+            "outputs": [
+              "stories",
+              "review"
+            ],
+            "permissions": [
+              "candidate.read",
+              "target.read",
+              "stories.read",
+              "runtime.invoke",
+              "stories.write"
+            ],
+            "version": "1.0.0"
+          },
+          {
+            "compatible": true,
+            "description": "§9.5 resume coach — rewrites weak bullets and tailors a resume to the target role, never inventing facts.",
+            "id": "resume-coach",
+            "inputs": [
+              {
+                "key": "mode",
+                "permission": "resume.read"
+              },
+              {
+                "key": "resumeText",
+                "permission": "resume.read"
+              },
+              {
+                "key": "bullets",
+                "permission": "resume.read"
+              },
+              {
+                "key": "requirements",
+                "permission": "target.read"
+              },
+              {
+                "key": "role",
+                "permission": "target.read"
+              },
+              {
+                "key": "level",
+                "permission": "target.read"
+              }
+            ],
+            "kind": "builtin",
+            "outputs": [
+              "suggestions",
+              "tailoring"
+            ],
+            "permissions": [
+              "resume.read",
+              "target.read",
+              "runtime.invoke",
+              "resume.write"
+            ],
+            "version": "1.0.0"
+          },
+          {
+            "compatible": true,
+            "description": "Deterministic engine — picks the next skill to ask about from requirements, readiness, evidence and loop weakness handoffs.",
+            "id": "interview-planner",
+            "inputs": [
+              {
+                "key": "requirements",
+                "permission": "target.read"
+              },
+              {
+                "key": "readiness",
+                "permission": "readiness.read"
+              },
+              {
+                "key": "evidence",
+                "permission": "readiness.read"
+              },
+              {
+                "key": "askedThisSession",
+                "permission": "interview.read"
+              },
+              {
+                "key": "askedPreviousSession",
+                "permission": "interview.read"
+              },
+              {
+                "key": "questionIndex",
+                "permission": "interview.read"
+              },
+              {
+                "key": "roundType",
+                "permission": "interview.read"
+              },
+              {
+                "key": "mode",
+                "permission": "interview.read"
+              },
+              {
+                "key": "level",
+                "permission": "target.read"
+              },
+              {
+                "key": "askCounts",
+                "permission": "interview.read"
+              },
+              {
+                "key": "loopWeakSkills",
+                "permission": "interview.read"
+              },
+              {
+                "key": "focusSkills",
+                "permission": "interview.read"
+              }
+            ],
+            "kind": "builtin",
+            "outputs": [
+              "selection"
+            ],
+            "permissions": [
+              "target.read",
+              "readiness.read",
+              "interview.read"
+            ],
+            "version": "1.0.0"
+          },
+          {
+            "compatible": true,
+            "description": "Asks the next interview question for a mode — main questions, follow-ups, coding/design problems.",
+            "id": "interviewer",
+            "inputs": [
+              {
+                "key": "skillId",
+                "permission": "readiness.read"
+              },
+              {
+                "key": "label",
+                "permission": "readiness.read"
+              },
+              {
+                "key": "role",
+                "permission": "target.read"
+              },
+              {
+                "key": "level",
+                "permission": "target.read"
+              },
+              {
+                "key": "company",
+                "permission": "target.read"
+              },
+              {
+                "key": "reason",
+                "permission": "interview.read"
+              },
+              {
+                "key": "previousQuestions",
+                "permission": "interview.read"
+              },
+              {
+                "key": "candidateSummary",
+                "permission": "candidate.read"
+              },
+              {
+                "key": "roundType",
+                "permission": "interview.read"
+              },
+              {
+                "key": "mode",
+                "permission": "interview.read"
+              },
+              {
+                "key": "modeState",
+                "permission": "interview.read"
+              },
+              {
+                "key": "modeTurn",
+                "permission": "interview.read"
+              },
+              {
+                "key": "followUp",
+                "permission": "interview.read"
+              },
+              {
+                "key": "companyGuidance",
+                "permission": "target.read"
+              },
+              {
+                "key": "difficulty",
+                "permission": "interview.read"
+              },
+              {
+                "key": "focusDimension",
+                "permission": "interview.read"
+              },
+              {
+                "key": "companyThemes",
+                "permission": "target.read"
+              },
+              {
+                "key": "storyTitles",
+                "permission": "stories.read"
+              },
+              {
+                "key": "priorRoundObservations",
+                "permission": "interview.read"
+              },
+              {
+                "key": "seedQuestion",
+                "permission": "interview.read"
+              },
+              {
+                "key": "roleRubric",
+                "permission": "target.read"
+              },
+              {
+                "key": "externalContext",
+                "permission": "interview.read"
+              }
+            ],
+            "kind": "builtin",
+            "outputs": [
+              "question",
+              "topic",
+              "expectedConcepts",
+              "problem",
+              "focusDimension"
+            ],
+            "permissions": [
+              "interview.read",
+              "readiness.read",
+              "target.read",
+              "candidate.read",
+              "stories.read",
+              "runtime.invoke",
+              "interview.write"
+            ],
+            "version": "1.0.0"
+          },
+          {
+            "compatible": true,
+            "description": "Scores an interview answer against the mode rubric; produces evidence for the readiness graph.",
+            "id": "answer-evaluator",
+            "inputs": [
+              {
+                "key": "question",
+                "permission": "interview.read"
+              },
+              {
+                "key": "answer",
+                "permission": "interview.read"
+              },
+              {
+                "key": "role",
+                "permission": "target.read"
+              },
+              {
+                "key": "level",
+                "permission": "target.read"
+              },
+              {
+                "key": "roundType",
+                "permission": "interview.read"
+              },
+              {
+                "key": "mode",
+                "permission": "interview.read"
+              },
+              {
+                "key": "code",
+                "permission": "interview.read"
+              },
+              {
+                "key": "language",
+                "permission": "interview.read"
+              },
+              {
+                "key": "fields",
+                "permission": "interview.read"
+              },
+              {
+                "key": "modeState",
+                "permission": "interview.read"
+              },
+              {
+                "key": "companyGuidance",
+                "permission": "target.read"
+              },
+              {
+                "key": "roleRubric",
+                "permission": "target.read"
+              }
+            ],
+            "kind": "builtin",
+            "outputs": [
+              "evaluation",
+              "evidence"
+            ],
+            "permissions": [
+              "interview.read",
+              "target.read",
+              "runtime.invoke",
+              "evidence.write",
+              "interview.write"
+            ],
+            "version": "1.0.0"
+          },
+          {
+            "compatible": true,
+            "description": "Summarises a completed interview session: what went well, what to improve, next actions.",
+            "id": "interview-debrief",
+            "inputs": [
+              {
+                "key": "role",
+                "permission": "target.read"
+              },
+              {
+                "key": "questions",
+                "permission": "interview.read"
+              },
+              {
+                "key": "evaluations",
+                "permission": "interview.read"
+              },
+              {
+                "key": "readinessBefore",
+                "permission": "readiness.read"
+              },
+              {
+                "key": "readinessAfter",
+                "permission": "readiness.read"
+              },
+              {
+                "key": "openActions",
+                "permission": "readiness.read"
+              }
+            ],
+            "kind": "builtin",
+            "outputs": [
+              "debrief"
+            ],
+            "permissions": [
+              "target.read",
+              "interview.read",
+              "readiness.read",
+              "runtime.invoke",
+              "interview.write"
+            ],
+            "version": "1.0.0"
+          },
+          {
+            "compatible": true,
+            "description": "Summarises a completed multi-round loop into per-round signals and a readiness change — never a hire verdict.",
+            "id": "loop-debrief",
+            "inputs": [
+              {
+                "key": "role",
+                "permission": "target.read"
+              },
+              {
+                "key": "company",
+                "permission": "target.read"
+              },
+              {
+                "key": "rounds",
+                "permission": "interview.read"
+              },
+              {
+                "key": "readinessChange",
+                "permission": "readiness.read"
+              }
+            ],
+            "kind": "builtin",
+            "outputs": [
+              "loopDebrief"
+            ],
+            "permissions": [
+              "target.read",
+              "interview.read",
+              "readiness.read",
+              "runtime.invoke",
+              "interview.write"
+            ],
+            "version": "1.0.0"
+          },
+          {
+            "author": "interview-os",
+            "capabilities": [
+              "interview_mode"
+            ],
+            "compatible": true,
+            "description": "STAR stories from your experience — a specific situation, your actions, measurable results.",
+            "engines": {
+              "interview-os": ">=0.4.0",
+              "plugin-api": "^1.1.0"
+            },
+            "hooks": [
+              "mode.reduce",
+              "mode.mock"
+            ],
+            "id": "behavioral-mode",
+            "inputs": [],
+            "kind": "plugin",
+            "modes": [
+              {
+                "answerFields": [],
+                "answerFormat": "text",
+                "context": {
+                  "companyThemes": true,
+                  "storyTitles": true
+                },
+                "description": "STAR stories from your experience — a specific situation, your actions, measurable results.",
+                "evaluatorPrompt": "prompts/evaluator.md",
+                "fallbackSkills": [],
+                "id": "behavioral",
+                "initialState": {
+                  "competenciesCovered": [],
+                  "storyIdsUsed": []
+                },
+                "interviewerPrompt": "prompts/interviewer.md",
+                "label": "Behavioral",
+                "rubric": [
+                  {
+                    "description": "Sets clear context — when, where, what was at stake.",
+                    "id": "situationClarity",
+                    "label": "Situation clarity"
+                  },
+                  {
+                    "description": "Shows personal accountability rather than team-only framing.",
+                    "id": "ownership",
+                    "label": "Ownership"
+                  },
+                  {
+                    "description": "Describes what the candidate personally did, in first person.",
+                    "id": "actions",
+                    "label": "Actions"
+                  },
+                  {
+                    "description": "Explains reasoning and trade-offs behind choices.",
+                    "id": "decisionMaking",
+                    "label": "Decision making"
+                  },
+                  {
+                    "description": "Shows the outcome mattered to the business or team.",
+                    "id": "impact",
+                    "label": "Impact"
+                  },
+                  {
+                    "description": "Reports concrete, ideally quantified, results.",
+                    "id": "results",
+                    "label": "Results"
+                  },
+                  {
+                    "description": "Shows learning — what changed or what they would do differently.",
+                    "id": "reflection",
+                    "label": "Reflection"
+                  },
+                  {
+                    "description": "Concise, well-structured story under ~2 minutes.",
+                    "id": "communication",
+                    "label": "Communication"
+                  }
+                ],
+                "scope": {
+                  "exclude": [],
+                  "include": [
+                    "behavioral",
+                    "communication"
+                  ]
+                }
+              }
+            ],
+            "name": "Behavioral Mode",
+            "outputs": [],
+            "permissions": [
+              "answers.read"
+            ],
+            "version": "1.0.0"
+          },
+          {
+            "author": "interview-os",
+            "capabilities": [
+              "interview_mode",
+              "ui"
+            ],
+            "compatible": true,
+            "description": "Live-coding interview round — solve a small algorithmic problem, explain your approach, then write code (reviewed, not executed).",
+            "engines": {
+              "interview-os": ">=0.4.0",
+              "plugin-api": "^1.1.0"
+            },
+            "hooks": [
+              "mode.mock",
+              "ui.render"
+            ],
+            "id": "coding-mode",
+            "inputs": [],
+            "kind": "plugin",
+            "modes": [
+              {
+                "answerFields": [],
+                "answerFormat": "text+code",
+                "context": {
+                  "companyThemes": false,
+                  "storyTitles": false
+                },
+                "description": "Solve a small algorithmic problem — explain your approach, then write code (reviewed, not executed).",
+                "evaluatorPrompt": "prompts/evaluator.md",
+                "fallbackSkills": [
+                  "coding",
+                  "coding.algorithms",
+                  "coding.data-structures",
+                  "coding.complexity",
+                  "coding.edge-cases",
+                  "coding.code-quality"
+                ],
+                "followUpRules": [
+                  {
+                    "below": 0.6,
+                    "focus": "complexity analysis",
+                    "rubricId": "complexity"
+                  },
+                  {
+                    "below": 0.6,
+                    "focus": "edge cases",
+                    "rubricId": "edgeCases"
+                  }
+                ],
+                "id": "coding",
+                "initialState": {
+                  "phase": "briefing",
+                  "problem": null
+                },
+                "interviewerPrompt": "prompts/interviewer.md",
+                "label": "Coding",
+                "reduce": {
+                  "copyExtra": [
+                    "problem"
+                  ],
+                  "set": {
+                    "phase": "working"
+                  }
+                },
+                "rubric": [
+                  {
+                    "description": "Restates the goal, clarifies inputs, constraints and edge conditions before coding.",
+                    "id": "problemUnderstanding",
+                    "label": "Problem understanding"
+                  },
+                  {
+                    "description": "Describes a workable plan before or while writing code.",
+                    "id": "approach",
+                    "label": "Approach"
+                  },
+                  {
+                    "description": "The proposed logic/code solves the stated problem.",
+                    "id": "correctness",
+                    "label": "Correctness"
+                  },
+                  {
+                    "description": "States and reasons about time/space complexity (big-O).",
+                    "id": "complexity",
+                    "label": "Complexity"
+                  },
+                  {
+                    "description": "Identifies and handles edge cases (empty input, duplicates, bounds).",
+                    "id": "edgeCases",
+                    "label": "Edge cases"
+                  },
+                  {
+                    "description": "Readable, structured code — good naming, no dead paths.",
+                    "id": "codeQuality",
+                    "label": "Code quality"
+                  },
+                  {
+                    "description": "Thinks aloud clearly; the interviewer could follow along.",
+                    "id": "communication",
+                    "label": "Communication"
+                  }
+                ],
+                "scope": {
+                  "exclude": [],
+                  "include": [
+                    "coding"
+                  ]
+                }
+              }
+            ],
+            "name": "Coding Mode",
+            "outputs": [],
+            "permissions": [
+              "answers.read"
+            ],
+            "ui": {
+              "commands": [],
+              "navigation": [],
+              "pages": [],
+              "slots": {
+                "interview.question": [
+                  {
+                    "component": "coding-problem",
+                    "kind": "declarative",
+                    "title": "Problem"
+                  }
+                ]
+              }
+            },
+            "version": "1.0.0"
+          },
+          {
+            "author": "interview-os",
+            "capabilities": [
+              "interview_mode"
+            ],
+            "compatible": true,
+            "description": "Scope, impact, priorities and leadership style — the conversation a hiring manager would have.",
+            "engines": {
+              "interview-os": ">=0.4.0",
+              "plugin-api": "^1.1.0"
+            },
+            "hooks": [
+              "mode.reduce",
+              "mode.mock"
+            ],
+            "id": "hiring-manager-mode",
+            "inputs": [],
+            "kind": "plugin",
+            "modes": [
+              {
+                "answerFields": [],
+                "answerFormat": "text",
+                "context": {
+                  "companyThemes": true,
+                  "storyTitles": true
+                },
+                "description": "Scope, impact, priorities and leadership style — the conversation a hiring manager would have.",
+                "evaluatorPrompt": "prompts/evaluator.md",
+                "fallbackSkills": [],
+                "id": "hiring_manager",
+                "initialState": {
+                  "themesCovered": []
+                },
+                "interviewerPrompt": "prompts/interviewer.md",
+                "label": "Hiring manager",
+                "rubric": [
+                  {
+                    "description": "Understands the role and articulates mutual fit.",
+                    "id": "roleFit",
+                    "label": "Role fit"
+                  },
+                  {
+                    "description": "Describes scope of influence and business impact credibly.",
+                    "id": "scopeImpact",
+                    "label": "Scope & impact"
+                  },
+                  {
+                    "description": "Makes and explains hard prioritization trade-offs.",
+                    "id": "prioritization",
+                    "label": "Prioritization"
+                  },
+                  {
+                    "description": "Leads through ambiguity; develops people and direction.",
+                    "id": "leadership",
+                    "label": "Leadership"
+                  },
+                  {
+                    "description": "Works across teams and manages stakeholders.",
+                    "id": "collaboration",
+                    "label": "Collaboration"
+                  },
+                  {
+                    "description": "Genuine, specific motivation for this team and role.",
+                    "id": "motivation",
+                    "label": "Motivation"
+                  }
+                ],
+                "scope": {
+                  "exclude": [],
+                  "include": [
+                    "hiring-manager",
+                    "behavioral.leadership",
+                    "communication"
+                  ]
+                }
+              }
+            ],
+            "name": "Hiring Manager Mode",
+            "outputs": [],
+            "permissions": [
+              "answers.read"
+            ],
+            "version": "1.0.0"
+          },
+          {
+            "author": "interview-os",
+            "capabilities": [
+              "interview_mode"
+            ],
+            "compatible": true,
+            "description": "Motivation, career goals, culture fit and work style — friendly but probing.",
+            "engines": {
+              "interview-os": ">=0.4.0",
+              "plugin-api": "^1.1.0"
+            },
+            "hooks": [
+              "mode.reduce",
+              "mode.mock"
+            ],
+            "id": "hr-mode",
+            "inputs": [],
+            "kind": "plugin",
+            "modes": [
+              {
+                "answerFields": [],
+                "answerFormat": "text",
+                "context": {
+                  "companyThemes": true,
+                  "storyTitles": true
+                },
+                "description": "Motivation, career goals, culture fit and work style — friendly but probing.",
+                "evaluatorPrompt": "prompts/evaluator.md",
+                "fallbackSkills": [],
+                "id": "hr",
+                "initialState": {
+                  "themesCovered": []
+                },
+                "interviewerPrompt": "prompts/interviewer.md",
+                "label": "HR",
+                "rubric": [
+                  {
+                    "description": "Specific, genuine interest in the role and company.",
+                    "id": "motivation",
+                    "label": "Motivation"
+                  },
+                  {
+                    "description": "Coherent direction that this role plausibly serves.",
+                    "id": "careerGoals",
+                    "label": "Career goals"
+                  },
+                  {
+                    "description": "Working preferences align with the company context.",
+                    "id": "cultureFit",
+                    "label": "Culture fit"
+                  },
+                  {
+                    "description": "Concrete habits for communication, feedback and delivery.",
+                    "id": "workStyle",
+                    "label": "Work style"
+                  },
+                  {
+                    "description": "Direct, personable, concise answers.",
+                    "id": "communication",
+                    "label": "Communication"
+                  }
+                ],
+                "scope": {
+                  "exclude": [],
+                  "include": [
+                    "hr"
+                  ]
+                }
+              }
+            ],
+            "name": "HR Mode",
+            "outputs": [],
+            "permissions": [
+              "answers.read"
+            ],
+            "version": "1.0.0"
+          },
+          {
+            "author": "interview-os",
+            "capabilities": [
+              "preparation"
+            ],
+            "compatible": true,
+            "description": "A short checklist for interview day: the weakest requirement areas to skim, a STAR reminder, and logistics.",
+            "engines": {
+              "interview-os": ">=0.4.0"
+            },
+            "hooks": [
+              "preparation.suggest"
+            ],
+            "id": "interview-day-checklist",
+            "inputs": [
+              {
+                "key": "target",
+                "permission": "target.read"
+              },
+              {
+                "key": "readiness",
+                "permission": "readiness.read"
+              },
+              {
+                "key": "gaps",
+                "permission": "readiness.read"
+              }
+            ],
+            "kind": "plugin",
+            "name": "Interview Day Checklist",
+            "outputs": [
+              "checklist"
+            ],
+            "permissions": [
+              "target.read",
+              "readiness.read"
+            ],
+            "version": "1.1.0"
+          },
+          {
+            "author": "interview-os",
+            "capabilities": [
+              "resources"
+            ],
+            "compatible": true,
+            "description": "A small deterministic catalog of learning resources keyed by skill.",
+            "engines": {
+              "interview-os": ">=0.4.0"
+            },
+            "id": "learning-resources",
+            "inputs": [
+              {
+                "key": "request",
+                "permission": "taxonomy.read"
+              }
+            ],
+            "kind": "plugin",
+            "name": "Learning Resources",
+            "outputs": [],
+            "permissions": [
+              "taxonomy.read"
+            ],
+            "version": "1.0.0"
+          },
+          {
+            "appliesTo": {
+              "skillPrefixes": [
+                "sql"
+              ]
+            },
+            "author": "community",
+            "capabilities": [
+              "interview",
+              "evaluation",
+              "question_source",
+              "ui"
+            ],
+            "compatible": true,
+            "description": "A deterministic PostgreSQL question bank with a self-check evidence path.",
+            "engines": {
+              "interview-os": ">=0.4.0"
+            },
+            "hooks": [
+              "questions.suggest",
+              "ui.render",
+              "ui.frameRun",
+              "evaluation.review"
+            ],
+            "id": "postgres-interviewer",
+            "inputs": [
+              {
+                "key": "candidate",
+                "permission": "candidate.read"
+              },
+              {
+                "key": "target",
+                "permission": "target.read"
+              },
+              {
+                "key": "readiness",
+                "permission": "readiness.read"
+              },
+              {
+                "key": "gaps",
+                "permission": "readiness.read"
+              },
+              {
+                "key": "request",
+                "permission": "taxonomy.read"
+              }
+            ],
+            "interviewModes": [
+              {
+                "description": "Focused PostgreSQL round on indexing, transactions, and query plans.",
+                "focusSkills": [
+                  "sql.indexing",
+                  "sql.transactions",
+                  "sql.query-optimization"
+                ],
+                "id": "pg-deep-dive",
+                "label": "PostgreSQL Deep Dive",
+                "plannedQuestions": 4,
+                "roundType": "technical"
+              }
+            ],
+            "kind": "plugin",
+            "name": "PostgreSQL Interviewer",
+            "outputs": [],
+            "permissions": [
+              "candidate.read",
+              "target.read",
+              "readiness.read",
+              "taxonomy.read",
+              "answers.read",
+              "evidence.write"
+            ],
+            "settings": [
+              {
+                "default": "medium",
+                "description": "Bias suggested PostgreSQL questions toward this difficulty.",
+                "key": "difficulty-bias",
+                "label": "Question difficulty bias",
+                "options": [
+                  "easy",
+                  "medium",
+                  "hard"
+                ],
+                "type": "enum"
+              }
+            ],
+            "taxonomy": [
+              {
+                "id": "sql.locking",
+                "keywords": [
+                  "locks",
+                  "deadlock",
+                  "mvcc"
+                ],
+                "label": "Locking"
+              }
+            ],
+            "ui": {
+              "commands": [
+                {
+                  "action": {
+                    "modeId": "pg-deep-dive",
+                    "type": "startInterview"
+                  },
+                  "id": "start-pg",
+                  "label": "Start PostgreSQL Deep Dive"
+                }
+              ],
+              "navigation": [
+                {
+                  "icon": "database",
+                  "label": "PostgreSQL",
+                  "page": "/"
+                }
+              ],
+              "pages": [
+                {
+                  "component": "home",
+                  "kind": "declarative",
+                  "path": "/",
+                  "title": "PostgreSQL"
+                }
+              ],
+              "slots": {
+                "dashboard.cards": [
+                  {
+                    "component": "readiness-card",
+                    "kind": "declarative",
+                    "title": "PostgreSQL readiness"
+                  }
+                ],
+                "prepare.activities": [
+                  {
+                    "component": "explain-analyze",
+                    "kind": "declarative",
+                    "title": "Practice EXPLAIN ANALYZE"
+                  }
+                ],
+                "readiness.panels": [
+                  {
+                    "component": "postgres-skill-tree",
+                    "entry": "ui/index.js",
+                    "kind": "frame"
+                  }
+                ]
+              }
+            },
+            "version": "1.2.0"
+          },
+          {
+            "author": "interview-os",
+            "capabilities": [
+              "interview_mode",
+              "ui"
+            ],
+            "compatible": true,
+            "description": "Open-ended design of a larger system with concrete scale numbers — requirements → estimation → design → trade-offs.",
+            "engines": {
+              "interview-os": ">=0.4.0",
+              "plugin-api": "^1.1.0"
+            },
+            "hooks": [
+              "mode.reduce",
+              "mode.prepareTurn",
+              "mode.mock",
+              "ui.render"
+            ],
+            "id": "system-design-mode",
+            "inputs": [],
+            "kind": "plugin",
+            "modes": [
+              {
+                "answerFields": [],
+                "answerFormat": "text",
+                "context": {
+                  "companyThemes": false,
+                  "storyTitles": false
+                },
+                "description": "Open-ended design of a larger system with concrete scale numbers — requirements → estimation → design → trade-offs.",
+                "evaluatorPrompt": "prompts/evaluator.md",
+                "fallbackSkills": [],
+                "followUp": "never",
+                "followUpReason": "system-design sessions walk uncovered dimensions directly",
+                "id": "system_design",
+                "initialState": {
+                  "dimensions": {
+                    "apis": {
+                      "notes": "",
+                      "status": "not_covered"
+                    },
+                    "architecture": {
+                      "notes": "",
+                      "status": "not_covered"
+                    },
+                    "caching": {
+                      "notes": "",
+                      "status": "not_covered"
+                    },
+                    "constraints": {
+                      "notes": "",
+                      "status": "not_covered"
+                    },
+                    "dataModel": {
+                      "notes": "",
+                      "status": "not_covered"
+                    },
+                    "reliability": {
+                      "notes": "",
+                      "status": "not_covered"
+                    },
+                    "requirements": {
+                      "notes": "",
+                      "status": "not_covered"
+                    },
+                    "scalability": {
+                      "notes": "",
+                      "status": "not_covered"
+                    },
+                    "scaleAssumptions": {
+                      "notes": "",
+                      "status": "not_covered"
+                    },
+                    "storage": {
+                      "notes": "",
+                      "status": "not_covered"
+                    },
+                    "tradeOffs": {
+                      "notes": "",
+                      "status": "not_covered"
+                    }
+                  },
+                  "focusDimension": null,
+                  "problem": null
+                },
+                "interviewerPrompt": "prompts/interviewer.md",
+                "label": "System design",
+                "reduce": {
+                  "copyExtra": [
+                    "problem",
+                    "focusDimension"
+                  ]
+                },
+                "rubric": [
+                  {
+                    "description": "Clarifies functional scope before designing.",
+                    "id": "requirements",
+                    "label": "Requirements"
+                  },
+                  {
+                    "description": "Surfaces constraints and non-functional goals.",
+                    "id": "constraints",
+                    "label": "Constraints"
+                  },
+                  {
+                    "description": "Quantifies load — QPS, storage, users — with numbers.",
+                    "id": "scaleAssumptions",
+                    "label": "Scale assumptions"
+                  },
+                  {
+                    "description": "Presents a coherent high-level component design.",
+                    "id": "architecture",
+                    "label": "Architecture"
+                  },
+                  {
+                    "description": "Defines entities, schema and access patterns.",
+                    "id": "dataModel",
+                    "label": "Data model"
+                  },
+                  {
+                    "description": "Specifies the external API surface.",
+                    "id": "apis",
+                    "label": "APIs"
+                  },
+                  {
+                    "description": "Chooses and justifies storage technology.",
+                    "id": "storage",
+                    "label": "Storage"
+                  },
+                  {
+                    "description": "Uses caching appropriately with invalidation reasoning.",
+                    "id": "caching",
+                    "label": "Caching"
+                  },
+                  {
+                    "description": "Covers failure modes, redundancy, monitoring.",
+                    "id": "reliability",
+                    "label": "Reliability"
+                  },
+                  {
+                    "description": "Shows how the design scales with growth.",
+                    "id": "scalability",
+                    "label": "Scalability"
+                  },
+                  {
+                    "description": "Discusses alternatives and justifies decisions.",
+                    "id": "tradeOffs",
+                    "label": "Trade-offs"
+                  }
+                ],
+                "scope": {
+                  "exclude": [],
+                  "include": [
+                    "system-design",
+                    "distributed-systems"
+                  ]
+                }
+              }
+            ],
+            "name": "System Design Mode",
+            "outputs": [],
+            "permissions": [
+              "answers.read"
+            ],
+            "ui": {
+              "commands": [],
+              "navigation": [],
+              "pages": [],
+              "slots": {
+                "interview.sidebar": [
+                  {
+                    "component": "design-dimensions",
+                    "kind": "declarative",
+                    "title": "Design dimensions"
+                  }
+                ]
+              }
+            },
+            "version": "1.0.0"
+          },
+          {
+            "author": "interview-os",
+            "capabilities": [
+              "interview_mode"
+            ],
+            "compatible": true,
+            "description": "Deep technical interview round — one question per skill, probing mechanics, edge cases and trade-offs.",
+            "engines": {
+              "interview-os": ">=0.4.0",
+              "plugin-api": "^1.1.0"
+            },
+            "hooks": [
+              "mode.mock"
+            ],
+            "id": "technical-mode",
+            "inputs": [],
+            "kind": "plugin",
+            "modes": [
+              {
+                "answerFields": [],
+                "answerFormat": "text",
+                "context": {
+                  "companyThemes": false,
+                  "storyTitles": false
+                },
+                "description": "Deep technical Q&A — mechanics, edge cases and trade-offs for a selected skill.",
+                "evaluatorPrompt": "prompts/evaluator.md",
+                "fallbackSkills": [],
+                "id": "technical",
+                "initialState": {},
+                "interviewerPrompt": "prompts/interviewer.md",
+                "label": "Technical",
+                "rubric": [
+                  {
+                    "description": "Factual correctness.",
+                    "id": "correctness",
+                    "label": "Correctness"
+                  },
+                  {
+                    "description": "Depth beyond surface definitions.",
+                    "id": "technicalDepth",
+                    "label": "Technical depth"
+                  },
+                  {
+                    "description": "Quality of the reasoning chain.",
+                    "id": "reasoning",
+                    "label": "Reasoning"
+                  },
+                  {
+                    "description": "Clarity and structure.",
+                    "id": "communication",
+                    "label": "Communication"
+                  },
+                  {
+                    "description": "Relevance to the target role.",
+                    "id": "roleRelevance",
+                    "label": "Role relevance"
+                  }
+                ],
+                "scope": {
+                  "exclude": [
+                    "system-design",
+                    "behavioral",
+                    "communication",
+                    "hr",
+                    "coding",
+                    "hiring-manager"
+                  ],
+                  "include": []
+                }
+              }
+            ],
+            "name": "Technical Mode",
+            "outputs": [],
+            "permissions": [
+              "answers.read"
+            ],
+            "version": "1.0.0"
+          }
+        ]
+      },
+      "status": 200
+    }
+  }
+}

@@ -1,0 +1,42 @@
+id: hr-mode
+version: 1.0.0
+name: HR Mode
+kind: hook
+entry: main.py
+author: interview-os
+permissions: [answers.read]
+capabilities: [interview_mode]
+hooks: [mode.reduce, mode.mock]
+inputs: []
+engines: {interview-os: ">=0.4.0", plugin-api: "^1.1.0"}
+description: Motivation, career goals, culture fit and work style — friendly but probing.
+modes:
+  - id: hr
+    label: HR
+    description: "Motivation, career goals, culture fit and work style — friendly but probing."
+    scope:
+      include:
+        - hr
+    rubric:
+      - id: motivation
+        label: Motivation
+        description: Specific, genuine interest in the role and company.
+      - id: careerGoals
+        label: Career goals
+        description: Coherent direction that this role plausibly serves.
+      - id: cultureFit
+        label: Culture fit
+        description: Working preferences align with the company context.
+      - id: workStyle
+        label: Work style
+        description: Concrete habits for communication, feedback and delivery.
+      - id: communication
+        label: Communication
+        description: Direct, personable, concise answers.
+    initialState:
+      themesCovered: []
+    context:
+      companyThemes: true
+      storyTitles: true
+    interviewerPrompt: prompts/interviewer.md
+    evaluatorPrompt: prompts/evaluator.md

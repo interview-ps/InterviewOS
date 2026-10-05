@@ -1,0 +1,38 @@
+format: interview-os.role-pack
+id: sre
+name: Site Reliability Engineer
+version: 1.0.0
+description: Common expectations for SRE/production engineering roles.
+taxonomy: []
+dimensions:
+  - skillId: infrastructure
+    weight: 0.9
+  - skillId: infrastructure.observability
+    weight: 0.85
+  - skillId: system-design.reliability
+    weight: 0.8
+  - skillId: system-design.reliability
+    weight: 0.75
+  - skillId: coding
+    weight: 0.6
+defaultQuestionCategories:
+  - technical
+  - system_design
+  - coding
+  - behavioral
+rubrics:
+  - skillId: infrastructure.observability
+    criteria:
+      - Distinguishes symptoms from causes
+      - Knows SLIs/SLOs and error budgets
+resources:
+  - skillId: infrastructure.kubernetes
+    title: Kubernetes documentation
+    url: https://kubernetes.io/docs/home/
+    kind: docs
+questions:
+  - skillId: infrastructure.observability
+    text: "Error rates doubled after a deploy — walk me through how you would triage it."
+    difficulty: medium
+    mode: technical
+    provenance: community

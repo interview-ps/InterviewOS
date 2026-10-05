@@ -1,0 +1,7 @@
+{
+  "id": "log-exit",
+  "version": "1.0.0",
+  "kind": "plugin",
+  "description": "Fixture: logs then exits without producing a result.",
+  "permissions": []
+}

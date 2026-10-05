@@ -1,0 +1,322 @@
+{
+  "snapshots": {
+    "abandon": {
+      "body": {
+        "abandoned": true,
+        "companyProfileId": "generic",
+        "completedAt": "<ts>",
+        "createdAt": "<ts>",
+        "currentRound": 1,
+        "debrief": null,
+        "focusSkills": [],
+        "id": "<loop#1>",
+        "packId": null,
+        "rounds": [
+          {
+            "handoff": null,
+            "label": "Technical",
+            "mode": "technical",
+            "plannedQuestions": 1,
+            "readinessAfter": null,
+            "readinessBefore": {
+              "overall": 0.47303,
+              "requirements": {
+                "apis": 0.9,
+                "apis.rest": 0.9,
+                "distributed-systems": null,
+                "distributed-systems.caching": null,
+                "distributed-systems.message-queues": null,
+                "infrastructure.kubernetes": null,
+                "infrastructure.observability": null,
+                "python": 0.9,
+                "sql": 0.6,
+                "system-design": null,
+                "system-design.async-processing": null
+              }
+            },
+            "sessionId": "<int#1>",
+            "skillDeltas": [],
+            "status": "in_progress"
+          },
+          {
+            "handoff": null,
+            "label": "Behavioral",
+            "mode": "behavioral",
+            "plannedQuestions": 1,
+            "readinessAfter": null,
+            "readinessBefore": null,
+            "sessionId": null,
+            "skillDeltas": [],
+            "status": "pending"
+          }
+        ],
+        "status": "complete",
+        "targetId": "<target#1>"
+      },
+      "status": 200
+    },
+    "get": {
+      "body": {
+        "abandoned": false,
+        "companyProfileId": "generic",
+        "completedAt": null,
+        "createdAt": "<ts>",
+        "currentRound": 1,
+        "debrief": null,
+        "focusSkills": [],
+        "id": "<loop#1>",
+        "packId": null,
+        "rounds": [
+          {
+            "handoff": null,
+            "label": "Technical",
+            "mode": "technical",
+            "plannedQuestions": 1,
+            "readinessAfter": null,
+            "readinessBefore": {
+              "overall": 0.47303,
+              "requirements": {
+                "apis": 0.9,
+                "apis.rest": 0.9,
+                "distributed-systems": null,
+                "distributed-systems.caching": null,
+                "distributed-systems.message-queues": null,
+                "infrastructure.kubernetes": null,
+                "infrastructure.observability": null,
+                "python": 0.9,
+                "sql": 0.6,
+                "system-design": null,
+                "system-design.async-processing": null
+              }
+            },
+            "sessionId": "<int#1>",
+            "skillDeltas": [],
+            "status": "in_progress"
+          },
+          {
+            "handoff": null,
+            "label": "Behavioral",
+            "mode": "behavioral",
+            "plannedQuestions": 1,
+            "readinessAfter": null,
+            "readinessBefore": null,
+            "sessionId": null,
+            "skillDeltas": [],
+            "status": "pending"
+          }
+        ],
+        "status": "in_progress",
+        "targetId": "<target#1>"
+      },
+      "status": 200
+    },
+    "list": {
+      "body": [
+        {
+          "abandoned": false,
+          "companyProfileId": "generic",
+          "completedAt": null,
+          "createdAt": "<ts>",
+          "currentRound": 1,
+          "debrief": null,
+          "focusSkills": [],
+          "id": "<loop#1>",
+          "packId": null,
+          "rounds": [
+            {
+              "handoff": null,
+              "label": "Technical",
+              "mode": "technical",
+              "plannedQuestions": 1,
+              "readinessAfter": null,
+              "readinessBefore": {
+                "overall": 0.47303,
+                "requirements": {
+                  "apis": 0.9,
+                  "apis.rest": 0.9,
+                  "distributed-systems": null,
+                  "distributed-systems.caching": null,
+                  "distributed-systems.message-queues": null,
+                  "infrastructure.kubernetes": null,
+                  "infrastructure.observability": null,
+                  "python": 0.9,
+                  "sql": 0.6,
+                  "system-design": null,
+                  "system-design.async-processing": null
+                }
+              },
+              "sessionId": "<int#1>",
+              "skillDeltas": [],
+              "status": "in_progress"
+            },
+            {
+              "handoff": null,
+              "label": "Behavioral",
+              "mode": "behavioral",
+              "plannedQuestions": 1,
+              "readinessAfter": null,
+              "readinessBefore": null,
+              "sessionId": null,
+              "skillDeltas": [],
+              "status": "pending"
+            }
+          ],
+          "status": "in_progress",
+          "targetId": "<target#1>"
+        }
+      ],
+      "status": 200
+    },
+    "start": {
+      "body": {
+        "loop": {
+          "abandoned": false,
+          "companyProfileId": "generic",
+          "completedAt": null,
+          "createdAt": "<ts>",
+          "currentRound": 1,
+          "debrief": null,
+          "focusSkills": [],
+          "id": "<loop#1>",
+          "packId": null,
+          "rounds": [
+            {
+              "handoff": null,
+              "label": "Technical",
+              "mode": "technical",
+              "plannedQuestions": 1,
+              "readinessAfter": null,
+              "readinessBefore": {
+                "overall": 0.47303,
+                "requirements": {
+                  "apis": 0.9,
+                  "apis.rest": 0.9,
+                  "distributed-systems": null,
+                  "distributed-systems.caching": null,
+                  "distributed-systems.message-queues": null,
+                  "infrastructure.kubernetes": null,
+                  "infrastructure.observability": null,
+                  "python": 0.9,
+                  "sql": 0.6,
+                  "system-design": null,
+                  "system-design.async-processing": null
+                }
+              },
+              "sessionId": "<int#1>",
+              "skillDeltas": [],
+              "status": "in_progress"
+            },
+            {
+              "handoff": null,
+              "label": "Behavioral",
+              "mode": "behavioral",
+              "plannedQuestions": 1,
+              "readinessAfter": null,
+              "readinessBefore": null,
+              "sessionId": null,
+              "skillDeltas": [],
+              "status": "pending"
+            }
+          ],
+          "status": "in_progress",
+          "targetId": "<target#1>"
+        },
+        "question": {
+          "createdAt": "<ts>",
+          "difficulty": "medium",
+          "expectedConcepts": [
+            {
+              "concept": "cache-aside / read-through",
+              "keywords": [
+                "cache-aside",
+                "read-through",
+                "lazy load"
+              ],
+              "skillId": "distributed-systems.caching.cache-strategies"
+            },
+            {
+              "concept": "TTL / expiration",
+              "keywords": [
+                "ttl",
+                "expir"
+              ],
+              "skillId": "distributed-systems.caching.cache-invalidation"
+            },
+            {
+              "concept": "explicit invalidation on write",
+              "keywords": [
+                "invalidat",
+                "delete the key",
+                "evict"
+              ],
+              "skillId": "distributed-systems.caching.cache-invalidation"
+            },
+            {
+              "concept": "write-through / write-behind trade-offs",
+              "keywords": [
+                "write-through",
+                "write-behind",
+                "write-back"
+              ],
+              "skillId": "distributed-systems.caching.cache-invalidation"
+            },
+            {
+              "concept": "stale reads / race conditions",
+              "keywords": [
+                "stale",
+                "race",
+                "consisten"
+              ],
+              "skillId": "distributed-systems.consistency"
+            }
+          ],
+          "extra": {},
+          "followUpFocus": null,
+          "followUpOf": null,
+          "id": "<q#1>",
+          "selectionFactors": {
+            "noveltyFactor": 1,
+            "packFocus": 0,
+            "readinessGap": 1,
+            "recencyFactor": 1,
+            "roleImportance": 0.9,
+            "uncertainty": 1,
+            "weaknessBoost": 1
+          },
+          "selectionPriority": 1.35,
+          "selectionReason": "no evidence yet; not previously asked",
+          "sessionId": "<int#1>",
+          "skillId": "distributed-systems.caching",
+          "source": null,
+          "subSkills": [
+            "distributed-systems.caching.cache-strategies",
+            "distributed-systems.caching.cache-invalidation"
+          ],
+          "text": "How would you keep cache entries consistent with the database when the underlying data changes?",
+          "topic": "Cache consistency"
+        },
+        "session": {
+          "actionId": null,
+          "candidateId": "<cand#1>",
+          "completedAt": null,
+          "contextId": null,
+          "createdAt": "<ts>",
+          "currentRound": 1,
+          "focusSkillId": null,
+          "focusSkills": [],
+          "id": "<int#1>",
+          "loopId": "<loop#1>",
+          "loopRound": 1,
+          "mode": "interview",
+          "modeState": {},
+          "plannedQuestions": 1,
+          "pluginModeId": null,
+          "roundType": "technical",
+          "status": "question",
+          "targetId": "<target#1>"
+        }
+      },
+      "status": 200
+    }
+  }
+}

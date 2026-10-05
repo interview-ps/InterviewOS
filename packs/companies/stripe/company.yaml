@@ -1,0 +1,71 @@
+format: interview-os.company-pack
+id: stripe
+name: Stripe
+version: 1.0.0
+description: Community-observed interview patterns for Stripe-style API companies.
+maintainers:
+  - community
+aliases:
+  - stripe inc
+sources: []
+stages:
+  - mode: technical
+    label: Technical screen
+    plannedQuestions: 4
+    provenance: community
+  - mode: coding
+    label: Coding round
+    plannedQuestions: 3
+    provenance: community
+  - mode: system_design
+    label: System design
+    plannedQuestions: 3
+    provenance: community
+  - mode: behavioral
+    label: Behavioral / hiring manager
+    plannedQuestions: 3
+    provenance: community
+competencies:
+  - text: Candidates often report being asked to write real, runnable code rather than pseudocode.
+    provenance: community
+  - text: API design and correctness details are commonly emphasized.
+    provenance: community
+  - text: Communication quality while coding is reportedly part of the evaluation.
+    provenance: community
+emphasis:
+  - skillId: apis.rest
+    weight: 0.1
+  - skillId: coding.code-quality
+    weight: 0.05
+  - skillId: communication
+    weight: 0.05
+behavioralFramework:
+  name: Operating principles
+  themes:
+    - craftsmanship
+    - rigor
+    - written communication
+  guidance: Answers are expected to be concrete, well-structured and written-communication-friendly.
+followUpDepth: 2
+questionStyle:
+  - text: Questions often start practical and drill into edge cases and correctness.
+    provenance: community
+evaluationGuidance:
+  - text: Interviewers reportedly value working code and clear reasoning over cleverness.
+    provenance: community
+roleExpectations:
+  senior:
+    - Designs APIs and systems with explicit trade-off discussion.
+  staff:
+    - Drives ambiguous problems to a crisp, well-communicated plan.
+questions:
+  - skillId: apis.rest
+    text: Design the endpoint layout for a payments API — resources, idempotency and error semantics.
+    difficulty: medium
+    mode: technical
+    provenance: community
+  - skillId: coding.code-quality
+    text: Refactor this loosely structured function for clarity — talk me through your choices as you go.
+    difficulty: medium
+    mode: coding
+    provenance: community

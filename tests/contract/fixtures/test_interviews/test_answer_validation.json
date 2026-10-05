@@ -1,0 +1,13 @@
+{
+  "snapshots": {
+    "bad-answer": {
+      "body": {
+        "error": {
+          "code": "VALIDATION",
+          "message": "invalid request body: answer: Invalid input: expected string, received number"
+        }
+      },
+      "status": 400
+    }
+  }
+}

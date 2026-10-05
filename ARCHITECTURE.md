@@ -233,7 +233,7 @@ allowlist adds the Windows config roots (`APPDATA`, `LOCALAPPDATA`, `USERPROFILE
 `HOMEPATH`) and `DEVIN_*`/`WINDSURF_API_KEY` — credentials stay in the CLI's own auth store
 (`devin auth login`).
 
-## 4. Skills (apps/server/src/skills)
+## 4. Skills (apps/api/src/interview_os/skills)
 
 ```ts
 interface InterviewSkill<I, O> {
@@ -267,7 +267,7 @@ communication, evidence, roleRelevance} each {score 0..1, rationale}, strengths[
 evidence}], weaknesses[{skill, severity, evidence}], scores[{skill, score, confidence}],
 missingConcepts[], betterApproach, followUpTopics[] }`.
 
-## 5. Orchestrator + persistence (apps/server/src/orchestrator)
+## 5. Orchestrator + persistence (apps/api/src/interview_os/orchestrator)
 
 `InterviewOrchestrator` holds workflow only: `setupWorkspace`, `analyzeCandidate`,
 `analyzeTarget`, `calculateGaps`, `buildPreparationPlan`, `startInterview`, `nextQuestion`,
@@ -280,7 +280,7 @@ skill_evidence, readiness_scores (snapshots), preparation_actions, runtime_sessi
 Resume claims become `resume_claim` evidence; interview evaluations become `interview_answer`
 evidence (one per `scores[]` entry, observation from matching strength/weakness).
 
-## 6. API (apps/server)
+## 6. API (apps/api)
 
 ```
 GET  /api/state                     full InterviewOSState + session summaries
@@ -369,9 +369,13 @@ text normalised and truncated to 50 000 chars (warning when truncated or empty, 
 
 Theme: simulate the real, multi-stage interview process and carry evidence across rounds.
 
-### 9.1 Interview modes (one module per mode — no giant interviewer)
-`ModeId = 'technical'|'coding'|'system_design'|'behavioral'|'hiring_manager'|'hr'`; `RoundType = ModeId | 'mixed'`
-(`mixed` kept for v0.2 sessions). Pure mode definitions live in `core/interview/modes/<mode>.ts`:
+### 9.1 Interview modes (one plugin per mode — no giant interviewer)
+Core keeps only the legacy `mixed` round. Every other interview mode ships as a bundled,
+sandboxed plugin under `plugins/<name>-mode` — `technical`, `behavioral`, `hiring-manager`,
+`hr`, `system-design`, `coding` — registered into the same core registry at plugin load
+(see "Plugin interview modes" below). `RoundType = 'mixed' | <mode id>` where mode ids match
+`ModeIdSchema` (`^[a-z0-9][a-z0-9_-]{0,63}$`), so stored `system_design`/`hiring_manager` ids
+keep working. The registry shape stays:
 ```ts
 ModeDefinition {
   id, label, description,
@@ -412,13 +416,34 @@ Mode state (session column `mode_state` JSON):
   v0.3** — code is reviewed, not run (UI says so); execution sandboxing is v0.4.
 - behavioral: `{storyIdsUsed[], competenciesCovered[]}`; hiring_manager / hr: `{themesCovered[]}`; technical `{}`.
 
-Skills: interviewer and answer-evaluator dispatch to per-mode modules `apps/server/src/skills/interview/modes/<mode>/`
-(`interviewerPrompt`, `evaluatorPrompt`, mock templates, mock rubric scorer) with taskIds
-`interviewer.<mode>` / `answer-evaluator.<mode>`; `mixed` uses the v0.2 prompts.
+Skills: interviewer and answer-evaluator dispatch with taskIds `interviewer.<mode>` /
+`answer-evaluator.<mode>`; `mixed` uses the v0.2 prompts. Every plugin mode resolves its
+prompt from the manifest `modes[].interviewerPrompt`/`evaluatorPrompt` files (loaded
+host-side, ≤16KB, inside the plugin dir) wrapped in the host's output-contract
+instructions (`skills/interview/plugin-prompt.py`); deterministic mock output comes from the
+plugin's `mode.mock` hook via a `MockRuntime` fallback resolver.
 
-Follow-ups: after each evaluation the mode's `followUp` decides. technical/behavioral/hiring_manager/hr: ask when
-missingConcepts is non-empty and any rubric score < 0.6 and depth < maxDepth; coding: when complexity or
-edgeCases < 0.6; system_design: the session itself walks uncovered dimensions (not counted as depth).
+**Plugin interview modes (v1):** a plugin declaring the `interview_mode` capability may add a
+`modes:` section (≤5) to `plugin.yaml` — `{id, label, description, scope: {include, exclude},
+fallbackSkills, rubric, answerFormat ("text"|"text+code"), initialState,
+reduce {copyExtra, set}, context {companyThemes, storyTitles},
+followUp: "generic"|"rules"|"never" (+followUpReason), followUpRules,
+interviewerPrompt, evaluatorPrompt}`. `inScope` = (include empty || any include subtree) &&
+no exclude subtree; `fallbackSkills` default to each include root + children. The server
+registers a synchronous `ModeDefinition` per descriptor (in the plugin service, unregistered
+on disable/uninstall); ids must not collide with `mixed` or other plugins (typed `AppError`
+at load). Optional hooks `mode.reduce` / `mode.followUp` / `mode.prepareTurn` / `mode.mock`
+override the declarative defaults; hook failures fall back (prepareTurn → `{}`).
+`mode.prepareTurn` returns per-turn `{focusDimension, skillId, …}` passed to the interviewer
+as `modeTurn`. `context` flags feed company themes / story titles into the host interviewer
+input only — never to the plugin process. Availability is enforced at session/loop creation —
+stored sessions of an unavailable mode still render via `getMode`'s `available:false` fallback
+(humanized label, empty rubric). `GET /api/modes` exposes the startable set.
+
+Follow-ups: after each evaluation the mode's `followUp` policy decides. technical/behavioral/hiring_manager/hr
+use the shared "generic" rule (missing concepts + any rubric score < 0.6 + depth < maxDepth); coding's
+`followUpRules` fire on complexity/edgeCases < 0.6; system_design declares `followUp: "never"` —
+the session itself walks uncovered dimensions via `mode.prepareTurn` (not counted as depth).
 Follow-up questions are persisted with `followUpOf` + `followUpFocus`, asked in the same Codex thread with
 `followUp: {parentQuestion, focus}`, and do **not** count toward `plannedQuestions`.
 `maxDepth` = company profile `followUpDepth` (default 1).
@@ -487,16 +512,16 @@ hire/no-hire verdict.
 interview.read|interview.write|stories.read|stories.write|resume.read|resume.write|preparation.write|
 taxonomy.read|runtime.invoke`.
 `SkillManifest {id, version, kind:'builtin'|'plugin', description, inputs[{key, permission}], outputs[],
-permissions[]}` (Zod). Every built-in skill exports one. `SkillHost` (`apps/server/src/skills/host/`):
+permissions[]}` (Pydantic). Every built-in skill exports one. `SkillHost` (`apps/api/src/interview_os/skills/host.py`):
 `invoke(id, input, ctx)` rejects (PermissionError) any top-level input key not declared in `inputs` or whose
 permission isn't granted; `ctx.runtime` is a proxy that throws unless `runtime.invoke`; the orchestrator calls
 `host.assertCan(id, '<x>.write')` before persisting a skill's outputs. All orchestrator skill calls go through the
 host.
-Plugins: `plugins/<name>/{manifest.json, index.ts}` loaded at server start from `INTERVIEW_OS_PLUGINS_DIR`
-(default `<repo>/plugins`); kind forced to `plugin`; v0.3 plugins may hold only read permissions +
-`runtime.invoke` (write permissions → plugin skipped with a logged warning). `GET /api/skills` lists manifests;
-`POST /api/plugins/:id/run` builds the plugin input **from state, only for declared input slices**; runs are
-time-boxed at 30 s and output is capped at 100 KB. Plugins are trusted local code (documented).
+Plugins: `plugins/<name>/{plugin.yaml, main.py}` loaded at startup from the bundled `plugins/`
+catalog (installed plugins in `data/plugins`); kind forced to `plugin`; plugins may hold
+read permissions + `runtime.invoke` + `evidence.write` (other write permissions → rejected at load).
+`GET /api/plugins` lists manifests + permission views; `POST /api/plugins/:id/run` builds the plugin input
+**from state, only for declared *and* granted slices**. Since v0.4 plugins run **in-process** — see §10.1.
 Sample: `plugins/interview-day-checklist` (target.read + readiness.read, no runtime).
 
 ### 9.7 History, metrics, command palette, UI
@@ -517,3 +542,114 @@ Sample: `plugins/interview-day-checklist` (target.read + readiness.read, no runt
   button below 900px.
 - Test-only endpoint: `POST /api/test/reset` wipes all state — it returns 404 unless
   `INTERVIEW_OS_TEST_MODE=1` (e2e isolation; never enabled in dev/prod).
+
+## 10. v0.4 — extensible platform
+
+### 10.1 Plugin host (`apps/api/src/interview_os/plugins`)
+Plugins are Python directories with `plugin.yaml` + `main.py` exporting `setup(ctx)`, which
+registers tools / skills / middleware (`ctx.tool`, `ctx.skills`, `ctx.middleware`). Manifests are
+slug-id'd (`SLUG_ID_REGEX`), `kind ∈ {tool, skill, hook}`, and any `*.write` other than
+`evidence.write` is rejected at load. Plugins run **in-process** (pure Octop model — trust is
+accepted up front; `docs/design/python-plugin-system.md` §12): `PluginManager` seeds/loads/enables,
+`PluginRegistry` holds the middleware chain, `PluginDispatcher` runs lifecycle hooks, and
+`plugins/inproc.py` adapts them to the `SkillHost` hook path. The plugin receives only input slices
+that are both declared in `inputs` and granted by the user (`PluginView.grantedPermissions`);
+`ctx.runtime` exists only with a granted `runtime.invoke`. `evidenceProposals` are proposal-only:
+schema-validated, confidence capped at `PLUGIN_EVIDENCE_CONFIDENCE_CAP` (0.6), persisted as
+`type:"plugin"` / `source:"plugin:<id>"` by the orchestrator only when `evidence.write` was granted.
+Bundled plugins seed disabled; installed plugins (`data/plugins`) start disabled; enabling is a
+separate user action.
+
+### 10.2 Pack registry (`apps/api/src/interview_os/packs`)
+`PackRegistry` synchronously loads bundled `packs/` and installed `data/packs/` trees:
+`companies/` (`CompanyPackSchema` + overlays → `compileCompanyPack` → `CompanyProfile`),
+`roles/` (`RolePackSchema`), `interview/` (`InterviewPackSchema` YAML). Company/role packs install
+from git (`cloneShallow` — no prompts, no credential helpers); interview packs are stored in the
+`interview_packs` table with create/export/import/delete. **Provenance:** every pack item is
+`sourced` (must cite a declared `sources[].id`, enforced by schema refinement) or `community`
+(rendered "unverified" in UI and prompts). Pack/company content is labeled `Sourced:`/`Community
+observation:` in interviewer guidance.
+
+### 10.3 Question-source routing
+`nextQuestionInternal` gathers candidates in order — user question bank → company-pack overlays →
+role-pack questions → enabled `question_source` plugins (`request.kind:"questions"`) — picks the
+first eligible candidate, and otherwise falls back to the generated interviewer question. Sources
+only *suggest*; the orchestrator always decides the skill and never lets a source inject follow-ups.
+Candidate questions are `QuestionCandidateSchema`-validated and filtered to the target skill/mode; a
+failing/disabled source just falls through. Settings `questionSources` toggles each source family.
+
+### 10.4 MCP context (`apps/api/src/interview_os/mcp`, `orchestrator/services/mcp.py`)
+`McpManager` lazily spawns SDK stdio clients for servers defined **only** in local
+`interview-os.mcp.json` (never HTTP; missing file → none, invalid → surfaced `loadError`). Servers
+are disabled by default; each tool needs an explicit `allowedTools` entry (`mcp_servers` table).
+Child env is minimal + declared `envPassthrough` names only; args ≤ 4 KB; results truncated to 12 000
+chars; 30 s timeout; values never logged or returned. `fetchExternalContext` stores text in
+`external_contexts`; `StartInterviewInput.contextId` injects it into the interviewer as fenced,
+untrusted reference data. Plugins have no MCP access.
+
+### 10.5 Voice (interaction layer only)
+`core/interview/voice.ts`: `VoiceMetricsSchema` (client-measured duration/pauses), deterministic
+`voiceFeedback(metrics, transcript)` → `VoiceSignalSchema[]` (structure/filler/pauses/length/
+conclusion/clarity) + counts + `VOICE_DISCLAIMER`. The client appends a transcript plus `voice`
+metrics on answer submit; the server recomputes counts, stores `{metrics, feedback}` on the answer
+row, and returns `voiceFeedback`. The evaluator input and evidence are unchanged — voice never
+influences evaluation.
+
+### 10.6 Export / import (`core/platform/export.ts`, `orchestrator/export-service.ts`)
+`ExportBundleSchema` covers the 16 user-data tables (runtime_sessions, plugin_installs, mcp_servers,
+usage_events excluded; settings allowlisted — never `runtimeKind`). `exportState`/`exportStatePart`
+emit the full bundle or one part; `importState(bundle, {mode:"replace"})` validates the whole bundle
+(schema + id uniqueness + referential checks) *before* writing, then wipes and inserts in one
+`Store.transaction` and appends a readiness snapshot with reason `import`. HTTP: `GET /api/export[/:part]`
+(dated attachments), `POST /api/import {bundle, confirm:"replace"}` under a 25 MB body limit.
+
+### 10.7 Plugin UI extensions (`packages/ui`, `orchestrator/plugin-service.ts`, `http/routes/ui.ts`)
+Plugins may add experiences only through **declared** extension points, in three levels:
+(1) `kind:"declarative"` contributions — the plugin returns a `UINode` tree
+(`core/platform/ui-schema.ts`: depth ≤ 8, ≤ 300 nodes, no html/style/url fields), validated by
+`validateUITree` at `POST /api/plugins/:id/ui/render` and rendered by the host's
+`DeclarativeRenderer` (`@interview-os/ui/renderer`);
+(2) `kind:"frame"` contributions — plugin-authored components bundled to `ui/index.js`
+(`interview-os build-ui`), rendered inside a **sandboxed opaque-origin iframe**
+(`sandbox="allow-scripts"` only) served by `GET /api/plugins/:id/ui/frame` with
+`connect-src 'none'` CSP and a per-response nonce; the frame's only channel is the
+postMessage bridge (`PluginFrame` + `lib/plugin-frame-bridge.ts`), which enforces
+source-window identity, envelope schema, 64 KB cap, 20 msg/s rate limit, and a closed
+`UIAction` vocabulary; `getData`/`run` hit `POST .../ui/data` and `.../ui/run`, which reuse
+the declared+granted slice gating of a normal plugin run;
+(3) full plugin pages at `/plugins/<id>/<path>` (declarative or frame).
+`ui` sections require capability `ui`; contributions auto-enable with the plugin and are
+listed in the permission review. `interviewModes` add plugin-declared session presets
+(`pluginModeId` on `POST /api/interviews` → `interview_sessions.focus_skills` → planner
+`packFocus`); `taxonomy` registers new skill nodes at load. The iframe never gets
+same-origin, DOM, storage, network, or remote-script access — see `docs/security.md`.
+
+### 10.8 Plugin API v1 + runtime providers (`core/platform/plugin-api.ts`, `runtime/providers.ts`)
+
+Plugin API v1 replaces ad-hoc `request.kind` dispatch with a versioned hook
+contract: `PLUGIN_HOOKS` maps each hook to `{capability, request, response}`
+Zod schemas; the host validates both directions (`PLUGIN_OUTPUT` on invalid
+responses, fail-soft per caller). Plugins implement `handlers` (typed per hook)
+or keep legacy `execute`; manifest `hooks` + runner `describe()` give the
+loader the capability↔hook coverage check. `engines["plugin-api"]` (default
+`^1.0.0`) is semver-checked like `interview-os`.
+
+| Extension point | Contract | Who decides |
+| --- | --- | --- |
+| Question suggestions | `questions.suggest` | core routes; plugin suggests candidates |
+| Prep resources | `resources.suggest` | plugin suggests; host fills skill/source |
+| UI | `ui.render` / `ui.frameRun` | plugin returns tree/output; host renders/sandboxes |
+| Answer review | `evaluation.review` | plugin observes; host persists attributed reviews |
+| Prep suggestions | `preparation.suggest` + accept | plugin suggests; user accepts |
+| Interview modes | manifest `interviewModes` + guidance | plugin declares; core runs the session |
+| Lifecycle events | `events.*` hooks | core fires outside the lock; proposals gated |
+| Company/role packs | `packs/` in plugin dir | PackRegistry loads; collisions are errors |
+| Settings/KV | manifest `settings`, `ctx.storage` | host validates/stores; plugin-owned data |
+| AI runtime | `interview-os.runtimes.json` → `registerRuntimeProvider` | trusted local config only, never HTTP |
+
+`RuntimeManager` gained a provider registry (`packages/runtime/src/providers.ts`):
+`registerRuntimeProvider` adds `create`/`healthCheck` for a non-builtin slug;
+`allRuntimeKinds`/`isRuntimeKind`/probing/switching consult it. Providers load
+at startup from `interview-os.runtimes.json` (`loadRuntimeProviders`; errors
+are surfaced, startup continues) and are tagged `trustedLocal` in
+`GET /api/runtime/available`.

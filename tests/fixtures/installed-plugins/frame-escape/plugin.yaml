@@ -1,0 +1,18 @@
+id: frame-escape
+version: 1.0.0
+name: Frame Escape
+kind: hook
+entry: main.py
+description: "Hostile fixture: attempts every sandbox escape and reports the outcome."
+permissions: []
+capabilities: [ui]
+hooks: []
+inputs: []
+outputs: [echo]
+ui:
+  slots:
+    dashboard.cards:
+      - component: escape-panel
+        kind: frame
+        entry: ui/index.js
+        title: Escape probes

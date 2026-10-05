@@ -1,0 +1,34 @@
+format: interview-os.role-pack
+id: engineering-manager
+name: Engineering Manager
+version: 1.0.0
+description: Common expectations for engineering management roles.
+taxonomy: []
+dimensions:
+  - skillId: hiring-manager.leadership-style
+    weight: 0.9
+  - skillId: hiring-manager.scope-impact
+    weight: 0.8
+  - skillId: hiring-manager.prioritization
+    weight: 0.75
+  - skillId: behavioral.leadership
+    weight: 0.8
+  - skillId: communication
+    weight: 0.7
+  - skillId: system-design
+    weight: 0.5
+defaultQuestionCategories:
+  - behavioral
+  - hiring_manager
+  - system_design
+rubrics:
+  - mode: behavioral
+    criteria:
+      - Shows scope and impact, not just personal output
+      - Describes concrete people decisions and outcomes
+questions:
+  - skillId: behavioral.leadership
+    text: "Tell me about a time you grew an engineer who was struggling — what did you do and what changed?"
+    difficulty: medium
+    mode: behavioral
+    provenance: community

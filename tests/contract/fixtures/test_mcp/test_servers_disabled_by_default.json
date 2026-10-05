@@ -1,0 +1,23 @@
+{
+  "snapshots": {
+    "servers": {
+      "body": {
+        "loadError": null,
+        "servers": [
+          {
+            "allowedTools": [],
+            "args": [
+              "<repo>\\tests\\fixtures\\fake-mcp-server.mjs"
+            ],
+            "command": "C:\\Program Files\\nodejs\\node.EXE",
+            "enabled": false,
+            "envPassthrough": [],
+            "id": "fake",
+            "name": "Fake MCP"
+          }
+        ]
+      },
+      "status": 200
+    }
+  }
+}

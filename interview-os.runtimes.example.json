@@ -1,0 +1,8 @@
+{
+  "providers": [
+    {
+      "kind": "my-local-runtime",
+      "module": "./providers/my-local-runtime.mjs"
+    }
+  ]
+}

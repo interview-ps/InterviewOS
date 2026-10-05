@@ -1,0 +1,346 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "group": "target",
+  "models": {
+    "CompanyNotesProfile": {
+      "description": "§8.4: profile derived from untrusted pasted company notes (an overlay).",
+      "properties": {
+        "behavioralThemes": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Behavioralthemes",
+          "type": "array"
+        },
+        "focusSkillIds": {
+          "items": {
+            "pattern": "^[a-z0-9-]+(\\.[a-z0-9-]+)*$",
+            "type": "string"
+          },
+          "title": "Focusskillids",
+          "type": "array"
+        },
+        "interviewStyle": {
+          "default": "",
+          "title": "Interviewstyle",
+          "type": "string"
+        },
+        "values": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Values",
+          "type": "array"
+        }
+      },
+      "title": "CompanyNotesProfile",
+      "type": "object"
+    },
+    "Requirement": {
+      "$defs": {
+        "RequirementKind": {
+          "enum": [
+            "required",
+            "preferred"
+          ],
+          "title": "RequirementKind",
+          "type": "string"
+        }
+      },
+      "properties": {
+        "baseImportance": {
+          "anyOf": [
+            {
+              "maximum": 1,
+              "minimum": 0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Baseimportance"
+        },
+        "boostedBy": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Boostedby"
+        },
+        "evidence": {
+          "title": "Evidence",
+          "type": "string"
+        },
+        "importance": {
+          "maximum": 1,
+          "minimum": 0,
+          "title": "Importance",
+          "type": "number"
+        },
+        "kind": {
+          "$ref": "#/$defs/RequirementKind"
+        },
+        "label": {
+          "title": "Label",
+          "type": "string"
+        },
+        "origin": {
+          "anyOf": [
+            {
+              "maxLength": 64,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Origin"
+        },
+        "skillId": {
+          "pattern": "^[a-z0-9-]+(\\.[a-z0-9-]+)*$",
+          "title": "Skillid",
+          "type": "string"
+        }
+      },
+      "required": [
+        "skillId",
+        "label",
+        "importance",
+        "kind",
+        "evidence"
+      ],
+      "title": "Requirement",
+      "type": "object"
+    },
+    "TargetRole": {
+      "$defs": {
+        "CompanyNotesProfile": {
+          "description": "§8.4: profile derived from untrusted pasted company notes (an overlay).",
+          "properties": {
+            "behavioralThemes": {
+              "items": {
+                "type": "string"
+              },
+              "title": "Behavioralthemes",
+              "type": "array"
+            },
+            "focusSkillIds": {
+              "items": {
+                "pattern": "^[a-z0-9-]+(\\.[a-z0-9-]+)*$",
+                "type": "string"
+              },
+              "title": "Focusskillids",
+              "type": "array"
+            },
+            "interviewStyle": {
+              "default": "",
+              "title": "Interviewstyle",
+              "type": "string"
+            },
+            "values": {
+              "items": {
+                "type": "string"
+              },
+              "title": "Values",
+              "type": "array"
+            }
+          },
+          "title": "CompanyNotesProfile",
+          "type": "object"
+        },
+        "Level": {
+          "enum": [
+            "junior",
+            "mid",
+            "senior",
+            "staff"
+          ],
+          "title": "Level",
+          "type": "string"
+        },
+        "Requirement": {
+          "properties": {
+            "baseImportance": {
+              "anyOf": [
+                {
+                  "maximum": 1,
+                  "minimum": 0,
+                  "type": "number"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "title": "Baseimportance"
+            },
+            "boostedBy": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "title": "Boostedby"
+            },
+            "evidence": {
+              "title": "Evidence",
+              "type": "string"
+            },
+            "importance": {
+              "maximum": 1,
+              "minimum": 0,
+              "title": "Importance",
+              "type": "number"
+            },
+            "kind": {
+              "$ref": "#/$defs/RequirementKind"
+            },
+            "label": {
+              "title": "Label",
+              "type": "string"
+            },
+            "origin": {
+              "anyOf": [
+                {
+                  "maxLength": 64,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "title": "Origin"
+            },
+            "skillId": {
+              "pattern": "^[a-z0-9-]+(\\.[a-z0-9-]+)*$",
+              "title": "Skillid",
+              "type": "string"
+            }
+          },
+          "required": [
+            "skillId",
+            "label",
+            "importance",
+            "kind",
+            "evidence"
+          ],
+          "title": "Requirement",
+          "type": "object"
+        },
+        "RequirementKind": {
+          "enum": [
+            "required",
+            "preferred"
+          ],
+          "title": "RequirementKind",
+          "type": "string"
+        }
+      },
+      "properties": {
+        "company": {
+          "title": "Company",
+          "type": "string"
+        },
+        "companyNotes": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Companynotes"
+        },
+        "companyProfile": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/CompanyNotesProfile"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "companyProfileId": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Companyprofileid"
+        },
+        "id": {
+          "title": "Id",
+          "type": "string"
+        },
+        "jobDescription": {
+          "title": "Jobdescription",
+          "type": "string"
+        },
+        "level": {
+          "$ref": "#/$defs/Level"
+        },
+        "preferredSkills": {
+          "items": {
+            "$ref": "#/$defs/Requirement"
+          },
+          "title": "Preferredskills",
+          "type": "array"
+        },
+        "requirements": {
+          "items": {
+            "$ref": "#/$defs/Requirement"
+          },
+          "title": "Requirements",
+          "type": "array"
+        },
+        "role": {
+          "title": "Role",
+          "type": "string"
+        },
+        "rolePackId": {
+          "anyOf": [
+            {
+              "maxLength": 80,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Rolepackid"
+        }
+      },
+      "required": [
+        "id",
+        "company",
+        "role",
+        "level",
+        "jobDescription"
+      ],
+      "title": "TargetRole",
+      "type": "object"
+    }
+  }
+}

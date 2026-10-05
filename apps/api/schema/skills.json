@@ -1,0 +1,2850 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "group": "skills",
+  "models": {
+    "EvidenceProposal": {
+      "description": "v0.4: a plugin may propose evidence rows; the server validates, caps\nconfidence, tags source `plugin:<id>` and persists them as type \"plugin\"\nonly when `evidence.write` is granted.",
+      "properties": {
+        "confidence": {
+          "maximum": 1,
+          "minimum": 0,
+          "title": "Confidence",
+          "type": "number"
+        },
+        "observation": {
+          "maxLength": 500,
+          "minLength": 1,
+          "title": "Observation",
+          "type": "string"
+        },
+        "score": {
+          "maximum": 1,
+          "minimum": 0,
+          "title": "Score",
+          "type": "number"
+        },
+        "skillId": {
+          "pattern": "^[a-z0-9-]+(\\.[a-z0-9-]+)*$",
+          "title": "Skillid",
+          "type": "string"
+        }
+      },
+      "required": [
+        "skillId",
+        "score",
+        "confidence",
+        "observation"
+      ],
+      "title": "EvidenceProposal",
+      "type": "object"
+    },
+    "PluginAnswerField": {
+      "$defs": {
+        "AnswerFieldType": {
+          "enum": [
+            "text",
+            "code",
+            "choice",
+            "number"
+          ],
+          "title": "AnswerFieldType",
+          "type": "string"
+        }
+      },
+      "description": "v1.1: one declarative answer field for `answerFormat: \"fields\"` modes.",
+      "properties": {
+        "key": {
+          "pattern": "^[a-z0-9][a-z0-9-]{0,63}$",
+          "title": "Key",
+          "type": "string"
+        },
+        "label": {
+          "maxLength": 80,
+          "minLength": 1,
+          "title": "Label",
+          "type": "string"
+        },
+        "options": {
+          "anyOf": [
+            {
+              "items": {
+                "maxLength": 80,
+                "minLength": 1,
+                "type": "string"
+              },
+              "maxItems": 20,
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Options"
+        },
+        "required": {
+          "default": false,
+          "title": "Required",
+          "type": "boolean"
+        },
+        "type": {
+          "$ref": "#/$defs/AnswerFieldType"
+        }
+      },
+      "required": [
+        "key",
+        "label",
+        "type"
+      ],
+      "title": "PluginAnswerField",
+      "type": "object"
+    },
+    "PluginInterviewMode": {
+      "description": "A plugin-declared interview mode surfaced on the interview start page.",
+      "properties": {
+        "description": {
+          "default": "",
+          "maxLength": 300,
+          "title": "Description",
+          "type": "string"
+        },
+        "focusSkills": {
+          "items": {
+            "pattern": "^[a-z0-9-]+(\\.[a-z0-9-]+)*$",
+            "type": "string"
+          },
+          "maxItems": 12,
+          "title": "Focusskills",
+          "type": "array"
+        },
+        "guidance": {
+          "anyOf": [
+            {
+              "maxLength": 1500,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Guidance"
+        },
+        "id": {
+          "pattern": "^[a-z0-9][a-z0-9-]{0,63}$",
+          "title": "Id",
+          "type": "string"
+        },
+        "label": {
+          "maxLength": 120,
+          "minLength": 1,
+          "title": "Label",
+          "type": "string"
+        },
+        "plannedQuestions": {
+          "default": 4,
+          "maximum": 10,
+          "minimum": 1,
+          "title": "Plannedquestions",
+          "type": "integer"
+        },
+        "roundType": {
+          "anyOf": [
+            {
+              "const": "mixed",
+              "type": "string"
+            },
+            {
+              "pattern": "^[a-z0-9][a-z0-9_-]{0,63}$",
+              "type": "string"
+            }
+          ],
+          "title": "Roundtype"
+        }
+      },
+      "required": [
+        "id",
+        "label",
+        "roundType"
+      ],
+      "title": "PluginInterviewMode",
+      "type": "object"
+    },
+    "PluginModeContext": {
+      "description": "Host-side context the interviewer skill receives — never sent to the plugin.",
+      "properties": {
+        "companyThemes": {
+          "default": false,
+          "title": "Companythemes",
+          "type": "boolean"
+        },
+        "storyTitles": {
+          "default": false,
+          "title": "Storytitles",
+          "type": "boolean"
+        }
+      },
+      "title": "PluginModeContext",
+      "type": "object"
+    },
+    "PluginModeDefinition": {
+      "$defs": {
+        "AnswerFieldType": {
+          "enum": [
+            "text",
+            "code",
+            "choice",
+            "number"
+          ],
+          "title": "AnswerFieldType",
+          "type": "string"
+        },
+        "PluginAnswerField": {
+          "description": "v1.1: one declarative answer field for `answerFormat: \"fields\"` modes.",
+          "properties": {
+            "key": {
+              "pattern": "^[a-z0-9][a-z0-9-]{0,63}$",
+              "title": "Key",
+              "type": "string"
+            },
+            "label": {
+              "maxLength": 80,
+              "minLength": 1,
+              "title": "Label",
+              "type": "string"
+            },
+            "options": {
+              "anyOf": [
+                {
+                  "items": {
+                    "maxLength": 80,
+                    "minLength": 1,
+                    "type": "string"
+                  },
+                  "maxItems": 20,
+                  "type": "array"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "title": "Options"
+            },
+            "required": {
+              "default": false,
+              "title": "Required",
+              "type": "boolean"
+            },
+            "type": {
+              "$ref": "#/$defs/AnswerFieldType"
+            }
+          },
+          "required": [
+            "key",
+            "label",
+            "type"
+          ],
+          "title": "PluginAnswerField",
+          "type": "object"
+        },
+        "PluginModeContext": {
+          "description": "Host-side context the interviewer skill receives — never sent to the plugin.",
+          "properties": {
+            "companyThemes": {
+              "default": false,
+              "title": "Companythemes",
+              "type": "boolean"
+            },
+            "storyTitles": {
+              "default": false,
+              "title": "Storytitles",
+              "type": "boolean"
+            }
+          },
+          "title": "PluginModeContext",
+          "type": "object"
+        },
+        "PluginModeFollowUpRule": {
+          "description": "v1: declarative follow-up rule for a plugin interview mode.",
+          "properties": {
+            "below": {
+              "maximum": 1,
+              "minimum": 0,
+              "title": "Below",
+              "type": "number"
+            },
+            "focus": {
+              "maxLength": 120,
+              "minLength": 1,
+              "title": "Focus",
+              "type": "string"
+            },
+            "rubricId": {
+              "maxLength": 60,
+              "minLength": 1,
+              "title": "Rubricid",
+              "type": "string"
+            }
+          },
+          "required": [
+            "rubricId",
+            "below",
+            "focus"
+          ],
+          "title": "PluginModeFollowUpRule",
+          "type": "object"
+        },
+        "PluginModeReduce": {
+          "properties": {
+            "copyExtra": {
+              "anyOf": [
+                {
+                  "items": {
+                    "maxLength": 60,
+                    "minLength": 1,
+                    "type": "string"
+                  },
+                  "maxItems": 20,
+                  "type": "array"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "title": "Copyextra"
+            },
+            "set": {
+              "anyOf": [
+                {
+                  "additionalProperties": true,
+                  "type": "object"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "title": "Set"
+            }
+          },
+          "title": "PluginModeReduce",
+          "type": "object"
+        },
+        "PluginModeScope": {
+          "description": "Taxonomy scoping: inScope = (include empty || any inSubtree(include))\n&& !any inSubtree(exclude).",
+          "properties": {
+            "exclude": {
+              "items": {
+                "pattern": "^[a-z0-9-]+(\\.[a-z0-9-]+)*$",
+                "type": "string"
+              },
+              "maxItems": 30,
+              "title": "Exclude",
+              "type": "array"
+            },
+            "include": {
+              "items": {
+                "pattern": "^[a-z0-9-]+(\\.[a-z0-9-]+)*$",
+                "type": "string"
+              },
+              "maxItems": 30,
+              "title": "Include",
+              "type": "array"
+            }
+          },
+          "title": "PluginModeScope",
+          "type": "object"
+        },
+        "RubricDimension": {
+          "description": "§9.1: one independent rubric dimension the evaluator must score.",
+          "properties": {
+            "description": {
+              "default": "",
+              "maxLength": 300,
+              "title": "Description",
+              "type": "string"
+            },
+            "id": {
+              "maxLength": 60,
+              "minLength": 1,
+              "title": "Id",
+              "type": "string"
+            },
+            "label": {
+              "maxLength": 120,
+              "minLength": 1,
+              "title": "Label",
+              "type": "string"
+            }
+          },
+          "required": [
+            "id",
+            "label"
+          ],
+          "title": "RubricDimension",
+          "type": "object"
+        }
+      },
+      "description": "v1: a plugin-defined interview mode (manifest `modes`).",
+      "properties": {
+        "answerFields": {
+          "items": {
+            "$ref": "#/$defs/PluginAnswerField"
+          },
+          "maxItems": 8,
+          "title": "Answerfields",
+          "type": "array"
+        },
+        "answerFormat": {
+          "default": "text",
+          "enum": [
+            "text",
+            "text+code",
+            "fields"
+          ],
+          "title": "Answerformat",
+          "type": "string"
+        },
+        "context": {
+          "$ref": "#/$defs/PluginModeContext"
+        },
+        "description": {
+          "default": "",
+          "maxLength": 300,
+          "title": "Description",
+          "type": "string"
+        },
+        "evaluatorPrompt": {
+          "anyOf": [
+            {
+              "maxLength": 200,
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Evaluatorprompt"
+        },
+        "fallbackSkills": {
+          "items": {
+            "pattern": "^[a-z0-9-]+(\\.[a-z0-9-]+)*$",
+            "type": "string"
+          },
+          "maxItems": 30,
+          "title": "Fallbackskills",
+          "type": "array"
+        },
+        "followUp": {
+          "anyOf": [
+            {
+              "enum": [
+                "generic",
+                "rules",
+                "never"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Followup"
+        },
+        "followUpReason": {
+          "anyOf": [
+            {
+              "maxLength": 200,
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Followupreason"
+        },
+        "followUpRules": {
+          "anyOf": [
+            {
+              "items": {
+                "$ref": "#/$defs/PluginModeFollowUpRule"
+              },
+              "maxItems": 10,
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Followuprules"
+        },
+        "id": {
+          "pattern": "^[a-z0-9][a-z0-9_-]{0,63}$",
+          "title": "Id",
+          "type": "string"
+        },
+        "initialState": {
+          "additionalProperties": true,
+          "title": "Initialstate",
+          "type": "object"
+        },
+        "interviewerPrompt": {
+          "anyOf": [
+            {
+              "maxLength": 200,
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Interviewerprompt"
+        },
+        "label": {
+          "maxLength": 120,
+          "minLength": 1,
+          "title": "Label",
+          "type": "string"
+        },
+        "reduce": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/PluginModeReduce"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "rubric": {
+          "items": {
+            "$ref": "#/$defs/RubricDimension"
+          },
+          "maxItems": 12,
+          "minItems": 1,
+          "title": "Rubric",
+          "type": "array"
+        },
+        "scope": {
+          "$ref": "#/$defs/PluginModeScope"
+        }
+      },
+      "required": [
+        "id",
+        "label",
+        "rubric"
+      ],
+      "title": "PluginModeDefinition",
+      "type": "object"
+    },
+    "PluginModeFollowUpRule": {
+      "description": "v1: declarative follow-up rule for a plugin interview mode.",
+      "properties": {
+        "below": {
+          "maximum": 1,
+          "minimum": 0,
+          "title": "Below",
+          "type": "number"
+        },
+        "focus": {
+          "maxLength": 120,
+          "minLength": 1,
+          "title": "Focus",
+          "type": "string"
+        },
+        "rubricId": {
+          "maxLength": 60,
+          "minLength": 1,
+          "title": "Rubricid",
+          "type": "string"
+        }
+      },
+      "required": [
+        "rubricId",
+        "below",
+        "focus"
+      ],
+      "title": "PluginModeFollowUpRule",
+      "type": "object"
+    },
+    "PluginModeReduce": {
+      "properties": {
+        "copyExtra": {
+          "anyOf": [
+            {
+              "items": {
+                "maxLength": 60,
+                "minLength": 1,
+                "type": "string"
+              },
+              "maxItems": 20,
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Copyextra"
+        },
+        "set": {
+          "anyOf": [
+            {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Set"
+        }
+      },
+      "title": "PluginModeReduce",
+      "type": "object"
+    },
+    "PluginModeScope": {
+      "description": "Taxonomy scoping: inScope = (include empty || any inSubtree(include))\n&& !any inSubtree(exclude).",
+      "properties": {
+        "exclude": {
+          "items": {
+            "pattern": "^[a-z0-9-]+(\\.[a-z0-9-]+)*$",
+            "type": "string"
+          },
+          "maxItems": 30,
+          "title": "Exclude",
+          "type": "array"
+        },
+        "include": {
+          "items": {
+            "pattern": "^[a-z0-9-]+(\\.[a-z0-9-]+)*$",
+            "type": "string"
+          },
+          "maxItems": 30,
+          "title": "Include",
+          "type": "array"
+        }
+      },
+      "title": "PluginModeScope",
+      "type": "object"
+    },
+    "PluginOutputExtensions": {
+      "$defs": {
+        "EvidenceProposal": {
+          "description": "v0.4: a plugin may propose evidence rows; the server validates, caps\nconfidence, tags source `plugin:<id>` and persists them as type \"plugin\"\nonly when `evidence.write` is granted.",
+          "properties": {
+            "confidence": {
+              "maximum": 1,
+              "minimum": 0,
+              "title": "Confidence",
+              "type": "number"
+            },
+            "observation": {
+              "maxLength": 500,
+              "minLength": 1,
+              "title": "Observation",
+              "type": "string"
+            },
+            "score": {
+              "maximum": 1,
+              "minimum": 0,
+              "title": "Score",
+              "type": "number"
+            },
+            "skillId": {
+              "pattern": "^[a-z0-9-]+(\\.[a-z0-9-]+)*$",
+              "title": "Skillid",
+              "type": "string"
+            }
+          },
+          "required": [
+            "skillId",
+            "score",
+            "confidence",
+            "observation"
+          ],
+          "title": "EvidenceProposal",
+          "type": "object"
+        }
+      },
+      "description": "Optional extension field a plugin's JSON output may carry.",
+      "properties": {
+        "evidenceProposals": {
+          "anyOf": [
+            {
+              "items": {
+                "$ref": "#/$defs/EvidenceProposal"
+              },
+              "maxItems": 20,
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Evidenceproposals"
+        }
+      },
+      "title": "PluginOutputExtensions",
+      "type": "object"
+    },
+    "PluginTaxonomyNode": {
+      "description": "Extra taxonomy nodes a plugin may register (same shape as role packs).",
+      "properties": {
+        "id": {
+          "pattern": "^[a-z0-9-]+(\\.[a-z0-9-]+)*$",
+          "title": "Id",
+          "type": "string"
+        },
+        "keywords": {
+          "items": {
+            "maxLength": 80,
+            "minLength": 1,
+            "type": "string"
+          },
+          "title": "Keywords",
+          "type": "array"
+        },
+        "label": {
+          "maxLength": 120,
+          "minLength": 1,
+          "title": "Label",
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "label"
+      ],
+      "title": "PluginTaxonomyNode",
+      "type": "object"
+    },
+    "PluginUI": {
+      "$defs": {
+        "PluginUICommand": {
+          "properties": {
+            "action": {
+              "discriminator": {
+                "mapping": {
+                  "navigate": "#/$defs/UIActionNavigate",
+                  "openPluginPage": "#/$defs/UIActionOpenPluginPage",
+                  "runPlugin": "#/$defs/UIActionRunPlugin",
+                  "startInterview": "#/$defs/UIActionStartInterview",
+                  "startPractice": "#/$defs/UIActionStartPractice"
+                },
+                "propertyName": "type"
+              },
+              "oneOf": [
+                {
+                  "$ref": "#/$defs/UIActionNavigate"
+                },
+                {
+                  "$ref": "#/$defs/UIActionStartInterview"
+                },
+                {
+                  "$ref": "#/$defs/UIActionStartPractice"
+                },
+                {
+                  "$ref": "#/$defs/UIActionRunPlugin"
+                },
+                {
+                  "$ref": "#/$defs/UIActionOpenPluginPage"
+                }
+              ],
+              "title": "Action"
+            },
+            "id": {
+              "pattern": "^[a-z0-9][a-z0-9-]{0,63}$",
+              "title": "Id",
+              "type": "string"
+            },
+            "label": {
+              "maxLength": 120,
+              "minLength": 1,
+              "title": "Label",
+              "type": "string"
+            }
+          },
+          "required": [
+            "id",
+            "label",
+            "action"
+          ],
+          "title": "PluginUICommand",
+          "type": "object"
+        },
+        "PluginUIContribution": {
+          "properties": {
+            "component": {
+              "pattern": "^[a-z0-9][a-z0-9-]{0,63}$",
+              "title": "Component",
+              "type": "string"
+            },
+            "entry": {
+              "anyOf": [
+                {
+                  "maxLength": 200,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "title": "Entry"
+            },
+            "kind": {
+              "enum": [
+                "declarative",
+                "frame"
+              ],
+              "title": "Kind",
+              "type": "string"
+            },
+            "title": {
+              "anyOf": [
+                {
+                  "maxLength": 120,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "title": "Title"
+            }
+          },
+          "required": [
+            "component",
+            "kind"
+          ],
+          "title": "PluginUIContribution",
+          "type": "object"
+        },
+        "PluginUIIcon": {
+          "description": "Fixed icon vocabulary for plugin navigation items.",
+          "enum": [
+            "database",
+            "cloud",
+            "code",
+            "book",
+            "chart",
+            "puzzle",
+            "shield",
+            "star"
+          ],
+          "title": "PluginUIIcon",
+          "type": "string"
+        },
+        "PluginUINavItem": {
+          "properties": {
+            "icon": {
+              "$ref": "#/$defs/PluginUIIcon"
+            },
+            "label": {
+              "maxLength": 60,
+              "minLength": 1,
+              "title": "Label",
+              "type": "string"
+            },
+            "page": {
+              "maxLength": 120,
+              "pattern": "^/",
+              "title": "Page",
+              "type": "string"
+            }
+          },
+          "required": [
+            "label",
+            "icon",
+            "page"
+          ],
+          "title": "PluginUINavItem",
+          "type": "object"
+        },
+        "PluginUIPage": {
+          "properties": {
+            "component": {
+              "pattern": "^[a-z0-9][a-z0-9-]{0,63}$",
+              "title": "Component",
+              "type": "string"
+            },
+            "entry": {
+              "anyOf": [
+                {
+                  "maxLength": 200,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "title": "Entry"
+            },
+            "kind": {
+              "enum": [
+                "declarative",
+                "frame"
+              ],
+              "title": "Kind",
+              "type": "string"
+            },
+            "path": {
+              "maxLength": 120,
+              "pattern": "^/",
+              "title": "Path",
+              "type": "string"
+            },
+            "title": {
+              "maxLength": 120,
+              "minLength": 1,
+              "title": "Title",
+              "type": "string"
+            }
+          },
+          "required": [
+            "path",
+            "title",
+            "kind",
+            "component"
+          ],
+          "title": "PluginUIPage",
+          "type": "object"
+        },
+        "PluginUISlot": {
+          "enum": [
+            "dashboard.cards",
+            "dashboard.sidebar",
+            "target.tabs",
+            "prepare.activities",
+            "interview.sidebar",
+            "interview.toolbar",
+            "interview.question",
+            "readiness.panels",
+            "resume.tabs",
+            "settings.sections"
+          ],
+          "title": "PluginUISlot",
+          "type": "string"
+        },
+        "UIActionNavigate": {
+          "additionalProperties": false,
+          "properties": {
+            "to": {
+              "maxLength": 300,
+              "minLength": 1,
+              "title": "To",
+              "type": "string"
+            },
+            "type": {
+              "const": "navigate",
+              "title": "Type",
+              "type": "string"
+            }
+          },
+          "required": [
+            "type",
+            "to"
+          ],
+          "title": "UIActionNavigate",
+          "type": "object"
+        },
+        "UIActionOpenPluginPage": {
+          "additionalProperties": false,
+          "properties": {
+            "path": {
+              "maxLength": 120,
+              "pattern": "^/",
+              "title": "Path",
+              "type": "string"
+            },
+            "type": {
+              "const": "openPluginPage",
+              "title": "Type",
+              "type": "string"
+            }
+          },
+          "required": [
+            "type",
+            "path"
+          ],
+          "title": "UIActionOpenPluginPage",
+          "type": "object"
+        },
+        "UIActionRunPlugin": {
+          "additionalProperties": false,
+          "properties": {
+            "request": {
+              "additionalProperties": true,
+              "title": "Request",
+              "type": "object"
+            },
+            "type": {
+              "const": "runPlugin",
+              "title": "Type",
+              "type": "string"
+            }
+          },
+          "required": [
+            "type",
+            "request"
+          ],
+          "title": "UIActionRunPlugin",
+          "type": "object"
+        },
+        "UIActionStartInterview": {
+          "additionalProperties": false,
+          "properties": {
+            "modeId": {
+              "anyOf": [
+                {
+                  "pattern": "^[a-z0-9][a-z0-9-]{0,63}$",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "title": "Modeid"
+            },
+            "plannedQuestions": {
+              "anyOf": [
+                {
+                  "maximum": 10,
+                  "minimum": 1,
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "title": "Plannedquestions"
+            },
+            "roundType": {
+              "anyOf": [
+                {
+                  "const": "mixed",
+                  "type": "string"
+                },
+                {
+                  "pattern": "^[a-z0-9][a-z0-9_-]{0,63}$",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "title": "Roundtype"
+            },
+            "type": {
+              "const": "startInterview",
+              "title": "Type",
+              "type": "string"
+            }
+          },
+          "required": [
+            "type"
+          ],
+          "title": "UIActionStartInterview",
+          "type": "object"
+        },
+        "UIActionStartPractice": {
+          "additionalProperties": false,
+          "properties": {
+            "skillId": {
+              "pattern": "^[a-z0-9-]+(\\.[a-z0-9-]+)*$",
+              "title": "Skillid",
+              "type": "string"
+            },
+            "type": {
+              "const": "startPractice",
+              "title": "Type",
+              "type": "string"
+            }
+          },
+          "required": [
+            "type",
+            "skillId"
+          ],
+          "title": "UIActionStartPractice",
+          "type": "object"
+        }
+      },
+      "properties": {
+        "commands": {
+          "items": {
+            "$ref": "#/$defs/PluginUICommand"
+          },
+          "maxItems": 5,
+          "title": "Commands",
+          "type": "array"
+        },
+        "navigation": {
+          "items": {
+            "$ref": "#/$defs/PluginUINavItem"
+          },
+          "maxItems": 2,
+          "title": "Navigation",
+          "type": "array"
+        },
+        "pages": {
+          "items": {
+            "$ref": "#/$defs/PluginUIPage"
+          },
+          "maxItems": 5,
+          "title": "Pages",
+          "type": "array"
+        },
+        "slots": {
+          "additionalProperties": {
+            "items": {
+              "$ref": "#/$defs/PluginUIContribution"
+            },
+            "type": "array"
+          },
+          "propertyNames": {
+            "$ref": "#/$defs/PluginUISlot"
+          },
+          "title": "Slots",
+          "type": "object"
+        }
+      },
+      "title": "PluginUI",
+      "type": "object"
+    },
+    "PluginUICommand": {
+      "$defs": {
+        "UIActionNavigate": {
+          "additionalProperties": false,
+          "properties": {
+            "to": {
+              "maxLength": 300,
+              "minLength": 1,
+              "title": "To",
+              "type": "string"
+            },
+            "type": {
+              "const": "navigate",
+              "title": "Type",
+              "type": "string"
+            }
+          },
+          "required": [
+            "type",
+            "to"
+          ],
+          "title": "UIActionNavigate",
+          "type": "object"
+        },
+        "UIActionOpenPluginPage": {
+          "additionalProperties": false,
+          "properties": {
+            "path": {
+              "maxLength": 120,
+              "pattern": "^/",
+              "title": "Path",
+              "type": "string"
+            },
+            "type": {
+              "const": "openPluginPage",
+              "title": "Type",
+              "type": "string"
+            }
+          },
+          "required": [
+            "type",
+            "path"
+          ],
+          "title": "UIActionOpenPluginPage",
+          "type": "object"
+        },
+        "UIActionRunPlugin": {
+          "additionalProperties": false,
+          "properties": {
+            "request": {
+              "additionalProperties": true,
+              "title": "Request",
+              "type": "object"
+            },
+            "type": {
+              "const": "runPlugin",
+              "title": "Type",
+              "type": "string"
+            }
+          },
+          "required": [
+            "type",
+            "request"
+          ],
+          "title": "UIActionRunPlugin",
+          "type": "object"
+        },
+        "UIActionStartInterview": {
+          "additionalProperties": false,
+          "properties": {
+            "modeId": {
+              "anyOf": [
+                {
+                  "pattern": "^[a-z0-9][a-z0-9-]{0,63}$",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "title": "Modeid"
+            },
+            "plannedQuestions": {
+              "anyOf": [
+                {
+                  "maximum": 10,
+                  "minimum": 1,
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "title": "Plannedquestions"
+            },
+            "roundType": {
+              "anyOf": [
+                {
+                  "const": "mixed",
+                  "type": "string"
+                },
+                {
+                  "pattern": "^[a-z0-9][a-z0-9_-]{0,63}$",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "title": "Roundtype"
+            },
+            "type": {
+              "const": "startInterview",
+              "title": "Type",
+              "type": "string"
+            }
+          },
+          "required": [
+            "type"
+          ],
+          "title": "UIActionStartInterview",
+          "type": "object"
+        },
+        "UIActionStartPractice": {
+          "additionalProperties": false,
+          "properties": {
+            "skillId": {
+              "pattern": "^[a-z0-9-]+(\\.[a-z0-9-]+)*$",
+              "title": "Skillid",
+              "type": "string"
+            },
+            "type": {
+              "const": "startPractice",
+              "title": "Type",
+              "type": "string"
+            }
+          },
+          "required": [
+            "type",
+            "skillId"
+          ],
+          "title": "UIActionStartPractice",
+          "type": "object"
+        }
+      },
+      "properties": {
+        "action": {
+          "discriminator": {
+            "mapping": {
+              "navigate": "#/$defs/UIActionNavigate",
+              "openPluginPage": "#/$defs/UIActionOpenPluginPage",
+              "runPlugin": "#/$defs/UIActionRunPlugin",
+              "startInterview": "#/$defs/UIActionStartInterview",
+              "startPractice": "#/$defs/UIActionStartPractice"
+            },
+            "propertyName": "type"
+          },
+          "oneOf": [
+            {
+              "$ref": "#/$defs/UIActionNavigate"
+            },
+            {
+              "$ref": "#/$defs/UIActionStartInterview"
+            },
+            {
+              "$ref": "#/$defs/UIActionStartPractice"
+            },
+            {
+              "$ref": "#/$defs/UIActionRunPlugin"
+            },
+            {
+              "$ref": "#/$defs/UIActionOpenPluginPage"
+            }
+          ],
+          "title": "Action"
+        },
+        "id": {
+          "pattern": "^[a-z0-9][a-z0-9-]{0,63}$",
+          "title": "Id",
+          "type": "string"
+        },
+        "label": {
+          "maxLength": 120,
+          "minLength": 1,
+          "title": "Label",
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "label",
+        "action"
+      ],
+      "title": "PluginUICommand",
+      "type": "object"
+    },
+    "PluginUIContribution": {
+      "properties": {
+        "component": {
+          "pattern": "^[a-z0-9][a-z0-9-]{0,63}$",
+          "title": "Component",
+          "type": "string"
+        },
+        "entry": {
+          "anyOf": [
+            {
+              "maxLength": 200,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Entry"
+        },
+        "kind": {
+          "enum": [
+            "declarative",
+            "frame"
+          ],
+          "title": "Kind",
+          "type": "string"
+        },
+        "title": {
+          "anyOf": [
+            {
+              "maxLength": 120,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Title"
+        }
+      },
+      "required": [
+        "component",
+        "kind"
+      ],
+      "title": "PluginUIContribution",
+      "type": "object"
+    },
+    "PluginUINavItem": {
+      "$defs": {
+        "PluginUIIcon": {
+          "description": "Fixed icon vocabulary for plugin navigation items.",
+          "enum": [
+            "database",
+            "cloud",
+            "code",
+            "book",
+            "chart",
+            "puzzle",
+            "shield",
+            "star"
+          ],
+          "title": "PluginUIIcon",
+          "type": "string"
+        }
+      },
+      "properties": {
+        "icon": {
+          "$ref": "#/$defs/PluginUIIcon"
+        },
+        "label": {
+          "maxLength": 60,
+          "minLength": 1,
+          "title": "Label",
+          "type": "string"
+        },
+        "page": {
+          "maxLength": 120,
+          "pattern": "^/",
+          "title": "Page",
+          "type": "string"
+        }
+      },
+      "required": [
+        "label",
+        "icon",
+        "page"
+      ],
+      "title": "PluginUINavItem",
+      "type": "object"
+    },
+    "PluginUIPage": {
+      "properties": {
+        "component": {
+          "pattern": "^[a-z0-9][a-z0-9-]{0,63}$",
+          "title": "Component",
+          "type": "string"
+        },
+        "entry": {
+          "anyOf": [
+            {
+              "maxLength": 200,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Entry"
+        },
+        "kind": {
+          "enum": [
+            "declarative",
+            "frame"
+          ],
+          "title": "Kind",
+          "type": "string"
+        },
+        "path": {
+          "maxLength": 120,
+          "pattern": "^/",
+          "title": "Path",
+          "type": "string"
+        },
+        "title": {
+          "maxLength": 120,
+          "minLength": 1,
+          "title": "Title",
+          "type": "string"
+        }
+      },
+      "required": [
+        "path",
+        "title",
+        "kind",
+        "component"
+      ],
+      "title": "PluginUIPage",
+      "type": "object"
+    },
+    "SkillManifest": {
+      "$defs": {
+        "AnswerFieldType": {
+          "enum": [
+            "text",
+            "code",
+            "choice",
+            "number"
+          ],
+          "title": "AnswerFieldType",
+          "type": "string"
+        },
+        "Permission": {
+          "description": "§9.6 permission names.\n\nRead permissions gate which state slices a skill's manifest may declare as\ninputs; write permissions gate persistence of a skill's outputs.\n`runtime.invoke` gates access to the AI runtime; `taxonomy.read` covers the\nshared skill taxonomy.",
+          "enum": [
+            "candidate.read",
+            "candidate.write",
+            "target.read",
+            "target.write",
+            "readiness.read",
+            "evidence.write",
+            "interview.read",
+            "interview.write",
+            "stories.read",
+            "stories.write",
+            "resume.read",
+            "resume.write",
+            "preparation.write",
+            "taxonomy.read",
+            "answers.read",
+            "runtime.invoke"
+          ],
+          "title": "Permission",
+          "type": "string"
+        },
+        "PluginAnswerField": {
+          "description": "v1.1: one declarative answer field for `answerFormat: \"fields\"` modes.",
+          "properties": {
+            "key": {
+              "pattern": "^[a-z0-9][a-z0-9-]{0,63}$",
+              "title": "Key",
+              "type": "string"
+            },
+            "label": {
+              "maxLength": 80,
+              "minLength": 1,
+              "title": "Label",
+              "type": "string"
+            },
+            "options": {
+              "anyOf": [
+                {
+                  "items": {
+                    "maxLength": 80,
+                    "minLength": 1,
+                    "type": "string"
+                  },
+                  "maxItems": 20,
+                  "type": "array"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "title": "Options"
+            },
+            "required": {
+              "default": false,
+              "title": "Required",
+              "type": "boolean"
+            },
+            "type": {
+              "$ref": "#/$defs/AnswerFieldType"
+            }
+          },
+          "required": [
+            "key",
+            "label",
+            "type"
+          ],
+          "title": "PluginAnswerField",
+          "type": "object"
+        },
+        "PluginAppliesTo": {
+          "description": "v0.4: hooks filter — which skills a plugin applies to (absent = all).",
+          "properties": {
+            "skillPrefixes": {
+              "anyOf": [
+                {
+                  "items": {
+                    "maxLength": 80,
+                    "minLength": 1,
+                    "type": "string"
+                  },
+                  "maxItems": 30,
+                  "type": "array"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "title": "Skillprefixes"
+            }
+          },
+          "title": "PluginAppliesTo",
+          "type": "object"
+        },
+        "PluginCapability": {
+          "description": "v0.4: platform-facing capability tags for plugin discovery.",
+          "enum": [
+            "interview",
+            "evaluation",
+            "question_source",
+            "preparation",
+            "resources",
+            "company_pack",
+            "role_pack",
+            "interview_mode",
+            "checklist",
+            "ui"
+          ],
+          "title": "PluginCapability",
+          "type": "string"
+        },
+        "PluginInterviewMode": {
+          "description": "A plugin-declared interview mode surfaced on the interview start page.",
+          "properties": {
+            "description": {
+              "default": "",
+              "maxLength": 300,
+              "title": "Description",
+              "type": "string"
+            },
+            "focusSkills": {
+              "items": {
+                "pattern": "^[a-z0-9-]+(\\.[a-z0-9-]+)*$",
+                "type": "string"
+              },
+              "maxItems": 12,
+              "title": "Focusskills",
+              "type": "array"
+            },
+            "guidance": {
+              "anyOf": [
+                {
+                  "maxLength": 1500,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "title": "Guidance"
+            },
+            "id": {
+              "pattern": "^[a-z0-9][a-z0-9-]{0,63}$",
+              "title": "Id",
+              "type": "string"
+            },
+            "label": {
+              "maxLength": 120,
+              "minLength": 1,
+              "title": "Label",
+              "type": "string"
+            },
+            "plannedQuestions": {
+              "default": 4,
+              "maximum": 10,
+              "minimum": 1,
+              "title": "Plannedquestions",
+              "type": "integer"
+            },
+            "roundType": {
+              "anyOf": [
+                {
+                  "const": "mixed",
+                  "type": "string"
+                },
+                {
+                  "pattern": "^[a-z0-9][a-z0-9_-]{0,63}$",
+                  "type": "string"
+                }
+              ],
+              "title": "Roundtype"
+            }
+          },
+          "required": [
+            "id",
+            "label",
+            "roundType"
+          ],
+          "title": "PluginInterviewMode",
+          "type": "object"
+        },
+        "PluginModeContext": {
+          "description": "Host-side context the interviewer skill receives — never sent to the plugin.",
+          "properties": {
+            "companyThemes": {
+              "default": false,
+              "title": "Companythemes",
+              "type": "boolean"
+            },
+            "storyTitles": {
+              "default": false,
+              "title": "Storytitles",
+              "type": "boolean"
+            }
+          },
+          "title": "PluginModeContext",
+          "type": "object"
+        },
+        "PluginModeDefinition": {
+          "description": "v1: a plugin-defined interview mode (manifest `modes`).",
+          "properties": {
+            "answerFields": {
+              "items": {
+                "$ref": "#/$defs/PluginAnswerField"
+              },
+              "maxItems": 8,
+              "title": "Answerfields",
+              "type": "array"
+            },
+            "answerFormat": {
+              "default": "text",
+              "enum": [
+                "text",
+                "text+code",
+                "fields"
+              ],
+              "title": "Answerformat",
+              "type": "string"
+            },
+            "context": {
+              "$ref": "#/$defs/PluginModeContext"
+            },
+            "description": {
+              "default": "",
+              "maxLength": 300,
+              "title": "Description",
+              "type": "string"
+            },
+            "evaluatorPrompt": {
+              "anyOf": [
+                {
+                  "maxLength": 200,
+                  "minLength": 1,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "title": "Evaluatorprompt"
+            },
+            "fallbackSkills": {
+              "items": {
+                "pattern": "^[a-z0-9-]+(\\.[a-z0-9-]+)*$",
+                "type": "string"
+              },
+              "maxItems": 30,
+              "title": "Fallbackskills",
+              "type": "array"
+            },
+            "followUp": {
+              "anyOf": [
+                {
+                  "enum": [
+                    "generic",
+                    "rules",
+                    "never"
+                  ],
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "title": "Followup"
+            },
+            "followUpReason": {
+              "anyOf": [
+                {
+                  "maxLength": 200,
+                  "minLength": 1,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "title": "Followupreason"
+            },
+            "followUpRules": {
+              "anyOf": [
+                {
+                  "items": {
+                    "$ref": "#/$defs/PluginModeFollowUpRule"
+                  },
+                  "maxItems": 10,
+                  "type": "array"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "title": "Followuprules"
+            },
+            "id": {
+              "pattern": "^[a-z0-9][a-z0-9_-]{0,63}$",
+              "title": "Id",
+              "type": "string"
+            },
+            "initialState": {
+              "additionalProperties": true,
+              "title": "Initialstate",
+              "type": "object"
+            },
+            "interviewerPrompt": {
+              "anyOf": [
+                {
+                  "maxLength": 200,
+                  "minLength": 1,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "title": "Interviewerprompt"
+            },
+            "label": {
+              "maxLength": 120,
+              "minLength": 1,
+              "title": "Label",
+              "type": "string"
+            },
+            "reduce": {
+              "anyOf": [
+                {
+                  "$ref": "#/$defs/PluginModeReduce"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null
+            },
+            "rubric": {
+              "items": {
+                "$ref": "#/$defs/RubricDimension"
+              },
+              "maxItems": 12,
+              "minItems": 1,
+              "title": "Rubric",
+              "type": "array"
+            },
+            "scope": {
+              "$ref": "#/$defs/PluginModeScope"
+            }
+          },
+          "required": [
+            "id",
+            "label",
+            "rubric"
+          ],
+          "title": "PluginModeDefinition",
+          "type": "object"
+        },
+        "PluginModeFollowUpRule": {
+          "description": "v1: declarative follow-up rule for a plugin interview mode.",
+          "properties": {
+            "below": {
+              "maximum": 1,
+              "minimum": 0,
+              "title": "Below",
+              "type": "number"
+            },
+            "focus": {
+              "maxLength": 120,
+              "minLength": 1,
+              "title": "Focus",
+              "type": "string"
+            },
+            "rubricId": {
+              "maxLength": 60,
+              "minLength": 1,
+              "title": "Rubricid",
+              "type": "string"
+            }
+          },
+          "required": [
+            "rubricId",
+            "below",
+            "focus"
+          ],
+          "title": "PluginModeFollowUpRule",
+          "type": "object"
+        },
+        "PluginModeReduce": {
+          "properties": {
+            "copyExtra": {
+              "anyOf": [
+                {
+                  "items": {
+                    "maxLength": 60,
+                    "minLength": 1,
+                    "type": "string"
+                  },
+                  "maxItems": 20,
+                  "type": "array"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "title": "Copyextra"
+            },
+            "set": {
+              "anyOf": [
+                {
+                  "additionalProperties": true,
+                  "type": "object"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "title": "Set"
+            }
+          },
+          "title": "PluginModeReduce",
+          "type": "object"
+        },
+        "PluginModeScope": {
+          "description": "Taxonomy scoping: inScope = (include empty || any inSubtree(include))\n&& !any inSubtree(exclude).",
+          "properties": {
+            "exclude": {
+              "items": {
+                "pattern": "^[a-z0-9-]+(\\.[a-z0-9-]+)*$",
+                "type": "string"
+              },
+              "maxItems": 30,
+              "title": "Exclude",
+              "type": "array"
+            },
+            "include": {
+              "items": {
+                "pattern": "^[a-z0-9-]+(\\.[a-z0-9-]+)*$",
+                "type": "string"
+              },
+              "maxItems": 30,
+              "title": "Include",
+              "type": "array"
+            }
+          },
+          "title": "PluginModeScope",
+          "type": "object"
+        },
+        "PluginSettingField": {
+          "description": "v0.4: one declared plugin setting field (auto-rendered config UI).",
+          "properties": {
+            "default": {
+              "anyOf": [
+                {
+                  "maxLength": 4000,
+                  "type": "string"
+                },
+                {
+                  "type": "integer"
+                },
+                {
+                  "type": "number"
+                },
+                {
+                  "type": "boolean"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "title": "Default"
+            },
+            "description": {
+              "anyOf": [
+                {
+                  "maxLength": 300,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "title": "Description"
+            },
+            "key": {
+              "pattern": "^[a-z0-9][a-z0-9-]{0,63}$",
+              "title": "Key",
+              "type": "string"
+            },
+            "label": {
+              "maxLength": 120,
+              "minLength": 1,
+              "title": "Label",
+              "type": "string"
+            },
+            "options": {
+              "anyOf": [
+                {
+                  "items": {
+                    "maxLength": 80,
+                    "minLength": 1,
+                    "type": "string"
+                  },
+                  "maxItems": 20,
+                  "type": "array"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "title": "Options"
+            },
+            "type": {
+              "$ref": "#/$defs/PluginSettingFieldType"
+            }
+          },
+          "required": [
+            "key",
+            "label",
+            "type"
+          ],
+          "title": "PluginSettingField",
+          "type": "object"
+        },
+        "PluginSettingFieldType": {
+          "enum": [
+            "string",
+            "number",
+            "boolean",
+            "enum"
+          ],
+          "title": "PluginSettingFieldType",
+          "type": "string"
+        },
+        "PluginTaxonomyNode": {
+          "description": "Extra taxonomy nodes a plugin may register (same shape as role packs).",
+          "properties": {
+            "id": {
+              "pattern": "^[a-z0-9-]+(\\.[a-z0-9-]+)*$",
+              "title": "Id",
+              "type": "string"
+            },
+            "keywords": {
+              "items": {
+                "maxLength": 80,
+                "minLength": 1,
+                "type": "string"
+              },
+              "title": "Keywords",
+              "type": "array"
+            },
+            "label": {
+              "maxLength": 120,
+              "minLength": 1,
+              "title": "Label",
+              "type": "string"
+            }
+          },
+          "required": [
+            "id",
+            "label"
+          ],
+          "title": "PluginTaxonomyNode",
+          "type": "object"
+        },
+        "PluginUI": {
+          "properties": {
+            "commands": {
+              "items": {
+                "$ref": "#/$defs/PluginUICommand"
+              },
+              "maxItems": 5,
+              "title": "Commands",
+              "type": "array"
+            },
+            "navigation": {
+              "items": {
+                "$ref": "#/$defs/PluginUINavItem"
+              },
+              "maxItems": 2,
+              "title": "Navigation",
+              "type": "array"
+            },
+            "pages": {
+              "items": {
+                "$ref": "#/$defs/PluginUIPage"
+              },
+              "maxItems": 5,
+              "title": "Pages",
+              "type": "array"
+            },
+            "slots": {
+              "additionalProperties": {
+                "items": {
+                  "$ref": "#/$defs/PluginUIContribution"
+                },
+                "type": "array"
+              },
+              "propertyNames": {
+                "$ref": "#/$defs/PluginUISlot"
+              },
+              "title": "Slots",
+              "type": "object"
+            }
+          },
+          "title": "PluginUI",
+          "type": "object"
+        },
+        "PluginUICommand": {
+          "properties": {
+            "action": {
+              "discriminator": {
+                "mapping": {
+                  "navigate": "#/$defs/UIActionNavigate",
+                  "openPluginPage": "#/$defs/UIActionOpenPluginPage",
+                  "runPlugin": "#/$defs/UIActionRunPlugin",
+                  "startInterview": "#/$defs/UIActionStartInterview",
+                  "startPractice": "#/$defs/UIActionStartPractice"
+                },
+                "propertyName": "type"
+              },
+              "oneOf": [
+                {
+                  "$ref": "#/$defs/UIActionNavigate"
+                },
+                {
+                  "$ref": "#/$defs/UIActionStartInterview"
+                },
+                {
+                  "$ref": "#/$defs/UIActionStartPractice"
+                },
+                {
+                  "$ref": "#/$defs/UIActionRunPlugin"
+                },
+                {
+                  "$ref": "#/$defs/UIActionOpenPluginPage"
+                }
+              ],
+              "title": "Action"
+            },
+            "id": {
+              "pattern": "^[a-z0-9][a-z0-9-]{0,63}$",
+              "title": "Id",
+              "type": "string"
+            },
+            "label": {
+              "maxLength": 120,
+              "minLength": 1,
+              "title": "Label",
+              "type": "string"
+            }
+          },
+          "required": [
+            "id",
+            "label",
+            "action"
+          ],
+          "title": "PluginUICommand",
+          "type": "object"
+        },
+        "PluginUIContribution": {
+          "properties": {
+            "component": {
+              "pattern": "^[a-z0-9][a-z0-9-]{0,63}$",
+              "title": "Component",
+              "type": "string"
+            },
+            "entry": {
+              "anyOf": [
+                {
+                  "maxLength": 200,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "title": "Entry"
+            },
+            "kind": {
+              "enum": [
+                "declarative",
+                "frame"
+              ],
+              "title": "Kind",
+              "type": "string"
+            },
+            "title": {
+              "anyOf": [
+                {
+                  "maxLength": 120,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "title": "Title"
+            }
+          },
+          "required": [
+            "component",
+            "kind"
+          ],
+          "title": "PluginUIContribution",
+          "type": "object"
+        },
+        "PluginUIIcon": {
+          "description": "Fixed icon vocabulary for plugin navigation items.",
+          "enum": [
+            "database",
+            "cloud",
+            "code",
+            "book",
+            "chart",
+            "puzzle",
+            "shield",
+            "star"
+          ],
+          "title": "PluginUIIcon",
+          "type": "string"
+        },
+        "PluginUINavItem": {
+          "properties": {
+            "icon": {
+              "$ref": "#/$defs/PluginUIIcon"
+            },
+            "label": {
+              "maxLength": 60,
+              "minLength": 1,
+              "title": "Label",
+              "type": "string"
+            },
+            "page": {
+              "maxLength": 120,
+              "pattern": "^/",
+              "title": "Page",
+              "type": "string"
+            }
+          },
+          "required": [
+            "label",
+            "icon",
+            "page"
+          ],
+          "title": "PluginUINavItem",
+          "type": "object"
+        },
+        "PluginUIPage": {
+          "properties": {
+            "component": {
+              "pattern": "^[a-z0-9][a-z0-9-]{0,63}$",
+              "title": "Component",
+              "type": "string"
+            },
+            "entry": {
+              "anyOf": [
+                {
+                  "maxLength": 200,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "title": "Entry"
+            },
+            "kind": {
+              "enum": [
+                "declarative",
+                "frame"
+              ],
+              "title": "Kind",
+              "type": "string"
+            },
+            "path": {
+              "maxLength": 120,
+              "pattern": "^/",
+              "title": "Path",
+              "type": "string"
+            },
+            "title": {
+              "maxLength": 120,
+              "minLength": 1,
+              "title": "Title",
+              "type": "string"
+            }
+          },
+          "required": [
+            "path",
+            "title",
+            "kind",
+            "component"
+          ],
+          "title": "PluginUIPage",
+          "type": "object"
+        },
+        "PluginUISlot": {
+          "enum": [
+            "dashboard.cards",
+            "dashboard.sidebar",
+            "target.tabs",
+            "prepare.activities",
+            "interview.sidebar",
+            "interview.toolbar",
+            "interview.question",
+            "readiness.panels",
+            "resume.tabs",
+            "settings.sections"
+          ],
+          "title": "PluginUISlot",
+          "type": "string"
+        },
+        "RubricDimension": {
+          "description": "§9.1: one independent rubric dimension the evaluator must score.",
+          "properties": {
+            "description": {
+              "default": "",
+              "maxLength": 300,
+              "title": "Description",
+              "type": "string"
+            },
+            "id": {
+              "maxLength": 60,
+              "minLength": 1,
+              "title": "Id",
+              "type": "string"
+            },
+            "label": {
+              "maxLength": 120,
+              "minLength": 1,
+              "title": "Label",
+              "type": "string"
+            }
+          },
+          "required": [
+            "id",
+            "label"
+          ],
+          "title": "RubricDimension",
+          "type": "object"
+        },
+        "SkillKind": {
+          "enum": [
+            "builtin",
+            "plugin"
+          ],
+          "title": "SkillKind",
+          "type": "string"
+        },
+        "SkillManifestEngines": {
+          "properties": {
+            "interview-os": {
+              "maxLength": 80,
+              "minLength": 1,
+              "title": "Interview-Os",
+              "type": "string"
+            },
+            "plugin-api": {
+              "anyOf": [
+                {
+                  "maxLength": 80,
+                  "minLength": 1,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "title": "Plugin-Api"
+            }
+          },
+          "required": [
+            "interview-os"
+          ],
+          "title": "SkillManifestEngines",
+          "type": "object"
+        },
+        "SkillManifestInput": {
+          "properties": {
+            "key": {
+              "maxLength": 64,
+              "minLength": 1,
+              "title": "Key",
+              "type": "string"
+            },
+            "permission": {
+              "$ref": "#/$defs/Permission"
+            }
+          },
+          "required": [
+            "key",
+            "permission"
+          ],
+          "title": "SkillManifestInput",
+          "type": "object"
+        },
+        "UIActionNavigate": {
+          "additionalProperties": false,
+          "properties": {
+            "to": {
+              "maxLength": 300,
+              "minLength": 1,
+              "title": "To",
+              "type": "string"
+            },
+            "type": {
+              "const": "navigate",
+              "title": "Type",
+              "type": "string"
+            }
+          },
+          "required": [
+            "type",
+            "to"
+          ],
+          "title": "UIActionNavigate",
+          "type": "object"
+        },
+        "UIActionOpenPluginPage": {
+          "additionalProperties": false,
+          "properties": {
+            "path": {
+              "maxLength": 120,
+              "pattern": "^/",
+              "title": "Path",
+              "type": "string"
+            },
+            "type": {
+              "const": "openPluginPage",
+              "title": "Type",
+              "type": "string"
+            }
+          },
+          "required": [
+            "type",
+            "path"
+          ],
+          "title": "UIActionOpenPluginPage",
+          "type": "object"
+        },
+        "UIActionRunPlugin": {
+          "additionalProperties": false,
+          "properties": {
+            "request": {
+              "additionalProperties": true,
+              "title": "Request",
+              "type": "object"
+            },
+            "type": {
+              "const": "runPlugin",
+              "title": "Type",
+              "type": "string"
+            }
+          },
+          "required": [
+            "type",
+            "request"
+          ],
+          "title": "UIActionRunPlugin",
+          "type": "object"
+        },
+        "UIActionStartInterview": {
+          "additionalProperties": false,
+          "properties": {
+            "modeId": {
+              "anyOf": [
+                {
+                  "pattern": "^[a-z0-9][a-z0-9-]{0,63}$",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "title": "Modeid"
+            },
+            "plannedQuestions": {
+              "anyOf": [
+                {
+                  "maximum": 10,
+                  "minimum": 1,
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "title": "Plannedquestions"
+            },
+            "roundType": {
+              "anyOf": [
+                {
+                  "const": "mixed",
+                  "type": "string"
+                },
+                {
+                  "pattern": "^[a-z0-9][a-z0-9_-]{0,63}$",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "title": "Roundtype"
+            },
+            "type": {
+              "const": "startInterview",
+              "title": "Type",
+              "type": "string"
+            }
+          },
+          "required": [
+            "type"
+          ],
+          "title": "UIActionStartInterview",
+          "type": "object"
+        },
+        "UIActionStartPractice": {
+          "additionalProperties": false,
+          "properties": {
+            "skillId": {
+              "pattern": "^[a-z0-9-]+(\\.[a-z0-9-]+)*$",
+              "title": "Skillid",
+              "type": "string"
+            },
+            "type": {
+              "const": "startPractice",
+              "title": "Type",
+              "type": "string"
+            }
+          },
+          "required": [
+            "type",
+            "skillId"
+          ],
+          "title": "UIActionStartPractice",
+          "type": "object"
+        }
+      },
+      "description": "§9.6: every skill (built-in or plugin) carries a manifest.",
+      "properties": {
+        "appliesTo": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/PluginAppliesTo"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "author": {
+          "anyOf": [
+            {
+              "maxLength": 120,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Author"
+        },
+        "capabilities": {
+          "anyOf": [
+            {
+              "items": {
+                "$ref": "#/$defs/PluginCapability"
+              },
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Capabilities"
+        },
+        "description": {
+          "default": "",
+          "maxLength": 1000,
+          "title": "Description",
+          "type": "string"
+        },
+        "engines": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/SkillManifestEngines"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "events": {
+          "anyOf": [
+            {
+              "items": {
+                "enum": [
+                  "sessionCompleted",
+                  "readinessUpdated",
+                  "answerEvaluated",
+                  "loopCompleted",
+                  "targetChanged"
+                ],
+                "type": "string"
+              },
+              "maxItems": 8,
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Events"
+        },
+        "hooks": {
+          "anyOf": [
+            {
+              "items": {
+                "maxLength": 80,
+                "minLength": 1,
+                "type": "string"
+              },
+              "maxItems": 30,
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Hooks"
+        },
+        "id": {
+          "maxLength": 80,
+          "minLength": 1,
+          "title": "Id",
+          "type": "string"
+        },
+        "inputs": {
+          "items": {
+            "$ref": "#/$defs/SkillManifestInput"
+          },
+          "title": "Inputs",
+          "type": "array"
+        },
+        "interviewModes": {
+          "anyOf": [
+            {
+              "items": {
+                "$ref": "#/$defs/PluginInterviewMode"
+              },
+              "maxItems": 5,
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Interviewmodes"
+        },
+        "kind": {
+          "$ref": "#/$defs/SkillKind"
+        },
+        "modes": {
+          "anyOf": [
+            {
+              "items": {
+                "$ref": "#/$defs/PluginModeDefinition"
+              },
+              "maxItems": 5,
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Modes"
+        },
+        "name": {
+          "anyOf": [
+            {
+              "maxLength": 120,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Name"
+        },
+        "outputs": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Outputs",
+          "type": "array"
+        },
+        "permissions": {
+          "items": {
+            "$ref": "#/$defs/Permission"
+          },
+          "title": "Permissions",
+          "type": "array"
+        },
+        "settings": {
+          "anyOf": [
+            {
+              "items": {
+                "$ref": "#/$defs/PluginSettingField"
+              },
+              "maxItems": 20,
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Settings"
+        },
+        "taxonomy": {
+          "anyOf": [
+            {
+              "items": {
+                "$ref": "#/$defs/PluginTaxonomyNode"
+              },
+              "maxItems": 30,
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Taxonomy"
+        },
+        "ui": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/PluginUI"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "version": {
+          "maxLength": 24,
+          "minLength": 1,
+          "title": "Version",
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "version",
+        "kind"
+      ],
+      "title": "SkillManifest",
+      "type": "object"
+    },
+    "SkillManifestEngines": {
+      "properties": {
+        "interview-os": {
+          "maxLength": 80,
+          "minLength": 1,
+          "title": "Interview-Os",
+          "type": "string"
+        },
+        "plugin-api": {
+          "anyOf": [
+            {
+              "maxLength": 80,
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Plugin-Api"
+        }
+      },
+      "required": [
+        "interview-os"
+      ],
+      "title": "SkillManifestEngines",
+      "type": "object"
+    },
+    "SkillManifestInput": {
+      "$defs": {
+        "Permission": {
+          "description": "§9.6 permission names.\n\nRead permissions gate which state slices a skill's manifest may declare as\ninputs; write permissions gate persistence of a skill's outputs.\n`runtime.invoke` gates access to the AI runtime; `taxonomy.read` covers the\nshared skill taxonomy.",
+          "enum": [
+            "candidate.read",
+            "candidate.write",
+            "target.read",
+            "target.write",
+            "readiness.read",
+            "evidence.write",
+            "interview.read",
+            "interview.write",
+            "stories.read",
+            "stories.write",
+            "resume.read",
+            "resume.write",
+            "preparation.write",
+            "taxonomy.read",
+            "answers.read",
+            "runtime.invoke"
+          ],
+          "title": "Permission",
+          "type": "string"
+        }
+      },
+      "properties": {
+        "key": {
+          "maxLength": 64,
+          "minLength": 1,
+          "title": "Key",
+          "type": "string"
+        },
+        "permission": {
+          "$ref": "#/$defs/Permission"
+        }
+      },
+      "required": [
+        "key",
+        "permission"
+      ],
+      "title": "SkillManifestInput",
+      "type": "object"
+    }
+  }
+}

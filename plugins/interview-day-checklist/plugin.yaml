@@ -1,0 +1,13 @@
+id: interview-day-checklist
+name: Interview Day Checklist
+version: 1.1.0
+description: "A short checklist for interview day: the weakest requirement areas to skim, a STAR reminder, and logistics."
+kind: hook
+entry: main.py
+author: interview-os
+permissions: [target.read, readiness.read]
+capabilities: [preparation]
+hooks: [preparation.suggest]
+inputs: [target, readiness, gaps]
+outputs: [checklist]
+engines: {interview-os: ">=0.4.0"}

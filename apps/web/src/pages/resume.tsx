@@ -19,6 +19,7 @@ import {
   skillLabel,
   toast,
 } from "@/components/ui";
+import { PluginSlot } from "@/components/plugin-ui";
 
 const STATUS_ICON = { pass: "✓", warn: "!", fail: "✗" } as const;
 const STATUS_CLS = {
@@ -399,6 +400,7 @@ export default function Resume() {
           )}
         </div>
       )}
+      <PluginSlot slot="resume.tabs" />
     </div>
   );
 }

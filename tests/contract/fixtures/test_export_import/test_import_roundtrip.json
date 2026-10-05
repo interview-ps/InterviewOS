@@ -1,0 +1,29 @@
+{
+  "snapshots": {
+    "import": {
+      "body": {
+        "counts": {
+          "candidate.profiles": 1,
+          "evidence": 4,
+          "externalContexts": 0,
+          "interviewPacks": 0,
+          "interviews.answers": 0,
+          "interviews.debriefs": 0,
+          "interviews.evaluations": 0,
+          "interviews.loops": 0,
+          "interviews.questions": 0,
+          "interviews.sessions": 0,
+          "preparation.actions": 5,
+          "questionBank": 0,
+          "readiness.snapshots": 13,
+          "resumeReviews": 0,
+          "settings": 0,
+          "stories": 0,
+          "targets": 1
+        },
+        "ok": true
+      },
+      "status": 200
+    }
+  }
+}

@@ -1,0 +1,66 @@
+/*
+ * Interview OS semantic theme variables.
+ *
+ * `--interview-*` is the product vocabulary. The `--color-*` overrides below
+ * flip the existing Tailwind design-system utilities (@interview-os/ui
+ * theme.css) to dark mode without touching every page.
+ */
+
+:root {
+  --interview-bg: #f5f7fb;
+  --interview-surface: #ffffff;
+  --interview-surface-hover: #eef3fc;
+  --interview-surface-elevated: #ffffff;
+  --interview-text-primary: #172033;
+  --interview-text-secondary: #4b556b;
+  --interview-text-muted: #6b7488;
+  --interview-border: #d9e0ed;
+  --interview-border-secondary: #e8edf7;
+  --interview-brand: #1647a5;
+  --interview-brand-hover: #092e75;
+  --interview-brand-active: #012970;
+  --interview-success: #236342;
+  --interview-warning: #b45309;
+  --interview-danger: #9f1239;
+  --interview-radius-sm: 0.6rem;
+  --interview-radius-md: 0.75rem;
+  --interview-radius-lg: 1rem;
+  --interview-shadow-sm: 0 1px 3px rgba(1, 41, 112, 0.06), 0 1px 2px rgba(1, 41, 112, 0.04);
+  --interview-shadow-md: 0 8px 24px -12px rgba(1, 41, 112, 0.18);
+}
+
+[data-theme="dark"] {
+  --interview-bg: #080e18;
+  --interview-surface: #111a2e;
+  --interview-surface-hover: #17223a;
+  --interview-surface-elevated: #16223b;
+  --interview-text-primary: #e7ecf5;
+  --interview-text-secondary: #a6b0c3;
+  --interview-text-muted: #737f95;
+  --interview-border: #26324b;
+  --interview-border-secondary: #1c2740;
+  --interview-brand: #5b86e6;
+  --interview-brand-hover: #7ea1ee;
+  --interview-brand-active: #3f66c9;
+  --interview-success: #48b878;
+  --interview-warning: #e2a253;
+  --interview-danger: #e2607a;
+  --interview-shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.4);
+  --interview-shadow-md: 0 12px 32px -16px rgba(0, 0, 0, 0.6);
+
+  /* Flip the shared Tailwind design-system palette (unlayered → wins over @theme). */
+  --color-navy: #cdd9f5;
+  --color-blue: #5b86e6;
+  --color-blue-hover: #7ea1ee;
+  --color-accent: #e2a253;
+  --color-green: #48b878;
+  --color-green-tint: #16311f;
+  --color-ink: #e7ecf5;
+  --color-muted: #a6b0c3;
+  --color-line: #26324b;
+  --color-page: #080e18;
+  --color-surface: #111a2e;
+  --color-tint: #17223a;
+  --color-weak: #e2a253;
+  --color-danger: #e2607a;
+}

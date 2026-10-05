@@ -1,0 +1,31 @@
+{
+  "snapshots": {
+    "arg-injection": {
+      "body": {
+        "error": {
+          "code": "PLUGIN_INSTALL",
+          "message": "invalid git source"
+        }
+      },
+      "status": 400
+    },
+    "creds": {
+      "body": {
+        "error": {
+          "code": "PLUGIN_INSTALL",
+          "message": "source must be an https URL without credentials"
+        }
+      },
+      "status": 400
+    },
+    "missing-url": {
+      "body": {
+        "error": {
+          "code": "VALIDATION",
+          "message": "invalid request body: url: Invalid input: expected string, received undefined"
+        }
+      },
+      "status": 400
+    }
+  }
+}

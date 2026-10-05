@@ -1,0 +1,22 @@
+{
+  "id": "frame-escape",
+  "version": "1.0.0",
+  "kind": "plugin",
+  "description": "Hostile fixture: attempts every sandbox escape and reports the outcome.",
+  "inputs": [],
+  "outputs": ["echo"],
+  "permissions": [],
+  "capabilities": ["ui"],
+  "ui": {
+    "slots": {
+      "dashboard.cards": [
+        {
+          "component": "escape-panel",
+          "kind": "frame",
+          "entry": "ui/index.js",
+          "title": "Escape probes"
+        }
+      ]
+    }
+  }
+}

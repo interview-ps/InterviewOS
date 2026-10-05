@@ -1,0 +1,13 @@
+{
+  "snapshots": {
+    "bad-title": {
+      "body": {
+        "error": {
+          "code": "VALIDATION",
+          "message": "invalid request body: title: Too small: expected string to have >=1 characters"
+        }
+      },
+      "status": 400
+    }
+  }
+}

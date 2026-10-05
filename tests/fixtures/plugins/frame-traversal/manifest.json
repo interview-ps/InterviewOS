@@ -1,0 +1,15 @@
+{
+  "id": "frame-traversal",
+  "version": "1.0.0",
+  "kind": "plugin",
+  "description": "Fixture: frame entry path escapes the plugin ui/ directory.",
+  "inputs": [],
+  "outputs": ["echo"],
+  "permissions": [],
+  "capabilities": ["ui"],
+  "ui": {
+    "slots": {
+      "readiness.panels": [{ "component": "panel", "kind": "frame", "entry": "ui/../escape.js" }]
+    }
+  }
+}

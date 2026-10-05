@@ -56,6 +56,7 @@ htmlcov/
 # Node / TypeScript
 node_modules/
 dist/
+dist-packages/
 build/
 *.log
 npm-debug.log*
@@ -96,3 +97,10 @@ data/opencode-workspace/
 data/devin-workspace/
 test-results/
 playwright-report/
+
+# v0.4: local MCP server config (commands + env names; may hold private paths)
+interview-os.mcp.json
+interview-os.runtimes.json
+
+# CommandCode agent state (local settings + learned taste), local only
+.commandcode/

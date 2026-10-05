@@ -1,0 +1,13 @@
+{
+  "snapshots": {
+    "switch-mock": {
+      "body": {
+        "available": true,
+        "mode": "mock",
+        "runtime": "mock",
+        "status": "ready"
+      },
+      "status": 200
+    }
+  }
+}

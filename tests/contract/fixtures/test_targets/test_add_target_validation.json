@@ -1,0 +1,13 @@
+{
+  "snapshots": {
+    "invalid": {
+      "body": {
+        "error": {
+          "code": "VALIDATION",
+          "message": "invalid request body: jobDescription: Invalid input: expected string, received undefined; role: Invalid input: expected string, received undefined; level: Invalid option: expected one of \"junior\"|\"mid\"|\"senior\"|\"staff\""
+        }
+      },
+      "status": 400
+    }
+  }
+}

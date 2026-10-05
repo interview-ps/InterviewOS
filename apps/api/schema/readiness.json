@@ -1,0 +1,280 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "group": "readiness",
+  "models": {
+    "Evidence": {
+      "$defs": {
+        "EvidenceType": {
+          "enum": [
+            "resume_claim",
+            "interview_answer",
+            "practice",
+            "self_report",
+            "plugin"
+          ],
+          "title": "EvidenceType",
+          "type": "string"
+        }
+      },
+      "properties": {
+        "confidence": {
+          "maximum": 1,
+          "minimum": 0,
+          "title": "Confidence",
+          "type": "number"
+        },
+        "createdAt": {
+          "title": "Createdat",
+          "type": "string"
+        },
+        "id": {
+          "title": "Id",
+          "type": "string"
+        },
+        "observation": {
+          "title": "Observation",
+          "type": "string"
+        },
+        "questionId": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Questionid"
+        },
+        "score": {
+          "maximum": 1,
+          "minimum": 0,
+          "title": "Score",
+          "type": "number"
+        },
+        "sessionId": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Sessionid"
+        },
+        "skillId": {
+          "pattern": "^[a-z0-9-]+(\\.[a-z0-9-]+)*$",
+          "title": "Skillid",
+          "type": "string"
+        },
+        "source": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Source"
+        },
+        "type": {
+          "$ref": "#/$defs/EvidenceType"
+        }
+      },
+      "required": [
+        "id",
+        "skillId",
+        "type",
+        "score",
+        "confidence",
+        "observation",
+        "createdAt"
+      ],
+      "title": "Evidence",
+      "type": "object"
+    },
+    "ReadinessGraph": {
+      "$defs": {
+        "ReadinessStatus": {
+          "enum": [
+            "unknown",
+            "weak",
+            "developing",
+            "strong"
+          ],
+          "title": "ReadinessStatus",
+          "type": "string"
+        },
+        "SkillReadiness": {
+          "properties": {
+            "children": {
+              "items": {
+                "pattern": "^[a-z0-9-]+(\\.[a-z0-9-]+)*$",
+                "type": "string"
+              },
+              "title": "Children",
+              "type": "array"
+            },
+            "confidence": {
+              "maximum": 1,
+              "minimum": 0,
+              "title": "Confidence",
+              "type": "number"
+            },
+            "evidenceIds": {
+              "items": {
+                "type": "string"
+              },
+              "title": "Evidenceids",
+              "type": "array"
+            },
+            "label": {
+              "title": "Label",
+              "type": "string"
+            },
+            "score": {
+              "anyOf": [
+                {
+                  "maximum": 1,
+                  "minimum": 0,
+                  "type": "number"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "emit_null": true,
+              "title": "Score"
+            },
+            "skillId": {
+              "pattern": "^[a-z0-9-]+(\\.[a-z0-9-]+)*$",
+              "title": "Skillid",
+              "type": "string"
+            },
+            "status": {
+              "$ref": "#/$defs/ReadinessStatus"
+            }
+          },
+          "required": [
+            "skillId",
+            "label",
+            "confidence",
+            "status"
+          ],
+          "title": "SkillReadiness",
+          "type": "object"
+        }
+      },
+      "properties": {
+        "dimensions": {
+          "additionalProperties": {
+            "$ref": "#/$defs/SkillReadiness"
+          },
+          "title": "Dimensions",
+          "type": "object"
+        },
+        "lastUpdated": {
+          "title": "Lastupdated",
+          "type": "string"
+        },
+        "overall": {
+          "maximum": 1,
+          "minimum": 0,
+          "title": "Overall",
+          "type": "number"
+        },
+        "overallConfidence": {
+          "maximum": 1,
+          "minimum": 0,
+          "title": "Overallconfidence",
+          "type": "number"
+        }
+      },
+      "required": [
+        "overall",
+        "overallConfidence",
+        "lastUpdated"
+      ],
+      "title": "ReadinessGraph",
+      "type": "object"
+    },
+    "SkillReadiness": {
+      "$defs": {
+        "ReadinessStatus": {
+          "enum": [
+            "unknown",
+            "weak",
+            "developing",
+            "strong"
+          ],
+          "title": "ReadinessStatus",
+          "type": "string"
+        }
+      },
+      "properties": {
+        "children": {
+          "items": {
+            "pattern": "^[a-z0-9-]+(\\.[a-z0-9-]+)*$",
+            "type": "string"
+          },
+          "title": "Children",
+          "type": "array"
+        },
+        "confidence": {
+          "maximum": 1,
+          "minimum": 0,
+          "title": "Confidence",
+          "type": "number"
+        },
+        "evidenceIds": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Evidenceids",
+          "type": "array"
+        },
+        "label": {
+          "title": "Label",
+          "type": "string"
+        },
+        "score": {
+          "anyOf": [
+            {
+              "maximum": 1,
+              "minimum": 0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "emit_null": true,
+          "title": "Score"
+        },
+        "skillId": {
+          "pattern": "^[a-z0-9-]+(\\.[a-z0-9-]+)*$",
+          "title": "Skillid",
+          "type": "string"
+        },
+        "status": {
+          "$ref": "#/$defs/ReadinessStatus"
+        }
+      },
+      "required": [
+        "skillId",
+        "label",
+        "confidence",
+        "status"
+      ],
+      "title": "SkillReadiness",
+      "type": "object"
+    }
+  }
+}

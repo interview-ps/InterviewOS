@@ -1,0 +1,32 @@
+format: interview-os.role-pack
+id: data-engineer
+name: Data Engineer
+version: 1.0.0
+description: Common expectations for data engineering roles.
+taxonomy: []
+dimensions:
+  - skillId: data-engineering.pipelines
+    weight: 0.9
+  - skillId: data-engineering.modeling
+    weight: 0.85
+  - skillId: sql
+    weight: 0.85
+  - skillId: coding
+    weight: 0.6
+  - skillId: distributed-systems
+    weight: 0.6
+defaultQuestionCategories:
+  - technical
+  - coding
+  - behavioral
+rubrics:
+  - skillId: data-engineering.pipelines
+    criteria:
+      - Handles backfill and late data
+      - Designs for replayability
+resources:
+  - skillId: sql.query-optimization
+    title: PostgreSQL EXPLAIN documentation
+    url: https://www.postgresql.org/docs/current/using-explain.html
+    kind: docs
+questions: []

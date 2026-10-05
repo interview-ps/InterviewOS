@@ -1,0 +1,27 @@
+{
+  "snapshots": {
+    "asset": {
+      "body": "// plugins/postgres-interviewer/ui/src/index.tsx\nimport { useEffect, useState } from \"react\";\nimport {\n  Button,\n  Card,\n  CardTitle,\n  EmptyState,\n  SkillScore,\n  Tabs\n} from \"@interview-os/ui\";\nimport { jsx, jsxs } from \"react/jsx-runtime\";\nvar TAB_SKILLS = [\n  { label: \"Queries\", skills: [\"sql\", \"sql.query-optimization\"] },\n  { label: \"Indexes\", skills: [\"sql.indexing\"] },\n  { label: \"Transactions\", skills: [\"sql.transactions\"] },\n  { label: \"Locking\", skills: [\"sql.locking\"] }\n];\nfunction PostgresSkillTree({ sdk }) {\n  const [readiness, setReadiness] = useState(null);\n  const [error, setError] = useState(null);\n  useEffect(() => {\n    sdk.getData().then(\n      (slices) => setReadiness(\n        slices.readiness ?? {}\n      )\n    ).catch((e) => setError(e instanceof Error ? e.message : String(e)));\n  }, [sdk]);\n  if (error) return /* @__PURE__ */ jsx(EmptyState, { title: \"Readiness unavailable\", description: error });\n  if (!readiness) return /* @__PURE__ */ jsx(Card, { children: /* @__PURE__ */ jsx(CardTitle, { children: \"PostgreSQL readiness\" }) });\n  return /* @__PURE__ */ jsxs(Card, { \"data-testid\": \"pg-skill-tree\", children: [\n    /* @__PURE__ */ jsx(CardTitle, { children: \"PostgreSQL readiness\" }),\n    /* @__PURE__ */ jsx(\n      Tabs,\n      {\n        tabs: TAB_SKILLS.map((tab) => ({\n          label: tab.label,\n          children: /* @__PURE__ */ jsx(\"div\", { className: \"space-y-3\", children: tab.skills.map((skillId) => {\n            const dim = readiness[skillId];\n            return /* @__PURE__ */ jsxs(\"div\", { children: [\n              /* @__PURE__ */ jsx(\n                SkillScore,\n                {\n                  label: dim?.label ?? skillId,\n                  score: dim?.score ?? null,\n                  confidence: dim?.confidence\n                }\n              ),\n              /* @__PURE__ */ jsx(\"div\", { className: \"mt-1\", children: /* @__PURE__ */ jsxs(\n                Button,\n                {\n                  variant: \"ghost\",\n                  \"data-testid\": `practice-${skillId}`,\n                  onClick: () => void sdk.action({ type: \"startPractice\", skillId }),\n                  children: [\n                    \"Practice \",\n                    dim?.label ?? skillId\n                  ]\n                }\n              ) })\n            ] }, skillId);\n          }) })\n        }))\n      }\n    )\n  ] });\n}\nvar index_default = {\n  components: { \"postgres-skill-tree\": PostgresSkillTree }\n};\nexport {\n  index_default as default\n};\n",
+      "contentType": "text/javascript",
+      "status": 200
+    },
+    "asset-404": {
+      "body": {
+        "error": {
+          "code": "NOT_FOUND",
+          "message": "no ui asset \"missing.js\""
+        }
+      },
+      "status": 404
+    },
+    "asset-escape": {
+      "body": {
+        "error": {
+          "code": "VALIDATION",
+          "message": "invalid asset path"
+        }
+      },
+      "status": 400
+    }
+  }
+}

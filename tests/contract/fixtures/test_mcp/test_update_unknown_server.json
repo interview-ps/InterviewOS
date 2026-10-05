@@ -1,0 +1,22 @@
+{
+  "snapshots": {
+    "invalid": {
+      "body": {
+        "error": {
+          "code": "VALIDATION",
+          "message": "invalid request body: enabled: Invalid input: expected boolean, received string"
+        }
+      },
+      "status": 400
+    },
+    "unknown": {
+      "body": {
+        "error": {
+          "code": "NOT_FOUND",
+          "message": "no MCP server \"nope\""
+        }
+      },
+      "status": 404
+    }
+  }
+}

@@ -1,0 +1,31 @@
+{
+  "snapshots": {
+    "bad-kind": {
+      "body": {
+        "error": {
+          "code": "VALIDATION",
+          "message": "kind must be company or role"
+        }
+      },
+      "status": 400
+    },
+    "bundled": {
+      "body": {
+        "error": {
+          "code": "VALIDATION",
+          "message": "pack \"stripe\" is bundled and cannot be uninstalled"
+        }
+      },
+      "status": 400
+    },
+    "unknown": {
+      "body": {
+        "error": {
+          "code": "NOT_FOUND",
+          "message": "unknown company pack \"no-such\""
+        }
+      },
+      "status": 404
+    }
+  }
+}

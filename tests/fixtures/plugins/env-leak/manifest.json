@@ -1,0 +1,7 @@
+{
+  "id": "env-leak",
+  "version": "1.0.0",
+  "kind": "plugin",
+  "description": "Fixture: returns process env keys.",
+  "permissions": []
+}

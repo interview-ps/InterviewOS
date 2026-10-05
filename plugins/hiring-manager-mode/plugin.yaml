@@ -1,0 +1,47 @@
+id: hiring-manager-mode
+version: 1.0.0
+name: Hiring Manager Mode
+kind: hook
+entry: main.py
+author: interview-os
+permissions: [answers.read]
+capabilities: [interview_mode]
+hooks: [mode.reduce, mode.mock]
+inputs: []
+engines: {interview-os: ">=0.4.0", plugin-api: "^1.1.0"}
+description: Scope, impact, priorities and leadership style — the conversation a hiring manager would have.
+modes:
+  - id: hiring_manager
+    label: Hiring manager
+    description: "Scope, impact, priorities and leadership style — the conversation a hiring manager would have."
+    scope:
+      include:
+        - hiring-manager
+        - behavioral.leadership
+        - communication
+    rubric:
+      - id: roleFit
+        label: Role fit
+        description: Understands the role and articulates mutual fit.
+      - id: scopeImpact
+        label: Scope & impact
+        description: Describes scope of influence and business impact credibly.
+      - id: prioritization
+        label: Prioritization
+        description: Makes and explains hard prioritization trade-offs.
+      - id: leadership
+        label: Leadership
+        description: Leads through ambiguity; develops people and direction.
+      - id: collaboration
+        label: Collaboration
+        description: Works across teams and manages stakeholders.
+      - id: motivation
+        label: Motivation
+        description: Genuine, specific motivation for this team and role.
+    initialState:
+      themesCovered: []
+    context:
+      companyThemes: true
+      storyTitles: true
+    interviewerPrompt: prompts/interviewer.md
+    evaluatorPrompt: prompts/evaluator.md

@@ -1,0 +1,20 @@
+format: interview-os.role-pack
+id: contract-demo-role
+name: Contract Demo Role
+version: 1.0.0
+description: Minimal role pack used by the HTTP contract suite.
+maintainers:
+  - contract-tests
+sources: []
+taxonomy: []
+dimensions:
+  - skillId: apis.rest
+    weight: 0.5
+  - skillId: sql
+    weight: 0.5
+defaultQuestionCategories:
+  - technical
+  - behavioral
+rubrics: []
+resources: []
+questions: []

@@ -1,0 +1,19 @@
+{
+  "snapshots": {
+    "import": {
+      "body": {
+        "imported": 1
+      },
+      "status": 201
+    },
+    "import-bad": {
+      "body": {
+        "error": {
+          "code": "VALIDATION",
+          "message": "invalid question bank: [\n  {\n    \"expected\": \"array\",\n    \"code\": \"invalid_type\",\n    \"path\": [],\n    \"message\": \"Invalid input: expected array, received string\"\n  }\n]"
+        }
+      },
+      "status": 400
+    }
+  }
+}

@@ -1,0 +1,22 @@
+{
+  "snapshots": {
+    "bad-kind": {
+      "body": {
+        "error": {
+          "code": "VALIDATION",
+          "message": "invalid request body: kind: Invalid option: expected one of \"company\"|\"role\""
+        }
+      },
+      "status": 400
+    },
+    "missing-url": {
+      "body": {
+        "error": {
+          "code": "VALIDATION",
+          "message": "invalid request body: url: Invalid input: expected string, received undefined"
+        }
+      },
+      "status": 400
+    }
+  }
+}

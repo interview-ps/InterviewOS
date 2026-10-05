@@ -1,0 +1,28 @@
+{
+  "snapshots": {
+    "bad-status": {
+      "body": {
+        "error": {
+          "code": "VALIDATION",
+          "message": "invalid request body: status: Invalid option: expected one of \"open\"|\"in_progress\"|\"done\"|\"superseded\""
+        }
+      },
+      "status": 400
+    },
+    "complete-404": {
+      "body": {
+        "error": {
+          "code": "NOT_FOUND",
+          "message": "no prep action act_00000000-0000-0000-0000-000000000000"
+        }
+      },
+      "status": 404
+    },
+    "patch-unknown": {
+      "body": {
+        "ok": true
+      },
+      "status": 200
+    }
+  }
+}

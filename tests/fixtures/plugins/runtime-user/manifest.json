@@ -1,0 +1,7 @@
+{
+  "id": "runtime-user",
+  "version": "1.0.0",
+  "kind": "plugin",
+  "description": "Fixture: calls runTask through the runtime bridge.",
+  "permissions": ["runtime.invoke"]
+}

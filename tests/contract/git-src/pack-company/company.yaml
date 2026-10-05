@@ -1,0 +1,32 @@
+format: interview-os.company-pack
+id: contract-demo-co
+name: Contract Demo Co
+version: 1.0.0
+description: Minimal company pack used by the HTTP contract suite.
+maintainers:
+  - contract-tests
+aliases: []
+sources: []
+stages:
+  - mode: technical
+    label: Technical screen
+    plannedQuestions: 2
+    provenance: community
+  - mode: behavioral
+    label: Behavioral
+    plannedQuestions: 2
+    provenance: community
+competencies:
+  - text: Contract fixture competency.
+    provenance: community
+emphasis: []
+behavioralFramework:
+  name: Principles
+  themes:
+    - rigor
+  guidance: Be concrete.
+followUpDepth: 2
+questionStyle: []
+evaluationGuidance: []
+roleExpectations: {}
+questions: []

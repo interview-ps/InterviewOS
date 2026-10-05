@@ -1,0 +1,68 @@
+{
+  "name": "@interview-os/ui",
+  "version": "0.4.0",
+  "private": false,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts",
+    "./frame": "./src/frame.ts",
+    "./plugin": "./src/plugin.tsx",
+    "./schema": "./src/schema.ts",
+    "./renderer": "./src/renderer.tsx",
+    "./theme.css": "./src/theme.css"
+  },
+  "files": [
+    "dist",
+    "src/theme.css"
+  ],
+  "publishConfig": {
+    "access": "public",
+    "main": "./dist/index.js",
+    "types": "./dist/index.d.ts",
+    "exports": {
+      ".": {
+        "types": "./dist/index.d.ts",
+        "default": "./dist/index.js"
+      },
+      "./frame": {
+        "types": "./dist/frame.d.ts",
+        "default": "./dist/frame.js"
+      },
+      "./plugin": {
+        "types": "./dist/plugin.d.ts",
+        "default": "./dist/plugin.js"
+      },
+      "./schema": {
+        "types": "./dist/schema.d.ts",
+        "default": "./dist/schema.js"
+      },
+      "./renderer": {
+        "types": "./dist/renderer.d.ts",
+        "default": "./dist/renderer.js"
+      },
+      "./theme.css": "./dist/theme.css"
+    }
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit -p tsconfig.json",
+    "build": "tsc -p tsconfig.build.json && node -e \"require('node:fs').copyFileSync('src/theme.css','dist/theme.css')\"",
+    "build:runtime": "vite build --config vite.runtime.config.ts"
+  },
+  "dependencies": {
+    "@interview-os/frontend-types": "workspace:*",
+    "zod": "4.6.5"
+  },
+  "peerDependencies": {
+    "react": "19.3.0",
+    "react-dom": "19.3.0"
+  },
+  "devDependencies": {
+    "@types/react": "19.2.18",
+    "@types/react-dom": "19.2.7",
+    "typescript": "6.0.3",
+    "@tailwindcss/vite": "4.3.3",
+    "@vitejs/plugin-react": "6.1.1",
+    "tailwindcss": "4.3.3",
+    "vite": "8.3.2"
+  }
+}

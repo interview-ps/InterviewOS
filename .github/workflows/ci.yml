@@ -14,9 +14,68 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  validate:
+  api:
+    name: api (ruff + mypy + pytest)
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 20
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+
+      - name: Set up uv
+        uses: astral-sh/setup-uv@v6
+        with:
+          enable-cache: true
+
+      - name: Lint
+        working-directory: apps/api
+        run: uv run ruff check .
+
+      - name: Typecheck
+        working-directory: apps/api
+        run: uv run mypy src tests
+
+      - name: Tests
+        working-directory: apps/api
+        run: uv run pytest -q
+
+  contract:
+    name: contract (FastAPI HTTP suite)
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+
+      - name: Set up uv
+        uses: astral-sh/setup-uv@v6
+        with:
+          enable-cache: true
+
+      # The suite spawns the fake MCP server fixture (node + @modelcontextprotocol/sdk).
+      - name: Set up Node.js
+        uses: actions/setup-node@v7
+        with:
+          node-version: '24'
+
+      - name: Enable Corepack
+        run: corepack enable
+
+      - name: Install node deps
+        run: pnpm install
+
+      - name: Run the contract suite (spawns FastAPI on the mock runtime)
+        working-directory: tests/contract
+        run: uv run pytest -q
+
+  web:
+    name: web (typecheck + build)
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
     steps:
       - name: Check out source
         uses: actions/checkout@v7
@@ -32,7 +91,7 @@ jobs:
         run: corepack enable
 
       - name: Install dependencies
-        run: pnpm install --frozen-lockfile
+        run: pnpm install
 
       - name: Typecheck workspace
         run: pnpm typecheck
@@ -40,8 +99,8 @@ jobs:
       - name: Build web app
         run: pnpm --filter @interview-os/web build
 
-  coverage:
-    name: coverage
+  e2e:
+    name: e2e (Playwright, mock runtime)
     runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:
@@ -49,6 +108,11 @@ jobs:
         uses: actions/checkout@v7
         with:
           persist-credentials: false
+
+      - name: Set up uv
+        uses: astral-sh/setup-uv@v6
+        with:
+          enable-cache: true
 
       - name: Set up Node.js
         uses: actions/setup-node@v7
@@ -59,7 +123,10 @@ jobs:
         run: corepack enable
 
       - name: Install dependencies
-        run: pnpm install --frozen-lockfile
+        run: pnpm install
 
-      - name: Run unit and integration tests with 70% line coverage minimum
-        run: pnpm test:coverage
+      - name: Install Playwright browsers
+        run: pnpm exec playwright install --with-deps chromium
+
+      - name: Run e2e (builds the SPA, serves UI + API from FastAPI)
+        run: pnpm test:e2e

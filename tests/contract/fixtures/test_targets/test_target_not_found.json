@@ -1,0 +1,31 @@
+{
+  "snapshots": {
+    "activate-404": {
+      "body": {
+        "error": {
+          "code": "NOT_FOUND",
+          "message": "no target tgt_00000000-0000-0000-0000-000000000000"
+        }
+      },
+      "status": 404
+    },
+    "patch-404": {
+      "body": {
+        "error": {
+          "code": "NOT_FOUND",
+          "message": "no target tgt_00000000-0000-0000-0000-000000000000"
+        }
+      },
+      "status": 404
+    },
+    "rolepack-404": {
+      "body": {
+        "error": {
+          "code": "NOT_FOUND",
+          "message": "no target tgt_00000000-0000-0000-0000-000000000000"
+        }
+      },
+      "status": 404
+    }
+  }
+}

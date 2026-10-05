@@ -1,0 +1,44 @@
+format: interview-os.role-pack
+id: frontend-engineer
+name: Frontend Engineer
+version: 1.0.0
+description: Common expectations for frontend/web engineering roles.
+taxonomy:
+  - id: frontend
+    label: Frontend
+    keywords:
+      - frontend
+      - front-end
+      - web ui
+  - id: frontend.performance
+    label: Web performance
+    keywords:
+      - web performance
+      - rendering performance
+      - bundle size
+dimensions:
+  - skillId: frontend
+    weight: 0.9
+  - skillId: frontend.performance
+    weight: 0.7
+  - skillId: coding
+    weight: 0.75
+  - skillId: communication
+    weight: 0.6
+  - skillId: behavioral.collaboration
+    weight: 0.5
+defaultQuestionCategories:
+  - technical
+  - coding
+  - behavioral
+rubrics:
+  - skillId: frontend.performance
+    criteria:
+      - Measures before optimizing
+      - Knows render/paint bottlenecks
+resources:
+  - skillId: frontend.performance
+    title: Web performance overview (MDN)
+    url: https://developer.mozilla.org/en-US/docs/Web/Performance
+    kind: docs
+questions: []

@@ -1,18 +1,8 @@
 import { Link } from "react-router";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { api, type HistoryEntry, type HistoryQuestion, type TargetListItem, type InterviewLoop } from "@/lib/api";
+import { useAvailableModes } from "@/lib/modes";
 import { Bar, Button, Card, CardTitle, EmptyState, ErrorNote, PageHeader, Pill, SkeletonCard, Spinner, skillLabel } from "@/components/ui";
-
-const MODE_OPTIONS = [
-  ["", "All modes"],
-  ["technical", "Technical"],
-  ["coding", "Coding"],
-  ["system_design", "System design"],
-  ["behavioral", "Behavioral"],
-  ["hiring_manager", "Hiring manager"],
-  ["hr", "HR"],
-  ["mixed", "Mixed (legacy)"],
-] as const;
 
 const fmtScore = (n: number | null | undefined) =>
   n === null || n === undefined ? "—" : `${Math.round(n * 100)}%`;
@@ -48,6 +38,21 @@ function QuestionNode({ node, depth = 0 }: { node: HistoryQuestion; depth?: numb
           )}
           {node.answer.language && (
             <p className="mt-0.5 text-xs text-muted">language: {node.answer.language}</p>
+          )}
+          {node.answer.voice && (
+            <div className="mt-1 flex flex-wrap items-center gap-1.5 text-xs text-muted" data-testid="voice-hints">
+              <span>delivery:</span>
+              {node.answer.voice.feedback.signals.map((s) => (
+                <Pill key={s.id} tone={s.status === "ok" ? "green" : "amber"}>
+                  {s.id}
+                </Pill>
+              ))}
+              <span>
+                {node.answer.voice.feedback.wordCount} words
+                {node.answer.voice.feedback.wordsPerMinute != null &&
+                  ` · ${Math.round(node.answer.voice.feedback.wordsPerMinute)} wpm`}
+              </span>
+            </div>
           )}
         </div>
       )}
@@ -92,6 +97,22 @@ export default function History() {
   const [targetId, setTargetId] = useState("");
   const [loopId, setLoopId] = useState("");
   const [weakOnly, setWeakOnly] = useState(false);
+  const available = useAvailableModes();
+
+  // filter list = available modes + any mode present in stored sessions
+  // (keeps disabled-plugin modes filterable in history)
+  const modeOptions = useMemo(() => {
+    const labels = new Map<string, string>();
+    for (const m of available) labels.set(m.id, m.label);
+    labels.set("mixed", "Mixed (legacy)");
+    for (const e of entries ?? []) {
+      const id = e.session.roundType;
+      if (!labels.has(id)) {
+        labels.set(id, e.session.modeLabel ?? id.replace(/[-_]+/g, " "));
+      }
+    }
+    return [["", "All modes"], ...labels.entries()] as [string, string][];
+  }, [available, entries]);
 
   const load = useCallback(() => {
     api
@@ -148,7 +169,7 @@ export default function History() {
             onChange={(e) => setMode(e.target.value)}
             className="rounded border border-line bg-white px-2 py-1"
           >
-            {MODE_OPTIONS.map(([v, l]) => (
+            {modeOptions.map(([v, l]) => (
               <option key={v} value={v}>{l}</option>
             ))}
           </select>

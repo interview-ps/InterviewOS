@@ -1,0 +1,51 @@
+{
+  "snapshots": {
+    "detail": {
+      "body": {
+        "actions": [],
+        "evidence": [
+          {
+            "candidateId": "<cand#1>",
+            "confidence": 0.5,
+            "createdAt": "<ts>",
+            "id": "<ev#1>",
+            "observation": "- Backend Engineer — Blue Harbor Apps — owned Python services and a SQL datastore",
+            "questionId": null,
+            "score": 0.6,
+            "sessionId": null,
+            "skillId": "sql",
+            "source": null,
+            "type": "resume_claim"
+          }
+        ],
+        "history": [
+          {
+            "computedAt": "<ts>",
+            "confidence": 0.124827,
+            "evidenceIds": [
+              "<ev#1>"
+            ],
+            "id": "<rowid>",
+            "reason": "setup",
+            "score": 0.6,
+            "skillId": "sql"
+          }
+        ],
+        "readiness": {
+          "children": [],
+          "confidence": 0.124827,
+          "evidenceIds": [
+            "<ev#1>"
+          ],
+          "label": "SQL",
+          "score": 0.6,
+          "skillId": "sql",
+          "status": "developing"
+        },
+        "recommendedAction": null,
+        "skillId": "sql"
+      },
+      "status": 200
+    }
+  }
+}

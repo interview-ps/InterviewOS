@@ -1,0 +1,15 @@
+{
+  "snapshots": {
+    "models": {
+      "body": [
+        {
+          "defaultReasoningEffort": null,
+          "displayName": "Mock (deterministic)",
+          "id": "mock",
+          "supportedReasoningEfforts": []
+        }
+      ],
+      "status": 200
+    }
+  }
+}

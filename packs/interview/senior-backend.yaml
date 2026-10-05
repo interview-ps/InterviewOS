@@ -1,0 +1,25 @@
+format: interview-os.interview-pack
+id: senior-backend
+name: Senior Backend Interview Pack
+version: 1.0.0
+description: A standard senior backend loop — technical, coding, system design, behavioral.
+author: interview-os
+skills:
+  - distributed-systems
+  - sql
+  - apis
+  - system-design
+rounds:
+  - mode: technical
+    label: Technical foundations
+    plannedQuestions: 4
+  - mode: coding
+    label: Coding
+    plannedQuestions: 3
+  - mode: system_design
+    label: System design
+    plannedQuestions: 3
+  - mode: behavioral
+    label: Behavioral
+    plannedQuestions: 3
+durationMinutes: 180

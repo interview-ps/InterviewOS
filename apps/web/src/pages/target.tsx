@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { api, streamPost, type CompanyProfileInfo, type SetupResult, type TargetListItem } from "@/lib/api";
 import { Bar, Button, Card, CardTitle, ErrorNote, PageHeader, Pill, skillLabel, toast } from "@/components/ui";
+import { PluginSlot } from "@/components/plugin-ui";
 
 const LEVELS = ["junior", "mid", "senior", "staff"];
 const ACCEPT = ".pdf,.docx,.txt,.md";
@@ -518,6 +519,7 @@ export default function TargetRole() {
           </Card>
         </div>
       )}
+      <PluginSlot slot="target.tabs" />
     </div>
   );
 }

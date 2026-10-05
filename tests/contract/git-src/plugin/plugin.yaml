@@ -1,0 +1,12 @@
+id: contract-demo-plugin
+name: Contract Demo Plugin
+version: 1.0.0
+kind: hook
+entry: main.py
+description: Minimal deterministic plugin used by the HTTP contract suite.
+author: contract-tests
+permissions: []
+capabilities: []
+inputs: [request]
+outputs: []
+engines: {interview-os: ">=0.4.0"}
