@@ -1,153 +1,83 @@
-<a id="readme-top"></a>
+<p align="center">
+  <img src="docs/assets/readme/hero.svg" alt="Interview OS — interview preparation that learns from your answers" width="600" />
+</p>
 
-<div align="center">
+<p align="center">
+  <strong>A local-first, open-source workspace for turning a resume and job description into a targeted prep plan, realistic mock interviews, and an evidence-backed view of your readiness.</strong>
+</p>
 
-<img src="docs/assets/readme/hero.svg" alt="Interview OS — interview preparation that learns from your answers" width="100%" />
+<p align="center">
+  <a href="https://www.python.org/downloads/"><img alt="Python 3.13+" src="https://img.shields.io/badge/python-3.13%2B-blue?logo=python&logoColor=white" /></a>
+  <a href="https://github.com/interview-ps/InterviewOS/blob/main/LICENSE"><img alt="License: MIT" src="https://img.shields.io/badge/license-MIT-green" /></a>
+  <a href="https://github.com/interview-ps/InterviewOS/releases"><img alt="Version" src="https://img.shields.io/badge/version-0.4.0-orange" /></a>
+  <a href="https://github.com/interview-ps/InterviewOS/actions/workflows/ci.yml"><img alt="CI" src="https://img.shields.io/github/actions/workflow/status/interview-ps/InterviewOS/ci.yml?branch=main&label=CI" /></a>
+  <a href="https://fastapi.tiangolo.com/"><img alt="FastAPI" src="https://img.shields.io/badge/backend-FastAPI-009688?logo=fastapi&logoColor=white" /></a>
+  <a href="https://ant.design/"><img alt="Ant Design" src="https://img.shields.io/badge/UI-Ant%20Design-1677ff?logo=antdesign&logoColor=white" /></a>
+  <a href="https://github.com/interview-ps/InterviewOS"><img alt="GitHub stars" src="https://img.shields.io/github/stars/interview-ps/InterviewOS?style=social" /></a>
+  <a href="https://discord.gg/J3KxYCtPv"><img alt="Discord" src="https://img.shields.io/badge/Discord-Join%20Us-5865F2?logo=discord&logoColor=white" /></a>
+</p>
 
-<img src="https://readme-typing-svg.demolab.com?font=Fira+Code&weight=600&size=20&pause=1200&color=3178C6&center=true&vCenter=true&width=620&lines=Weak+answers+get+retested;Codex+%C2%B7+Claude+Code+%C2%B7+opencode+%C2%B7+Devin" alt="Weak answers get retested · Codex, Claude Code, opencode, Devin" />
+<p align="center">
+  <a href="#-highlights">Highlights</a> ·
+  <a href="#-how-it-works">How it works</a> ·
+  <a href="#-features">Features</a> ·
+  <a href="#-ai-runtimes">AI runtimes</a> ·
+  <a href="#-quick-start">Quick Start</a> ·
+  <a href="#-architecture">Architecture</a> ·
+  <a href="#-contributing">Contributing</a>
+</p>
 
-**A local-first, open-source workspace for turning a resume and job description into a targeted prep plan, realistic mock interviews, and an evidence-backed view of your readiness.**
+---
 
-[![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg?style=for-the-badge)](LICENSE) [![CI](https://img.shields.io/github/actions/workflow/status/interview-ps/InterviewOS/ci.yml?branch=main&style=for-the-badge&label=CI)](https://github.com/interview-ps/InterviewOS/actions/workflows/ci.yml) [![Python](https://img.shields.io/badge/Python-3.13-3776AB?logo=python&logoColor=white&style=for-the-badge)](https://www.python.org/) [![FastAPI](https://img.shields.io/badge/FastAPI-009688?logo=fastapi&logoColor=white&style=for-the-badge)](https://fastapi.tiangolo.com/) [![Node](https://img.shields.io/badge/node-24-339933?logo=node.js&logoColor=white&style=for-the-badge)](https://nodejs.org/) [![pnpm](https://img.shields.io/badge/pnpm-12-F69220?logo=pnpm&logoColor=white&style=for-the-badge)](https://pnpm.io/) [![PRs welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg?style=for-the-badge)](CONTRIBUTING.md) [![GitHub stars](https://img.shields.io/github/stars/interview-ps/InterviewOS?style=for-the-badge&logo=github)](https://github.com/interview-ps/InterviewOS/stargazers) [![Last commit](https://img.shields.io/github/last-commit/interview-ps/InterviewOS?style=for-the-badge)](https://github.com/interview-ps/InterviewOS/commits/main) [![Open issues](https://img.shields.io/github/issues/interview-ps/InterviewOS?style=for-the-badge)](https://github.com/interview-ps/InterviewOS/issues) [![Discord](https://img.shields.io/badge/Discord-join%20the%20community-5865F2?style=for-the-badge&logo=discord&logoColor=white)](https://discord.gg/J3KxYCtPv)
+**Interview OS** is a local-first interview-preparation workspace. Most tools hand you a question list; Interview OS connects the whole cycle — it finds the skills a role needs, helps you practice them, evaluates your answers, and uses the results to decide what to work on next. Every readiness score is backed by evidence you can inspect, and weak answers are deliberately retested in later rounds.
 
-**[Quickstart](#quickstart)**&nbsp;•&nbsp;**[How it works](#how-it-works)**&nbsp;•&nbsp;**[Features](#features)**<br/>**[Runtimes](#ai-runtimes-and-local-data)**&nbsp;•&nbsp;**[Architecture](#under-the-hood)**&nbsp;•&nbsp;**[Contributing](#contributing)**
+It runs on your machine, keeps its state in a local SQLite database, and never asks you to paste an API key — analysis and interviews go through a locally installed AI provider (Codex by default), or a deterministic mock runtime for trying the workflow end to end.
 
-<!-- Demo placeholder: add docs/assets/demo.gif, then uncomment the line below.
-<img src="docs/assets/demo.gif" alt="Interview OS demo: weak answer → readiness drop → retest" width="720" />
--->
+## ✨ Highlights
 
-</div>
+| | Feature | Description |
+|---|---------|-------------|
+| 🎯 | **Prep built around your target** | Analyze a resume against a job description, see the skill gaps, and get a plan ordered by role importance and current readiness. Multiple target roles share one candidate's evidence. |
+| 🧭 | **Readiness you can inspect** | Each skill's score is backed by interview answers, practice, self-checks, or resume claims — with the evidence and history shown, not an unexplained number. |
+| 🎙️ | **Interviews with a purpose** | Technical, coding, system design, behavioral, hiring-manager, HR, or mixed sessions; multi-round loops with cross-round handoff and a debrief. Coding answers are reviewed as text, **not executed**. |
+| 🔁 | **Practice that responds to weakness** | Question selection weighs role, readiness gaps, uncertainty, recent questions, and earlier weaknesses. Weak skills rise up the plan and get retested. |
+| 📝 | **Application-material help** | ATS review, guarded bullet suggestions, role tailoring, and a STAR story bank for behavioral interviews. Suggested rewrites are never applied automatically. |
+| 🏢 | **Company-shaped loops** | Generic or built-in Google / Meta / Amazon / Microsoft-style profiles shape the round sequence — heuristics from commonly reported patterns, not official guides. |
+| 📊 | **One place to follow progress** | Interview history, answer feedback, per-skill readiness change, prep actions, and metrics. `Ctrl/Cmd+K` opens the command palette. |
+| 🔌 | **Local runtimes and plugins** | Codex, Claude Code, opencode, Devin, or the deterministic mock. Skills declare inputs and permissions; plugins run in-process, see only the slices you grant, and can only *propose* evidence. |
 
-<p align="center"><img src="docs/assets/readme/stats.svg" alt="7 interview modes · 4 AI runtimes · 12 built-in skills · 0 API keys pasted" width="100%" /></p>
+## 🔄 How it works
 
-<p align="center"><img src="docs/assets/readme/divider.svg" width="100%" alt="" /></p>
-
-## Why Interview OS
-
-Most interview tools give you a question list. Interview OS connects the whole preparation cycle: it finds the skills a role needs, helps you practice them, evaluates your answers, and uses the results to decide what to work on next.
-
-<img src="docs/assets/readme/steps.svg" width="100%" alt="01 Set a target: Add your resume and a job description, or load a bundled example. 02 Prepare and interview: Follow a prioritized plan, practice one skill, or run a focused round or full interview loop. 03 Improve: Review the evidence behind each readiness score. Weak answers move skills up the plan and can be retested in later rounds." />
-
-### Interview OS is for you if
-
-- You want preparation tied to a **specific role**, rather than a generic question bank.
-- You want to see **why** a skill is marked strong or weak.
-- You want technical, coding, system design, behavioral, hiring manager, and HR practice in one place.
-- You want to track progress across interviews and revisit weaknesses deliberately.
-- You prefer a local app with a deterministic mock mode for trying the workflow without an AI provider.
-
-| | Typical question list | Interview OS |
-| --- | --- | --- |
-| Practice targets | Generic questions | Skills required by your target role |
-| Scores | Unexplained or none | Derived from stored evidence you can inspect |
-| Weak answers | Forgotten | Raise prep priority and get retested |
-| Setup | — | Runs locally; mock mode needs no AI provider |
-
-### How it works
-
-<img src="docs/assets/readme/loop.svg" alt="Feedback loop: resume and job description, skill gaps, prep plan, mock interview, answer evaluation, readiness evidence; weak skills get retested" width="100%" />
-
-<details>
-<summary>View as a diagram</summary>
-
-```mermaid
-flowchart LR
-    A["Resume + job description"] --> B["Skill gaps"]
-    B --> C["Prioritized prep plan"]
-    C --> D["Practice or mock interview"]
-    D --> E["Answer evaluation"]
-    E --> F["Evidence-backed readiness"]
-    F --> G["Updated plan"]
-    G --> H["Next interview"]
-    F -.->|weak skills retested| D
+```
+Resume + job description → skill gaps → prioritized prep plan → practice / mock interview
+      → answer evaluation → evidence-backed readiness → updated plan → next interview
+                              ↑ weak skills retested ─────┘
 ```
 
-</details>
+If you give a vague answer about cache invalidation, Interview OS records it as evidence for the relevant skill. Its readiness score and prep priority change, and a later interview can probe that weakness again. Older evidence loses weight over time.
 
-For example, if you give a vague answer about cache invalidation, Interview OS records that answer as evidence for the relevant skill. Its readiness score and prep priority change, and a later interview can probe that weakness again. Scores are derived from evidence, with the supporting entries visible in the app. Older evidence loses weight over time.
+## 🤔 Features
 
-<p align="center"><img src="docs/assets/readme/divider.svg" width="100%" alt="" /></p>
+### Prepare & interview
+- Target-role setup from a resume and job description (PDF, DOCX, TXT, Markdown up to 5 MB), or a bundled example such as `backend-engineer`.
+- A prioritized prep plan with concrete actions and success criteria.
+- Seven interview modes plus a multi-round **loop** with per-round deltas and a loop debrief.
+- Practice a single skill, or run a full loop; question sources include company/role packs and your own question bank.
 
-## Features
+### Readiness & evidence
+- Evidence-derived scores with confidence, history, and the source entries behind each one.
+- Readiness snapshots are appended, so changes are inspectable over time.
 
-<table>
-  <tr>
-    <td width="50%" valign="top"><h4>🎯 Prep built around your target</h4><p>Analyze a resume against a job description, see the skill gaps, and get a plan ordered by role importance and current readiness. Keep multiple target roles for one candidate; each target has its own gaps and plan while sharing the candidate's evidence.</p></td>
-    <td width="50%" valign="top"><h4>🧭 Readiness you can inspect</h4><p>Each skill's score is backed by interview answers, practice, self-checks, or resume claims. The Readiness view shows the evidence and history behind it instead of presenting an unexplained number.</p></td>
-  </tr>
-  <tr>
-    <td width="50%" valign="top"><h4>🎙️ Interviews with a purpose</h4><p>Run technical, coding, system design, behavioral, hiring manager, HR, or mixed sessions. Build a multi-round loop, carry observations between rounds, and get a debrief showing strengths, weaknesses, and readiness changes. Coding answers are reviewed as text; they are <b>not executed</b>.</p></td>
-    <td width="50%" valign="top"><h4>🔁 Practice that responds to weakness</h4><p>Question selection considers the target role, readiness gaps, uncertainty, recent questions, and weaknesses from earlier rounds. Complete a prep action with a self-check or answer a practice question to add fresh evidence.</p></td>
-  </tr>
-  <tr>
-    <td width="50%" valign="top"><h4>📝 Help with your application materials</h4><p>Review your resume for ATS basics, get guarded bullet suggestions and role tailoring, and build a STAR story bank for behavioral interviews. Suggested rewrites are never applied automatically; check them before use.</p></td>
-    <td width="50%" valign="top"><h4>🏢 Company-shaped loops</h4><p>Choose a generic profile or a built-in Google, Meta, Amazon, or Microsoft-style profile to shape the round sequence and emphasis. These profiles are <b>heuristics based on commonly reported patterns</b>, not official company interview guides.</p></td>
-  </tr>
-  <tr>
-    <td width="50%" valign="top"><h4>📊 One place to follow progress</h4><p>Browse interview history, answer feedback, per-skill readiness changes, prep actions, and progress metrics. Use the command palette with <code>Ctrl/Cmd+K</code> to jump to common actions.</p></td>
-    <td width="50%" valign="top"><h4>🔌 Local runtimes and plugins</h4><p>Use a locally installed Codex CLI by default, choose Claude Code, opencode, or Devin, or use the deterministic mock runtime. Skills declare their inputs and permissions; plugins run in-process, see only the state slices you grant, and can only propose evidence — the orchestrator decides what gets written.</p></td>
-  </tr>
-</table>
+### Runtimes & extensibility
+- AI runtimes: **Codex** (default), **Claude Code**, **opencode**, **Devin**, and **mock**.
+- **Plugins** (`plugin.yaml` + `main.py`): bundled interview modes and extensions; evidence proposals are schema-validated and confidence-capped before the orchestrator writes them.
+- **Plugin UI**: host-rendered declarative trees plus sandboxed opaque-origin iframes.
+- **MCP** context from local stdio servers only, with a per-tool allowlist.
+- Community **company** / **role** packs and shareable **interview** packs; full state **export/import**.
 
-**v0.4 platform additions:** a Python [plugin system](docs/plugins.md) (`plugin.yaml` + `main.py`), community [company](docs/company-packs.md) and [role](docs/role-packs.md) packs plus shareable [interview packs](docs/interview-packs.md), [MCP server context](docs/security.md) (`interview-os.mcp.json`, per-tool allowlists), voice answers with delivery hints, a per-skill question bank, and full state [export/import](docs/security.md). Security model: [docs/security.md](docs/security.md).
+Security model: [docs/security.md](docs/security.md). Plugin guide: [docs/plugins.md](docs/plugins.md).
 
-### Screenshots
-
-<p align="center"><strong>Evidence-backed readiness</strong></p>
-
-![Evidence-backed readiness](docs/screenshots/readiness.png)
-
-<details>
-<summary>More screenshots</summary>
-
-**Home and progress**
-
-![Home progress metrics](docs/screenshots/home-progress.png)
-
-**Coding answer evaluation**
-
-![Coding round evaluation](docs/screenshots/coding-eval.png)
-
-**Multi-round debrief**
-
-![Loop debrief](docs/screenshots/loop-debrief.png)
-
-</details>
-
-<p align="right"><a href="#readme-top">back to top</a></p>
-
-<p align="center"><img src="docs/assets/readme/divider.svg" width="100%" alt="" /></p>
-
-## Quickstart
-
-**Requirements:** Python 3.13 with [uv](https://docs.astral.sh/uv/), Node.js 24, [pnpm](https://pnpm.io/) 12, and Git. The default AI runtime also needs a locally installed and signed-in [Codex CLI](https://github.com/openai/codex). You can try the complete workflow without Codex using mock mode.
-
-```sh
-git clone https://github.com/interview-ps/InterviewOS.git
-cd InterviewOS
-uv sync --project apps/api            # backend (FastAPI) deps
-pnpm install                          # web + ui deps
-INTERVIEW_OS_RUNTIME=mock pnpm start  # build the SPA, serve UI + API on :4100
-```
-
-Open [http://localhost:4100](http://localhost:4100). `pnpm start` builds the SPA and serves UI + API together from the FastAPI server on port 4100. For development with hot reload, run the API and the Vite UI in two terminals — `INTERVIEW_OS_RUNTIME=mock pnpm dev:api` (API on :4100) and `pnpm dev` (UI on :3000, proxying `/api` to :4100) — then open [http://localhost:3000](http://localhost:3000). To use your local Codex installation instead, drop `INTERVIEW_OS_RUNTIME=mock`.
-
-> [!TIP]
-> On Windows PowerShell, start mock mode with `$env:INTERVIEW_OS_RUNTIME="mock"; pnpm dev:api`. If your machine blocks `pnpm.exe` under Application Control, use `corepack pnpm` for the web/ui commands (the Python side uses `uv` directly). For other Windows install failures — `corepack pnpm` not launching — see the [Windows setup notes](CONTRIBUTING.md#setup).
-
-### Try the feedback loop
-
-1. Open **Target Role** and load the `backend-engineer` example.
-2. Analyze it to see gaps in caching, distributed systems, and system design, then open the prep plan.
-3. Start a technical interview. Give a vague caching answer, such as “I'd put Redis in front of the database.”
-4. Open **Readiness** to inspect the weak evidence, then **Prepare** to see the updated priority.
-5. Start another interview to see that weakness come back into focus.
-
-The mock runtime makes this walkthrough repeatable without AI calls. For your own resume and role, use a configured AI runtime. Resume and job description inputs accept PDF, DOCX, TXT, and Markdown files up to 5 MB.
-
-<p align="center"><img src="docs/assets/readme/divider.svg" width="100%" alt="" /></p>
-
-## AI runtimes and local data
+## 🧠 AI runtimes
 
 <div align="center">
 <table>
@@ -164,109 +94,108 @@ The mock runtime makes this walkthrough repeatable without AI calls. For your ow
 | Runtime | Select with `INTERVIEW_OS_RUNTIME` | How to start |
 | --- | --- | --- |
 | Codex (default) | `codex` or unset | Install and sign in to the Codex CLI, then run `pnpm dev:api`. |
-| Claude Code | `claude` | Sign in with the Claude Code CLI, then run `INTERVIEW_OS_RUNTIME=claude pnpm dev:api`. |
-| opencode | `opencode` | Sign in with `opencode auth login`, then run `INTERVIEW_OS_RUNTIME=opencode pnpm dev:api`. |
-| Devin | `devin` | Sign in with `devin auth login`, then run `INTERVIEW_OS_RUNTIME=devin pnpm dev:api`. |
-| Mock | `mock` | Run `INTERVIEW_OS_RUNTIME=mock pnpm dev:api`; no AI provider required. |
+| Claude Code | `claude` | Sign in with the Claude Code CLI, then `INTERVIEW_OS_RUNTIME=claude pnpm dev:api`. |
+| opencode | `opencode` | `opencode auth login`, then `INTERVIEW_OS_RUNTIME=opencode pnpm dev:api`. |
+| Devin | `devin` | `devin auth login`, then `INTERVIEW_OS_RUNTIME=devin pnpm dev:api`. |
+| Mock | `mock` | `INTERVIEW_OS_RUNTIME=mock pnpm dev:api` — no AI provider required. |
 
-Interview OS keeps application state in a local SQLite database (`data/interview-os.db` by default). When you select a real AI runtime, the content needed for analysis and interviewing is sent through that provider's local tooling. The app does not ask you to paste an API key into Interview OS. See [Architecture](ARCHITECTURE.md) for the runtime and data flow.
+State lives in local SQLite (`data/interview-os.db` by default). With a real runtime, the content needed for analysis and interviewing is sent through that provider's local tooling. See [ARCHITECTURE.md](ARCHITECTURE.md) for the data flow.
 
-### Configuration
+## 🚀 Quick Start
 
-<details>
-<summary><b>Configuration</b> — environment variables</summary>
+**Prerequisites:** [uv](https://docs.astral.sh/uv/) (Python 3.13), Node.js 24, [pnpm](https://pnpm.io/) 12, and Git. The default runtime also needs a locally installed and signed-in [Codex CLI](https://github.com/openai/codex); mock mode needs nothing extra.
+
+```sh
+git clone https://github.com/interview-ps/InterviewOS.git
+cd InterviewOS
+uv sync --project apps/api            # backend (FastAPI) deps
+pnpm install                          # web + ui deps
+INTERVIEW_OS_RUNTIME=mock pnpm start  # build the SPA, serve UI + API on :4100
+```
+
+Open **http://localhost:4100**. `pnpm start` builds the SPA and serves UI + API from the FastAPI server. For hot-reload development, run two terminals — `INTERVIEW_OS_RUNTIME=mock pnpm dev:api` (API on `:4100`) and `pnpm dev` (Vite UI on `:3000`, proxying `/api`) — then open **http://localhost:3000**. Drop `INTERVIEW_OS_RUNTIME=mock` to use your local Codex install.
+
+### Try the feedback loop
+
+1. Open **Target Role** and load the `backend-engineer` example.
+2. Analyze it to see gaps in caching, distributed systems, and system design, then open the prep plan.
+3. Start a technical interview and give a vague caching answer, e.g. “I'd put Redis in front of the database.”
+4. Open **Readiness** to inspect the weak evidence, then **Prepare** to see the updated priority.
+5. Start another interview to see the weakness come back into focus.
+
+The mock runtime makes this walkthrough repeatable with no AI calls.
+
+## ⚙️ Configuration
 
 | Variable | Default | Purpose |
 | --- | --- | --- |
 | `INTERVIEW_OS_RUNTIME` | `codex` | `codex`, `claude`, `opencode`, `devin`, or `mock`; overrides the runtime picked in Settings |
-| `INTERVIEW_OS_RUNTIME_FALLBACK` | none | Set to `mock` to use mock mode if the selected runtime is unavailable |
+| `INTERVIEW_OS_RUNTIME_FALLBACK` | none | Set to `mock` to fall back when the selected runtime is unavailable |
 | `INTERVIEW_OS_PORT` | `4100` | API server port |
-| `INTERVIEW_OS_HOST` | `127.0.0.1` | Bind address for the API server (and the Vite dev/preview server). Set to a non-loopback host only on trusted networks — the API has no authentication |
+| `INTERVIEW_OS_HOST` | `127.0.0.1` | Bind address (API + Vite dev/preview). Only use a non-loopback host on trusted networks — the API has no authentication |
 | `INTERVIEW_OS_DB` | `data/interview-os.db` | SQLite database path |
 | `INTERVIEW_OS_PLUGINS_DIR` | `<repo>/plugins` | Local plugin discovery directory |
 
-Runtime model, reasoning effort, and task mode can be changed in **Settings**. For provider-specific paths, timeouts, and test settings, see [Architecture](ARCHITECTURE.md) and the runtime code in [`apps/api/src/interview_os/ai`](apps/api/src/interview_os/ai).
+Model, reasoning effort, and task mode are set in **Settings**. Runtime code: [`apps/api/src/interview_os/ai`](apps/api/src/interview_os/ai).
 
-</details>
+## 🏗️ Architecture
 
-<p align="right"><a href="#readme-top">back to top</a></p>
-
-<p align="center"><img src="docs/assets/readme/divider.svg" width="100%" alt="" /></p>
-
-## Under the hood
-
-<div align="center">
-
-[![Vite](https://img.shields.io/badge/Vite-646CFF?style=flat-square&logo=vite&logoColor=white)](https://vite.dev/) [![React Router](https://img.shields.io/badge/React_Router-CA4245?style=flat-square&logo=reactrouter&logoColor=white)](https://reactrouter.com/) [![FastAPI](https://img.shields.io/badge/FastAPI-009688?style=flat-square&logo=fastapi&logoColor=white)](https://fastapi.tiangolo.com/) [![Pydantic](https://img.shields.io/badge/Pydantic-E92063?style=flat-square&logo=pydantic&logoColor=white)](https://docs.pydantic.dev/) [![SQLite](https://img.shields.io/badge/SQLite-003B57?style=flat-square&logo=sqlite&logoColor=white)](https://www.sqlite.org/) [![Tailwind CSS](https://img.shields.io/badge/Tailwind_CSS-06B6D4?style=flat-square&logo=tailwindcss&logoColor=white)](https://tailwindcss.com/) [![pytest](https://img.shields.io/badge/pytest-0A9EDC?style=flat-square&logo=pytest&logoColor=white)](https://pytest.org/) [![Playwright](https://img.shields.io/badge/Playwright-2EAD33?style=flat-square&logo=playwright&logoColor=white)](https://playwright.dev/)
-
-</div>
-
-<img src="docs/assets/readme/architecture.svg" width="100%" alt="Architecture: apps/web Vite + React Router interface on port 3000, apps/api FastAPI server on port 4100 with local SQLite containing the orchestrator and skills, over interview_os.core models and the ai/ provider adapters" />
-
-<details>
-<summary>Repository layout</summary>
-
-```text
-apps/web             Vite + React Router SPA (dev :3000, built SPA served by the API)
+```
+apps/web             Vite + React + Ant Design SPA (dev :3000; built SPA served by the API)
         ↓
-apps/api             FastAPI server (port 4100) + local SQLite
-                     src/interview_os/orchestrator — Interview and preparation workflows
-                     src/interview_os/skills       — Analyzers, planner, interviewer, evaluator, coaches
-                     src/interview_os/plugins      — In-process plugin host
+apps/api             FastAPI server (:4100) + local SQLite
+  src/interview_os/core          Pydantic models, readiness, gaps, priority
+  src/interview_os/ai            Codex / Claude Code / opencode / Devin / mock adapters
+  src/interview_os/skills        Analyzers, planner, interviewer, evaluator, coaches
+  src/interview_os/orchestrator  Interview & preparation workflows (services + facade)
+  src/interview_os/plugins       In-process plugin host
+  src/interview_os/api           Routers, SSE, error mapping, static serving
         ↓
-apps/api/src/interview_os/core   Pydantic models, readiness, gaps, prioritization
-apps/api/src/interview_os/ai     Codex, Claude Code, opencode, Devin, and mock adapters
 packages/frontend-types   Generated model types + plugin-UI vocabulary (from apps/api/schema)
-packages/ui              Shared design system (declarative UINode renderer, frames)
+packages/ui               Design system + declarative UINode renderer + frame runtime
+packages/plugin-ui        Curated, Ant-Design-free plugin UI contract
+plugins/ · packs/         Bundled plugins and content packs
 ```
 
-</details>
+AI-generated state is schema-validated before it is saved; readiness comes from stored evidence, with snapshots appended. [ARCHITECTURE.md](ARCHITECTURE.md) explains the design; [AGENTS.md](AGENTS.md) records the core invariants.
 
-AI-generated state is schema-validated before it is saved. Readiness scores come from stored evidence, and snapshots are appended so changes can be inspected later. The [architecture guide](ARCHITECTURE.md) explains the design in detail; [AGENTS.md](AGENTS.md) records the project's core invariants.
-
-<p align="center"><img src="docs/assets/readme/divider.svg" width="100%" alt="" /></p>
-
-## Contributing
-
-Contributions are welcome. Start with [CONTRIBUTING.md](CONTRIBUTING.md) and the invariants in [AGENTS.md](AGENTS.md).
-
-### Development
-
-<details>
-<summary><b>Development commands</b></summary>
+## 🛠️ Development
 
 ```sh
-pnpm typecheck              # tsc for web / ui / frontend-types
+pnpm typecheck              # tsc for web / ui / frontend-types / plugin-ui
 pnpm test                   # apps/api pytest (unit + runtime + integration)
 pnpm test:contract          # Python HTTP contract suite (spawns FastAPI, mock runtime)
-pnpm test:e2e               # Playwright e2e (mock runtime)
+pnpm test:e2e               # Playwright e2e (mock runtime, 21 specs)
+pnpm build                  # plugin-runtime bundle + production SPA
 ```
 
-The integration test in `apps/api/tests/integration/test_feedback_loop.py` covers the product's central promise: a weak answer changes readiness and is retested. Live provider tests are opt-in. See [Contributing](CONTRIBUTING.md) for setup, testing, and how to add a skill, mode, plugin, or runtime.
+The integration test `apps/api/tests/integration/test_feedback_loop.py` covers the product's central promise: a weak answer changes readiness and is retested. Live provider tests are opt-in. See [CONTRIBUTING.md](CONTRIBUTING.md) for setup and how to add a skill, mode, plugin, or runtime.
 
-</details>
+## 🔒 Security & privacy
 
-### Roadmap
+- **Local-first**: state lives in a local SQLite database; no account, no telemetry.
+- **No pasted keys**: provider auth uses the provider's own local install (`codex login`, `claude`, `opencode auth login`, `devin auth login`).
+- **Capability-gated plugins**: install requires explicit enable; plugins receive only declared + granted slices and can only propose evidence.
+- **Local-file integrations**: MCP servers and runtime providers are configured only through local files, never over HTTP.
+- **Untrusted content** (resumes, JDs, answers, documents) never enters process argv or shell strings, and is never logged.
 
-Planned work includes sandboxed execution for coding answers, voice interviews, and broader plugin support. See [the implementation plan](IMPLEMENTATION_PLAN.md) for the project plan; planned features are not part of the current app.
+See [docs/security.md](docs/security.md).
 
-<p align="center"><img src="docs/assets/readme/divider.svg" width="100%" alt="" /></p>
+## 🤝 Contributing
 
-## License
+Contributions are welcome:
+
+1. Fork the repository.
+2. Create a feature branch (`git checkout -b feature/amazing-feature`).
+3. Run `pnpm typecheck`, `pnpm test`, and `pnpm test:e2e` before opening a PR.
+4. Open a Pull Request.
+
+See [CONTRIBUTING.md](CONTRIBUTING.md) for the full guide, and [AGENTS.md](AGENTS.md) for module boundaries and conventions.
+
+## 🗺️ Roadmap
+
+Planned work includes sandboxed execution for coding answers, voice interviews, and broader plugin support. See [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md); planned features are not part of the current app.
+
+## 📄 License
 
 Interview OS is [MIT licensed](LICENSE).
-
-<!-- Star History: re-enable once the repo has meaningful star growth.
-
-## Star History
-
-<a href="https://www.star-history.com/?repos=interview-ps%2Finterviewos&type=date&logscale=&releases=&legend=bottom-right">
- <picture>
-   <source media="(prefers-color-scheme: dark)" srcset="https://api.star-history.com/chart?repos=interview-ps/interviewos&type=date&theme=dark&legend=bottom-right" />
-   <source media="(prefers-color-scheme: light)" srcset="https://api.star-history.com/chart?repos=interview-ps/interviewos&type=date&legend=bottom-right" />
-   <img alt="Star History Chart" src="https://api.star-history.com/chart?repos=interview-ps/interviewos&type=date&legend=bottom-right" />
- </picture>
-</a>
--->
-
-<img src="docs/assets/readme/footer.svg" width="100%" alt="" />
