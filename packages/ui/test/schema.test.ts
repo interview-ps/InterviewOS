@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { validateUITree, UINodeSchema } from "@interview-os/core";
+import { validateUITree, UINodeSchema } from "@interview-os/frontend-types";
 
 const text = (t: string) => ({ type: "text", text: t });
 

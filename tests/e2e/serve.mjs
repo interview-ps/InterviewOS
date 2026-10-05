@@ -28,8 +28,18 @@ const build = spawnSync(process.execPath, [viteBin, "build"], {
 if (build.status !== 0) process.exit(build.status ?? 1);
 
 const server = spawn(
-  process.execPath,
-  ["--import", "tsx", "apps/server/src/index.ts"],
+  "uv",
+  [
+    "run",
+    "--project",
+    "apps/api",
+    "uvicorn",
+    "interview_os.main:app",
+    "--host",
+    "127.0.0.1",
+    "--port",
+    process.env.INTERVIEW_OS_PORT ?? "4100",
+  ],
   { cwd: repo, stdio: "inherit", env: process.env },
 );
 for (const sig of ["SIGINT", "SIGTERM"]) {
