@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 import { useNavigate } from "react-router";
-import { allModes } from "@interview-os/core";
+import { defaultModeId, defaultRoundModes, useAvailableModes } from "@/lib/modes";
 import {
   api,
   type CompanyPackView,
@@ -27,7 +27,6 @@ import {
   toast,
 } from "@/components/ui";
 
-const MODES = allModes();
 const isHttps = (u: unknown): u is string =>
   typeof u === "string" && u.startsWith("https://");
 
@@ -340,12 +339,24 @@ function InterviewPackCreator({
   const [author, setAuthor] = useState("");
   const [duration, setDuration] = useState(120);
   const [skills, setSkills] = useState<string[]>([]);
-  const [rounds, setRounds] = useState<RoundDraft[]>([
-    { mode: "technical", label: "Technical", plannedQuestions: 3 },
-    { mode: "behavioral", label: "Behavioral", plannedQuestions: 3 },
-  ]);
+  const [rounds, setRounds] = useState<RoundDraft[]>([]);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<unknown>(null);
+  const modes = useAvailableModes();
+  // v1: seed the default rounds once the available modes arrive — prefer the
+  // historical pair, else whatever plugin modes exist.
+  const [roundsSeeded, setRoundsSeeded] = useState(false);
+  useEffect(() => {
+    if (roundsSeeded || modes.length === 0) return;
+    setRoundsSeeded(true);
+    setRounds(
+      defaultRoundModes(modes).map((m) => ({
+        mode: m.id,
+        label: m.label,
+        plannedQuestions: 3,
+      })),
+    );
+  }, [modes, roundsSeeded]);
 
   const requirements = target?.requirements ?? [];
 
@@ -465,7 +476,7 @@ function InterviewPackCreator({
               }
               className="rounded border border-line bg-white px-2 py-1 text-sm"
             >
-              {MODES.map((m) => (
+              {modes.map((m) => (
                 <option key={m.id} value={m.id}>{m.label}</option>
               ))}
             </select>
@@ -522,12 +533,14 @@ function InterviewPackCreator({
         <Button
           variant="ghost"
           disabled={rounds.length >= 7}
-          onClick={() =>
+          onClick={() => {
+            const id = defaultModeId(modes, "behavioral");
+            const label = modes.find((m) => m.id === id)?.label ?? id;
             setRounds((rs) => [
               ...rs,
-              { mode: "behavioral", label: "Behavioral", plannedQuestions: 3 },
-            ])
-          }
+              { mode: id, label, plannedQuestions: 3 },
+            ]);
+          }}
         >
           + Add round
         </Button>
@@ -747,6 +760,7 @@ function QuestionBank({
   const [importText, setImportText] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<unknown>(null);
+  const modes = useAvailableModes();
   const requirements = target?.requirements ?? [];
 
   useEffect(() => {
@@ -846,7 +860,7 @@ function QuestionBank({
             className="rounded border border-line bg-white px-2 py-1.5 text-sm"
           >
             <option value="">any mode</option>
-            {MODES.map((m) => (
+            {modes.map((m) => (
               <option key={m.id} value={m.id}>{m.label}</option>
             ))}
           </select>

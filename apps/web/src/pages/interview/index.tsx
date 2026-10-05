@@ -1,9 +1,9 @@
 import { Link, useNavigate } from "react-router";
 import { useEffect, useState } from "react";
-import { allModes } from "@interview-os/core";
 import {
   api,
   streamPost,
+  type AvailableMode,
   type CompanyProfileInfo,
   type ExternalContext,
   type InterviewListItem,
@@ -16,9 +16,7 @@ import {
 } from "@/lib/api";
 import { Button, Card, CardTitle, EmptyState, ErrorNote, PageHeader, Pill, SkeletonCard } from "@/components/ui";
 import { useUIContributions } from "@/components/plugin-ui";
-
-const MODES = allModes();
-const MODE_IDS = MODES.map((m) => m.id);
+import { defaultModeId, defaultRoundModes } from "@/lib/modes";
 
 interface LoopRoundDraft {
   mode: RoundType;
@@ -26,10 +24,9 @@ interface LoopRoundDraft {
   plannedQuestions: number;
 }
 
-const modeLabel = (id: string) => MODES.find((m) => m.id === id)?.label ?? id;
-
 export default function Interview() {
   const navigate = useNavigate();
+  const [modes, setModes] = useState<AvailableMode[]>([]);
   const [sessions, setSessions] = useState<InterviewListItem[] | null>(null);
   const [loops, setLoops] = useState<InterviewLoop[] | null>(null);
   const [profiles, setProfiles] = useState<CompanyProfileInfo[] | null>(null);
@@ -53,10 +50,25 @@ export default function Interview() {
     p.interviewModes.map((m) => ({ plugin: p.pluginName, pluginModeId: `${p.pluginId}:${m.id}`, ...m })),
   );
 
+  const modeLabel = (id: string) =>
+    modes.find((m) => m.id === id)?.label ?? id.replace(/[-_]+/g, " ");
+
   const loadContexts = () =>
     api.mcpContexts().then(setContexts).catch(() => setContexts([]));
 
+  // v1: keep the selected round type valid — prefer the historical default
+  // ("technical") when its plugin is enabled, else the first available mode.
   useEffect(() => {
+    if (modes.length === 0) return;
+    setRoundType((cur) =>
+      cur === "mixed" || modes.some((m) => m.id === cur)
+        ? cur
+        : defaultModeId(modes),
+    );
+  }, [modes]);
+
+  useEffect(() => {
+    api.modes().then((r) => setModes(r.modes)).catch(() => {});
     api.listInterviews().then(setSessions).catch((e) => setError(e));
     api.loops().then(setLoops).catch(() => setLoops([]));
     api.companies().then(setProfiles).catch(() => {});
@@ -80,21 +92,24 @@ export default function Interview() {
       const active = targets.find((t) => t.active);
       const profile = profiles?.find((p) => p.id === (active?.companyProfileId ?? "generic"))
         ?? profiles?.find((p) => p.id === "generic");
-      const fallback = [
-        { mode: "technical", label: "Technical" },
-        { mode: "behavioral", label: "Behavioral" },
-      ];
+      // hide rounds whose mode isn't available (plugin disabled/absent)
+      const available = new Set(modes.map((m) => m.id));
+      const fallback = defaultRoundModes(modes).map((m) => ({
+        mode: m.id,
+        label: m.label,
+      }));
       const rounds = (profile?.typicalLoop ?? fallback)
+        .filter((s) => available.size === 0 || available.has(s.mode))
         .slice(0, 7)
         .map((s) => ({
           mode: s.mode as RoundType,
           label: s.label ?? modeLabel(s.mode),
           plannedQuestions: 3,
         }));
-      setLoopRounds(rounds.length >= 2 ? rounds : [
-        { mode: "technical", label: "Technical", plannedQuestions: 3 },
-        { mode: "behavioral", label: "Behavioral", plannedQuestions: 3 },
-      ]);
+      setLoopRounds(rounds.length >= 2 ? rounds : fallback.map((r) => ({
+        ...r,
+        plannedQuestions: 3,
+      })));
     } catch (e) {
       setError(e);
     }
@@ -205,7 +220,7 @@ export default function Interview() {
       <Card>
         <CardTitle>Single round — pick a mode</CardTitle>
         <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
-          {MODES.map((m) => (
+          {modes.map((m) => (
             <label
               key={m.id}
               className={`cursor-pointer rounded-[0.6rem] border p-3 text-sm ${
@@ -305,8 +320,8 @@ export default function Interview() {
                     }
                     className="rounded border border-line bg-white px-2 py-1 text-sm"
                   >
-                    {MODE_IDS.map((id) => (
-                      <option key={id} value={id}>{modeLabel(id)}</option>
+                    {modes.map((m) => (
+                      <option key={m.id} value={m.id}>{m.label}</option>
                     ))}
                   </select>
                   <input
@@ -357,12 +372,13 @@ export default function Interview() {
               <Button
                 variant="ghost"
                 disabled={loopRounds.length >= 7}
-                onClick={() =>
+                onClick={() => {
+                  const id = defaultModeId(modes, "behavioral");
                   setLoopRounds((rs) => [
                     ...rs,
-                    { mode: "behavioral", label: "Behavioral", plannedQuestions: 3 },
-                  ])
-                }
+                    { mode: id, label: modeLabel(id), plannedQuestions: 3 },
+                  ]);
+                }}
               >
                 + Add round
               </Button>

@@ -16,6 +16,7 @@ import {
 } from "@/lib/api";
 import { runUIAction } from "@/lib/plugin-actions";
 import { fuzzyFilter } from "@/lib/fuzzy";
+import { useAvailableModes } from "@/lib/modes";
 import { skillLabel } from "@/components/ui";
 
 interface Command {
@@ -24,15 +25,6 @@ interface Command {
   hint?: string;
   run: () => Promise<void> | void;
 }
-
-const MODES: { id: RoundType; label: string }[] = [
-  { id: "technical", label: "Technical" },
-  { id: "coding", label: "Coding" },
-  { id: "system_design", label: "System design" },
-  { id: "behavioral", label: "Behavioral" },
-  { id: "hiring_manager", label: "Hiring manager" },
-  { id: "hr", label: "HR" },
-];
 
 const LISTBOX_ID = "command-palette-listbox";
 
@@ -53,6 +45,7 @@ export function CommandPalette({
   const [actions, setActions] = useState<PrepAction[]>([]);
   const [graph, setGraph] = useState<Record<string, SkillReadiness>>({});
   const [pluginUI, setPluginUI] = useState<PluginUIContributionView[]>([]);
+  const modes = useAvailableModes();
 
   // Load dynamic command sources each time the palette opens.
   useEffect(() => {
@@ -69,8 +62,8 @@ export function CommandPalette({
 
   const commands = useMemo<Command[]>(() => {
     const list: Command[] = [];
-    for (const m of MODES) {
-      const roundType = m.id;
+    for (const m of modes) {
+      const roundType = m.id as RoundType;
       list.push({
         id: `interview-${m.id}`,
         title: `Start ${m.label.toLowerCase()} interview`,
@@ -217,7 +210,7 @@ export function CommandPalette({
       }
     }
     return list;
-  }, [actions, graph, targets, pluginUI, navigate]);
+  }, [actions, graph, targets, pluginUI, modes, navigate]);
 
   const filtered = useMemo(
     () => fuzzyFilter(commands, query, (c) => c.title),

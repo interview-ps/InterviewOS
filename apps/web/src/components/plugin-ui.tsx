@@ -1,7 +1,7 @@
 import { Component, useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { useNavigate } from "react-router";
 import { DeclarativeRenderer, FRAME_MIN_HEIGHT } from "@interview-os/ui";
-import type { UINode } from "@interview-os/core";
+import type { UINode } from "@interview-os/frontend-types";
 import {
   api,
   type PluginUIContributionView,
@@ -264,6 +264,49 @@ export function PluginSlot({
           slot={slot}
           params={params}
         />
+      ))}
+    </>
+  );
+}
+
+/**
+ * v1: like PluginSlot, but only renders contributions from the plugin that
+ * owns the given interview mode (used by the `interview.question` slot so a
+ * plugin mode can render a question panel such as the coding problem). The
+ * wrapper carries the component name as data-testid — declarative trees
+ * cannot set test ids themselves.
+ */
+export function PluginModeSlot({
+  slot,
+  modeId,
+  params,
+}: {
+  slot: string;
+  modeId: string;
+  params?: Record<string, unknown>;
+}) {
+  const contributions = useUIContributions();
+  const list = useMemo(
+    () =>
+      contributions
+        .filter((p) => p.modes?.includes(modeId))
+        .flatMap((p) =>
+          (p.slots[slot] ?? []).map((c) => ({ plugin: p, contribution: c })),
+        ),
+    [contributions, slot, modeId],
+  );
+  if (list.length === 0) return null;
+  return (
+    <>
+      {list.map(({ plugin, contribution }) => (
+        <div key={`${plugin.pluginId}:${contribution.component}`} data-testid={contribution.component}>
+          <Contribution
+            plugin={plugin}
+            contribution={contribution}
+            slot={slot}
+            params={params}
+          />
+        </div>
       ))}
     </>
   );

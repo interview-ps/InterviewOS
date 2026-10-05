@@ -1,22 +1,21 @@
 import { Link, useParams } from "react-router";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { getMode, VOICE_DISCLAIMER } from "@interview-os/core";
+import { VOICE_DISCLAIMER } from "@interview-os/frontend-types";
 import {
   api,
   streamPost,
-  type CodingProblem,
   type Debrief,
-  type DesignDimensionStatus,
   type InterviewLoop,
   type SessionDetail,
   type SessionQuestion,
+  type SessionRow,
   type StartInterviewResult,
   type SubmitAnswerResult,
   type VoiceFeedback,
 } from "@/lib/api";
 import { speechSupported, useSpeakQuestion, useVoiceCapture } from "@/lib/voice";
 import { Bar, Button, Card, CardTitle, ErrorNote, Pill, SkeletonCard, severityTone, skillLabel } from "@/components/ui";
-import { PluginSlot } from "@/components/plugin-ui";
+import { PluginModeSlot, PluginSlot } from "@/components/plugin-ui";
 
 const CODE_LANGUAGES = [
   "python", "javascript", "typescript", "java", "go", "cpp", "csharp",
@@ -126,87 +125,6 @@ function WhyThisQuestion({ q }: { q: SessionQuestion }) {
   );
 }
 
-function CodingProblemPanel({ problem }: { problem: CodingProblem }) {
-  return (
-    <div className="mt-3 rounded-[0.6rem] border border-line bg-page p-3 text-sm" data-testid="coding-problem">
-      <p className="font-semibold text-navy">{problem.title}</p>
-      <p className="mt-1 whitespace-pre-wrap text-muted">{problem.statement}</p>
-      {problem.constraints.length > 0 && (
-        <>
-          <p className="mt-2 text-xs font-medium uppercase tracking-wide text-muted">Constraints</p>
-          <ul className="mt-0.5 list-disc pl-5 text-xs text-muted">
-            {problem.constraints.map((c, i) => <li key={i}>{c}</li>)}
-          </ul>
-        </>
-      )}
-      {problem.examples.length > 0 && (
-        <>
-          <p className="mt-2 text-xs font-medium uppercase tracking-wide text-muted">Examples</p>
-          <ul className="mt-0.5 space-y-0.5 font-mono text-xs text-muted">
-            {problem.examples.map((e, i) => (
-              <li key={i}>
-                {e.input} → {e.output}
-                {e.explanation ? ` — ${e.explanation}` : ""}
-              </li>
-            ))}
-          </ul>
-        </>
-      )}
-    </div>
-  );
-}
-
-const STATUS_LABEL: Record<DesignDimensionStatus, string> = {
-  not_covered: "not covered",
-  partial: "partial",
-  covered: "covered",
-};
-const STATUS_TONE: Record<DesignDimensionStatus, "muted" | "amber" | "green"> = {
-  not_covered: "muted",
-  partial: "amber",
-  covered: "green",
-};
-
-function DesignPanel({
-  state,
-  focus,
-}: {
-  state: Record<string, unknown>;
-  focus: string | null;
-}) {
-  const dims = (state.dimensions ?? {}) as Record<
-    string,
-    { status: DesignDimensionStatus; notes: string }
-  >;
-  const rubric = getMode("system_design").rubric;
-  const label = (id: string) => rubric.find((r) => r.id === id)?.label ?? id;
-  return (
-    <Card>
-      <CardTitle>Design dimensions</CardTitle>
-      {typeof state.problem === "string" && state.problem && (
-        <p className="mb-2 text-xs text-muted">{state.problem}</p>
-      )}
-      <ul className="space-y-1 text-xs" data-testid="design-dimensions">
-        {Object.entries(dims).map(([id, d]) => (
-          <li
-            key={id}
-            className={`flex items-center justify-between gap-2 rounded px-1.5 py-1 ${
-              focus === id ? "bg-tint ring-1 ring-blue" : ""
-            }`}
-          >
-            <span className={focus === id ? "font-medium text-navy" : "text-ink"}>
-              {label(id)}
-            </span>
-            <Pill tone={STATUS_TONE[d.status] ?? "muted"}>
-              {STATUS_LABEL[d.status] ?? d.status}
-            </Pill>
-          </li>
-        ))}
-      </ul>
-    </Card>
-  );
-}
-
 /** Mode rubric as compact dimension bars; weakest three show their rationale. */
 function RubricBars({ rubric }: { rubric: { id: string; label: string; score: number; rationale: string }[] }) {
   if (rubric.length === 0) return null;
@@ -233,11 +151,76 @@ function RubricBars({ rubric }: { rubric: { id: string; label: string; score: nu
   );
 }
 
+/** v1.1: declarative inputs for modes whose answerFormat is "fields". */
+function AnswerFieldsEditor({
+  fields,
+  values,
+  onChange,
+}: {
+  fields: NonNullable<SessionRow["answerFields"]>;
+  values: Record<string, string | number>;
+  onChange: (key: string, value: string | number | undefined) => void;
+}) {
+  return (
+    <div className="space-y-3">
+      {fields.map((f) => (
+        <div key={f.key} data-testid={`answer-field-${f.key}`}>
+          <label className="mb-1 block text-sm font-medium">
+            {f.label}
+            {f.required ? <span className="text-accent"> *</span> : null}
+          </label>
+          {f.type === "choice" ? (
+            <select
+              value={typeof values[f.key] === "string" ? String(values[f.key]) : ""}
+              onChange={(e) => onChange(f.key, e.target.value || undefined)}
+              aria-label={f.label}
+              className="w-full rounded-[0.6rem] border border-line bg-surface px-2 py-2 text-sm"
+            >
+              <option value="">Choose…</option>
+              {(f.options ?? []).map((o) => (
+                <option key={o} value={o}>{o}</option>
+              ))}
+            </select>
+          ) : f.type === "number" ? (
+            <input
+              type="number"
+              value={values[f.key] ?? ""}
+              onChange={(e) =>
+                onChange(
+                  f.key,
+                  e.target.value === "" ? undefined : Number(e.target.value),
+                )
+              }
+              aria-label={f.label}
+              className="w-full rounded-[0.6rem] border border-line p-2 text-sm"
+            />
+          ) : (
+            <textarea
+              value={typeof values[f.key] === "string" ? String(values[f.key]) : ""}
+              onChange={(e) => onChange(f.key, e.target.value)}
+              rows={f.type === "code" ? 9 : 4}
+              spellCheck={f.type !== "code"}
+              placeholder={f.type === "code" ? "Paste or write code — reviewed, not executed." : "Type your answer…"}
+              aria-label={f.label}
+              className={
+                f.type === "code"
+                  ? "w-full rounded-[0.6rem] border border-line bg-surface p-3 font-mono text-xs"
+                  : "w-full rounded-[0.6rem] border border-line p-3"
+              }
+            />
+          )}
+        </div>
+      ))}
+    </div>
+  );
+}
+
 export default function InterviewSession() {
   const id = useParams().id ?? "";
   const [detail, setDetail] = useState<SessionDetail | null>(null);
   const [current, setCurrent] = useState<SessionQuestion | null>(null);
   const [answer, setAnswer] = useState("");
+  const [fieldValues, setFieldValues] = useState<Record<string, string | number>>({});
   const [code, setCode] = useState("");
   const [language, setLanguage] = useState("python");
   const [result, setResult] = useState<SubmitAnswerResult | null>(null);
@@ -299,8 +282,14 @@ export default function InterviewSession() {
     onDelta: (field: string, text: string) => setDraft({ field, text }),
   };
 
-  const isCoding = detail?.session.roundType === "coding";
-  const isDesign = detail?.session.roundType === "system_design";
+  // v1: code editor shows for "text+code"; v1.1: "fields" renders the mode's
+  // declared widgets instead of the free-text box.
+  const acceptsCode = detail?.session.answerFormat === "text+code";
+  const fieldsMode = detail?.session.answerFormat === "fields";
+  const answerFields = detail?.session.answerFields ?? [];
+  const missingRequired = answerFields.some(
+    (f) => f.required && !(f.key in fieldValues && fieldValues[f.key] !== ""),
+  );
 
   const submit = () => {
     setBusy(true);
@@ -309,9 +298,11 @@ export default function InterviewSession() {
     setDraft(null);
     tick();
     const voiceMetrics = voice.takeMetrics();
-    const body = isCoding
-      ? { answer, ...(code.trim() ? { code, language } : {}), ...(voiceMetrics ? { voice: voiceMetrics } : {}) }
-      : { answer, ...(voiceMetrics ? { voice: voiceMetrics } : {}) };
+    const body = fieldsMode
+      ? { answer: "", fields: fieldValues, ...(voiceMetrics ? { voice: voiceMetrics } : {}) }
+      : acceptsCode
+        ? { answer, ...(code.trim() ? { code, language } : {}), ...(voiceMetrics ? { voice: voiceMetrics } : {}) }
+        : { answer, ...(voiceMetrics ? { voice: voiceMetrics } : {}) };
     streamPost<SubmitAnswerResult>(`/api/interviews/${id}/answer`, body, progress)
       .then((r) => { setResult(r); setDraft(null); })
       .catch((e) => setError(e))
@@ -326,6 +317,7 @@ export default function InterviewSession() {
     streamPost<StartInterviewResult>(`/api/interviews/${id}/next`, {}, progress)
       .then(async (r) => {
         setAnswer("");
+        setFieldValues({});
         setCode("");
         setResult(null);
         setDraft(null);
@@ -369,11 +361,7 @@ export default function InterviewSession() {
   const done = debrief !== null;
   const round = detail ? Math.min(detail.session.currentRound, detail.session.plannedQuestions) : 0;
   const modeLabel = detail?.session.modeLabel ?? detail?.session.roundType.replace("_", " ");
-  const codingProblem =
-    isCoding && current?.extra?.problem && typeof current.extra.problem === "object"
-      ? (current.extra.problem as CodingProblem)
-      : null;
-  const designFocus =
+  const focusDimension =
     typeof current?.extra?.focusDimension === "string" ? current.extra.focusDimension : null;
 
   const questionCard = !done && current && (
@@ -386,16 +374,22 @@ export default function InterviewSession() {
             Follow-up{current.followUpFocus ? `: ${current.followUpFocus}` : ""}
           </Pill>
         )}
-        {designFocus && <Pill tone="blue">focus: {designFocus}</Pill>}
+        {focusDimension && <Pill tone="blue">focus: {focusDimension}</Pill>}
         <SourceBadge source={current.source} />
       </div>
       <WhyThisQuestion q={current} />
       <p className="mt-3 text-base font-medium leading-relaxed">{current.text}</p>
-      {codingProblem && <CodingProblemPanel problem={codingProblem} />}
+      {detail && (
+        <PluginModeSlot
+          slot="interview.question"
+          modeId={detail.session.roundType}
+          params={{ modeId: detail.session.roundType, extra: current.extra ?? {} }}
+        />
+      )}
 
       {!result ? (
         <div className="mt-4 space-y-3">
-          {voiceOn && (
+          {voiceOn && !fieldsMode && (
             <div className="flex items-center gap-2">
               {voice.supported ? (
                 <>
@@ -420,19 +414,34 @@ export default function InterviewSession() {
               )}
             </div>
           )}
-          <label className="block text-sm">
-            <span className="sr-only">Your answer</span>
-            <textarea
-              value={answer}
-              onChange={(e) => setAnswer(e.target.value)}
-              rows={isCoding ? 4 : 7}
-              placeholder={
-                isCoding ? "Explain your approach…" : "Type your answer…"
+          {fieldsMode ? (
+            <AnswerFieldsEditor
+              fields={answerFields}
+              values={fieldValues}
+              onChange={(key, value) =>
+                setFieldValues((v) => {
+                  const next = { ...v };
+                  if (value === undefined || value === "") delete next[key];
+                  else next[key] = value;
+                  return next;
+                })
               }
-              className="w-full rounded-[0.6rem] border border-line p-3"
             />
-          </label>
-          {isCoding && (
+          ) : (
+            <label className="block text-sm">
+              <span className="sr-only">Your answer</span>
+              <textarea
+                value={answer}
+                onChange={(e) => setAnswer(e.target.value)}
+                rows={acceptsCode ? 4 : 7}
+                placeholder={
+                  acceptsCode ? "Explain your approach…" : "Type your answer…"
+                }
+                className="w-full rounded-[0.6rem] border border-line p-3"
+              />
+            </label>
+          )}
+          {acceptsCode && (
             <div>
               <div className="mb-1 flex items-center justify-between">
                 <span className="text-sm font-medium">Code</span>
@@ -470,7 +479,10 @@ export default function InterviewSession() {
             </div>
           )}
           <div className="flex items-center gap-3">
-            <Button onClick={submit} disabled={busy || !answer.trim()}>
+            <Button
+              onClick={submit}
+              disabled={busy || (fieldsMode ? missingRequired : !answer.trim())}
+            >
               {busy ? "Evaluating…" : "Submit Answer"}
             </Button>
             {busy && (
@@ -638,17 +650,31 @@ export default function InterviewSession() {
       <PluginSlot slot="interview.toolbar" params={{ sessionId: id }} />
       <ErrorNote error={error} />
 
-      {isDesign && !done ? (
-        <div className="grid gap-4 lg:grid-cols-[1fr_15rem]">
-          <div>{questionCard}</div>
-          <DesignPanel
-            state={detail?.session.modeState ?? {}}
-            focus={designFocus ?? (detail?.session.modeState?.focusDimension as string | null) ?? null}
-          />
-        </div>
-      ) : (
-        questionCard
-      )}
+      {!done &&
+        (detail ? (
+          /* v1: a plugin mode may own an interview.sidebar panel (e.g. the
+             system-design dimension tracker) — auto column collapses to zero
+             width when the mode's plugin contributes nothing. */
+          <div className="grid gap-4 lg:grid-cols-[1fr_auto]">
+            <div>{questionCard}</div>
+            <div className="lg:w-60">
+              <PluginModeSlot
+                slot="interview.sidebar"
+                modeId={detail.session.roundType}
+                params={{
+                  modeId: detail.session.roundType,
+                  state: detail.session.modeState ?? {},
+                  focus:
+                    focusDimension ??
+                    (detail.session.modeState?.focusDimension as string | null) ??
+                    null,
+                }}
+              />
+            </div>
+          </div>
+        ) : (
+          questionCard
+        ))}
 
       {!done && !current && detail && (
         <Card>

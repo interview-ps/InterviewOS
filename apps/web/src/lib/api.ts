@@ -15,7 +15,7 @@ import type {
   TargetRole,
   UIAction,
   UINode,
-} from "@interview-os/core";
+} from "@interview-os/frontend-types";
 
 export type AppState = InterviewOSState;
 export type { CandidateProfile, Gap, PrepAction, Question, SkillReadiness, Evidence, TargetRole };
@@ -30,14 +30,28 @@ export interface ExpectedConcept {
   keywords: string[];
 }
 
-export type RoundType =
-  | "mixed"
-  | "technical"
-  | "coding"
-  | "system_design"
-  | "behavioral"
-  | "hiring_manager"
-  | "hr";
+/** v1: a round/mode id — "mixed" or any plugin-provided mode (availability is server-side). */
+export type RoundType = string;
+
+/** v1.1: one declarative answer widget for `answerFormat: "fields"` modes. */
+export interface ModeAnswerField {
+  key: string;
+  label: string;
+  type: "text" | "code" | "choice" | "number";
+  options?: string[];
+  required?: boolean;
+}
+
+/** v1: an interview mode the server says new sessions may use (GET /api/modes). */
+export interface AvailableMode {
+  id: string;
+  label: string;
+  description: string;
+  rubric: { id: string; label: string; description: string }[];
+  answerFormat: "text" | "text+code" | "fields";
+  answerFields?: ModeAnswerField[];
+  pluginId?: string;
+}
 
 export type DesignDimensionStatus = "not_covered" | "partial" | "covered";
 
@@ -51,6 +65,10 @@ export interface SessionRow {
   mode: "interview" | "practice";
   roundType: RoundType;
   modeLabel?: string;
+  /** v1: how this session collects answers — drives the answer UI. */
+  answerFormat?: "text" | "text+code" | "fields";
+  /** v1.1: declared answer widgets for "fields" sessions (empty otherwise). */
+  answerFields?: ModeAnswerField[];
   modeState: Record<string, unknown>;
   focusSkillId: string | null;
   actionId: string | null;
@@ -588,6 +606,8 @@ export interface PluginUIContributionView {
     component: string;
     entry?: string;
   }[];
+  /** v1: interview mode ids this plugin owns (`modes` manifest section). */
+  modes: string[];
   interviewModes: {
     id: string;
     label: string;
@@ -597,7 +617,7 @@ export interface PluginUIContributionView {
   }[];
 }
 
-export type { UIAction, UINode } from "@interview-os/core";
+export type { UIAction, UINode } from "@interview-os/frontend-types";
 
 export interface PluginView {
   manifest: {
@@ -971,6 +991,8 @@ export const api = {
       body: JSON.stringify({ plannedQuestions: 4, ...opts }),
     }),
   listInterviews: () => request<InterviewListItem[]>("/api/interviews"),
+  /** v1: interview modes available for new sessions. */
+  modes: () => request<{ modes: AvailableMode[] }>("/api/modes"),
   interview: (id: string) => request<SessionDetail>(`/api/interviews/${id}`),
   submitAnswer: (
     sessionId: string,
