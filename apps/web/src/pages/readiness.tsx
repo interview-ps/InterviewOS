@@ -1,6 +1,6 @@
-import { useSearchParams } from "react-router";
+import { Link, useSearchParams } from "react-router";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Segmented } from "antd";
+import { Alert, Segmented } from "antd";
 import {
   api,
   type Metrics,
@@ -9,13 +9,16 @@ import {
 } from "@/lib/api";
 import {
   Bar,
+  Button,
   Card,
   DeltaList,
   ErrorNote,
+  KeyValueRows,
   PageHeader,
   Pill,
   PriorityList,
   ReadinessHero,
+  ScopeNote,
   SectionHeading,
   Skeleton,
   SkeletonCard,
@@ -40,6 +43,17 @@ function scoreTone(s: SkillReadiness): "green" | "blue" | "amber" | "muted" {
         ? "amber"
         : "muted";
 }
+
+/** Evidence sources carry distinct meaning — never render them all the same. */
+const EVIDENCE_SOURCE: Record<
+  string,
+  { label: string; tone: "blue" | "green" | "amber" | "muted" }
+> = {
+  interview_answer: { label: "Interview answer", tone: "blue" },
+  self_report: { label: "Self report", tone: "muted" },
+  resume: { label: "Resume", tone: "green" },
+  plugin: { label: "Extension", tone: "amber" },
+};
 
 function TreeNode({
   node,
@@ -204,24 +218,63 @@ export default function Readiness() {
             verdict={readinessVerdict(graph.overall, coverage?.rate ?? null)}
             note={
               coverage
-                ? `Evidence for ${coverage.covered} of ${coverage.total} skills.`
+                ? `${coverage.covered} of ${coverage.total} required skills have confident evidence.`
                 : undefined
             }
             updatedAt={graph.lastUpdated}
           />
 
+          <KeyValueRows
+            column={1}
+            items={[
+              {
+                key: "readiness",
+                label: "Estimated readiness",
+                children: (
+                  <>
+                    Weighted across your target's <strong>required and preferred</strong>{" "}
+                    skills. Skills with no evidence yet are held at a conservative
+                    prior, not counted as failures.
+                  </>
+                ),
+              },
+              {
+                key: "confidence",
+                label: "Confidence",
+                children: (
+                  <>
+                    How much evidence supports the score — it is not a measure of how
+                    good you are.
+                  </>
+                ),
+              },
+              {
+                key: "coverage",
+                label: "Coverage",
+                children: coverage ? (
+                  <>
+                    {coverage.covered} of {coverage.total} <strong>required</strong>{" "}
+                    skills have confident evidence.
+                  </>
+                ) : (
+                  <>No target requirements to measure yet.</>
+                ),
+              },
+            ]}
+          />
+
           {lowCoverage && (
-            <Card>
-              <p className="text-sm">
-                Your score is based on limited evidence. A short diagnostic interview
-                makes it far more accurate.
-              </p>
-              <div className="mt-3">
-                <a href="/interview">
-                  <Pill tone="blue">Complete a diagnostic interview →</Pill>
-                </a>
-              </div>
-            </Card>
+            <Alert
+              type="info"
+              showIcon
+              title="Your score is based on limited evidence"
+              description="A short diagnostic interview is the fastest way to raise confidence — it fills in the skills we can only estimate today."
+              action={
+                <Link to="/interview">
+                  <Button size="small">Complete a diagnostic interview</Button>
+                </Link>
+              }
+            />
           )}
 
           <div className="grid gap-5 lg:grid-cols-2">
@@ -231,11 +284,18 @@ export default function Readiness() {
                 description="Assessed skills, grouped by readiness."
               />
               <StatusBuckets counts={buckets} />
+              <div className="mt-2">
+                <ScopeNote>
+                  Across {Object.keys(dimensions ?? {}).length} skills tracked
+                  (required skills plus their prerequisites). Coverage above counts
+                  required skills only — the two numbers intentionally differ.
+                </ScopeNote>
+              </div>
 
               <div className="mt-5 border-t border-line pt-4">
                 <SectionHeading
                   title="Highest-priority weaknesses"
-                  description="Start here."
+                  description="Required skills with a measured score, lowest first."
                 />
                 <PriorityList
                   empty="No assessed weaknesses — nice."
@@ -247,6 +307,15 @@ export default function Readiness() {
                     readiness: n.score,
                   }))}
                 />
+                {buckets.unknown > 0 && (
+                  <div className="mt-3">
+                    <ScopeNote>
+                      {buckets.unknown} skills are not assessed yet — missing evidence,
+                      not poor performance. A mock interview produces the evidence they
+                      need.
+                    </ScopeNote>
+                  </div>
+                )}
               </div>
 
               <div className="mt-5 border-t border-line pt-4">
@@ -334,9 +403,13 @@ export default function Readiness() {
                             className="rounded-[0.6rem] border border-line p-3 text-sm"
                           >
                             <div className="flex flex-wrap items-center gap-2">
-                              <Pill tone={ev.type === "interview_answer" ? "blue" : "muted"}>
-                                {displayLabel(ev.type)}
-                              </Pill>
+                              {(() => {
+                                const src = EVIDENCE_SOURCE[ev.type] ?? {
+                                  label: displayLabel(ev.type),
+                                  tone: "muted" as const,
+                                };
+                                return <Pill tone={src.tone}>{src.label}</Pill>;
+                              })()}
                               <span className="text-muted">
                                 score {Math.round(ev.score * 100)}%
                               </span>
