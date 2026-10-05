@@ -10,13 +10,15 @@
     "typecheck": "tsc --noEmit -p tsconfig.json"
   },
   "dependencies": {
+    "@ant-design/icons": "^6.3.4",
     "@fontsource-variable/inter": "5.3.0",
     "@fontsource-variable/plus-jakarta-sans": "5.3.0",
     "@interview-os/frontend-types": "workspace:*",
+    "@interview-os/ui": "workspace:*",
+    "antd": "^6.6.5",
     "react": "19.3.0",
     "react-dom": "19.3.0",
-    "react-router": "7.18.4",
-    "@interview-os/ui": "workspace:*"
+    "react-router": "7.18.4"
   },
   "devDependencies": {
     "@tailwindcss/vite": "4.3.3",

@@ -6,6 +6,7 @@
   "exports": {
     ".": "./src/index.ts",
     "./frame": "./src/frame.ts",
+    "./plugin": "./src/plugin.tsx",
     "./schema": "./src/schema.ts",
     "./renderer": "./src/renderer.tsx",
     "./theme.css": "./src/theme.css"
@@ -26,6 +27,10 @@
       "./frame": {
         "types": "./dist/frame.d.ts",
         "default": "./dist/frame.js"
+      },
+      "./plugin": {
+        "types": "./dist/plugin.d.ts",
+        "default": "./dist/plugin.js"
       },
       "./schema": {
         "types": "./dist/schema.d.ts",

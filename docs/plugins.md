@@ -213,11 +213,11 @@ the tree is replaced by the new `ui`).
 
 ### Frame contributions (Level 2)
 
-Write `ui/src/index.tsx`, then bundle it:
-
-```sh
-pnpm interview-os build-ui <pluginDir>   # → ui/index.js (ESM; react/@interview-os/ui external)
-```
+Write `ui/src/index.tsx` and bundle it to `ui/index.js` with your own bundler
+(there is no host build step). Keep `react`, `react-dom/client`,
+`@interview-os/plugin-ui` and `@interview-os/ui` **external** — the host maps
+them through the iframe import map to its runtime bundle, so the frame shares
+the host's single React instance and design system.
 
 `ui/index.js` must default-export the frame module:
 
@@ -225,7 +225,7 @@ pnpm interview-os build-ui <pluginDir>   # → ui/index.js (ESM; react/@intervie
 export default {
   components: { "skill-tree": ({ sdk }) => <SkillTree sdk={sdk} /> },
   pages:      { "/": ({ sdk }) => <Home sdk={sdk} /> },
-} satisfies PluginFrameModule;   // types from @interview-os/plugin-sdk
+} satisfies PluginFrameModule;   // types from @interview-os/plugin-ui
 ```
 
 Inside the iframe you get `sdk: PluginFrameSDK`:
@@ -241,10 +241,21 @@ sdk.resize(height)              // ask the host to resize (clamped 80–1600 px)
 The iframe is `sandbox="allow-scripts"` with an opaque origin and a CSP that
 allows only the runtime bundle, your `ui/` assets, and `connect-src 'none'`:
 no app DOM, cookies, storage, network, remote scripts, forms, popups, or top
-navigation — only the postMessage SDK. Design-system components
-(`Card`, `SkillScore`, `Tabs`, `Button`, `Badge`, `EmptyState`, …) and theme
-tokens are available via `@interview-os/ui` imports (served from the host's
-runtime bundle through the import map).
+navigation — only the postMessage SDK.
+
+### The plugin UI contract (`@interview-os/plugin-ui`)
+
+Import UI from **`@interview-os/plugin-ui`** — a small, curated, stable surface:
+the declarative vocabulary/schema, `DeclarativeRenderer`, the frame SDK, and a
+short component list (`Page`, `Section`, `Stack`, `Row`, `Card`, `Heading`,
+`Text`, `Button`, `Tag`, `Alert`, `Empty`, `Spinner`, `Progress`, `Divider`,
+`Stat`, `EvidenceList`, `QuestionCard`) plus theme tokens.
+
+**Plugins must never import Ant Design.** Ant Design is the host app's component
+engine and an implementation detail behind this contract; the plugin surface is
+antd-free so a frame never bundles it and the API stays smaller than antd.
+`@interview-os/ui` remains available (same components) for backward
+compatibility; prefer `@interview-os/plugin-ui` in new plugins.
 
 ## Plugin API — typed hooks
 

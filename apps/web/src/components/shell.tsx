@@ -1,10 +1,31 @@
 import { Link, useLocation } from "react-router";
-import { useEffect, useState, type ReactNode } from "react";
+import { useEffect, useMemo, useState, type ReactNode } from "react";
+import {
+  Badge,
+  Breadcrumb,
+  Button,
+  Drawer,
+  Grid,
+  Layout,
+  Menu,
+  Segmented,
+  Select,
+  Tooltip,
+  Typography,
+} from "antd";
+import {
+  DesktopOutlined,
+  MenuOutlined,
+  MoonOutlined,
+  SunOutlined,
+} from "@ant-design/icons";
 import { api, type RuntimeStatus, type TargetListItem } from "@/lib/api";
 import { CommandPalette } from "@/components/command-palette";
 import { useUIContributions } from "@/components/plugin-ui";
 import { runtimeLabel } from "@/lib/runtime";
-import { ToastHost, toast } from "@/components/ui";
+import { message } from "@/utils/antdMessage";
+import { useTheme } from "@/theme/ThemeProvider";
+import type { ThemePreference } from "@/theme/tokens";
 
 const NAV = [
   { href: "/", label: "Home" },
@@ -20,27 +41,24 @@ const NAV = [
 ];
 
 function RuntimeBadge({ status }: { status: RuntimeStatus | null }) {
-  let dot = "●";
+  let color = "default";
   let text = "Checking runtime…";
-  let cls = "text-muted";
   if (status) {
     const label = runtimeLabel(status.mode);
     if (status.mode === "mock") {
+      color = "processing";
       text = "Mock Runtime";
-      cls = "text-blue";
     } else if (status.available) {
+      color = "success";
       text = `${label} Connected`;
-      cls = "text-green";
     } else {
+      color = "default";
       text = `${label} Not Available`;
-      dot = "○";
-      cls = "text-muted";
     }
   }
   return (
-    <span aria-live="polite" className={`inline-flex items-center gap-1.5 text-sm ${cls}`}>
-      <span aria-hidden>{dot}</span>
-      {text}
+    <span aria-live="polite">
+      <Badge color={color} text={text} />
     </span>
   );
 }
@@ -57,31 +75,27 @@ function TargetSwitcher() {
   const active = targets.find((t) => t.active);
 
   return (
-    <label className="flex items-center gap-2 text-sm text-muted">
-      <span className="hidden sm:inline">Target</span>
-      <select
-        aria-label="Active target role"
-        value={active?.id ?? ""}
-        disabled={switching}
-        onChange={(e) => {
-          setSwitching(true);
-          api
-            .activateTarget(e.target.value)
-            .then(() => {
-              toast("Target switched");
-              window.location.reload();
-            })
-            .catch(() => setSwitching(false));
-        }}
-        className="max-w-56 rounded-[0.6rem] border border-line bg-surface px-2 py-1 text-sm text-ink focus:outline-none focus:ring-2 focus:ring-accent"
-      >
-        {targets.map((t) => (
-          <option key={t.id} value={t.id}>
-            {t.role} — {t.company}
-          </option>
-        ))}
-      </select>
-    </label>
+    <Select
+      aria-label="Active target role"
+      size="small"
+      style={{ maxWidth: 224, minWidth: 140 }}
+      value={active?.id}
+      loading={switching}
+      onChange={(value) => {
+        setSwitching(true);
+        api
+          .activateTarget(value)
+          .then(() => {
+            void message.success("Target switched");
+            window.location.reload();
+          })
+          .catch(() => setSwitching(false));
+      }}
+      options={targets.map((t) => ({
+        value: t.id,
+        label: `${t.role} — ${t.company}`,
+      }))}
+    />
   );
 }
 
@@ -113,73 +127,87 @@ function PluginIcon({ icon }: { icon: string }) {
   );
 }
 
-function NavList({ onNavigate }: { onNavigate?: () => void }) {
+function useNavItems() {
   const pathname = useLocation().pathname;
   const contributions = useUIContributions();
-  const pluginNav = contributions.flatMap((p) =>
-    p.navigation.map((n) => ({
-      pluginId: p.pluginId,
-      label: n.label,
-      icon: n.icon,
-      to: `/plugins/${p.pluginId}${n.page === "/" ? "" : n.page}`,
-    })),
+
+  return useMemo(() => {
+    const items = [
+      ...NAV.map((item) => ({
+        key: item.href,
+        label: <Link to={item.href}>{item.label}</Link>,
+      })),
+    ];
+    const pluginNav = contributions.flatMap((p) =>
+      p.navigation.map((n) => ({
+        key: `/plugins/${p.pluginId}${n.page === "/" ? "" : n.page}`,
+        label: (
+          <Link to={`/plugins/${p.pluginId}${n.page === "/" ? "" : n.page}`}>
+            <span className="inline-flex items-center gap-2">
+              <PluginIcon icon={n.icon} />
+              {n.label}
+            </span>
+          </Link>
+        ),
+      })),
+    );
+    if (pluginNav.length > 0) {
+      items.push({ key: "plugins-group", type: "group", label: "Plugins", children: pluginNav } as never);
+    }
+    return items;
+  }, [contributions, pathname]);
+}
+
+function selectedKey(pathname: string): string {
+  if (pathname === "/") return "/";
+  const match = NAV.filter((n) => n.href !== "/").find((n) =>
+    pathname.startsWith(n.href),
   );
+  if (match) return match.href;
+  if (pathname.startsWith("/plugins/")) return pathname;
+  return pathname;
+}
+
+function ThemeControl() {
+  const { preference, setPreference } = useTheme();
   return (
-    <ul className="space-y-1">
-      {NAV.map((item) => {
-        const active =
-          item.href === "/" ? pathname === "/" : pathname.startsWith(item.href);
-        return (
-          <li key={item.href}>
-            <Link
-              to={item.href}
-              aria-current={active ? "page" : undefined}
-              onClick={onNavigate}
-              className={`block rounded-[0.6rem] px-3 py-2 text-sm ${
-                active
-                  ? "bg-tint font-semibold text-navy"
-                  : "text-muted hover:bg-page hover:text-ink"
-              }`}
-            >
-              {item.label}
-            </Link>
-          </li>
-        );
-      })}
-      {pluginNav.length > 0 && (
-        <li>
-          <p className="mt-4 px-3 text-[0.7rem] font-semibold uppercase tracking-wide text-muted">
-            Plugins
-          </p>
-          <ul className="mt-1 space-y-1">
-            {pluginNav.map((item) => (
-              <li key={`${item.pluginId}:${item.to}`}>
-                <Link
-                  to={item.to}
-                  onClick={onNavigate}
-                  className={`flex items-center gap-2 rounded-[0.6rem] px-3 py-2 text-sm ${
-                    pathname.startsWith(`/plugins/${item.pluginId}`)
-                      ? "bg-tint font-semibold text-navy"
-                      : "text-muted hover:bg-page hover:text-ink"
-                  }`}
-                >
-                  <PluginIcon icon={item.icon} />
-                  {item.label}
-                </Link>
-              </li>
-            ))}
-          </ul>
-        </li>
-      )}
-    </ul>
+    <Tooltip title="Theme">
+      <Segmented
+        size="small"
+        value={preference}
+        onChange={(value) => setPreference(value as ThemePreference)}
+        options={[
+          { value: "light", icon: <SunOutlined /> },
+          { value: "dark", icon: <MoonOutlined /> },
+          { value: "system", icon: <DesktopOutlined /> },
+        ]}
+      />
+    </Tooltip>
   );
+}
+
+function Breadcrumbs() {
+  const pathname = useLocation().pathname;
+  if (pathname === "/") return null;
+  const segments = pathname.split("/").filter(Boolean);
+  const items = segments.map((segment, index) => {
+    const href = "/" + segments.slice(0, index + 1).join("/");
+    const label =
+      NAV.find((n) => n.href === href)?.label ??
+      segment.replace(/[-_]+/g, " ");
+    return { title: index === segments.length - 1 ? label : <Link to={href}>{label}</Link> };
+  });
+  return <Breadcrumb items={items} style={{ marginBottom: 12 }} />;
 }
 
 export function Shell({ children }: { children: ReactNode }) {
   const location = useLocation();
+  const screens = Grid.useBreakpoint();
+  const desktop = screens.lg ?? true;
   const [status, setStatus] = useState<RuntimeStatus | null>(null);
   const [paletteOpen, setPaletteOpen] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
+  const items = useNavItems();
 
   // §9.7: Ctrl/Cmd+K opens the command palette.
   useEffect(() => {
@@ -208,9 +236,7 @@ export function Shell({ children }: { children: ReactNode }) {
     };
   }, []);
 
-  // Scroll restoration: hash targets (e.g. /target#add-target) scroll into view
-  // — retry briefly since the element may render after an async load; otherwise
-  // go to the top like a fresh page.
+  // Scroll restoration for hash targets (e.g. /target#add-target).
   useEffect(() => {
     if (!location.hash) {
       window.scrollTo(0, 0);
@@ -228,71 +254,78 @@ export function Shell({ children }: { children: ReactNode }) {
     return () => clearTimeout(timer);
   }, [location.pathname, location.hash]);
 
+  useEffect(() => {
+    setMenuOpen(false);
+  }, [location.pathname]);
+
   return (
-    <div className="flex min-h-screen flex-col">
-      <header className="flex items-center gap-3 border-b border-line bg-surface px-5 py-3">
-        <button
-          type="button"
+    <Layout style={{ minHeight: "100vh" }}>
+      <Layout.Header className="interview-header flex items-center gap-3">
+        <Button
+          type="text"
           aria-label="Open navigation menu"
           aria-expanded={menuOpen}
           data-testid="menu-button"
-          onClick={() => setMenuOpen((v) => !v)}
-          className="menu:hidden rounded-[0.5rem] border border-line bg-page px-2 py-1 text-sm text-ink"
-        >
-          ☰
-        </button>
+          icon={<MenuOutlined />}
+          onClick={() => setMenuOpen(true)}
+          style={{ display: desktop ? "none" : "inline-flex" }}
+        />
         <img src="/interview-ps-logo.png" alt="interview.ps logo" width={28} height={28} />
-        <div className="font-display text-base font-semibold text-navy">
-          Interview OS <span className="font-normal text-muted">· by interview.ps</span>
-        </div>
-        <div className="ml-auto flex items-center gap-4">
+        <Typography.Text strong style={{ fontSize: 16 }}>
+          Interview OS{" "}
+          <Typography.Text type="secondary" style={{ fontWeight: 400 }}>
+            · by interview.ps
+          </Typography.Text>
+        </Typography.Text>
+        <div className="ml-auto flex items-center gap-3">
           <TargetSwitcher />
-          <button
-            type="button"
+          <Button
+            size="small"
             aria-label="Open command palette"
             data-testid="palette-button"
             onClick={() => setPaletteOpen(true)}
-            className="hidden rounded-[0.5rem] border border-line bg-page px-2 py-1 text-xs text-muted hover:bg-tint sm:block"
+            style={{ display: desktop ? "inline-flex" : "none" }}
           >
             ⌘K
-          </button>
+          </Button>
+          <ThemeControl />
           <RuntimeBadge status={status} />
         </div>
-      </header>
-      <div className="flex flex-1">
-        <nav
-          aria-label="Primary"
-          className="hidden w-48 shrink-0 border-r border-line bg-surface px-3 py-4 menu:block"
-        >
-          <NavList />
-        </nav>
-        {menuOpen && (
-          <div
-            className="fixed inset-0 z-40 menu:hidden"
-            role="dialog"
-            aria-label="Navigation menu"
-          >
-            <button
-              type="button"
-              aria-label="Close navigation menu"
-              className="absolute inset-0 bg-navy/30"
-              onClick={() => setMenuOpen(false)}
+      </Layout.Header>
+      <Layout>
+        {desktop && (
+          <Layout.Sider theme="light" width={208} className="interview-sider">
+            <Menu
+              mode="inline"
+              selectedKeys={[selectedKey(location.pathname)]}
+              items={items}
+              style={{ borderInlineEnd: "none", paddingTop: 8 }}
             />
-            <nav
-              aria-label="Primary overlay"
-              className="absolute left-0 top-0 h-full w-56 bg-surface px-3 py-4 shadow-lg"
-            >
-              <NavList onNavigate={() => setMenuOpen(false)} />
-            </nav>
-          </div>
+          </Layout.Sider>
         )}
-        <main className="min-w-0 flex-1 px-6 py-6">{children}</main>
-      </div>
-      <CommandPalette
-        open={paletteOpen}
-        onClose={() => setPaletteOpen(false)}
-      />
-      <ToastHost />
-    </div>
+        <Layout.Content className="interview-content">
+          <Breadcrumbs />
+          {children}
+        </Layout.Content>
+      </Layout>
+
+      <Drawer
+        title="Navigation"
+        placement="left"
+        open={menuOpen}
+        onClose={() => setMenuOpen(false)}
+        width={256}
+        styles={{ body: { padding: 8 } }}
+      >
+        <Menu
+          mode="inline"
+          selectedKeys={[selectedKey(location.pathname)]}
+          items={items}
+          style={{ borderInlineEnd: "none" }}
+        />
+      </Drawer>
+
+      <CommandPalette open={paletteOpen} onClose={() => setPaletteOpen(false)} />
+    </Layout>
   );
 }

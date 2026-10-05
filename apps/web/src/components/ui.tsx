@@ -1,9 +1,10 @@
-import { useEffect, useState } from "react";
 import { taxonomy } from "@interview-os/frontend-types";
-import { Pill, type Tone } from "@interview-os/ui";
+import type { UITone as Tone } from "@interview-os/frontend-types";
 
-/* -- design system lives in @interview-os/ui; re-exported here so existing
-   page imports (`@/components/ui`) keep working --------------------------- */
+import { message } from "@/utils/antdMessage";
+import { Pill } from "@/ui";
+/* Interview OS product components (antd-backed) live in @/ui; pages import
+   commodity UI (Button, Tabs, Input, Select, …) directly from antd. */
 export {
   Badge,
   Bar,
@@ -13,20 +14,27 @@ export {
   EmptyState,
   ErrorNote,
   EvidenceList,
+  InterviewEmptyState,
   InterviewQuestion,
+  InterviewSpinner,
   PageHeader,
   Pill,
-  ReadinessChart,
+  QuestionCard,
+  SkillGapBadge,
+  SkillScoreCard,
   Skeleton,
   SkeletonCard,
-  SkillScore,
-  Sparkline,
   Spinner,
   Stat,
-  Tabs,
-  theme,
-} from "@interview-os/ui";
-export type { Tone } from "@interview-os/ui";
+} from "@/ui";
+
+/** Product alias — the component is `SkillScoreCard`. */
+export { SkillScoreCard as SkillScore } from "@/ui";
+
+/** Product charts (antd-free, shared with plugin frames). */
+export { ReadinessChart, Sparkline } from "@interview-os/ui";
+
+export type { Tone };
 
 /* -- consistent tone mapping (app-specific) -------------------------------- */
 
@@ -60,49 +68,14 @@ export function StatusPill({ status }: { status: string }) {
     : status === "weak" ? "amber"
     : "muted";
   const label = status === "unknown" ? "not yet assessed" : status;
-  return <Pill tone={tone as "green"}>{label}</Pill>;
+  return <Pill tone={tone}>{label}</Pill>;
 }
 
-/* -- non-blocking toasts --------------------------------------------------- */
+/* -- non-blocking toasts (antd, theme-aware) ------------------------------- */
 
-type ToastMsg = { id: number; message: string };
-let toastSeq = 0;
-const toastListeners = new Set<(t: ToastMsg) => void>();
-
-/** Fire-and-forget non-blocking toast. */
-export function toast(message: string) {
-  const t = { id: ++toastSeq, message };
-  for (const l of toastListeners) l(t);
-}
-
-export function ToastHost() {
-  const [toasts, setToasts] = useState<ToastMsg[]>([]);
-  useEffect(() => {
-    const push = (t: ToastMsg) => {
-      setToasts((prev) => [...prev, t]);
-      setTimeout(() => setToasts((prev) => prev.filter((x) => x.id !== t.id)), 3500);
-    };
-    toastListeners.add(push);
-    return () => {
-      toastListeners.delete(push);
-    };
-  }, []);
-  if (toasts.length === 0) return null;
-  return (
-    <div
-      aria-live="polite"
-      className="pointer-events-none fixed bottom-5 right-5 z-50 flex flex-col items-end gap-2"
-    >
-      {toasts.map((t) => (
-        <div
-          key={t.id}
-          className="pointer-events-auto rounded-[0.6rem] border border-line bg-navy px-4 py-2 text-sm text-white shadow-md"
-        >
-          {t.message}
-        </div>
-      ))}
-    </div>
-  );
+/** Fire-and-forget non-blocking toast backed by antd message. */
+export function toast(text: string) {
+  void message.success(text);
 }
 
 export function skillLabel(skillId: string, label?: string): string {

@@ -316,6 +316,7 @@ def build_frame_document(
     import_map = {
         "imports": {
             "@interview-os/ui": runtime_js,
+            "@interview-os/plugin-ui": runtime_js,
             "react": runtime_js,
             "react/jsx-runtime": runtime_js,
             "react-dom/client": runtime_js,

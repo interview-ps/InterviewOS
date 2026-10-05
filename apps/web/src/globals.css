@@ -1,8 +1,12 @@
 @import "tailwindcss";
 @import "@interview-os/ui/theme.css";
+@import "./theme/variables.css";
 
 /* let Tailwind v4 scan the shared design-system sources */
 @source "../../../packages/ui/src";
+
+/* dark mode keyed off the ThemeProvider's <html data-theme="…"> */
+@custom-variant dark (&:where([data-theme="dark"], [data-theme="dark"] *));
 
 body {
   background: var(--color-page);
@@ -23,4 +27,30 @@ h1, h2, h3, h4, .font-display {
 :focus-visible {
   outline: 2px solid var(--color-accent);
   outline-offset: 2px;
+}
+
+/* antd shell chrome (interview- prefix set via ConfigProvider) */
+.interview-header {
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  display: flex;
+  align-items: center;
+  border-bottom: 1px solid var(--interview-border);
+  background: var(--interview-surface);
+}
+
+.interview-sider {
+  border-right: 1px solid var(--interview-border);
+}
+
+.interview-content {
+  min-width: 0;
+  padding: 24px;
+}
+
+@media (max-width: 640px) {
+  .interview-content {
+    padding: 16px;
+  }
 }

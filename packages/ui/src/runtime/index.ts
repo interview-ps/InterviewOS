@@ -46,6 +46,8 @@ export { jsx, jsxs, Fragment } from "react/jsx-runtime";
 export { createRoot } from "react-dom/client";
 export * from "../index.js";
 export * from "../frame.js";
+/* curated, antd-free plugin surface — also served as @interview-os/plugin-ui */
+export * from "../plugin.js";
 export { createPluginSDK } from "./sdk.js";
 export { boot } from "./boot.js";
 export type { BootOptions } from "./boot.js";
