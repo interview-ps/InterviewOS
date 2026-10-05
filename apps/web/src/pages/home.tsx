@@ -14,6 +14,7 @@ import {
   SectionHeading,
   SkeletonCard,
   pct,
+  readinessVerdict,
   severityTone,
   skillLabel,
   trendOf,
@@ -133,17 +134,7 @@ export default function Dashboard() {
     .map((r) => ({ req: r, rd: readiness.dimensions[r.skillId] }))
     .filter((x) => x.rd);
 
-  const strongest = [...ranked]
-    .filter((x) => x.rd!.score !== null)
-    .sort((a, b) => (b.rd!.score ?? 0) - (a.rd!.score ?? 0))
-    .slice(0, 3)
-    .map((x) => ({ label: x.rd!.label || skillLabel(x.req.skillId), value: x.rd!.score }));
-
   const gaps = [...state.assessment.gaps].sort((a, b) => b.gap - a.gap);
-  const risks = gaps.slice(0, 3).map((g) => ({
-    label: g.label || skillLabel(g.skillId),
-    value: readiness.dimensions[g.skillId]?.score ?? null,
-  }));
 
   const net = deltas.reduce(
     (acc, d) => acc + ((d.after ?? 0) - (d.before ?? 0)),
@@ -221,14 +212,18 @@ export default function Dashboard() {
       <ReadinessHero
         overall={readiness.overall}
         confidence={readiness.overallConfidence}
+        verdict={readinessVerdict(readiness.overall, metrics?.readinessCoverage?.rate ?? null)}
+        note={
+          metrics?.readinessCoverage
+            ? `Evidence for ${metrics.readinessCoverage.covered} of ${metrics.readinessCoverage.total} skills.`
+            : undefined
+        }
         trend={overallTrend}
-        strongest={strongest}
-        risks={risks}
         updatedAt={readiness.lastUpdated}
         action={
           <Link to="/readiness">
             <Button variant="secondary" size="small">
-              See why
+              See the evidence
             </Button>
           </Link>
         }

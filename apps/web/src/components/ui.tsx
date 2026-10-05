@@ -41,10 +41,13 @@ export {
   PriorityList,
   ReadinessHero,
   SectionHeading,
+  StatusBuckets,
   StatusDot,
+  displayLabel,
   humanize,
   pct,
   readinessBarTone,
+  readinessVerdict,
   trendOf,
 } from "@/ui";
 export type { Delta, EvidenceEntry, PriorityItem } from "@/ui";

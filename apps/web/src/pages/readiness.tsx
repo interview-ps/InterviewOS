@@ -1,7 +1,9 @@
 import { useSearchParams } from "react-router";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { Segmented } from "antd";
 import {
   api,
+  type Metrics,
   type SkillDetail,
   type SkillReadiness,
 } from "@/lib/api";
@@ -12,14 +14,18 @@ import {
   ErrorNote,
   PageHeader,
   Pill,
+  PriorityList,
   ReadinessHero,
   SectionHeading,
   Skeleton,
   SkeletonCard,
   Sparkline,
+  StatusBuckets,
   StatusPill,
+  displayLabel,
   pct,
-  skillLabel,
+  readinessVerdict,
+  severityTone,
 } from "@/components/ui";
 import { PluginSlot } from "@/components/plugin-ui";
 
@@ -41,17 +47,21 @@ function TreeNode({
   depth,
   selected,
   onSelect,
+  hideUnknown,
 }: {
   node: SkillReadiness;
   all: Record<string, SkillReadiness>;
   depth: number;
   selected: string | null;
   onSelect: (id: string) => void;
+  hideUnknown: boolean;
 }) {
   const [open, setOpen] = useState(true);
+  if (hideUnknown && node.status === "unknown") return null;
   const kids = node.children
     .map((c) => all[c])
-    .filter((c): c is SkillReadiness => Boolean(c));
+    .filter((c): c is SkillReadiness => Boolean(c))
+    .filter((k) => !(hideUnknown && k.status === "unknown"));
   return (
     <li>
       <div
@@ -64,7 +74,7 @@ function TreeNode({
           <button
             onClick={() => setOpen((v) => !v)}
             aria-expanded={open}
-            aria-label={`Toggle ${node.label}`}
+            aria-label={`Toggle ${displayLabel(node.skillId, node.label)}`}
             className="w-4 text-muted"
           >
             {open ? "▾" : "▸"}
@@ -75,13 +85,19 @@ function TreeNode({
         <button
           onClick={() => onSelect(node.skillId)}
           data-skill={node.skillId}
-          aria-label={node.label || node.skillId}
-          className="grid flex-1 grid-cols-[minmax(0,1fr)_8rem_auto_auto] items-center gap-2 text-left"
+          aria-label={displayLabel(node.skillId, node.label)}
+          className="grid flex-1 grid-cols-[minmax(0,1fr)_8rem_3rem_auto] items-center gap-2 text-left"
         >
-          <span className="truncate text-sm">{node.label || node.skillId}</span>
-          <Bar value={node.score ?? 0} tone={scoreTone(node)} />
-          <span className="w-10 text-right text-xs text-muted">{pct(node.score)}</span>
-          <StatusPill status={node.status} />
+          <span className="truncate text-sm">{displayLabel(node.skillId, node.label)}</span>
+          {node.score === null ? (
+            <span className="text-xs text-muted">not assessed</span>
+          ) : (
+            <Bar value={node.score} tone={scoreTone(node)} />
+          )}
+          <span className="text-right text-xs text-muted">
+            {node.score === null ? "" : pct(node.score)}
+          </span>
+          {node.score === null ? <span /> : <StatusPill status={node.status} />}
         </button>
       </div>
       {open && kids.length > 0 && (
@@ -94,6 +110,7 @@ function TreeNode({
               depth={depth + 1}
               selected={selected}
               onSelect={onSelect}
+              hideUnknown={hideUnknown}
             />
           ))}
         </ul>
@@ -105,16 +122,16 @@ function TreeNode({
 export default function Readiness() {
   const [params] = useSearchParams();
   const [graph, setGraph] = useState<ReadinessGraph | null>(null);
+  const [metrics, setMetrics] = useState<Metrics | null>(null);
   const [selected, setSelected] = useState<string | null>(null);
   const [detail, setDetail] = useState<SkillDetail | null>(null);
+  const [hideUnknown, setHideUnknown] = useState(false);
   const [error, setError] = useState<unknown>(null);
   const preselected = useRef(false);
 
   useEffect(() => {
-    api
-      .readiness()
-      .then(setGraph)
-      .catch((e) => setError(e));
+    api.readiness().then(setGraph).catch((e) => setError(e));
+    api.metrics().then(setMetrics).catch(() => {});
   }, []);
 
   const dimensions = graph?.dimensions ?? null;
@@ -131,18 +148,14 @@ export default function Readiness() {
     return c;
   }, [dimensions]);
 
-  const { strongest, risks } = useMemo(() => {
-    const scored = Object.values(dimensions ?? {}).filter((n) => n.score !== null);
-    const sorted = [...scored].sort((a, b) => (b.score ?? 0) - (a.score ?? 0));
-    const toItem = (n: SkillReadiness) => ({
-      label: n.label || skillLabel(n.skillId),
-      value: n.score,
-    });
-    return {
-      strongest: sorted.slice(0, 3).map(toItem),
-      risks: sorted.slice(-3).reverse().map(toItem),
-    };
+  const weaknesses = useMemo(() => {
+    const scored = Object.values(dimensions ?? {}).filter(
+      (n) => n.score !== null && (n.status === "weak" || n.status === "developing"),
+    );
+    return scored.sort((a, b) => (a.score ?? 0) - (b.score ?? 0)).slice(0, 5);
   }, [dimensions]);
+
+  const coverage = metrics?.readinessCoverage ?? null;
 
   const select = useCallback((id: string) => {
     setSelected(id);
@@ -173,12 +186,13 @@ export default function Readiness() {
   }
 
   const historyPoints = (detail?.history ?? []).map((h) => h.score);
+  const lowCoverage = coverage !== null && coverage.rate !== null && coverage.rate < 0.5;
 
   return (
     <div className="space-y-5">
       <PageHeader
         title="Readiness"
-        subtitle="Every score is backed by evidence — click a skill to see why."
+        subtitle="Why Interview OS thinks you are ready — or not."
       />
       <ErrorNote error={error} />
 
@@ -187,41 +201,100 @@ export default function Readiness() {
           <ReadinessHero
             overall={graph.overall}
             confidence={graph.overallConfidence}
-            strongest={strongest}
-            risks={risks}
+            verdict={readinessVerdict(graph.overall, coverage?.rate ?? null)}
+            note={
+              coverage
+                ? `Evidence for ${coverage.covered} of ${coverage.total} skills.`
+                : undefined
+            }
             updatedAt={graph.lastUpdated}
           />
+
+          {lowCoverage && (
+            <Card>
+              <p className="text-sm">
+                Your score is based on limited evidence. A short diagnostic interview
+                makes it far more accurate.
+              </p>
+              <div className="mt-3">
+                <a href="/interview">
+                  <Pill tone="blue">Complete a diagnostic interview →</Pill>
+                </a>
+              </div>
+            </Card>
+          )}
 
           <div className="grid gap-5 lg:grid-cols-2">
             <Card>
               <SectionHeading
-                title="Skills"
-                description="Grouped by how ready you are."
+                title="Where you stand"
+                description="Assessed skills, grouped by readiness."
               />
-              <div className="mb-3 flex flex-wrap gap-2">
-                <Pill tone="green">{buckets.strong} ready</Pill>
-                <Pill tone="blue">{buckets.developing} improving</Pill>
-                <Pill tone="amber">{buckets.weak} needs work</Pill>
-                <Pill tone="muted">{buckets.unknown} not enough evidence</Pill>
+              <StatusBuckets counts={buckets} />
+
+              <div className="mt-5 border-t border-line pt-4">
+                <SectionHeading
+                  title="Highest-priority weaknesses"
+                  description="Start here."
+                />
+                <PriorityList
+                  empty="No assessed weaknesses — nice."
+                  items={weaknesses.map((n) => ({
+                    key: n.skillId,
+                    label: displayLabel(n.skillId, n.label),
+                    statusLabel: n.status === "weak" ? "needs work" : "improving",
+                    tone: severityTone(n.status === "weak" ? "high" : "medium"),
+                    readiness: n.score,
+                  }))}
+                />
               </div>
-              <ul>
-                {roots.map((r) => (
-                  <TreeNode
-                    key={r.skillId}
-                    node={r}
-                    all={graph.dimensions}
-                    depth={0}
-                    selected={selected}
-                    onSelect={select}
-                  />
-                ))}
-              </ul>
+
+              <div className="mt-5 border-t border-line pt-4">
+                <SectionHeading
+                  title="All skills"
+                  description={
+                    coverage
+                      ? `${coverage.covered} of ${coverage.total} assessed.`
+                      : undefined
+                  }
+                  action={
+                    <Segmented
+                      size="small"
+                      value={hideUnknown ? "assessed" : "all"}
+                      onChange={(v) => setHideUnknown(v === "assessed")}
+                      options={[
+                        { value: "all", label: "All" },
+                        { value: "assessed", label: "Assessed" },
+                      ]}
+                    />
+                  }
+                />
+                <ul>
+                  {roots.map((r) => (
+                    <TreeNode
+                      key={r.skillId}
+                      node={r}
+                      all={graph.dimensions}
+                      depth={0}
+                      selected={selected}
+                      onSelect={select}
+                      hideUnknown={hideUnknown}
+                    />
+                  ))}
+                </ul>
+              </div>
             </Card>
 
             <Card>
               <SectionHeading
-                title={selected ? detail?.readiness?.label ?? skillLabel(selected) : "Select a skill"}
-                description={selected ? undefined : "Pick a skill to see the evidence behind its score."}
+                title={
+                  selected
+                    ? displayLabel(selected, detail?.readiness?.label)
+                    : "Select a skill"
+                }
+                description={
+                  selected ? undefined : "Pick a skill to see the evidence behind its score."
+                }
               />
               {selected && !detail && (
                 <div className="space-y-2">
@@ -247,11 +320,11 @@ export default function Readiness() {
 
                   <div>
                     <h3 className="text-sm font-semibold text-navy">
-                      Why the system believes this
+                      Evidence behind this score
                     </h3>
                     {detail.evidence.length === 0 ? (
                       <p className="mt-1 text-sm text-muted">
-                        No evidence recorded for this skill.
+                        No evidence recorded for this skill yet.
                       </p>
                     ) : (
                       <ul className="mt-1 space-y-2">
@@ -262,20 +335,17 @@ export default function Readiness() {
                           >
                             <div className="flex flex-wrap items-center gap-2">
                               <Pill tone={ev.type === "interview_answer" ? "blue" : "muted"}>
-                                {ev.type}
+                                {displayLabel(ev.type)}
                               </Pill>
                               <span className="text-muted">
                                 score {Math.round(ev.score * 100)}%
-                              </span>
-                              <span className="text-muted">
-                                conf {Math.round(ev.confidence * 100)}%
                               </span>
                               {ev.sessionId && (
                                 <a
                                   href={`/interview/${ev.sessionId}`}
                                   className="text-xs text-blue underline"
                                 >
-                                  session
+                                  view session
                                 </a>
                               )}
                               <span className="ml-auto text-xs text-muted">
@@ -318,7 +388,10 @@ export default function Readiness() {
                       <ul className="mt-1 space-y-1 text-sm text-muted">
                         {detail.actions.map((a) => (
                           <li key={a.id}>
-                            · {a.action} <Pill tone="muted">{a.status}</Pill>
+                            · {a.action}{" "}
+                            <Pill tone={a.status === "done" ? "green" : "muted"}>
+                              {displayLabel(a.status)}
+                            </Pill>
                           </li>
                         ))}
                       </ul>

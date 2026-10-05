@@ -50,6 +50,29 @@ export function readinessBarTone(value: number | null | undefined): "blue" | "gr
   return "amber";
 }
 
+/** "interview_answer" → "Interview answer"; camelCase → spaced; prefers a real label. */
+export function displayLabel(id: string, label?: string | null): string {
+  if (label && label.trim()) return label;
+  const last = id.split(/[./]/).pop() ?? id;
+  return last
+    .replace(/[_-]+/g, " ")
+    .replace(/([a-z0-9])([A-Z])/g, "$1 $2")
+    .replace(/\s+/g, " ")
+    .trim()
+    .replace(/\b\w/g, (c) => c.toUpperCase());
+}
+
+/** Plain-language interpretation of a readiness number (never a bare score). */
+export function readinessVerdict(
+  overall: number,
+  coverageRate: number | null,
+): string {
+  if (coverageRate !== null && coverageRate < 0.5) return "Not enough evidence yet";
+  if (overall >= 0.75) return "Ready to interview";
+  if (overall >= 0.5) return "Nearly ready";
+  return "Not ready for a full mock yet";
+}
+
 /* -- headings -------------------------------------------------------------- */
 
 export function SectionHeading({
@@ -315,6 +338,8 @@ export function NextActionCard({
 export function ReadinessHero({
   overall,
   confidence,
+  verdict,
+  note,
   trend,
   strongest,
   risks,
@@ -323,6 +348,8 @@ export function ReadinessHero({
 }: {
   overall: number;
   confidence: number;
+  verdict?: ReactNode;
+  note?: ReactNode;
   trend?: "up" | "down" | "flat" | null;
   strongest?: { label: ReactNode; value: number | null }[];
   risks?: { label: ReactNode; value: number | null }[];
@@ -365,7 +392,12 @@ export function ReadinessHero({
     <Card className="interview-readiness-hero">
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div>
-          <div className="flex items-baseline gap-2">
+          {verdict && (
+            <Typography.Text strong style={{ display: "block", fontSize: 15 }}>
+              {verdict}
+            </Typography.Text>
+          )}
+          <div className="mt-1 flex items-baseline gap-2">
             <span
               style={{
                 fontSize: 40,
@@ -376,7 +408,7 @@ export function ReadinessHero({
             >
               {Math.round(overall * 100)}%
             </span>
-            <span className="text-muted">ready</span>
+            <span className="text-muted">estimated readiness</span>
             {arrow && (
               <span aria-hidden style={{ color, fontSize: 20, fontWeight: 700 }}>
                 {arrow}
@@ -392,14 +424,53 @@ export function ReadinessHero({
             confidence {Math.round(confidence * 100)}%
             {updatedAt ? ` · updated ${new Date(updatedAt).toLocaleDateString()}` : ""}
           </Typography.Text>
+          {note && (
+            <Typography.Text
+              type="secondary"
+              style={{ display: "block", fontSize: 12, marginTop: 2 }}
+            >
+              {note}
+            </Typography.Text>
+          )}
         </div>
         {action}
       </div>
-      <div className="mt-4 grid gap-4 sm:grid-cols-2">
-        {column("Strongest", strongest)}
-        {column("Biggest risks", risks)}
-      </div>
+      {(strongest || risks) && (
+        <div className="mt-4 grid gap-4 sm:grid-cols-2">
+          {column("Strongest", strongest)}
+          {column("Biggest risks", risks)}
+        </div>
+      )}
     </Card>
+  );
+}
+
+/** Status counts: keep "not assessed" visibly different from "needs work". */
+export function StatusBuckets({
+  counts,
+}: {
+  counts: { strong: number; developing: number; weak: number; unknown: number };
+}) {
+  const items: { key: keyof typeof counts; label: string; color: string }[] = [
+    { key: "strong", label: "strong", color: TONE_COLOR.green },
+    { key: "developing", label: "improving", color: TONE_COLOR.blue },
+    { key: "weak", label: "needs work", color: TONE_COLOR.amber },
+    { key: "unknown", label: "not assessed", color: TONE_COLOR.muted },
+  ];
+  return (
+    <ul className="flex flex-wrap gap-x-5 gap-y-1.5 text-sm">
+      {items.map((i) => (
+        <li key={i.key} className="flex items-center gap-2">
+          <span
+            aria-hidden
+            className="inline-block h-2 w-2 rounded-full"
+            style={{ background: i.color }}
+          />
+          <Typography.Text strong>{counts[i.key]}</Typography.Text>
+          <span className="text-muted">{i.label}</span>
+        </li>
+      ))}
+    </ul>
   );
 }
 
