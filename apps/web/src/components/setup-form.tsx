@@ -347,41 +347,58 @@ export function SetupForm({
         />
       </label>
 
-      <div className="mt-4 flex flex-wrap items-center gap-3">
-        {mode === "workspace" && examples.length > 0 && (
-          <label className="text-sm text-muted">
-            Load example:{" "}
-            <select
-              defaultValue=""
-              onChange={(e) => e.target.value && loadExample(e.target.value)}
-              className="rounded-[0.6rem] border border-line bg-surface px-2 py-1.5"
-            >
-              <option value="" disabled>
-                Select…
-              </option>
-              {examples.map((n) => (
-                <option key={n} value={n}>
-                  {n}
+      <div className="mt-4 rounded-[0.6rem] border border-line bg-page p-3">
+        <p className="text-sm font-medium text-navy">
+          {mode === "target" ? "Ready to add this target" : "Ready to analyze"}
+        </p>
+        <p className="mt-0.5 text-xs text-muted">
+          {mode === "target"
+            ? "Interview OS compares your resume with this role and updates your preparation plan."
+            : "Interview OS will compare your experience with the role and create your preparation plan."}
+        </p>
+        <div className="mt-3 flex flex-wrap items-center gap-3">
+          {mode === "workspace" && examples.length > 0 && (
+            <label className="text-sm text-muted">
+              Load example:{" "}
+              <select
+                defaultValue=""
+                onChange={(e) => e.target.value && loadExample(e.target.value)}
+                className="rounded-[0.6rem] border border-line bg-surface px-2 py-1.5"
+              >
+                <option value="" disabled>
+                  Select…
                 </option>
-              ))}
-            </select>
-          </label>
-        )}
-        <Button type="submit" onClick={submit} disabled={!canSubmit}>
-          {mode === "target" ? "Add target" : "Analyze"}
-        </Button>
-        {busy && (
-          <span
-            role="status"
-            aria-live="polite"
-            className="inline-flex items-center gap-2 text-sm text-muted"
-          >
+                {examples.map((n) => (
+                  <option key={n} value={n}>
+                    {n}
+                  </option>
+                ))}
+              </select>
+            </label>
+          )}
+          <Button type="submit" onClick={submit} disabled={!canSubmit}>
+            {mode === "target" ? "Add target" : "Analyze"}
+          </Button>
+          {busy && (
             <span
-              className="h-4 w-4 animate-spin rounded-full border-2 border-line border-t-blue"
-              aria-hidden
-            />
-            Working… {elapsed}s elapsed
-          </span>
+              role="status"
+              aria-live="polite"
+              className="inline-flex items-center gap-2 text-sm text-muted"
+            >
+              <span
+                className="h-4 w-4 animate-spin rounded-full border-2 border-line border-t-blue"
+                aria-hidden
+              />
+              Working… {elapsed}s elapsed
+            </span>
+          )}
+        </div>
+        {!canSubmit && !busy && (
+          <p className="mt-1 text-xs text-muted">
+            {mode === "target"
+              ? "Add a job description, company and role to continue."
+              : "Add a resume and job description to continue."}
+          </p>
         )}
       </div>
       {busy && <StageList stages={stages} running={busy} />}

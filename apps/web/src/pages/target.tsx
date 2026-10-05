@@ -205,6 +205,7 @@ export default function TargetRole() {
           <SetupForm
             mode="workspace"
             title="Set up your workspace"
+            showSteps
             onDone={(r) => {
               if (r) setResult(r);
               loadTargets();
