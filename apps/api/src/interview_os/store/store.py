@@ -1152,6 +1152,17 @@ class Store:
 
     # --------------------------------------------------- generic row access
 
+    def upsert_skill_node(self, id: str, label: str, parent_id: str | None) -> None:
+        """Register a taxonomy node (idempotent) — port of `upsertSkillNode`."""
+        existing = self._one("skill_nodes", {"id": id})
+        if existing is None:
+            self._insert("skill_nodes", {"id": id, "label": label, "parent_id": parent_id})
+        else:
+            self._update("skill_nodes", {"id": id}, {"label": label, "parent_id": parent_id})
+
+    def list_skill_nodes(self) -> list[dict[str, Any]]:
+        return self._many("skill_nodes", order_by="id")
+
     def get_row(self, table: str, row_id: object) -> dict[str, Any] | None:
         pk = self._primary_key(table)
         if len(pk) != 1:
