@@ -31,10 +31,7 @@ contract suite green on FastAPI; `tsc` clean for frontend-types/ui/web.
 
 ## Remaining
 
-- **§15 documentation**: root `AGENTS.md` + new `apps/api/AGENTS.md` rewritten;
-  `ARCHITECTURE.md` and `docs/plugins.md` updated to Python (paths, plugin
-  layout/host, authoring, isolation, bundling). `CONTRIBUTING.md` still needs its
-  Python pass, and a few illustrative TS snippets remain in `ARCHITECTURE.md` /
-  `docs/plugins.md` (interface/code samples).
+- A few illustrative TypeScript snippets remain in `ARCHITECTURE.md` /
+  `docs/plugins.md` (interface / code samples); the prose and paths are Python.
 - `pnpm test:e2e` against FastAPI (Playwright) — the launcher is rewired; the
   suite itself is unaffected.
