@@ -6,6 +6,7 @@ readme = "README.md"
 requires-python = ">=3.13"
 dependencies = [
     "alembic==1.20.0",
+    "claude-agent-sdk==0.2.161",
     "fastapi==0.141.1",
     "pydantic==2.13.5",
     "sqlalchemy==2.0.54",
@@ -17,6 +18,7 @@ dev = [
     "httpx==0.28.1",
     "mypy==2.3.1",
     "pytest==9.1.1",
+    "pytest-asyncio==1.4.0",
     "ruff==0.16.9",
 ]
 
@@ -35,6 +37,8 @@ packages = ["src/interview_os"]
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 addopts = "-q"
+asyncio_mode = "auto"
+asyncio_default_fixture_loop_scope = "function"
 
 [tool.ruff]
 line-length = 100
