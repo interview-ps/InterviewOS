@@ -1,7 +1,6 @@
 import { Link, useLocation } from "react-router";
-import { useEffect, useMemo, useState, type ReactNode } from "react";
+import { useCallback, useEffect, useMemo, useState, type ReactNode } from "react";
 import {
-  Badge,
   Breadcrumb,
   Button,
   Drawer,
@@ -19,51 +18,88 @@ import {
   MoonOutlined,
   SunOutlined,
 } from "@ant-design/icons";
+import type { UITone as Tone } from "@interview-os/frontend-types";
 import { api, type RuntimeStatus, type TargetListItem } from "@/lib/api";
 import { CommandPalette } from "@/components/command-palette";
 import { useUIContributions } from "@/components/plugin-ui";
 import { runtimeLabel } from "@/lib/runtime";
+import { AppRefreshContext } from "@/lib/app-refresh";
 import { message } from "@/utils/antdMessage";
 import { useTheme } from "@/theme/ThemeProvider";
 import type { ThemePreference } from "@/theme/tokens";
+import { StatusDot } from "@/ui";
 
-const NAV = [
+type NavEntry = { href: string; label: string };
+
+/* Navigation is organised around the candidate's journey, not the internal
+   feature list: four primary goals, then Progress, Library, and Workspace. */
+const NAV_JOURNEY: NavEntry[] = [
   { href: "/", label: "Home" },
   { href: "/target", label: "Target" },
   { href: "/prepare", label: "Prepare" },
   { href: "/interview", label: "Interview" },
+];
+const NAV_PROGRESS: NavEntry[] = [
   { href: "/readiness", label: "Readiness" },
-  { href: "/resume", label: "Resume" },
   { href: "/history", label: "History" },
+];
+const NAV_LIBRARY: NavEntry[] = [
   { href: "/packs", label: "Packs" },
-  { href: "/skills", label: "Skills & plugins" },
-  { href: "/settings", label: "Settings" },
+  { href: "/skills", label: "Extensions" },
+];
+const NAV_WORKSPACE: NavEntry[] = [{ href: "/settings", label: "Settings" }];
+
+/* Full list (incl. /resume, which is reached contextually from Prepare and
+   Target rather than the primary rail) — used for labels and selection. */
+const NAV: NavEntry[] = [
+  ...NAV_JOURNEY,
+  ...NAV_PROGRESS,
+  ...NAV_LIBRARY,
+  { href: "/resume", label: "Resume coach" },
+  ...NAV_WORKSPACE,
 ];
 
-function RuntimeBadge({ status }: { status: RuntimeStatus | null }) {
-  let color = "default";
-  let text = "Checking runtime…";
+const ALL_NAV = NAV;
+
+function RuntimeIndicator({ status }: { status: RuntimeStatus | null }) {
+  let tone: Tone = "muted";
+  let label = "Checking runtime…";
+  let attention = false;
   if (status) {
-    const label = runtimeLabel(status.mode);
+    const name = runtimeLabel(status.mode);
     if (status.mode === "mock") {
-      color = "processing";
-      text = "Mock Runtime";
+      tone = "blue";
+      label = "Mock Runtime";
+      attention = true;
     } else if (status.available) {
-      color = "success";
-      text = `${label} Connected`;
+      tone = "green";
+      label = `${name} connected`;
     } else {
-      color = "default";
-      text = `${label} Not Available`;
+      tone = "amber";
+      label = `${name} unavailable`;
+      attention = true;
     }
   }
   return (
-    <span aria-live="polite">
-      <Badge color={color} text={text} />
-    </span>
+    <Tooltip title={label}>
+      <span
+        role="status"
+        aria-live="polite"
+        aria-label={label}
+        className="inline-flex items-center gap-2"
+      >
+        <StatusDot tone={tone} />
+        {attention && (
+          <Typography.Text type="secondary" style={{ fontSize: 12 }}>
+            {label}
+          </Typography.Text>
+        )}
+      </span>
+    </Tooltip>
   );
 }
 
-function TargetSwitcher() {
+function TargetSwitcher({ onSwitched }: { onSwitched: () => void }) {
   const [targets, setTargets] = useState<TargetListItem[]>([]);
   const [switching, setSwitching] = useState(false);
 
@@ -87,9 +123,11 @@ function TargetSwitcher() {
           .activateTarget(value)
           .then(() => {
             void message.success("Target switched");
-            window.location.reload();
+            api.listTargets().then(setTargets).catch(() => {});
+            onSwitched();
           })
-          .catch(() => setSwitching(false));
+          .catch(() => {})
+          .finally(() => setSwitching(false));
       }}
       options={targets.map((t) => ({
         value: t.id,
@@ -127,17 +165,17 @@ function PluginIcon({ icon }: { icon: string }) {
   );
 }
 
+function navLinks(entries: NavEntry[]) {
+  return entries.map((item) => ({
+    key: item.href,
+    label: <Link to={item.href}>{item.label}</Link>,
+  }));
+}
+
 function useNavItems() {
-  const pathname = useLocation().pathname;
   const contributions = useUIContributions();
 
   return useMemo(() => {
-    const items = [
-      ...NAV.map((item) => ({
-        key: item.href,
-        label: <Link to={item.href}>{item.label}</Link>,
-      })),
-    ];
     const pluginNav = contributions.flatMap((p) =>
       p.navigation.map((n) => ({
         key: `/plugins/${p.pluginId}${n.page === "/" ? "" : n.page}`,
@@ -151,16 +189,27 @@ function useNavItems() {
         ),
       })),
     );
+    const items: unknown[] = [
+      ...navLinks(NAV_JOURNEY),
+      { key: "group-progress", type: "group", label: "Progress", children: navLinks(NAV_PROGRESS) },
+      { key: "group-library", type: "group", label: "Library", children: navLinks(NAV_LIBRARY) },
+      ...navLinks(NAV_WORKSPACE),
+    ];
     if (pluginNav.length > 0) {
-      items.push({ key: "plugins-group", type: "group", label: "Plugins", children: pluginNav } as never);
+      items.push({
+        key: "plugins-group",
+        type: "group",
+        label: "Plugins",
+        children: pluginNav,
+      });
     }
-    return items;
-  }, [contributions, pathname]);
+    return items as never;
+  }, [contributions]);
 }
 
 function selectedKey(pathname: string): string {
   if (pathname === "/") return "/";
-  const match = NAV.filter((n) => n.href !== "/").find((n) =>
+  const match = ALL_NAV.filter((n) => n.href !== "/").find((n) =>
     pathname.startsWith(n.href),
   );
   if (match) return match.href;
@@ -193,11 +242,33 @@ function Breadcrumbs() {
   const items = segments.map((segment, index) => {
     const href = "/" + segments.slice(0, index + 1).join("/");
     const label =
-      NAV.find((n) => n.href === href)?.label ??
+      ALL_NAV.find((n) => n.href === href)?.label ??
       segment.replace(/[-_]+/g, " ");
     return { title: index === segments.length - 1 ? label : <Link to={href}>{label}</Link> };
   });
   return <Breadcrumb items={items} style={{ marginBottom: 12 }} />;
+}
+
+/** Small-screen primary navigation — the four journey goals stay one tap away. */
+function BottomNav({ pathname }: { pathname: string }) {
+  return (
+    <nav aria-label="Primary" className="interview-bottom-nav">
+      {NAV_JOURNEY.map((item) => {
+        const active =
+          item.href === "/" ? pathname === "/" : pathname.startsWith(item.href);
+        return (
+          <Link
+            key={item.href}
+            to={item.href}
+            aria-current={active ? "page" : undefined}
+            className={`interview-bottom-nav__item${active ? " is-active" : ""}`}
+          >
+            {item.label}
+          </Link>
+        );
+      })}
+    </nav>
+  );
 }
 
 export function Shell({ children }: { children: ReactNode }) {
@@ -207,7 +278,10 @@ export function Shell({ children }: { children: ReactNode }) {
   const [status, setStatus] = useState<RuntimeStatus | null>(null);
   const [paletteOpen, setPaletteOpen] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
+  const [refreshKey, setRefreshKey] = useState(0);
   const items = useNavItems();
+
+  const refresh = useCallback(() => setRefreshKey((k) => k + 1), []);
 
   // §9.7: Ctrl/Cmd+K opens the command palette.
   useEffect(() => {
@@ -259,73 +333,77 @@ export function Shell({ children }: { children: ReactNode }) {
   }, [location.pathname]);
 
   return (
-    <Layout style={{ minHeight: "100vh" }}>
-      <Layout.Header className="interview-header flex items-center gap-3">
-        <Button
-          type="text"
-          aria-label="Open navigation menu"
-          aria-expanded={menuOpen}
-          data-testid="menu-button"
-          icon={<MenuOutlined />}
-          onClick={() => setMenuOpen(true)}
-          style={{ display: desktop ? "none" : "inline-flex" }}
-        />
-        <img src="/interview-ps-logo.png" alt="interview.ps logo" width={28} height={28} />
-        <Typography.Text strong style={{ fontSize: 16 }}>
-          Interview OS{" "}
-          <Typography.Text type="secondary" style={{ fontWeight: 400 }}>
-            · by interview.ps
-          </Typography.Text>
-        </Typography.Text>
-        <div className="ml-auto flex items-center gap-3">
-          <TargetSwitcher />
+    <AppRefreshContext.Provider value={refresh}>
+      <Layout style={{ minHeight: "100vh" }}>
+        <Layout.Header className="interview-header flex items-center gap-3">
           <Button
-            size="small"
-            aria-label="Open command palette"
-            data-testid="palette-button"
-            onClick={() => setPaletteOpen(true)}
-            style={{ display: desktop ? "inline-flex" : "none" }}
-          >
-            ⌘K
-          </Button>
-          <ThemeControl />
-          <RuntimeBadge status={status} />
-        </div>
-      </Layout.Header>
-      <Layout>
-        {desktop && (
-          <Layout.Sider theme="light" width={208} className="interview-sider">
-            <Menu
-              mode="inline"
-              selectedKeys={[selectedKey(location.pathname)]}
-              items={items}
-              style={{ borderInlineEnd: "none", paddingTop: 8 }}
-            />
-          </Layout.Sider>
-        )}
-        <Layout.Content className="interview-content">
-          <Breadcrumbs />
-          {children}
-        </Layout.Content>
+            type="text"
+            aria-label="Open navigation menu"
+            aria-expanded={menuOpen}
+            data-testid="menu-button"
+            icon={<MenuOutlined />}
+            onClick={() => setMenuOpen(true)}
+            style={{ display: desktop ? "none" : "inline-flex" }}
+          />
+          <img src="/interview-ps-logo.png" alt="interview.ps logo" width={28} height={28} />
+          <Typography.Text strong style={{ fontSize: 16 }}>
+            Interview OS{" "}
+            <Typography.Text type="secondary" style={{ fontWeight: 400 }}>
+              · by interview.ps
+            </Typography.Text>
+          </Typography.Text>
+          <div className="ml-auto flex items-center gap-3">
+            <TargetSwitcher onSwitched={refresh} />
+            <Button
+              size="small"
+              aria-label="Open command palette"
+              data-testid="palette-button"
+              onClick={() => setPaletteOpen(true)}
+              style={{ display: desktop ? "inline-flex" : "none" }}
+            >
+              ⌘K
+            </Button>
+            <ThemeControl />
+            <RuntimeIndicator status={status} />
+          </div>
+        </Layout.Header>
+        <Layout>
+          {desktop && (
+            <Layout.Sider theme="light" width={208} className="interview-sider">
+              <Menu
+                mode="inline"
+                selectedKeys={[selectedKey(location.pathname)]}
+                items={items}
+                style={{ borderInlineEnd: "none", paddingTop: 8 }}
+              />
+            </Layout.Sider>
+          )}
+          <Layout.Content className="interview-content" key={refreshKey}>
+            <Breadcrumbs />
+            {children}
+          </Layout.Content>
+        </Layout>
+
+        <Drawer
+          title="Navigation"
+          placement="left"
+          open={menuOpen}
+          onClose={() => setMenuOpen(false)}
+          width={256}
+          styles={{ body: { padding: 8 } }}
+        >
+          <Menu
+            mode="inline"
+            selectedKeys={[selectedKey(location.pathname)]}
+            items={items}
+            style={{ borderInlineEnd: "none" }}
+          />
+        </Drawer>
+
+        {!desktop && <BottomNav pathname={location.pathname} />}
+
+        <CommandPalette open={paletteOpen} onClose={() => setPaletteOpen(false)} />
       </Layout>
-
-      <Drawer
-        title="Navigation"
-        placement="left"
-        open={menuOpen}
-        onClose={() => setMenuOpen(false)}
-        width={256}
-        styles={{ body: { padding: 8 } }}
-      >
-        <Menu
-          mode="inline"
-          selectedKeys={[selectedKey(location.pathname)]}
-          items={items}
-          style={{ borderInlineEnd: "none" }}
-        />
-      </Drawer>
-
-      <CommandPalette open={paletteOpen} onClose={() => setPaletteOpen(false)} />
-    </Layout>
+    </AppRefreshContext.Provider>
   );
 }

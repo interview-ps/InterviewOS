@@ -67,6 +67,37 @@ h1, h2, h3, h4, .font-display {
   );
 }
 
+/* Small-screen primary navigation — rendered below the lg breakpoint. */
+.interview-bottom-nav {
+  position: fixed;
+  inset-inline: 0;
+  bottom: 0;
+  z-index: 20;
+  display: flex;
+  border-top: 1px solid var(--interview-border);
+  background: var(--interview-surface);
+}
+
+.interview-bottom-nav__item {
+  flex: 1 1 0;
+  padding: 10px 4px;
+  text-align: center;
+  font-size: 12px;
+  text-decoration: none;
+  color: var(--interview-text-secondary);
+}
+
+.interview-bottom-nav__item.is-active {
+  color: var(--interview-brand);
+  font-weight: 600;
+}
+
+@media (max-width: 991px) {
+  .interview-content {
+    padding-bottom: 72px;
+  }
+}
+
 @media (max-width: 640px) {
   .interview-content {
     padding: 16px;

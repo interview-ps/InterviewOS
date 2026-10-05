@@ -15,6 +15,7 @@ import {
   type TargetListItem,
 } from "@/lib/api";
 import { runUIAction } from "@/lib/plugin-actions";
+import { useAppRefresh } from "@/lib/app-refresh";
 import { fuzzyFilter } from "@/lib/fuzzy";
 import { useAvailableModes } from "@/lib/modes";
 import { skillLabel } from "@/components/ui";
@@ -46,6 +47,7 @@ export function CommandPalette({
   const [graph, setGraph] = useState<Record<string, SkillReadiness>>({});
   const [pluginUI, setPluginUI] = useState<PluginUIContributionView[]>([]);
   const modes = useAvailableModes();
+  const refresh = useAppRefresh();
 
   // Load dynamic command sources each time the palette opens.
   useEffect(() => {
@@ -119,7 +121,7 @@ export function CommandPalette({
       },
       {
         id: "plugins",
-        title: "Plugins",
+        title: "Extensions",
         hint: "Navigation",
         run: () => navigate("/skills"),
       },
@@ -181,7 +183,8 @@ export function CommandPalette({
         hint: "Target",
         run: async () => {
           await api.activateTarget(target.id);
-          window.location.reload();
+          navigate("/");
+          refresh();
         },
       });
     }
@@ -210,7 +213,7 @@ export function CommandPalette({
       }
     }
     return list;
-  }, [actions, graph, targets, pluginUI, modes, navigate]);
+  }, [actions, graph, targets, pluginUI, modes, navigate, refresh]);
 
   const filtered = useMemo(
     () => fuzzyFilter(commands, query, (c) => c.title),
