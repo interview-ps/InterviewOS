@@ -16,6 +16,7 @@
     "test:e2e:live": "playwright test -c playwright.live.config.ts"
   },
   "devDependencies": {
+    "@modelcontextprotocol/sdk": "1.30.1",
     "@playwright/test": "^1.63.0",
     "@types/node": "24.13.6",
     "typescript": "6.0.3",
