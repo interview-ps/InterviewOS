@@ -49,6 +49,24 @@ h1, h2, h3, h4, .font-display {
   padding: 24px;
 }
 
+/* Page rhythm: headers own their bottom space so cards stop double-spacing. */
+.interview-page-header {
+  margin-bottom: 20px;
+}
+
+/* The command-centre hero surfaces: a single strong accent, not another box. */
+.interview-next-action .interview-card {
+  border-inline-start: 3px solid var(--interview-brand);
+}
+
+.interview-readiness-hero .interview-card {
+  background: linear-gradient(
+    180deg,
+    var(--interview-surface-hover) 0%,
+    var(--interview-surface) 100%
+  );
+}
+
 @media (max-width: 640px) {
   .interview-content {
     padding: 16px;

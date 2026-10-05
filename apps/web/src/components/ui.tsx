@@ -31,6 +31,24 @@ export {
 /** Product alias — the component is `SkillScoreCard`. */
 export { SkillScoreCard as SkillScore } from "@/ui";
 
+/* Reusable product patterns. */
+export {
+  Callout,
+  DeltaList,
+  EvidenceTimeline,
+  KeyValue,
+  NextActionCard,
+  PriorityList,
+  ReadinessHero,
+  SectionHeading,
+  StatusDot,
+  humanize,
+  pct,
+  readinessBarTone,
+  trendOf,
+} from "@/ui";
+export type { Delta, EvidenceEntry, PriorityItem } from "@/ui";
+
 /** Product charts (antd-free, shared with plugin frames). */
 export { ReadinessChart, Sparkline } from "@interview-os/ui";
 

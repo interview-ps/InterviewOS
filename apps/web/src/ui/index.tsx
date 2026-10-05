@@ -29,13 +29,22 @@ export function Button({
   children,
   ...rest
 }: {
-  variant?: "primary" | "secondary" | "ghost";
+  variant?: "primary" | "secondary" | "ghost" | "danger";
   type?: "button" | "submit";
 } & Omit<AntButtonProps, "type" | "htmlType" | "variant">) {
   const antType =
-    variant === "primary" ? "primary" : variant === "secondary" ? "default" : "text";
+    variant === "primary" || variant === "danger"
+      ? "primary"
+      : variant === "secondary"
+        ? "default"
+        : "text";
   return (
-    <AntButton type={antType} htmlType={type === "submit" ? "submit" : "button"} {...rest}>
+    <AntButton
+      type={antType}
+      danger={variant === "danger"}
+      htmlType={type === "submit" ? "submit" : "button"}
+      {...rest}
+    >
       {children}
     </AntButton>
   );
@@ -411,3 +420,6 @@ export function EvidenceList({
     />
   );
 }
+
+/* Reusable product patterns (SectionHeading, NextActionCard, DeltaList, …). */
+export * from "./patterns";
