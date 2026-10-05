@@ -41,7 +41,10 @@ test.describe("interview modes", () => {
   test("behavioral: STAR checklist in the evaluation", async ({ page }) => {
     // §8.4 stories first — generate from resume, then coach a story
     await page.goto("/prepare/stories");
-    await page.getByRole("button", { name: "Generate from resume" }).click();
+    await page
+      .getByRole("button", { name: "Generate from resume" })
+      .first()
+      .click();
     await expect(
       page.getByText(/\[add metric\]/i).first(),
     ).toBeVisible({ timeout: 30_000 });

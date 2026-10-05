@@ -102,5 +102,5 @@ playwright-report/
 interview-os.mcp.json
 interview-os.runtimes.json
 
-# CommandCode taste (learned preferences, local only)
-.commandcode/taste/
+# CommandCode agent state (local settings + learned taste), local only
+.commandcode/
