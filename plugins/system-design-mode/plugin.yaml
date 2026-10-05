@@ -3,6 +3,12 @@ version: 1.0.0
 name: System Design Mode
 kind: hook
 entry: main.py
+author: interview-os
+permissions: [answers.read]
+capabilities: [interview_mode, ui]
+hooks: [mode.reduce, mode.prepareTurn, mode.mock, ui.render]
+inputs: []
+engines: {interview-os: ">=0.4.0", plugin-api: "^1.1.0"}
 description: Open-ended design of a larger system with concrete scale numbers — requirements → estimation → design → trade-offs.
 modes:
   - id: system_design

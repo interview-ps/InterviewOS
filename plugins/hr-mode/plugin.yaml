@@ -3,6 +3,12 @@ version: 1.0.0
 name: HR Mode
 kind: hook
 entry: main.py
+author: interview-os
+permissions: [answers.read]
+capabilities: [interview_mode]
+hooks: [mode.reduce, mode.mock]
+inputs: []
+engines: {interview-os: ">=0.4.0", plugin-api: "^1.1.0"}
 description: Motivation, career goals, culture fit and work style — friendly but probing.
 modes:
   - id: hr

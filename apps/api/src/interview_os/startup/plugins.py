@@ -1,16 +1,11 @@
-"""Plugin loader — port of `apps/server/src/startup/plugins.ts`.
+"""Plugin loader — scans a plugins directory and registers each `plugin.yaml`.
 
-Scans a plugins directory at server start. Each subdirectory needs a
-`skill.yaml` (preferred) or `manifest.json` plus an `index.ts`/`index.js`/
-`index.mjs` entry; plugins execute in an isolated child process
-(`interview_os.plugins.executor`). Manifests requesting a write permission other
-than `evidence.write` are rejected. Every plugin is registered with the
-orchestrator; plugin-declared taxonomy nodes register too, and the plugin
-interview modes are synced into the core registry at the end.
-
-The manifest reader / entry finder / mode-prompt loader live with the plugin
-service (`orchestrator.services.plugin`), which is the one place the Python core
-already ports the plugin-SDK loaders; this module reuses them.
+Phase 7: the bundled/installed catalog is Python (`plugin.yaml` + `main.py`).
+Each plugin's `main.py` is imported in-process and its `setup(ctx)` middleware
+is wrapped by `PythonPluginExecutor`, so the migrated `PluginService`/`SkillHost`
+can drive it through the same hook path it always used. Manifests requesting a
+write permission other than `evidence.write` are rejected; plugin-declared
+taxonomy nodes register too, and plugin interview modes sync at the end.
 """
 
 from __future__ import annotations
@@ -25,16 +20,10 @@ from ..orchestrator import InterviewOrchestrator
 from ..orchestrator.services import PluginRegistrationMeta, PluginSource
 from ..orchestrator.services.plugin import (
     PluginLoadError,
-    _find_entry_file,
     _load_manifest_file,
     _load_plugin_mode_prompts,
 )
-from ..plugins.executor import (
-    IsolatedExecutorDeps,
-    IsolatedPluginExecutor,
-    PluginDescription,
-    create_isolated_executor,
-)
+from ..plugins.inproc import PythonPluginExecutor, load_python_plugin
 
 __all__ = ["PluginLoadError", "load_plugins"]
 
@@ -51,15 +40,6 @@ def _record(
     message = error[:300]
     errors.append(PluginLoadError(dir=plugin, file=file, error=message))
     logger.warn("plugin.load_failed", {"plugin": plugin, "file": file, "error": message})
-
-
-async def _describe(executor: IsolatedPluginExecutor) -> PluginDescription | None:
-    """Best-effort `describe()` — a failure just leaves hooks manifest-declared."""
-
-    try:
-        return await executor.describe()
-    except Exception:  # noqa: BLE001 - a failed describe degrades, never blocks load
-        return None
 
 
 async def load_plugins(
@@ -94,7 +74,7 @@ async def load_plugins(
         try:
             manifest = _load_manifest_file(str(plugin_dir))
         except Exception as err:  # noqa: BLE001 - report and skip this plugin
-            _record(errors, logger, entry.name, "skill.yaml", str(err))
+            _record(errors, logger, entry.name, "plugin.yaml", str(err))
             continue
 
         write_perm = next(
@@ -119,24 +99,17 @@ async def load_plugins(
         try:
             loaded_modes = _load_plugin_mode_prompts(str(plugin_dir), manifest)
         except Exception as err:  # noqa: BLE001 - report and skip this plugin
-            _record(errors, logger, entry.name, "skill.yaml", str(err))
+            _record(errors, logger, entry.name, "plugin.yaml", str(err))
             continue
 
-        entry_file = _find_entry_file(str(plugin_dir))
-        if entry_file is None:
-            _record(errors, logger, entry.name, "index.{ts,js,mjs}", "missing entry file")
+        entry_file = "main.py"
+        if not (plugin_dir / entry_file).is_file():
+            _record(errors, logger, entry.name, entry_file, "missing entry file")
             continue
 
         try:
-            executor = create_isolated_executor(
-                IsolatedExecutorDeps(
-                    plugin_dir=str(plugin_dir),
-                    entry_file=entry_file,
-                    manifest=manifest,
-                    logger=logger,
-                )
-            )
-            described = await _describe(executor)
+            instance, module = load_python_plugin(plugin_dir, entry_file)
+            executor = PythonPluginExecutor(instance, module)
             orchestrator.register_plugin(
                 manifest,
                 executor,
@@ -144,7 +117,7 @@ async def load_plugins(
                     dir=str(plugin_dir),
                     entry_file=entry_file,
                     source=source,
-                    hooks=described.handlers if described is not None else None,
+                    hooks=list(manifest.hooks or ()),
                     loaded_modes=loaded_modes,
                 ),
             )

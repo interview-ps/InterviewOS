@@ -123,3 +123,33 @@ over SSE; L2 uses `host.patchResult(resultId, patch)`.
   `interview-day-checklist`, `learning-resources`, `postgres-interviewer`;
 - the web plugin screens;
 - the plugin routes above (contract suite).
+
+## 8. Part 2 — wiring (landed)
+
+Rather than rewrite the ~1,800-line `PluginService`, the migrated service is
+backed by an **in-process executor adapter** (`plugins/inproc.py`):
+
+- `SkillHost.invoke_plugin` already calls `executor.execute(input, ctx)` with
+  `ctx.plugin_hook`/`hook_request`/`settings`, so `PythonPluginExecutor` imports
+  the plugin's `main.py`, takes the `setup(ctx)` middleware instance, and routes
+  the call onto the hook method (`HOOK_METHODS`), returning the response model's
+  JSON. The legacy path (`hook=None`) calls the module/instance `execute`.
+- `startup/plugins.py` and `PluginService.install_plugin_from_git` now read
+  `plugin.yaml` and register `PythonPluginExecutor`; `_MANIFEST_YAML` is
+  `plugin.yaml` and `main.py` is the entry.
+
+This keeps the **HTTP contract byte-identical**: the FastAPI contract suite
+(`test_plugins`, `test_installs`, `test_meta`, and the whole suite) is green with
+**zero snapshot changes** — no re-record was needed. The plugin manifests keep
+their declared `permissions`/`capabilities`/`hooks`/`inputs`/`engines`/`author`
+(extra keys the new `PluginManifest` ignores) so the `PluginView`/`SkillManifest`
+shapes are unchanged.
+
+Hono's plugin tests are red from here: its loader still reads `skill.yaml`,
+which the port removed. The phase-8 cut-over retires the Hono backend; the
+`tests/contract` default backend flips to FastAPI there. The demo install fixture
+(`tests/contract/git-src/plugin`) now ships both `plugin.yaml`+`main.py` and
+`skill.yaml`+`index.js` so either backend can install it.
+
+Still to do in phase 7: the web plugin screens (`apps/web`) and the new
+declarative `ios_ui` renderer path.

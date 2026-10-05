@@ -3,6 +3,12 @@ version: 1.0.0
 name: Coding Mode
 kind: hook
 entry: main.py
+author: interview-os
+permissions: [answers.read]
+capabilities: [interview_mode, ui]
+hooks: [mode.mock, ui.render]
+inputs: []
+engines: {interview-os: ">=0.4.0", plugin-api: "^1.1.0"}
 description: Live-coding interview round — solve a small algorithmic problem, explain your approach, then write code (reviewed, not executed).
 modes:
   - id: coding

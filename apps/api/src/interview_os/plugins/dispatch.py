@@ -11,7 +11,8 @@ from __future__ import annotations
 
 import contextvars
 import logging
-from collections.abc import Callable, Mapping
+from collections.abc import Callable, Iterator, Mapping
+from contextlib import contextmanager
 
 from ..core.models.platform import plugin_applies_to_skill
 from .context import LoadedPlugin, MiddlewareRegistration
@@ -21,6 +22,7 @@ __all__ = [
     "HOOK_METHODS",
     "PluginDispatcher",
     "current_plugin_settings",
+    "use_plugin_settings",
 ]
 
 _log = logging.getLogger(__name__)
@@ -53,6 +55,17 @@ def current_plugin_settings() -> Mapping[str, object]:
     """The invoking plugin's settings values, or `{}` outside a dispatch."""
 
     return _settings_var.get() or {}
+
+
+@contextmanager
+def use_plugin_settings(values: Mapping[str, object]) -> Iterator[None]:
+    """Bind `values` as the current plugin settings for the enclosed call."""
+
+    token = _settings_var.set(values)
+    try:
+        yield
+    finally:
+        _settings_var.reset(token)
 
 
 def _skill_ids_of(request: object) -> list[str]:

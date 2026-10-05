@@ -74,10 +74,6 @@ from ...core.plugin_api import (
     PluginPrepActivity,
     is_plugin_hook_name,
 )
-from ...plugins.executor import (
-    IsolatedExecutorDeps,
-    create_isolated_executor,
-)
 from ...skills.framework import PluginKvStorage
 from ...skills.host import (
     PluginError,
@@ -1184,13 +1180,17 @@ class PluginService:
             entry_file = _find_entry_file(str(tmp))
             if entry_file is None:
                 raise AppError(
-                    "PLUGIN_INSTALL", f'plugin "{manifest.id}" has no index.ts/index.js entry'
+                    "PLUGIN_INSTALL", f'plugin "{manifest.id}" has no main.py entry'
                 )
             loaded_modes = _load_plugin_mode_prompts(str(tmp), manifest)
             dest = Path(dirs.installed) / manifest.id
             shutil.rmtree(tmp / ".git", ignore_errors=True)
             shutil.rmtree(dest, ignore_errors=True)
             tmp.rename(dest)
+
+            from ...plugins.inproc import PythonPluginExecutor, load_python_plugin
+
+            instance, module = load_python_plugin(dest, entry_file)
 
             self._ctx.store.upsert_plugin_install(
                 _install_row(
@@ -1206,18 +1206,12 @@ class PluginService:
             )
             self.register_plugin(
                 manifest,
-                create_isolated_executor(
-                    IsolatedExecutorDeps(
-                        plugin_dir=str(dest),
-                        entry_file=entry_file,
-                        manifest=manifest,
-                        logger=self._ctx.logger,
-                    )
-                ),
+                PythonPluginExecutor(instance, module),
                 PluginRegistrationMeta(
                     dir=str(dest),
                     entry_file=entry_file,
                     source="git",
+                    hooks=list(manifest.hooks or ()),
                     loaded_modes=loaded_modes,
                 ),
             )
@@ -1704,10 +1698,16 @@ def describe_permissions(
 
 # ----------------------------------------- local ports of plugin-SDK loaders
 
-_MANIFEST_YAML = "skill.yaml"
+_MANIFEST_YAML = "plugin.yaml"
 _MANIFEST_JSON = "manifest.json"
 #: dist/index.js (from `interview-os build`) wins over source entries.
-PLUGIN_ENTRY_FILES: tuple[str, ...] = ("dist/index.js", "index.ts", "index.js", "index.mjs")
+PLUGIN_ENTRY_FILES: tuple[str, ...] = (
+    "main.py",
+    "dist/index.js",
+    "index.ts",
+    "index.js",
+    "index.mjs",
+)
 
 _FRAME_ENTRY_RE = re.compile(r"^ui/[a-zA-Z0-9][a-zA-Z0-9._/-]*\.js$")
 _PROMPT_MAX_BYTES = 16 * 1024

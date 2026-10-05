@@ -3,6 +3,17 @@ name: PostgreSQL Interviewer
 version: 1.2.0
 kind: hook
 entry: main.py
+author: community
+permissions:
+  - candidate.read
+  - target.read
+  - readiness.read
+  - taxonomy.read
+  - answers.read
+  - evidence.write
+capabilities: [interview, evaluation, question_source, ui]
+inputs: [candidate, target, readiness, gaps, request]
+engines: {interview-os: ">=0.4.0"}
 description: A deterministic PostgreSQL question bank with a self-check evidence path.
 hooks:
   - questions.suggest

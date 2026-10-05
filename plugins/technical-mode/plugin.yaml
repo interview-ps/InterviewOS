@@ -3,6 +3,12 @@ version: 1.0.0
 name: Technical Mode
 kind: hook
 entry: main.py
+author: interview-os
+permissions: [answers.read]
+capabilities: [interview_mode]
+hooks: [mode.mock]
+inputs: []
+engines: {interview-os: ">=0.4.0", plugin-api: "^1.1.0"}
 description: Deep technical interview round — one question per skill, probing mechanics, edge cases and trade-offs.
 modes:
   - id: technical

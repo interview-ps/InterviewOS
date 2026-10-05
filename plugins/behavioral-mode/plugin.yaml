@@ -3,6 +3,12 @@ version: 1.0.0
 name: Behavioral Mode
 kind: hook
 entry: main.py
+author: interview-os
+permissions: [answers.read]
+capabilities: [interview_mode]
+hooks: [mode.reduce, mode.mock]
+inputs: []
+engines: {interview-os: ">=0.4.0", plugin-api: "^1.1.0"}
 description: STAR stories from your experience — a specific situation, your actions, measurable results.
 modes:
   - id: behavioral
