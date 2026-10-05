@@ -428,7 +428,7 @@ function PluginCard({
             onClick={() => setReviewing((v) => !v)}
             data-testid={`enable-${m.id}`}
           >
-            {reviewing ? "Hide permissions" : "Enable…"}
+            {reviewing ? "Hide permissions" : "Review & enable"}
           </Button>
         ) : (
           <Button
@@ -445,7 +445,7 @@ function PluginCard({
           onClick={run}
           data-testid={`run-plugin-${m.id}`}
         >
-          {busy ? "Working…" : "Run"}
+          {busy ? "Working…" : "Try it"}
         </Button>
         {plugin.source === "git" &&
           (confirmDelete ? (
@@ -509,6 +509,7 @@ export default function Skills() {
   const [error, setError] = useState<unknown>(null);
   const [installUrl, setInstallUrl] = useState("");
   const [installing, setInstalling] = useState(false);
+  const [showSecurity, setShowSecurity] = useState(false);
 
   const load = useCallback(() => {
     api.skills().then(setData).catch(setError);
@@ -553,13 +554,33 @@ export default function Skills() {
     <div className="space-y-5">
       <PageHeader
         title="Extensions"
-        subtitle="Plugins and built-in skills. Plugins are local code you choose to trust — they only receive the data their manifest declares."
+        subtitle="Interview modes, integrations and the built-in skills Interview OS ships with."
       />
-      <Callout tone="blue" title="How plugins stay safe">
-        Extensions run in-process and can only <em>propose</em> evidence — nothing reaches
-        your readiness model without the permission you grant below. Review what each one
-        asks for before enabling it.
-      </Callout>
+      <p className="text-sm text-muted">
+        Extensions add interview modes and integrations. You control what data each
+        extension can access.
+      </p>
+      <div>
+        <button
+          type="button"
+          aria-expanded={showSecurity}
+          onClick={() => setShowSecurity((v) => !v)}
+          className="cursor-pointer text-sm text-blue underline"
+        >
+          {showSecurity
+            ? "Hide how extension security works"
+            : "Learn how extension security works"}
+        </button>
+        {showSecurity && (
+          <div className="mt-2">
+            <Callout tone="blue" title="How extensions stay safe">
+              Extensions run in-process and can only <em>propose</em> evidence — nothing
+              reaches your readiness model without the permission you grant below.
+              Review what each one asks for before enabling it.
+            </Callout>
+          </div>
+        )}
+      </div>
       <ErrorNote error={error} />
 
       {data && data.pluginErrors.length > 0 && (

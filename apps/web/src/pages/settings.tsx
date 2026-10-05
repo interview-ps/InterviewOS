@@ -11,6 +11,7 @@ import {
   type RuntimeStatus,
 } from "@/lib/api";
 import { runtimeLabel } from "@/lib/runtime";
+import { CheckCircleFilled } from "@ant-design/icons";
 import { Button, Card, CardTitle, ErrorNote, PageHeader, Pill, SkeletonCard, Spinner, toast } from "@/components/ui";
 import { PluginSlot } from "@/components/plugin-ui";
 import { PluginSettingsForm } from "@/components/plugin-settings-form";
@@ -292,11 +293,14 @@ export default function Settings() {
                   onClick={() => switchRuntime(p.runtime)}
                   className={`flex w-full items-center justify-between rounded-[0.6rem] border px-3 py-2 text-left text-sm transition disabled:cursor-default ${
                     active
-                      ? "border-accent bg-surface"
-                      : "border-line bg-surface hover:border-accent disabled:opacity-60"
+                      ? "border-blue bg-tint"
+                      : "border-line bg-surface hover:border-blue disabled:opacity-60"
                   }`}
                 >
                   <span className="font-medium">
+                    {active && (
+                      <CheckCircleFilled className="mr-1.5 text-green" aria-hidden />
+                    )}
                     {runtimeLabel(p.runtime)}
                     {p.trustedLocal && (
                       <span className="ml-2 text-xs text-muted">
@@ -311,8 +315,16 @@ export default function Settings() {
                     {p.version && (
                       <span className="text-xs text-muted">{p.version}</span>
                     )}
-                    <Pill tone={active ? "blue" : p.available ? "green" : "muted"}>
-                      {active ? "active" : p.available ? "ready" : p.status}
+                    <Pill
+                      tone={active ? (p.available ? "green" : "amber") : p.available ? "green" : "muted"}
+                    >
+                      {active
+                        ? p.available
+                          ? "connected"
+                          : "not available"
+                        : p.available
+                          ? "ready"
+                          : p.status}
                     </Pill>
                   </span>
                 </button>

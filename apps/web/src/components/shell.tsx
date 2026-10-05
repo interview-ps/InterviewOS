@@ -13,10 +13,16 @@ import {
   Typography,
 } from "antd";
 import {
+  AimOutlined,
+  BulbOutlined,
   DesktopOutlined,
+  FileTextOutlined,
+  HomeOutlined,
   MenuOutlined,
   MoonOutlined,
+  MoreOutlined,
   SunOutlined,
+  VideoCameraOutlined,
 } from "@ant-design/icons";
 import type { UITone as Tone } from "@interview-os/frontend-types";
 import { api, type RuntimeStatus, type TargetListItem } from "@/lib/api";
@@ -29,23 +35,23 @@ import { useTheme } from "@/theme/ThemeProvider";
 import type { ThemePreference } from "@/theme/tokens";
 import { StatusDot } from "@/ui";
 
-type NavEntry = { href: string; label: string };
+type NavEntry = { href: string; label: string; icon?: ReactNode };
 
 /* Navigation is organised around the candidate's journey, not the internal
-   feature list: the prepare-and-practise steps, then Progress, Library, and
-   Workspace. */
+   feature list: the prepare-and-practise steps, then Progress, Customizations,
+   and Settings. */
 const NAV_JOURNEY: NavEntry[] = [
-  { href: "/", label: "Home" },
-  { href: "/target", label: "Target" },
-  { href: "/prepare", label: "Prepare" },
-  { href: "/resume", label: "Resume" },
-  { href: "/interview", label: "Interview" },
+  { href: "/", label: "Home", icon: <HomeOutlined /> },
+  { href: "/target", label: "Target", icon: <AimOutlined /> },
+  { href: "/prepare", label: "Prepare", icon: <BulbOutlined /> },
+  { href: "/resume", label: "Resume", icon: <FileTextOutlined /> },
+  { href: "/interview", label: "Interview", icon: <VideoCameraOutlined /> },
 ];
 const NAV_PROGRESS: NavEntry[] = [
   { href: "/readiness", label: "Readiness" },
   { href: "/history", label: "History" },
 ];
-const NAV_LIBRARY: NavEntry[] = [
+const NAV_CUSTOMIZATIONS: NavEntry[] = [
   { href: "/packs", label: "Packs" },
   { href: "/skills", label: "Extensions" },
 ];
@@ -55,7 +61,7 @@ const NAV_WORKSPACE: NavEntry[] = [{ href: "/settings", label: "Settings" }];
 const NAV: NavEntry[] = [
   ...NAV_JOURNEY,
   ...NAV_PROGRESS,
-  ...NAV_LIBRARY,
+  ...NAV_CUSTOMIZATIONS,
   ...NAV_WORKSPACE,
 ];
 
@@ -169,6 +175,7 @@ function navLinks(entries: NavEntry[]) {
   return entries.map((item) => ({
     key: item.href,
     label: <Link to={item.href}>{item.label}</Link>,
+    ...(item.icon ? { icon: item.icon } : {}),
   }));
 }
 
@@ -192,7 +199,13 @@ function useNavItems() {
     const items: unknown[] = [
       ...navLinks(NAV_JOURNEY),
       { key: "group-progress", type: "group", label: "Progress", children: navLinks(NAV_PROGRESS) },
-      { key: "group-library", type: "group", label: "Library", children: navLinks(NAV_LIBRARY) },
+      {
+        key: "group-customizations",
+        type: "group",
+        label: "Customizations",
+        children: navLinks(NAV_CUSTOMIZATIONS),
+      },
+      { type: "divider", key: "divider-workspace" },
       ...navLinks(NAV_WORKSPACE),
     ];
     if (pluginNav.length > 0) {
@@ -249,11 +262,11 @@ function Breadcrumbs() {
   return <Breadcrumb items={items} style={{ marginBottom: 12 }} />;
 }
 
-/** Small-screen primary navigation — the four journey goals stay one tap away. */
-function BottomNav({ pathname }: { pathname: string }) {
+/** Small-screen primary navigation — the four journey goals, plus More. */
+function BottomNav({ pathname, onMore }: { pathname: string; onMore: () => void }) {
   return (
     <nav aria-label="Primary" className="interview-bottom-nav">
-      {NAV_JOURNEY.map((item) => {
+      {NAV_JOURNEY.slice(0, 4).map((item) => {
         const active =
           item.href === "/" ? pathname === "/" : pathname.startsWith(item.href);
         return (
@@ -267,6 +280,14 @@ function BottomNav({ pathname }: { pathname: string }) {
           </Link>
         );
       })}
+      <button
+        type="button"
+        onClick={onMore}
+        className="interview-bottom-nav__item"
+        aria-label="More destinations"
+      >
+        <MoreOutlined aria-hidden /> More
+      </button>
     </nav>
   );
 }
@@ -400,7 +421,9 @@ export function Shell({ children }: { children: ReactNode }) {
           />
         </Drawer>
 
-        {!desktop && <BottomNav pathname={location.pathname} />}
+        {!desktop && (
+          <BottomNav pathname={location.pathname} onMore={() => setMenuOpen(true)} />
+        )}
 
         <CommandPalette open={paletteOpen} onClose={() => setPaletteOpen(false)} />
       </Layout>
