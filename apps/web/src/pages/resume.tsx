@@ -15,6 +15,7 @@ import {
   ErrorNote,
   PageHeader,
   Pill,
+  SectionHeading,
   SkeletonCard,
   Spinner,
   skillLabel,
@@ -119,6 +120,45 @@ export default function Resume() {
     );
   }
 
+  const ats = review?.ats;
+  const atsVerdict = (s: number) => (s >= 70 ? "Good" : s >= 45 ? "Fair" : "Needs work");
+  const fixes = ats
+    ? [
+        ...ats.checks
+          .filter((c) => c.status === "fail")
+          .map((c) => ({
+            key: c.id,
+            title: c.label,
+            why: c.detail,
+            cta: "Fix resume",
+            href: "#ats-check",
+          })),
+        ...(ats.keywordCoverage.missing.length > 0
+          ? [
+              {
+                key: "keywords",
+                title: "Add role-relevant experience",
+                why: `${ats.keywordCoverage.missing
+                  .map((k) => k.label)
+                  .slice(0, 3)
+                  .join(", ")} aren't represented in your resume.`,
+                cta: "Review missing skills",
+                href: "#keywords",
+              },
+            ]
+          : []),
+        ...ats.checks
+          .filter((c) => c.status === "warn")
+          .map((c) => ({
+            key: c.id,
+            title: c.label,
+            why: c.detail,
+            cta: "Review",
+            href: "#ats-check",
+          })),
+      ].slice(0, 3)
+    : [];
+
   return (
     <div className="space-y-5">
       <PageHeader
@@ -171,10 +211,38 @@ export default function Resume() {
         </div>
       )}
 
+      {review && fixes.length > 0 && (
+        <Card>
+          <SectionHeading title="Highest-impact fixes" description="Do these first." />
+          <ol className="space-y-3">
+            {fixes.map((f, i) => (
+              <li key={f.key} className="flex items-start gap-3">
+                <span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full border border-line text-xs text-muted">
+                  {i + 1}
+                </span>
+                <div className="min-w-0">
+                  <p className="text-sm font-medium text-ink">{f.title}</p>
+                  <p className="text-xs text-muted">{f.why}</p>
+                  <a
+                    href={f.href}
+                    className="mt-1 inline-block text-xs text-blue underline"
+                  >
+                    {f.cta}
+                  </a>
+                </div>
+              </li>
+            ))}
+          </ol>
+        </Card>
+      )}
+
       {review && (
         <div className="grid gap-5 xl:grid-cols-2">
-          <Card data-testid="ats-card">
-            <CardTitle>ATS check</CardTitle>
+          <Card data-testid="ats-card" id="ats-check">
+            <SectionHeading
+              title="ATS check"
+              description={`ATS readiness ${review.ats.score}/100 — ${atsVerdict(review.ats.score)}.`}
+            />
             <div className="mb-4 flex items-center gap-4">
               <div
                 data-testid="ats-score"
@@ -193,9 +261,12 @@ export default function Resume() {
                         : "amber"
                   }
                 />
-                <p className="mt-1 text-xs text-muted">
-                  Weighted pass ratio — deterministic, no AI involved.
-                </p>
+                <details className="mt-1 text-xs text-muted">
+                  <summary className="cursor-pointer">How this is calculated</summary>
+                  <p className="mt-1">
+                    Weighted pass ratio — deterministic, no AI involved.
+                  </p>
+                </details>
               </div>
             </div>
             <ul className="space-y-3">
@@ -205,7 +276,7 @@ export default function Resume() {
             </ul>
           </Card>
 
-          <Card>
+          <Card id="keywords">
             <CardTitle>Required-skill keywords</CardTitle>
             {review.ats.keywordCoverage.present.length === 0 &&
             review.ats.keywordCoverage.missing.length === 0 ? (
@@ -253,7 +324,7 @@ export default function Resume() {
             )}
           </Card>
 
-          <Card className="xl:col-span-2" data-testid="suggestions-card">
+          <Card className="xl:col-span-2" id="suggestions" data-testid="suggestions-card">
             <CardTitle>
               Bullet suggestions{" "}
               {review.guard.substitutions + review.guard.dropped > 0 && (
