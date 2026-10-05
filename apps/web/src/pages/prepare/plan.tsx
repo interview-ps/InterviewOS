@@ -242,6 +242,7 @@ export default function PrepPlan() {
   const [busy, setBusy] = useState<string | null>(null);
   const [showHistory, setShowHistory] = useState(false);
   const [canFetchResources, setCanFetchResources] = useState(false);
+  const [selectedId, setSelectedId] = useState<string | null>(null);
 
   const load = useCallback(() => {
     api.preparation().then((p) => setActions(p.actions)).catch((e) => setError(e));
@@ -287,8 +288,9 @@ export default function PrepPlan() {
   const open = (actions ?? [])
     .filter((a) => a.status === "open" || a.status === "in_progress")
     .sort((a, b) => a.priority - b.priority);
-  const today = open.slice(0, 3);
-  const upcoming = open.slice(3);
+  // The detail pane defaults to the highest-priority action; the queue only
+  // changes which one is open, never the action set.
+  const selectedAction = open.find((a) => a.id === selectedId) ?? open[0];
   const history = (actions ?? [])
     .filter((a) => a.status === "done" || a.status === "superseded")
     .sort((a, b) => b.createdAt.localeCompare(a.createdAt));
@@ -320,41 +322,65 @@ export default function PrepPlan() {
         </Card>
       )}
 
-      {today.length > 0 && (
-        <div className="space-y-4">
-          <SectionHeading
-            title="Today"
-            description="The actions that will move your readiness most."
-          />
-          {today.map((a) => (
-            <ActionCard
-              key={a.id}
-              action={a}
-              busy={busy === a.id}
-              canFetchResources={canFetchResources}
-              onChanged={load}
-              run={run}
+      {open.length > 0 && (
+        <div className="grid gap-5 lg:grid-cols-[18rem_minmax(0,1fr)]">
+          {/* The queue is deliberately plain markup, not a Card: the selected
+              task must stay the first "#N" section in the DOM. */}
+          <div>
+            <SectionHeading
+              title="Task queue"
+              description={`${open.length} open — highest priority first.`}
             />
-          ))}
-        </div>
-      )}
+            <ul className="space-y-1.5">
+              {open.map((a) => {
+                const active = a.id === selectedAction?.id;
+                return (
+                  <li key={a.id}>
+                    <button
+                      type="button"
+                      onClick={() => setSelectedId(a.id)}
+                      aria-current={active ? "true" : undefined}
+                      className={`w-full rounded-[0.6rem] border px-3 py-2 text-left transition ${
+                        active
+                          ? "border-blue bg-tint"
+                          : "border-line bg-surface hover:border-blue"
+                      }`}
+                    >
+                      <span className="flex items-center gap-2">
+                        <Pill tone={a.priority === 1 ? "amber" : "muted"}>
+                          #{a.priority}
+                        </Pill>
+                        <span className="min-w-0 flex-1 truncate text-sm font-medium text-ink">
+                          {displayLabel(a.skillId)}
+                        </span>
+                      </span>
+                      <span className="mt-0.5 block truncate text-xs text-muted">
+                        {ACTION_STATUS[a.status]}
+                        {a.reason ? ` · ${a.reason}` : ""}
+                      </span>
+                    </button>
+                  </li>
+                );
+              })}
+            </ul>
+          </div>
 
-      {upcoming.length > 0 && (
-        <div className="space-y-4">
-          <SectionHeading
-            title="Upcoming"
-            description="Lower-priority actions for later."
-          />
-          {upcoming.map((a) => (
-            <ActionCard
-              key={a.id}
-              action={a}
-              busy={busy === a.id}
-              canFetchResources={canFetchResources}
-              onChanged={load}
-              run={run}
+          <div className="min-w-0">
+            <SectionHeading
+              title="Selected task"
+              description="Learn, practise, then verify — one action at a time."
             />
-          ))}
+            {selectedAction && (
+              <ActionCard
+                key={selectedAction.id}
+                action={selectedAction}
+                busy={busy === selectedAction.id}
+                canFetchResources={canFetchResources}
+                onChanged={load}
+                run={run}
+              />
+            )}
+          </div>
         </div>
       )}
 
@@ -377,7 +403,7 @@ export default function PrepPlan() {
                   key={a.id}
                   className="flex items-center justify-between gap-2 border-t border-line pt-2"
                 >
-                  <span className="text-muted line-through">{a.action}</span>
+                  <span className="text-muted">{a.action}</span>
                   <Pill tone={a.status === "done" ? "green" : "muted"}>
                     {ACTION_STATUS[a.status]}
                   </Pill>

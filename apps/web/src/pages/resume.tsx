@@ -353,9 +353,7 @@ export default function Resume() {
                         <div className="mb-1 text-xs font-semibold uppercase tracking-wide text-muted">
                           Original
                         </div>
-                        <p className="text-sm text-muted line-through decoration-muted/50">
-                          {s.original}
-                        </p>
+                        <p className="text-sm text-muted">{s.original}</p>
                       </div>
                       <div>
                         <div className="mb-1 flex items-center gap-2">

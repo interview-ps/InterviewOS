@@ -50,6 +50,7 @@ export {
   StatusBuckets,
   StatusDot,
   displayLabel,
+  gapReason,
   humanize,
   pct,
   readinessBarTone,

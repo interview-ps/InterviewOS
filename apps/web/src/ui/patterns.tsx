@@ -73,6 +73,27 @@ export function readinessVerdict(
   return "Not ready for a full mock yet";
 }
 
+/**
+ * Candidate-facing explanation of a gap, composed from the structured fields.
+ * The backend `reason` ("no evidence for required skill; senior target is 0.8")
+ * is written for API consumers, not for people.
+ */
+export function gapReason(g: {
+  currentScore: number | null;
+  targetScore: number;
+  severity: string;
+}): string {
+  const target = `${Math.round(g.targetScore * 100)}%`;
+  if (g.currentScore === null || g.currentScore === undefined) {
+    return `No evidence yet — your target expects ${target} for this skill.`;
+  }
+  const current = `${Math.round(g.currentScore * 100)}%`;
+  if (g.severity === "low") {
+    return `You're at ${current}, close to your target of ${target}.`;
+  }
+  return `You're at ${current}; your target expects ${target}.`;
+}
+
 /* -- headings -------------------------------------------------------------- */
 
 export function SectionHeading({
@@ -293,7 +314,13 @@ export function PriorityList({
             {p.statusLabel && <Pill tone={p.tone ?? "muted"}>{p.statusLabel}</Pill>}
           </div>
           <div className="mt-1">
-            <Bar value={p.readiness ?? 0} tone={readinessBarTone(p.readiness)} />
+            {p.readiness === null || p.readiness === undefined ? (
+              <Typography.Text type="secondary" style={{ fontSize: 12 }}>
+                Not assessed yet — no evidence
+              </Typography.Text>
+            ) : (
+              <Bar value={p.readiness} tone={readinessBarTone(p.readiness)} />
+            )}
           </div>
           {p.note && (
             <Typography.Text type="secondary" style={{ fontSize: 12 }}>

@@ -6,6 +6,7 @@ import {
   Card,
   DeltaList,
   displayLabel,
+  gapReason,
   ErrorNote,
   NextActionCard,
   PageHeader,
@@ -244,7 +245,9 @@ export default function Dashboard() {
               ? `Your last interview moved this from ${pct(nextDelta.before)} to ${pct(
                   nextDelta.after,
                 )}.`
-              : nextAction.reason || "This is a priority for your target role."
+              : nextGap
+                ? gapReason(nextGap)
+                : "This is a priority for your target role."
         }
         skill={nextAction ? displayLabel(nextAction.skillId) : undefined}
         readiness={nextAction ? nextReadiness : undefined}
@@ -283,9 +286,15 @@ export default function Dashboard() {
             items={gaps.slice(0, 5).map((g) => ({
               key: g.skillId,
               label: displayLabel(g.skillId, g.label),
-              statusLabel: g.severity,
-              tone: severityTone(g.severity),
-              readiness: readiness.dimensions[g.skillId]?.score ?? null,
+              statusLabel:
+                g.currentScore === null
+                  ? "not assessed"
+                  : g.severity === "high"
+                    ? "needs work"
+                    : "improving",
+              tone: g.currentScore === null ? "muted" : severityTone(g.severity),
+              readiness: g.currentScore,
+              note: gapReason(g),
             }))}
           />
         </Card>
