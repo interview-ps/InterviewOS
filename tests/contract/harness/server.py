@@ -1,9 +1,9 @@
 """Backend launcher for the contract suite.
 
-Spawns the current Hono backend (`node --import tsx apps/server/src/index.ts`)
-on a throwaway SQLite DB, or returns an already-running server when
-INTERVIEW_OS_BASE_URL is set. CONTRACT_BACKEND selects the implementation:
-"hono" (default) or "fastapi" (reserved; the port does not exist yet).
+Spawns the FastAPI backend (`uvicorn interview_os.main:app`) on a throwaway
+SQLite DB, or returns an already-running server when `INTERVIEW_OS_BASE_URL` is
+set. `CONTRACT_BACKEND` selects the implementation: "fastapi" (default) or
+"hono" (legacy reference backend, retired at cut-over).
 """
 
 from __future__ import annotations
@@ -210,7 +210,7 @@ def launch_server(tmpdir: Path) -> ServerHandle:
     if external:
         return ServerHandle(base_url=external.rstrip("/"), proc=None, tmpdir=tmpdir)
 
-    backend = os.environ.get("CONTRACT_BACKEND", "hono")
+    backend = os.environ.get("CONTRACT_BACKEND", "fastapi")
     handle = _spawn_fastapi(tmpdir) if backend == "fastapi" else _spawn_hono(tmpdir)
     if backend not in ("hono", "fastapi"):
         raise pytest.UsageError(f"unknown CONTRACT_BACKEND {backend!r} (expected 'hono' or 'fastapi')")
