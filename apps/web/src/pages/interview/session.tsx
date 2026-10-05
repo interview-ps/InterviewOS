@@ -14,7 +14,8 @@ import {
   type VoiceFeedback,
 } from "@/lib/api";
 import { speechSupported, useSpeakQuestion, useVoiceCapture } from "@/lib/voice";
-import { Bar, Button, Card, CardTitle, DeltaList, ErrorNote, Pill, SkeletonCard, severityTone, skillLabel } from "@/components/ui";
+import { Bar, Button, Card, CardTitle, DeltaList, ErrorNote, Pill, SkeletonCard, displayLabel, severityTone, skillLabel } from "@/components/ui";
+import { useSetPageTitle } from "@/lib/page-title";
 import { PluginModeSlot, PluginSlot } from "@/components/plugin-ui";
 
 const CODE_LANGUAGES = [
@@ -222,6 +223,13 @@ export default function InterviewSession() {
   const id = useParams().id ?? "";
   const navigate = useNavigate();
   const [detail, setDetail] = useState<SessionDetail | null>(null);
+
+  // Descriptive breadcrumb name instead of the session id (D2).
+  useSetPageTitle(
+    detail
+      ? `${detail.session.modeLabel ?? displayLabel(detail.session.roundType)} interview · ${new Date(detail.session.createdAt).toLocaleDateString()}`
+      : null,
+  );
   const [current, setCurrent] = useState<SessionQuestion | null>(null);
   const [answer, setAnswer] = useState("");
   const [fieldValues, setFieldValues] = useState<Record<string, string | number>>({});

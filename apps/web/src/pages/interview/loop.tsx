@@ -2,6 +2,7 @@ import { Link, useParams } from "react-router";
 import { useCallback, useEffect, useState } from "react";
 import { api, type InterviewLoop, type LoopRound } from "@/lib/api";
 import { Button, Card, DeltaList, ErrorNote, PageHeader, Pill, SectionHeading, SkeletonCard, pct, signalTone, skillLabel, statusTone } from "@/components/ui";
+import { useSetPageTitle } from "@/lib/page-title";
 
 function SkillDeltas({ deltas }: { deltas: LoopRound["skillDeltas"] }) {
   if (!deltas?.length) return null;
@@ -20,6 +21,9 @@ function SkillDeltas({ deltas }: { deltas: LoopRound["skillDeltas"] }) {
 export default function LoopPage() {
   const id = useParams().id ?? "";
   const [loop, setLoop] = useState<InterviewLoop | null>(null);
+
+  // Descriptive breadcrumb name instead of the loop id (D2).
+  useSetPageTitle("Interview loop");
   const [error, setError] = useState<unknown>(null);
   const [busy, setBusy] = useState(false);
 

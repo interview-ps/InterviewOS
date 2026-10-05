@@ -4,6 +4,7 @@ import {
   Breadcrumb,
   Button,
   Drawer,
+  Dropdown,
   Grid,
   Layout,
   Menu,
@@ -21,6 +22,7 @@ import {
   MenuOutlined,
   MoonOutlined,
   MoreOutlined,
+  SettingOutlined,
   SunOutlined,
   VideoCameraOutlined,
 } from "@ant-design/icons";
@@ -34,6 +36,9 @@ import { message } from "@/utils/antdMessage";
 import { useTheme } from "@/theme/ThemeProvider";
 import type { ThemePreference } from "@/theme/tokens";
 import { StatusDot } from "@/ui";
+import { displayLabel } from "@/components/ui";
+import { PageTitleProvider, usePageTitle } from "@/lib/page-title";
+import { commandKeyLabel } from "@/lib/platform";
 
 type NavEntry = { href: string; label: string; icon?: ReactNode };
 
@@ -86,22 +91,45 @@ function RuntimeIndicator({ status }: { status: RuntimeStatus | null }) {
       attention = true;
     }
   }
+  const indicator = (
+    <span
+      role="status"
+      aria-live="polite"
+      aria-label={label}
+      className="inline-flex items-center gap-2"
+    >
+      <StatusDot tone={tone} />
+      {attention && (
+        <Typography.Text type="secondary" style={{ fontSize: 12 }}>
+          {label}
+        </Typography.Text>
+      )}
+    </span>
+  );
+  if (!status) {
+    return <Tooltip title={label}>{indicator}</Tooltip>;
+  }
   return (
-    <Tooltip title={label}>
-      <span
-        role="status"
-        aria-live="polite"
-        aria-label={label}
-        className="inline-flex items-center gap-2"
+    <Dropdown
+      trigger={["click"]}
+      menu={{
+        items: [
+          {
+            key: "diagnostics",
+            icon: <SettingOutlined />,
+            label: <Link to="/settings#diagnostics">Runtime diagnostics</Link>,
+          },
+        ],
+      }}
+    >
+      <button
+        type="button"
+        aria-label={`${label}. Open runtime diagnostics.`}
+        className="inline-flex cursor-pointer items-center border-0 bg-transparent p-0"
       >
-        <StatusDot tone={tone} />
-        {attention && (
-          <Typography.Text type="secondary" style={{ fontSize: 12 }}>
-            {label}
-          </Typography.Text>
-        )}
-      </span>
-    </Tooltip>
+        {indicator}
+      </button>
+    </Dropdown>
   );
 }
 
@@ -115,31 +143,41 @@ function TargetSwitcher({ onSwitched }: { onSwitched: () => void }) {
 
   if (targets.length === 0) return null;
   const active = targets.find((t) => t.active);
+  const activeLabel = active
+    ? `${active.role} · ${active.company} · ${active.level}`
+    : "Select a target";
 
   return (
-    <Select
-      aria-label="Active target role"
-      size="small"
-      style={{ maxWidth: 224, minWidth: 140 }}
-      value={active?.id}
-      loading={switching}
-      onChange={(value) => {
-        setSwitching(true);
-        api
-          .activateTarget(value)
-          .then(() => {
-            void message.success("Target switched");
-            api.listTargets().then(setTargets).catch(() => {});
-            onSwitched();
-          })
-          .catch(() => {})
-          .finally(() => setSwitching(false));
-      }}
-      options={targets.map((t) => ({
-        value: t.id,
-        label: `${t.role} — ${t.company}`,
-      }))}
-    />
+    <Tooltip title={active ? `Active target: ${activeLabel}` : "Select a target"}>
+      <Select
+        aria-label={
+          active
+            ? `Active target role: ${active.role} at ${active.company}, ${active.level}`
+            : "Active target role"
+        }
+        size="small"
+        style={{ maxWidth: 300, minWidth: 160 }}
+        popupMatchSelectWidth={false}
+        value={active?.id}
+        loading={switching}
+        onChange={(value) => {
+          setSwitching(true);
+          api
+            .activateTarget(value)
+            .then(() => {
+              void message.success("Target switched");
+              api.listTargets().then(setTargets).catch(() => {});
+              onSwitched();
+            })
+            .catch(() => {})
+            .finally(() => setSwitching(false));
+        }}
+        options={targets.map((t) => ({
+          value: t.id,
+          label: `${t.role} · ${t.company} · ${t.level}`,
+        }))}
+      />
+    </Tooltip>
   );
 }
 
@@ -233,31 +271,52 @@ function selectedKey(pathname: string): string {
 function ThemeControl() {
   const { preference, setPreference } = useTheme();
   return (
-    <Tooltip title="Theme">
+    <Tooltip title="Appearance">
       <Segmented
         size="small"
+        aria-label="Appearance"
         value={preference}
         onChange={(value) => setPreference(value as ThemePreference)}
         options={[
-          { value: "light", icon: <SunOutlined /> },
-          { value: "dark", icon: <MoonOutlined /> },
-          { value: "system", icon: <DesktopOutlined /> },
+          { value: "light", icon: <SunOutlined />, title: "Light" },
+          { value: "dark", icon: <MoonOutlined />, title: "Dark" },
+          { value: "system", icon: <DesktopOutlined />, title: "System" },
         ]}
       />
     </Tooltip>
   );
 }
 
+/** Route ids must never become crumb text (D2). */
+const ID_LIKE =
+  /^(\d+|[0-9a-f]{8,}|[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})$/i;
+
+function crumbLabel(
+  segments: string[],
+  index: number,
+  pageTitle: string | null,
+): string {
+  const segment = segments[index] ?? "";
+  const href = "/" + segments.slice(0, index + 1).join("/");
+  const nav = ALL_NAV.find((n) => n.href === href);
+  if (nav) return nav.label;
+  if (index === segments.length - 1 && pageTitle) return pageTitle;
+  if (segments[index - 1] === "loop") return "Loop";
+  if (segments[index - 1] === "interview" || ID_LIKE.test(segment)) return "Session";
+  return displayLabel(segment);
+}
+
 function Breadcrumbs() {
   const pathname = useLocation().pathname;
+  const pageTitle = usePageTitle();
   if (pathname === "/") return null;
   const segments = pathname.split("/").filter(Boolean);
-  const items = segments.map((segment, index) => {
+  const items = segments.map((_segment, index) => {
     const href = "/" + segments.slice(0, index + 1).join("/");
-    const label =
-      ALL_NAV.find((n) => n.href === href)?.label ??
-      segment.replace(/[-_]+/g, " ");
-    return { title: index === segments.length - 1 ? label : <Link to={href}>{label}</Link> };
+    const label = crumbLabel(segments, index, pageTitle);
+    return {
+      title: index === segments.length - 1 ? label : <Link to={href}>{label}</Link>,
+    };
   });
   return <Breadcrumb items={items} style={{ marginBottom: 12 }} />;
 }
@@ -342,7 +401,7 @@ export function Shell({ children }: { children: ReactNode }) {
     let timer: ReturnType<typeof setTimeout> | undefined;
     const attempt = () => {
       const el = document.getElementById(id);
-      if (el) el.scrollIntoView();
+      if (el) el.scrollIntoView({ block: "start" });
       else if (tries++ < 40) timer = setTimeout(attempt, 50);
     };
     attempt();
@@ -377,12 +436,12 @@ export function Shell({ children }: { children: ReactNode }) {
             <TargetSwitcher onSwitched={refresh} />
             <Button
               size="small"
-              aria-label="Open command palette"
+              aria-label={`Open command palette (${commandKeyLabel()})`}
               data-testid="palette-button"
               onClick={() => setPaletteOpen(true)}
               style={{ display: desktop ? "inline-flex" : "none" }}
             >
-              ⌘K
+              {commandKeyLabel()}
             </Button>
             <ThemeControl />
             <RuntimeIndicator status={status} />
@@ -400,8 +459,10 @@ export function Shell({ children }: { children: ReactNode }) {
             </Layout.Sider>
           )}
           <Layout.Content className="interview-content" key={refreshKey}>
-            <Breadcrumbs />
-            {children}
+            <PageTitleProvider>
+              <Breadcrumbs />
+              {children}
+            </PageTitleProvider>
           </Layout.Content>
         </Layout>
 

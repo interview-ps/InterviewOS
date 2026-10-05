@@ -1,3 +1,4 @@
+import { Modal } from "antd";
 import { useNavigate } from "react-router";
 import {
   useCallback,
@@ -237,10 +238,7 @@ export function CommandPalette({
   );
 
   const onKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === "Escape") {
-      e.preventDefault();
-      onClose();
-    } else if (e.key === "ArrowDown") {
+    if (e.key === "ArrowDown") {
       e.preventDefault();
       setActive((i) => Math.min(i + 1, filtered.length - 1));
     } else if (e.key === "ArrowUp") {
@@ -249,33 +247,32 @@ export function CommandPalette({
     } else if (e.key === "Enter") {
       e.preventDefault();
       execute(filtered[active]);
-    } else if (e.key === "Tab") {
-      e.preventDefault(); // focus trap — the input keeps focus
     }
   };
 
-  if (!open) return null;
-
   const activeDesc =
-    filtered.length > 0 ? `cmd-${filtered[Math.min(active, filtered.length - 1)]?.id}` : undefined;
+    filtered.length > 0
+      ? `cmd-${filtered[Math.min(active, filtered.length - 1)]?.id}`
+      : undefined;
 
   return (
-    <div
-      className="fixed inset-0 z-50 flex items-start justify-center bg-navy/30 px-4 pt-24"
-      onMouseDown={(e) => {
-        if (e.target === e.currentTarget) onClose();
-      }}
+    <Modal
+      open={open}
+      onCancel={onClose}
+      footer={null}
+      closable={false}
+      destroyOnHidden
+      width={640}
+      style={{ top: 96 }}
+      styles={{ body: { padding: 0 } }}
+      focusable={{ focusTriggerAfterClose: true }}
+      aria-label="Command palette"
     >
-      <div
-        role="dialog"
-        aria-modal="true"
-        aria-label="Command palette"
-        data-testid="command-palette"
-        className="w-full max-w-xl overflow-hidden rounded-[0.9rem] border border-line bg-surface shadow-xl"
-      >
+      <div data-testid="command-palette">
         <div className="border-b border-line px-3 py-2">
           <input
             ref={inputRef}
+            autoFocus
             value={query}
             onChange={(e) => {
               setQuery(e.target.value);
@@ -293,7 +290,10 @@ export function CommandPalette({
           />
         </div>
         {error && (
-          <p role="alert" className="border-b border-line bg-[#fdeef2] px-4 py-2 text-xs text-danger">
+          <p
+            role="alert"
+            className="border-b border-line bg-[#fdeef2] px-4 py-2 text-xs text-danger"
+          >
             {error}
           </p>
         )}
@@ -310,7 +310,8 @@ export function CommandPalette({
           )}
           {!busy && filtered.length === 0 && (
             <div className="px-4 py-3 text-sm text-muted">
-              No commands match “{query}”.
+              No commands match “{query}”. Try “practice”, “system design”, or a
+              target name — or press Escape to close.
             </div>
           )}
           {!busy &&
@@ -337,6 +338,6 @@ export function CommandPalette({
             ))}
         </div>
       </div>
-    </div>
+    </Modal>
   );
 }

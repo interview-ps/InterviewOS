@@ -12,7 +12,18 @@ import {
 } from "@/lib/api";
 import { runtimeLabel } from "@/lib/runtime";
 import { CheckCircleFilled } from "@ant-design/icons";
-import { Button, Card, CardTitle, ErrorNote, PageHeader, Pill, SkeletonCard, Spinner, toast } from "@/components/ui";
+import {
+  Button,
+  Card,
+  CardTitle,
+  CollapseList,
+  ErrorNote,
+  PageHeader,
+  Pill,
+  SkeletonCard,
+  Spinner,
+  toast,
+} from "@/components/ui";
 import { PluginSlot } from "@/components/plugin-ui";
 import { PluginSettingsForm } from "@/components/plugin-settings-form";
 
@@ -337,11 +348,14 @@ export default function Settings() {
           </div>
         )}
         {status && (
-          <details className="mt-3">
-            <summary className="cursor-pointer text-sm text-muted">
-              Advanced diagnostics
-            </summary>
-            <dl className="mt-2 grid grid-cols-[8rem_1fr] gap-y-2 text-sm">
+          <div id="diagnostics" className="mt-3">
+            <CollapseList
+              items={[
+                {
+                  key: "diagnostics",
+                  label: "Advanced diagnostics",
+                  children: (
+                    <dl className="grid grid-cols-[8rem_1fr] gap-y-2 text-sm">
             <dt className="text-muted">Status</dt>
             <dd>
               <Pill tone={status.available ? "green" : "amber"}>{status.status}</Pill>
@@ -359,8 +373,12 @@ export default function Settings() {
               Runs with an allowlisted environment; approval requests are declined
               automatically.
             </dd>
-          </dl>
-          </details>
+                    </dl>
+                  ),
+                },
+              ]}
+            />
+          </div>
         )}
         <div className="mt-4">
           <Button variant="secondary" onClick={check} disabled={checking}>

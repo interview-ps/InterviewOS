@@ -49,6 +49,16 @@ h1, h2, h3, h4, .font-display {
   padding: 24px;
 }
 
+/* Focused/anchored targets must clear the sticky header (D4). The value tracks
+   the antd Layout headerHeight token (56). */
+:root {
+  --interview-header-height: 56px;
+}
+
+.interview-content [id] {
+  scroll-margin-top: calc(var(--interview-header-height) + 16px);
+}
+
 /* Page rhythm: headers own their bottom space so cards stop double-spacing. */
 .interview-page-header {
   margin-bottom: 20px;
