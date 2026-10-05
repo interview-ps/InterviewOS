@@ -33,7 +33,7 @@ from ..skills.host import SkillHost
 from ..store.store import Store
 
 if TYPE_CHECKING:
-    from ..packs.registry import PackRegistry  # type: ignore[import-not-found]
+    from ..packs.registry import PackRegistry
 
 __all__ = ["ProgressOptions", "WorkflowContext"]
 

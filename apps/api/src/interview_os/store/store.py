@@ -24,13 +24,29 @@ from sqlalchemy.pool import StaticPool
 
 from ..core.models import (
     AnswerEvaluation,
+    AnswerEvaluationRow,
     CamelModel,
+    CandidateAnswerRow,
     CandidateProfile,
+    CandidateProfileRow,
     ExpectedConcept,
+    ExternalContextRow,
+    InterviewDebriefRow,
+    InterviewLoopRow,
+    InterviewPackRow,
+    InterviewQuestionRow,
+    InterviewSessionRow,
     JsonScalar,
     ModeState,
+    PreparationActionRow,
     PrepResource,
+    ReadinessScoreRow,
+    ResumeReviewRow,
+    SkillEvidenceRow,
+    StarStoryRow,
     TargetRole,
+    TargetRoleRow,
+    UserQuestionRow,
     VoiceFeedback,
     VoiceMetrics,
 )
@@ -45,6 +61,7 @@ __all__ = [
     "CandidateRow",
     "EvaluationRow",
     "EvidenceRow",
+    "McpServerRow",
     "PrepActionRow",
     "QuestionRow",
     "ReadinessDeltaEntry",
@@ -223,6 +240,15 @@ class PrepActionRow(CamelModel):
     source: str
 
 
+class McpServerRow(CamelModel):
+    """`mcp_servers` state (the command lives only in `interview-os.mcp.json`)."""
+
+    id: str
+    enabled: int
+    allowed_tools: list[str]
+    updated_at: str | None
+
+
 _STR_LIST = TypeAdapter(list[str])
 _SKILL_LIST = TypeAdapter(list[SkillId])
 _CONCEPT_LIST = TypeAdapter(list[ExpectedConcept])
@@ -232,6 +258,8 @@ _REVIEW_LIST = TypeAdapter(list[AnswerPluginReview])
 _MODE_STATE = TypeAdapter(ModeState)
 _FACTORS = TypeAdapter(dict[str, Any])
 _FIELDS = TypeAdapter(dict[str, JsonScalar])
+_ANY = TypeAdapter(Any)
+_ROUND_LIST = TypeAdapter(list[Any])
 
 
 def _load(adapter: TypeAdapter[Any], raw: Any, table: str, column: str) -> Any:
@@ -262,7 +290,7 @@ def _jsonable(value: Any) -> Any:
     return value
 
 
-def _dump(value: BaseModel | list[Any] | dict[str, Any] | str) -> str:
+def _dump(value: Any) -> str:
     """Serialize a JSON column the way `JSON.stringify` does (compact, UTF-8)."""
 
     return json.dumps(_jsonable(value), separators=(",", ":"), ensure_ascii=False)
@@ -1150,6 +1178,622 @@ class Store:
             where["target_id"] = target_id
         return [_action(row) for row in self._many_where("preparation_actions", where)]
 
+    # ------------------------------------------------------- loops (§9.4)
+
+    def insert_loop(
+        self,
+        *,
+        id: str,
+        created_at: str,
+        target_id: str | None = None,
+        company_profile_id: str = "generic",
+        rounds: list[Any] | None = None,
+        status: str = "planned",
+        pack_id: str | None = None,
+        focus_skills: list[SkillId] | None = None,
+        current_round: int = 0,
+        abandoned: int = 0,
+        debrief: Any = None,
+        completed_at: str | None = None,
+    ) -> None:
+        self._insert(
+            "interview_loops",
+            {
+                "id": id,
+                "target_id": target_id,
+                "company_profile_id": company_profile_id,
+                "rounds": _dump(rounds if rounds is not None else []),
+                "status": status,
+                "pack_id": pack_id,
+                "focus_skills": _dump(focus_skills if focus_skills is not None else []),
+                "current_round": current_round,
+                "abandoned": abandoned,
+                "debrief": None if debrief is None else _dump(debrief),
+                "created_at": created_at,
+                "completed_at": completed_at,
+            },
+        )
+
+    def get_loop(self, id: str) -> InterviewLoopRow | None:
+        row = self._one("interview_loops", {"id": id})
+        return None if row is None else _loop(row)
+
+    def list_loops(self) -> list[InterviewLoopRow]:
+        return [
+            _loop(row)
+            for row in self._query("SELECT * FROM interview_loops ORDER BY created_at DESC")
+        ]
+
+    def update_loop(self, id: str, patch: Mapping[str, Any]) -> None:
+        self._update("interview_loops", {"id": id}, patch)
+
+    def loop_for_session(self, session_id: str) -> InterviewLoopRow | None:
+        session = self.get_session(session_id)
+        return (
+            None if session is None or session.loop_id is None else self.get_loop(session.loop_id)
+        )
+
+    # ----------------------------------------------------------- debriefs
+
+    def insert_debrief(self, *, id: str, session_id: str, data: Any, created_at: str) -> None:
+        self._insert(
+            "interview_debriefs",
+            {
+                "id": id,
+                "session_id": session_id,
+                "data": _dump(data),
+                "created_at": created_at,
+            },
+        )
+
+    def get_debrief(self, session_id: str) -> InterviewDebriefRow | None:
+        rows = self._query(
+            "SELECT * FROM interview_debriefs WHERE session_id = :session_id"
+            " ORDER BY created_at DESC",
+            {"session_id": session_id},
+        )
+        return None if not rows else _debrief(rows[0])
+
+    def list_all_debriefs(self) -> list[InterviewDebriefRow]:
+        return [_debrief(row) for row in self._many("interview_debriefs")]
+
+    # ------------------------------------------------- star stories (§8.4)
+
+    def insert_story(
+        self,
+        *,
+        id: str,
+        candidate_id: str,
+        title: str,
+        updated_at: str,
+        situation: str = "",
+        task: str = "",
+        action: str = "",
+        result: str = "",
+        skill_ids: list[SkillId] | None = None,
+        source: str = "user",
+    ) -> None:
+        self._insert(
+            "star_stories",
+            {
+                "id": id,
+                "candidate_id": candidate_id,
+                "title": title,
+                "situation": situation,
+                "task": task,
+                "action": action,
+                "result": result,
+                "skill_ids": _dump(skill_ids if skill_ids is not None else []),
+                "source": source,
+                "updated_at": updated_at,
+            },
+        )
+
+    def list_stories(self, candidate_id: str) -> list[StarStoryRow]:
+        rows = self._query(
+            "SELECT * FROM star_stories WHERE candidate_id = :candidate_id"
+            " ORDER BY updated_at DESC",
+            {"candidate_id": candidate_id},
+        )
+        return [_story(row) for row in rows]
+
+    def list_all_stories(self) -> list[StarStoryRow]:
+        return [_story(row) for row in self._many("star_stories")]
+
+    def get_story(self, id: str) -> StarStoryRow | None:
+        row = self._one("star_stories", {"id": id})
+        return None if row is None else _story(row)
+
+    def update_story(self, id: str, patch: Mapping[str, Any]) -> None:
+        self._update("star_stories", {"id": id}, patch)
+
+    # ---------------------------------------------- resume reviews (§9.5)
+
+    def insert_resume_review(
+        self,
+        *,
+        id: str,
+        created_at: str,
+        candidate_id: str | None = None,
+        target_id: str | None = None,
+        ats: Any = None,
+        suggestions: Any = None,
+        tailoring: Any = None,
+        linked_gap_skill_ids: list[str] | None = None,
+        guard: Any = None,
+    ) -> None:
+        self._insert(
+            "resume_reviews",
+            {
+                "id": id,
+                "candidate_id": candidate_id,
+                "target_id": target_id,
+                "ats": _dump(ats if ats is not None else {}),
+                "suggestions": _dump(suggestions if suggestions is not None else []),
+                "tailoring": None if tailoring is None else _dump(tailoring),
+                "linked_gap_skill_ids": _dump(
+                    linked_gap_skill_ids if linked_gap_skill_ids is not None else []
+                ),
+                "guard": _dump(guard if guard is not None else {}),
+                "created_at": created_at,
+            },
+        )
+
+    def list_all_resume_reviews(self) -> list[ResumeReviewRow]:
+        return [_resume_review(row) for row in self._many("resume_reviews")]
+
+    def latest_resume_review(self, candidate_id: str | None = None) -> ResumeReviewRow | None:
+        rows = [
+            _resume_review(row)
+            for row in self._query("SELECT * FROM resume_reviews ORDER BY created_at DESC")
+        ]
+        if not rows:
+            return None
+        if candidate_id is not None:
+            return next((row for row in rows if row.candidate_id == candidate_id), rows[0])
+        return rows[0]
+
+    # ------------------------------------------ interview packs (v0.4)
+
+    def insert_interview_pack(
+        self, *, id: str, data: Any, source: str, created_at: str, updated_at: str
+    ) -> None:
+        self._insert(
+            "interview_packs",
+            {
+                "id": id,
+                "data": _dump(data),
+                "source": source,
+                "created_at": created_at,
+                "updated_at": updated_at,
+            },
+        )
+
+    def upsert_interview_pack(
+        self, *, id: str, data: Any, source: str, created_at: str, updated_at: str
+    ) -> None:
+        values = {
+            "data": _dump(data),
+            "source": source,
+            "created_at": created_at,
+            "updated_at": updated_at,
+        }
+        if self._one("interview_packs", {"id": id}) is None:
+            self._insert("interview_packs", {"id": id, **values})
+        else:
+            self._update("interview_packs", {"id": id}, values)
+
+    def get_interview_pack(self, id: str) -> InterviewPackRow | None:
+        row = self._one("interview_packs", {"id": id})
+        return None if row is None else _interview_pack(row)
+
+    def list_interview_packs(self) -> list[InterviewPackRow]:
+        return [
+            _interview_pack(row)
+            for row in self._query("SELECT * FROM interview_packs ORDER BY created_at DESC")
+        ]
+
+    def delete_interview_pack(self, id: str) -> None:
+        self._write(
+            delete(Base.metadata.tables["interview_packs"]).where(
+                Base.metadata.tables["interview_packs"].c.id == id
+            )
+        )
+
+    # --------------------------------------- user question bank (v0.4)
+
+    def insert_user_question(
+        self,
+        *,
+        id: str,
+        skill_id: str,
+        text: str,
+        created_at: str,
+        difficulty: str | None = None,
+        mode: str | None = None,
+    ) -> None:
+        self._insert(
+            "user_questions",
+            {
+                "id": id,
+                "skill_id": skill_id,
+                "text": text,
+                "difficulty": difficulty,
+                "mode": mode,
+                "created_at": created_at,
+            },
+        )
+
+    def get_user_question(self, id: str) -> UserQuestionRow | None:
+        row = self._one("user_questions", {"id": id})
+        return None if row is None else _user_question(row)
+
+    def list_user_questions(self) -> list[UserQuestionRow]:
+        return [
+            _user_question(row)
+            for row in self._query("SELECT * FROM user_questions ORDER BY created_at")
+        ]
+
+    def delete_user_question(self, id: str) -> None:
+        self._write(
+            delete(Base.metadata.tables["user_questions"]).where(
+                Base.metadata.tables["user_questions"].c.id == id
+            )
+        )
+
+    # --------------------------- usage events (§9.7: names only)
+
+    def insert_usage_event(self, *, id: str, event: str, created_at: str) -> None:
+        self._insert("usage_events", {"id": id, "event": event, "created_at": created_at})
+
+    def count_usage_events(self, event: str | None = None) -> int:
+        if event is None:
+            rows = self._query("SELECT count(*) AS n FROM usage_events")
+        else:
+            rows = self._query(
+                "SELECT count(*) AS n FROM usage_events WHERE event = :event", {"event": event}
+            )
+        return int(rows[0]["n"])
+
+    # ------------------------------------------- MCP server state (v0.4)
+
+    def get_mcp_server(self, id: str) -> McpServerRow | None:
+        row = self._one("mcp_servers", {"id": id})
+        return None if row is None else _mcp_server(row)
+
+    def upsert_mcp_server(
+        self, *, id: str, enabled: int, allowed_tools: list[str], updated_at: str
+    ) -> None:
+        values = {
+            "enabled": enabled,
+            "allowed_tools": _dump(allowed_tools),
+            "updated_at": updated_at,
+        }
+        if self._one("mcp_servers", {"id": id}) is None:
+            self._insert("mcp_servers", {"id": id, **values})
+        else:
+            self._update("mcp_servers", {"id": id}, values)
+
+    def list_mcp_servers(self) -> list[McpServerRow]:
+        return [_mcp_server(row) for row in self._many("mcp_servers")]
+
+    # --------------------------------------- external contexts (v0.4)
+
+    def insert_external_context(self, row: ExternalContextRow) -> None:
+        self._insert(
+            "external_contexts",
+            {
+                "id": row.id,
+                "server_id": row.server_id,
+                "tool": row.tool,
+                "title": row.title,
+                "text": row.text,
+                "created_at": row.created_at,
+            },
+        )
+
+    def get_external_context(self, id: str) -> ExternalContextRow | None:
+        row = self._one("external_contexts", {"id": id})
+        return None if row is None else _external_context(row)
+
+    def list_external_contexts(self) -> list[ExternalContextRow]:
+        return [
+            _external_context(row)
+            for row in self._query("SELECT * FROM external_contexts ORDER BY created_at DESC")
+        ]
+
+    def delete_external_context(self, id: str) -> None:
+        self._write(
+            delete(Base.metadata.tables["external_contexts"]).where(
+                Base.metadata.tables["external_contexts"].c.id == id
+            )
+        )
+
+    # --------------------------------------------- export bundle reads
+
+    def list_all_questions(self) -> list[QuestionRow]:
+        return [_question(row) for row in self._many("interview_questions")]
+
+    def list_all_answers(self) -> list[AnswerRow]:
+        return [_answer(row) for row in self._many("candidate_answers")]
+
+    # --------------------------------------------- export bundle writes
+
+    def wipe_export_tables(self) -> None:
+        """v0.4 import: wipe every table the export bundle covers (in one
+        transaction with the inserts at the caller). Settings/plugin/MCP state
+        are NOT domain data — allowlisted settings keys are upserted by the
+        importer."""
+
+        for table in (
+            "candidate_profiles",
+            "target_roles",
+            "interview_sessions",
+            "interview_loops",
+            "interview_questions",
+            "candidate_answers",
+            "answer_evaluations",
+            "interview_debriefs",
+            "skill_evidence",
+            "readiness_scores",
+            "preparation_actions",
+            "star_stories",
+            "resume_reviews",
+            "interview_packs",
+            "user_questions",
+            "external_contexts",
+        ):
+            self._write(delete(Base.metadata.tables[table]))
+
+    def insert_candidate_row(self, row: CandidateProfileRow) -> None:
+        self._insert(
+            "candidate_profiles",
+            {
+                "id": row.id,
+                "active": row.active,
+                "name": row.name,
+                "headline": row.headline,
+                "resume_text": row.resume_text,
+                "data": _dump(row.data),
+                "created_at": row.created_at,
+            },
+        )
+
+    def insert_target_row(self, row: TargetRoleRow) -> None:
+        self._insert(
+            "target_roles",
+            {
+                "id": row.id,
+                "active": row.active,
+                "company": row.company,
+                "role": row.role,
+                "level": row.level,
+                "job_description": row.job_description,
+                "data": _dump(row.data),
+                "created_at": row.created_at,
+            },
+        )
+
+    def insert_loop_row(self, row: InterviewLoopRow) -> None:
+        self._insert(
+            "interview_loops",
+            {
+                "id": row.id,
+                "target_id": row.target_id,
+                "company_profile_id": row.company_profile_id,
+                "rounds": _dump(row.rounds),
+                "status": row.status,
+                "pack_id": row.pack_id,
+                "focus_skills": _dump(row.focus_skills),
+                "current_round": row.current_round,
+                "abandoned": row.abandoned,
+                "debrief": None if row.debrief is None else _dump(row.debrief),
+                "created_at": row.created_at,
+                "completed_at": row.completed_at,
+            },
+        )
+
+    def insert_session_row(self, row: InterviewSessionRow) -> None:
+        self._insert(
+            "interview_sessions",
+            {
+                "id": row.id,
+                "candidate_id": row.candidate_id,
+                "target_id": row.target_id,
+                "status": row.status,
+                "current_round": row.current_round,
+                "planned_questions": row.planned_questions,
+                "mode": row.mode,
+                "round_type": row.round_type,
+                "focus_skill_id": row.focus_skill_id,
+                "action_id": row.action_id,
+                "mode_state": _dump(row.mode_state),
+                "loop_id": row.loop_id,
+                "loop_round": row.loop_round,
+                "context_id": row.context_id,
+                "created_at": row.created_at,
+                "completed_at": row.completed_at,
+            },
+        )
+
+    def insert_question_row(self, row: InterviewQuestionRow) -> None:
+        self._insert(
+            "interview_questions",
+            {
+                "id": row.id,
+                "session_id": row.session_id,
+                "skill_id": row.skill_id,
+                "topic": row.topic,
+                "text": row.text,
+                "sub_skills": _dump(row.sub_skills),
+                "expected_concepts": _dump(row.expected_concepts),
+                "difficulty": row.difficulty,
+                "selection_priority": row.selection_priority,
+                "selection_reason": row.selection_reason,
+                "selection_factors": _dump(row.selection_factors),
+                "follow_up_of": row.follow_up_of,
+                "follow_up_focus": row.follow_up_focus,
+                "extra": _dump(row.extra),
+                "position": row.position,
+                "created_at": row.created_at,
+            },
+        )
+
+    def insert_answer_row(self, row: CandidateAnswerRow) -> None:
+        self._insert(
+            "candidate_answers",
+            {
+                "id": row.id,
+                "question_id": row.question_id,
+                "session_id": row.session_id,
+                "text": row.text,
+                "code": row.code,
+                "language": row.language,
+                "voice": None if row.voice is None else _dump(row.voice),
+                "status": row.status,
+                "created_at": row.created_at,
+            },
+        )
+
+    def insert_evaluation_row(self, row: AnswerEvaluationRow) -> None:
+        self._insert(
+            "answer_evaluations",
+            {
+                "id": row.id,
+                "answer_id": row.answer_id,
+                "question_id": row.question_id,
+                "session_id": row.session_id,
+                "data": _dump(row.data),
+                "readiness_delta": _dump(row.readiness_delta),
+                "created_at": row.created_at,
+            },
+        )
+
+    def insert_debrief_row(self, row: InterviewDebriefRow) -> None:
+        self._insert(
+            "interview_debriefs",
+            {
+                "id": row.id,
+                "session_id": row.session_id,
+                "data": _dump(row.data),
+                "created_at": row.created_at,
+            },
+        )
+
+    def insert_evidence_row(self, row: SkillEvidenceRow) -> None:
+        self._insert(
+            "skill_evidence",
+            {
+                "id": row.id,
+                "candidate_id": row.candidate_id,
+                "skill_id": row.skill_id,
+                "type": row.type,
+                "score": row.score,
+                "confidence": row.confidence,
+                "observation": row.observation,
+                "session_id": row.session_id,
+                "question_id": row.question_id,
+                "source": row.source,
+                "created_at": row.created_at,
+            },
+        )
+
+    def append_readiness_snapshot_row(self, row: ReadinessScoreRow) -> None:
+        """Import path: the bundle carries the snapshot id, so it is preserved."""
+
+        self._insert(
+            "readiness_scores",
+            {
+                "id": row.id,
+                "skill_id": row.skill_id,
+                "score": row.score,
+                "confidence": row.confidence,
+                "evidence_ids": _dump(row.evidence_ids),
+                "reason": row.reason,
+                "computed_at": row.computed_at,
+            },
+        )
+
+    def insert_action_row(self, row: PreparationActionRow) -> None:
+        self._insert(
+            "preparation_actions",
+            {
+                "id": row.id,
+                "skill_id": row.skill_id,
+                "target_id": row.target_id,
+                "priority": row.priority,
+                "reason": row.reason,
+                "action": row.action,
+                "success_criteria": _dump(row.success_criteria),
+                "status": row.status,
+                "severity": row.severity,
+                "created_at": row.created_at,
+                "source_evidence_ids": _dump(row.source_evidence_ids),
+                "resources": _dump(row.resources),
+            },
+        )
+
+    def insert_story_row(self, row: StarStoryRow) -> None:
+        self._insert(
+            "star_stories",
+            {
+                "id": row.id,
+                "candidate_id": row.candidate_id,
+                "title": row.title,
+                "situation": row.situation,
+                "task": row.task,
+                "action": row.action,
+                "result": row.result,
+                "skill_ids": _dump(row.skill_ids),
+                "source": row.source,
+                "updated_at": row.updated_at,
+            },
+        )
+
+    def insert_resume_review_row(self, row: ResumeReviewRow) -> None:
+        self._insert(
+            "resume_reviews",
+            {
+                "id": row.id,
+                "candidate_id": row.candidate_id,
+                "target_id": row.target_id,
+                "ats": _dump(row.ats),
+                "suggestions": _dump(row.suggestions),
+                "tailoring": None if row.tailoring is None else _dump(row.tailoring),
+                "linked_gap_skill_ids": _dump(row.linked_gap_skill_ids),
+                "guard": _dump(row.guard),
+                "created_at": row.created_at,
+            },
+        )
+
+    def insert_interview_pack_row(self, row: InterviewPackRow) -> None:
+        self._insert(
+            "interview_packs",
+            {
+                "id": row.id,
+                "data": _dump(row.data),
+                "source": row.source,
+                "created_at": row.created_at,
+                "updated_at": row.updated_at,
+            },
+        )
+
+    def insert_user_question_row(self, row: UserQuestionRow) -> None:
+        self._insert(
+            "user_questions",
+            {
+                "id": row.id,
+                "skill_id": row.skill_id,
+                "text": row.text,
+                "difficulty": row.difficulty,
+                "mode": row.mode,
+                "created_at": row.created_at,
+            },
+        )
+
+    def insert_external_context_row(self, row: ExternalContextRow) -> None:
+        self.insert_external_context(row)
+
     # --------------------------------------------------- generic row access
 
     def upsert_skill_node(self, id: str, label: str, parent_id: str | None) -> None:
@@ -1375,4 +2019,102 @@ def _action(row: Mapping[str, Any]) -> PrepActionRow:
         ),
         resources=_load(_RESOURCE_LIST, row["resources"], "preparation_actions", "resources"),
         source=row["source"],
+    )
+
+
+def _loop(row: Mapping[str, Any]) -> InterviewLoopRow:
+    return InterviewLoopRow(
+        id=row["id"],
+        target_id=row["target_id"],
+        company_profile_id=row["company_profile_id"],
+        rounds=_load(_ROUND_LIST, row["rounds"], "interview_loops", "rounds"),
+        status=row["status"],
+        pack_id=row["pack_id"],
+        focus_skills=_load(_SKILL_LIST, row["focus_skills"], "interview_loops", "focus_skills"),
+        current_round=row["current_round"],
+        abandoned=row["abandoned"],
+        debrief=_load(_ANY, row["debrief"], "interview_loops", "debrief"),
+        created_at=row["created_at"],
+        completed_at=row["completed_at"],
+    )
+
+
+def _debrief(row: Mapping[str, Any]) -> InterviewDebriefRow:
+    return InterviewDebriefRow(
+        id=row["id"],
+        session_id=row["session_id"],
+        data=_load(_ANY, row["data"], "interview_debriefs", "data"),
+        created_at=row["created_at"],
+    )
+
+
+def _story(row: Mapping[str, Any]) -> StarStoryRow:
+    return StarStoryRow(
+        id=row["id"],
+        candidate_id=row["candidate_id"],
+        title=row["title"],
+        situation=row["situation"],
+        task=row["task"],
+        action=row["action"],
+        result=row["result"],
+        skill_ids=_load(_SKILL_LIST, row["skill_ids"], "star_stories", "skill_ids"),
+        source=row["source"],
+        updated_at=row["updated_at"],
+    )
+
+
+def _resume_review(row: Mapping[str, Any]) -> ResumeReviewRow:
+    return ResumeReviewRow(
+        id=row["id"],
+        candidate_id=row["candidate_id"],
+        target_id=row["target_id"],
+        ats=_load(_ANY, row["ats"], "resume_reviews", "ats"),
+        suggestions=_load(_ANY, row["suggestions"], "resume_reviews", "suggestions"),
+        tailoring=_load(_ANY, row["tailoring"], "resume_reviews", "tailoring"),
+        linked_gap_skill_ids=_load(
+            _STR_LIST, row["linked_gap_skill_ids"], "resume_reviews", "linked_gap_skill_ids"
+        ),
+        guard=_load(_ANY, row["guard"], "resume_reviews", "guard"),
+        created_at=row["created_at"],
+    )
+
+
+def _interview_pack(row: Mapping[str, Any]) -> InterviewPackRow:
+    return InterviewPackRow(
+        id=row["id"],
+        data=_load(_ANY, row["data"], "interview_packs", "data"),
+        source=row["source"],
+        created_at=row["created_at"],
+        updated_at=row["updated_at"],
+    )
+
+
+def _user_question(row: Mapping[str, Any]) -> UserQuestionRow:
+    return UserQuestionRow(
+        id=row["id"],
+        skill_id=row["skill_id"],
+        text=row["text"],
+        difficulty=row["difficulty"],
+        mode=row["mode"],
+        created_at=row["created_at"],
+    )
+
+
+def _mcp_server(row: Mapping[str, Any]) -> McpServerRow:
+    return McpServerRow(
+        id=row["id"],
+        enabled=row["enabled"],
+        allowed_tools=_load(_STR_LIST, row["allowed_tools"], "mcp_servers", "allowed_tools"),
+        updated_at=row["updated_at"],
+    )
+
+
+def _external_context(row: Mapping[str, Any]) -> ExternalContextRow:
+    return ExternalContextRow(
+        id=row["id"],
+        server_id=row["server_id"],
+        tool=row["tool"],
+        title=row["title"],
+        text=row["text"],
+        created_at=row["created_at"],
     )
