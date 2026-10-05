@@ -1,0 +1,361 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "group": "preparation",
+  "models": {
+    "PracticeRecord": {
+      "properties": {
+        "actionId": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Actionid"
+        },
+        "createdAt": {
+          "title": "Createdat",
+          "type": "string"
+        },
+        "id": {
+          "title": "Id",
+          "type": "string"
+        },
+        "note": {
+          "title": "Note",
+          "type": "string"
+        },
+        "score": {
+          "anyOf": [
+            {
+              "maximum": 1,
+              "minimum": 0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Score"
+        },
+        "skillId": {
+          "pattern": "^[a-z0-9-]+(\\.[a-z0-9-]+)*$",
+          "title": "Skillid",
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "skillId",
+        "note",
+        "createdAt"
+      ],
+      "title": "PracticeRecord",
+      "type": "object"
+    },
+    "PrepAction": {
+      "$defs": {
+        "PrepActionStatus": {
+          "enum": [
+            "open",
+            "in_progress",
+            "done",
+            "superseded"
+          ],
+          "title": "PrepActionStatus",
+          "type": "string"
+        }
+      },
+      "properties": {
+        "action": {
+          "title": "Action",
+          "type": "string"
+        },
+        "createdAt": {
+          "title": "Createdat",
+          "type": "string"
+        },
+        "id": {
+          "title": "Id",
+          "type": "string"
+        },
+        "priority": {
+          "title": "Priority",
+          "type": "number"
+        },
+        "reason": {
+          "title": "Reason",
+          "type": "string"
+        },
+        "skillId": {
+          "pattern": "^[a-z0-9-]+(\\.[a-z0-9-]+)*$",
+          "title": "Skillid",
+          "type": "string"
+        },
+        "sourceEvidenceIds": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Sourceevidenceids",
+          "type": "array"
+        },
+        "status": {
+          "$ref": "#/$defs/PrepActionStatus",
+          "default": "open"
+        },
+        "successCriteria": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Successcriteria",
+          "type": "array"
+        }
+      },
+      "required": [
+        "id",
+        "skillId",
+        "priority",
+        "reason",
+        "action",
+        "createdAt"
+      ],
+      "title": "PrepAction",
+      "type": "object"
+    },
+    "PrepResource": {
+      "$defs": {
+        "PrepResourceKind": {
+          "enum": [
+            "docs",
+            "explanation",
+            "practice",
+            "article",
+            "video"
+          ],
+          "title": "PrepResourceKind",
+          "type": "string"
+        }
+      },
+      "description": "A learning resource attached to a preparation action.",
+      "properties": {
+        "kind": {
+          "$ref": "#/$defs/PrepResourceKind"
+        },
+        "skillId": {
+          "pattern": "^[a-z0-9-]+(\\.[a-z0-9-]+)*$",
+          "title": "Skillid",
+          "type": "string"
+        },
+        "source": {
+          "maxLength": 120,
+          "minLength": 1,
+          "title": "Source",
+          "type": "string"
+        },
+        "summary": {
+          "anyOf": [
+            {
+              "maxLength": 600,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Summary"
+        },
+        "title": {
+          "maxLength": 200,
+          "minLength": 1,
+          "title": "Title",
+          "type": "string"
+        },
+        "url": {
+          "anyOf": [
+            {
+              "maxLength": 2000,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Url"
+        }
+      },
+      "required": [
+        "skillId",
+        "title",
+        "kind",
+        "source"
+      ],
+      "title": "PrepResource",
+      "type": "object"
+    },
+    "PreparationState": {
+      "$defs": {
+        "PracticeRecord": {
+          "properties": {
+            "actionId": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "title": "Actionid"
+            },
+            "createdAt": {
+              "title": "Createdat",
+              "type": "string"
+            },
+            "id": {
+              "title": "Id",
+              "type": "string"
+            },
+            "note": {
+              "title": "Note",
+              "type": "string"
+            },
+            "score": {
+              "anyOf": [
+                {
+                  "maximum": 1,
+                  "minimum": 0,
+                  "type": "number"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "title": "Score"
+            },
+            "skillId": {
+              "pattern": "^[a-z0-9-]+(\\.[a-z0-9-]+)*$",
+              "title": "Skillid",
+              "type": "string"
+            }
+          },
+          "required": [
+            "id",
+            "skillId",
+            "note",
+            "createdAt"
+          ],
+          "title": "PracticeRecord",
+          "type": "object"
+        },
+        "PrepAction": {
+          "properties": {
+            "action": {
+              "title": "Action",
+              "type": "string"
+            },
+            "createdAt": {
+              "title": "Createdat",
+              "type": "string"
+            },
+            "id": {
+              "title": "Id",
+              "type": "string"
+            },
+            "priority": {
+              "title": "Priority",
+              "type": "number"
+            },
+            "reason": {
+              "title": "Reason",
+              "type": "string"
+            },
+            "skillId": {
+              "pattern": "^[a-z0-9-]+(\\.[a-z0-9-]+)*$",
+              "title": "Skillid",
+              "type": "string"
+            },
+            "sourceEvidenceIds": {
+              "items": {
+                "type": "string"
+              },
+              "title": "Sourceevidenceids",
+              "type": "array"
+            },
+            "status": {
+              "$ref": "#/$defs/PrepActionStatus",
+              "default": "open"
+            },
+            "successCriteria": {
+              "items": {
+                "type": "string"
+              },
+              "title": "Successcriteria",
+              "type": "array"
+            }
+          },
+          "required": [
+            "id",
+            "skillId",
+            "priority",
+            "reason",
+            "action",
+            "createdAt"
+          ],
+          "title": "PrepAction",
+          "type": "object"
+        },
+        "PrepActionStatus": {
+          "enum": [
+            "open",
+            "in_progress",
+            "done",
+            "superseded"
+          ],
+          "title": "PrepActionStatus",
+          "type": "string"
+        }
+      },
+      "properties": {
+        "completedTopics": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Completedtopics",
+          "type": "array"
+        },
+        "nextActions": {
+          "items": {
+            "$ref": "#/$defs/PrepAction"
+          },
+          "title": "Nextactions",
+          "type": "array"
+        },
+        "practiceHistory": {
+          "items": {
+            "$ref": "#/$defs/PracticeRecord"
+          },
+          "title": "Practicehistory",
+          "type": "array"
+        },
+        "priorities": {
+          "items": {
+            "pattern": "^[a-z0-9-]+(\\.[a-z0-9-]+)*$",
+            "type": "string"
+          },
+          "title": "Priorities",
+          "type": "array"
+        }
+      },
+      "title": "PreparationState",
+      "type": "object"
+    }
+  }
+}

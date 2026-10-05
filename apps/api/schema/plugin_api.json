@@ -1,0 +1,5173 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "group": "plugin_api",
+  "models": {
+    "AnswerEvaluatedEventRequest": {
+      "$defs": {
+        "AnswerEvaluatedRubricScore": {
+          "properties": {
+            "id": {
+              "maxLength": 60,
+              "minLength": 1,
+              "title": "Id",
+              "type": "string"
+            },
+            "score": {
+              "maximum": 1,
+              "minimum": 0,
+              "title": "Score",
+              "type": "number"
+            }
+          },
+          "required": [
+            "id",
+            "score"
+          ],
+          "title": "AnswerEvaluatedRubricScore",
+          "type": "object"
+        },
+        "AnswerEvaluatedSkillScore": {
+          "properties": {
+            "score": {
+              "maximum": 1,
+              "minimum": 0,
+              "title": "Score",
+              "type": "number"
+            },
+            "skill": {
+              "pattern": "^[a-z0-9-]+(\\.[a-z0-9-]+)*$",
+              "title": "Skill",
+              "type": "string"
+            }
+          },
+          "required": [
+            "skill",
+            "score"
+          ],
+          "title": "AnswerEvaluatedSkillScore",
+          "type": "object"
+        }
+      },
+      "properties": {
+        "questionId": {
+          "maxLength": 80,
+          "minLength": 1,
+          "title": "Questionid",
+          "type": "string"
+        },
+        "roundType": {
+          "maxLength": 64,
+          "minLength": 1,
+          "title": "Roundtype",
+          "type": "string"
+        },
+        "rubric": {
+          "items": {
+            "$ref": "#/$defs/AnswerEvaluatedRubricScore"
+          },
+          "maxItems": 12,
+          "title": "Rubric",
+          "type": "array"
+        },
+        "scores": {
+          "items": {
+            "$ref": "#/$defs/AnswerEvaluatedSkillScore"
+          },
+          "maxItems": 50,
+          "title": "Scores",
+          "type": "array"
+        },
+        "sessionId": {
+          "maxLength": 80,
+          "minLength": 1,
+          "title": "Sessionid",
+          "type": "string"
+        },
+        "skillId": {
+          "pattern": "^[a-z0-9-]+(\\.[a-z0-9-]+)*$",
+          "title": "Skillid",
+          "type": "string"
+        }
+      },
+      "required": [
+        "sessionId",
+        "questionId",
+        "skillId",
+        "roundType"
+      ],
+      "title": "AnswerEvaluatedEventRequest",
+      "type": "object"
+    },
+    "AnswerEvaluatedRubricScore": {
+      "properties": {
+        "id": {
+          "maxLength": 60,
+          "minLength": 1,
+          "title": "Id",
+          "type": "string"
+        },
+        "score": {
+          "maximum": 1,
+          "minimum": 0,
+          "title": "Score",
+          "type": "number"
+        }
+      },
+      "required": [
+        "id",
+        "score"
+      ],
+      "title": "AnswerEvaluatedRubricScore",
+      "type": "object"
+    },
+    "AnswerEvaluatedSkillScore": {
+      "properties": {
+        "score": {
+          "maximum": 1,
+          "minimum": 0,
+          "title": "Score",
+          "type": "number"
+        },
+        "skill": {
+          "pattern": "^[a-z0-9-]+(\\.[a-z0-9-]+)*$",
+          "title": "Skill",
+          "type": "string"
+        }
+      },
+      "required": [
+        "skill",
+        "score"
+      ],
+      "title": "AnswerEvaluatedSkillScore",
+      "type": "object"
+    },
+    "CandidateLite": {
+      "$defs": {
+        "QuestionDifficulty": {
+          "enum": [
+            "easy",
+            "medium",
+            "hard"
+          ],
+          "title": "QuestionDifficulty",
+          "type": "string"
+        }
+      },
+      "description": "A question candidate without its source attribution.",
+      "properties": {
+        "difficulty": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/QuestionDifficulty"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "expectedConcepts": {
+          "anyOf": [
+            {
+              "items": {
+                "maxLength": 200,
+                "minLength": 1,
+                "type": "string"
+              },
+              "maxItems": 8,
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Expectedconcepts"
+        },
+        "mode": {
+          "anyOf": [
+            {
+              "pattern": "^[a-z0-9][a-z0-9_-]{0,63}$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Mode"
+        },
+        "skillId": {
+          "pattern": "^[a-z0-9-]+(\\.[a-z0-9-]+)*$",
+          "title": "Skillid",
+          "type": "string"
+        },
+        "text": {
+          "maxLength": 1200,
+          "minLength": 10,
+          "title": "Text",
+          "type": "string"
+        }
+      },
+      "required": [
+        "skillId",
+        "text"
+      ],
+      "title": "CandidateLite",
+      "type": "object"
+    },
+    "EvaluationReviewAnswer": {
+      "properties": {
+        "code": {
+          "anyOf": [
+            {
+              "maxLength": 100000,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Code"
+        },
+        "fields": {
+          "anyOf": [
+            {
+              "additionalProperties": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "integer"
+                  },
+                  {
+                    "type": "number"
+                  }
+                ]
+              },
+              "type": "object"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Fields"
+        },
+        "language": {
+          "anyOf": [
+            {
+              "maxLength": 40,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Language"
+        },
+        "text": {
+          "maxLength": 50000,
+          "title": "Text",
+          "type": "string"
+        }
+      },
+      "required": [
+        "text"
+      ],
+      "title": "EvaluationReviewAnswer",
+      "type": "object"
+    },
+    "EvaluationReviewQuestion": {
+      "properties": {
+        "expectedConcepts": {
+          "items": {
+            "maxLength": 200,
+            "type": "string"
+          },
+          "maxItems": 16,
+          "title": "Expectedconcepts",
+          "type": "array"
+        },
+        "roundType": {
+          "anyOf": [
+            {
+              "const": "mixed",
+              "type": "string"
+            },
+            {
+              "pattern": "^[a-z0-9][a-z0-9_-]{0,63}$",
+              "type": "string"
+            }
+          ],
+          "title": "Roundtype"
+        },
+        "skillId": {
+          "pattern": "^[a-z0-9-]+(\\.[a-z0-9-]+)*$",
+          "title": "Skillid",
+          "type": "string"
+        },
+        "text": {
+          "maxLength": 2000,
+          "title": "Text",
+          "type": "string"
+        }
+      },
+      "required": [
+        "skillId",
+        "text",
+        "roundType"
+      ],
+      "title": "EvaluationReviewQuestion",
+      "type": "object"
+    },
+    "EvaluationReviewRequest": {
+      "$defs": {
+        "AnswerEvaluation": {
+          "properties": {
+            "betterApproach": {
+              "title": "Betterapproach",
+              "type": "string"
+            },
+            "designUpdates": {
+              "anyOf": [
+                {
+                  "items": {
+                    "$ref": "#/$defs/DesignUpdate"
+                  },
+                  "type": "array"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "title": "Designupdates"
+            },
+            "dimensions": {
+              "$ref": "#/$defs/EvaluationDimensions"
+            },
+            "followUpTopics": {
+              "items": {
+                "type": "string"
+              },
+              "title": "Followuptopics",
+              "type": "array"
+            },
+            "missingConcepts": {
+              "items": {
+                "type": "string"
+              },
+              "title": "Missingconcepts",
+              "type": "array"
+            },
+            "modeSignals": {
+              "anyOf": [
+                {
+                  "additionalProperties": true,
+                  "type": "object"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "title": "Modesignals"
+            },
+            "rubric": {
+              "items": {
+                "$ref": "#/$defs/RubricScore"
+              },
+              "title": "Rubric",
+              "type": "array"
+            },
+            "scores": {
+              "items": {
+                "$ref": "#/$defs/SkillScore"
+              },
+              "title": "Scores",
+              "type": "array"
+            },
+            "star": {
+              "anyOf": [
+                {
+                  "$ref": "#/$defs/StarAssessment"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null
+            },
+            "strengths": {
+              "items": {
+                "$ref": "#/$defs/EvaluationStrength"
+              },
+              "title": "Strengths",
+              "type": "array"
+            },
+            "summary": {
+              "title": "Summary",
+              "type": "string"
+            },
+            "weaknesses": {
+              "items": {
+                "$ref": "#/$defs/EvaluationWeakness"
+              },
+              "title": "Weaknesses",
+              "type": "array"
+            }
+          },
+          "required": [
+            "summary",
+            "dimensions",
+            "strengths",
+            "weaknesses",
+            "scores",
+            "missingConcepts",
+            "betterApproach",
+            "followUpTopics"
+          ],
+          "title": "AnswerEvaluation",
+          "type": "object"
+        },
+        "DesignUpdate": {
+          "description": "§9.1: evaluator's per-dimension status update.\n\nDeprecated: new modes should emit opaque payloads under `modeSignals`\n(e.g. `modeSignals.designUpdates`); kept for stored rows and older plugins.",
+          "properties": {
+            "dimension": {
+              "title": "Dimension",
+              "type": "string"
+            },
+            "notes": {
+              "default": "",
+              "title": "Notes",
+              "type": "string"
+            },
+            "status": {
+              "$ref": "#/$defs/DesignUpdateStatus"
+            }
+          },
+          "required": [
+            "dimension",
+            "status"
+          ],
+          "title": "DesignUpdate",
+          "type": "object"
+        },
+        "DesignUpdateStatus": {
+          "enum": [
+            "not_covered",
+            "partial",
+            "covered"
+          ],
+          "title": "DesignUpdateStatus",
+          "type": "string"
+        },
+        "EvaluationDimension": {
+          "properties": {
+            "rationale": {
+              "title": "Rationale",
+              "type": "string"
+            },
+            "score": {
+              "maximum": 1,
+              "minimum": 0,
+              "title": "Score",
+              "type": "number"
+            }
+          },
+          "required": [
+            "score",
+            "rationale"
+          ],
+          "title": "EvaluationDimension",
+          "type": "object"
+        },
+        "EvaluationDimensions": {
+          "properties": {
+            "communication": {
+              "$ref": "#/$defs/EvaluationDimension"
+            },
+            "correctness": {
+              "$ref": "#/$defs/EvaluationDimension"
+            },
+            "evidence": {
+              "$ref": "#/$defs/EvaluationDimension"
+            },
+            "reasoning": {
+              "$ref": "#/$defs/EvaluationDimension"
+            },
+            "roleRelevance": {
+              "$ref": "#/$defs/EvaluationDimension"
+            },
+            "structure": {
+              "$ref": "#/$defs/EvaluationDimension"
+            },
+            "technicalDepth": {
+              "$ref": "#/$defs/EvaluationDimension"
+            }
+          },
+          "required": [
+            "correctness",
+            "technicalDepth",
+            "reasoning",
+            "structure",
+            "communication",
+            "evidence",
+            "roleRelevance"
+          ],
+          "title": "EvaluationDimensions",
+          "type": "object"
+        },
+        "EvaluationReviewAnswer": {
+          "properties": {
+            "code": {
+              "anyOf": [
+                {
+                  "maxLength": 100000,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "title": "Code"
+            },
+            "fields": {
+              "anyOf": [
+                {
+                  "additionalProperties": {
+                    "anyOf": [
+                      {
+                        "type": "string"
+                      },
+                      {
+                        "type": "integer"
+                      },
+                      {
+                        "type": "number"
+                      }
+                    ]
+                  },
+                  "type": "object"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "title": "Fields"
+            },
+            "language": {
+              "anyOf": [
+                {
+                  "maxLength": 40,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "title": "Language"
+            },
+            "text": {
+              "maxLength": 50000,
+              "title": "Text",
+              "type": "string"
+            }
+          },
+          "required": [
+            "text"
+          ],
+          "title": "EvaluationReviewAnswer",
+          "type": "object"
+        },
+        "EvaluationReviewQuestion": {
+          "properties": {
+            "expectedConcepts": {
+              "items": {
+                "maxLength": 200,
+                "type": "string"
+              },
+              "maxItems": 16,
+              "title": "Expectedconcepts",
+              "type": "array"
+            },
+            "roundType": {
+              "anyOf": [
+                {
+                  "const": "mixed",
+                  "type": "string"
+                },
+                {
+                  "pattern": "^[a-z0-9][a-z0-9_-]{0,63}$",
+                  "type": "string"
+                }
+              ],
+              "title": "Roundtype"
+            },
+            "skillId": {
+              "pattern": "^[a-z0-9-]+(\\.[a-z0-9-]+)*$",
+              "title": "Skillid",
+              "type": "string"
+            },
+            "text": {
+              "maxLength": 2000,
+              "title": "Text",
+              "type": "string"
+            }
+          },
+          "required": [
+            "skillId",
+            "text",
+            "roundType"
+          ],
+          "title": "EvaluationReviewQuestion",
+          "type": "object"
+        },
+        "EvaluationStrength": {
+          "properties": {
+            "evidence": {
+              "title": "Evidence",
+              "type": "string"
+            },
+            "skill": {
+              "pattern": "^[a-z0-9-]+(\\.[a-z0-9-]+)*$",
+              "title": "Skill",
+              "type": "string"
+            }
+          },
+          "required": [
+            "skill",
+            "evidence"
+          ],
+          "title": "EvaluationStrength",
+          "type": "object"
+        },
+        "EvaluationWeakness": {
+          "properties": {
+            "evidence": {
+              "title": "Evidence",
+              "type": "string"
+            },
+            "severity": {
+              "$ref": "#/$defs/WeaknessSeverity"
+            },
+            "skill": {
+              "pattern": "^[a-z0-9-]+(\\.[a-z0-9-]+)*$",
+              "title": "Skill",
+              "type": "string"
+            }
+          },
+          "required": [
+            "skill",
+            "severity",
+            "evidence"
+          ],
+          "title": "EvaluationWeakness",
+          "type": "object"
+        },
+        "RubricScore": {
+          "description": "§9.1: one independently-scored rubric dimension of an interview mode.",
+          "properties": {
+            "id": {
+              "title": "Id",
+              "type": "string"
+            },
+            "label": {
+              "default": "",
+              "title": "Label",
+              "type": "string"
+            },
+            "rationale": {
+              "default": "",
+              "title": "Rationale",
+              "type": "string"
+            },
+            "score": {
+              "maximum": 1,
+              "minimum": 0,
+              "title": "Score",
+              "type": "number"
+            }
+          },
+          "required": [
+            "id",
+            "score"
+          ],
+          "title": "RubricScore",
+          "type": "object"
+        },
+        "SkillScore": {
+          "properties": {
+            "confidence": {
+              "maximum": 1,
+              "minimum": 0,
+              "title": "Confidence",
+              "type": "number"
+            },
+            "score": {
+              "maximum": 1,
+              "minimum": 0,
+              "title": "Score",
+              "type": "number"
+            },
+            "skill": {
+              "pattern": "^[a-z0-9-]+(\\.[a-z0-9-]+)*$",
+              "title": "Skill",
+              "type": "string"
+            }
+          },
+          "required": [
+            "skill",
+            "score",
+            "confidence"
+          ],
+          "title": "SkillScore",
+          "type": "object"
+        },
+        "StarAssessment": {
+          "description": "STAR coverage for behavioral/hr answers (§8.4); null for other rounds.",
+          "properties": {
+            "action": {
+              "title": "Action",
+              "type": "boolean"
+            },
+            "notes": {
+              "title": "Notes",
+              "type": "string"
+            },
+            "result": {
+              "title": "Result",
+              "type": "boolean"
+            },
+            "situation": {
+              "title": "Situation",
+              "type": "boolean"
+            },
+            "task": {
+              "title": "Task",
+              "type": "boolean"
+            }
+          },
+          "required": [
+            "situation",
+            "task",
+            "action",
+            "result",
+            "notes"
+          ],
+          "title": "StarAssessment",
+          "type": "object"
+        },
+        "WeaknessSeverity": {
+          "enum": [
+            "low",
+            "medium",
+            "high"
+          ],
+          "title": "WeaknessSeverity",
+          "type": "string"
+        }
+      },
+      "properties": {
+        "answer": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/EvaluationReviewAnswer"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "evaluation": {
+          "$ref": "#/$defs/AnswerEvaluation"
+        },
+        "question": {
+          "$ref": "#/$defs/EvaluationReviewQuestion"
+        }
+      },
+      "required": [
+        "question",
+        "answer",
+        "evaluation"
+      ],
+      "title": "EvaluationReviewRequest",
+      "type": "object"
+    },
+    "EvaluationReviewResponse": {
+      "$defs": {
+        "EvidenceProposal": {
+          "description": "v0.4: a plugin may propose evidence rows; the server validates, caps\nconfidence, tags source `plugin:<id>` and persists them as type \"plugin\"\nonly when `evidence.write` is granted.",
+          "properties": {
+            "confidence": {
+              "maximum": 1,
+              "minimum": 0,
+              "title": "Confidence",
+              "type": "number"
+            },
+            "observation": {
+              "maxLength": 500,
+              "minLength": 1,
+              "title": "Observation",
+              "type": "string"
+            },
+            "score": {
+              "maximum": 1,
+              "minimum": 0,
+              "title": "Score",
+              "type": "number"
+            },
+            "skillId": {
+              "pattern": "^[a-z0-9-]+(\\.[a-z0-9-]+)*$",
+              "title": "Skillid",
+              "type": "string"
+            }
+          },
+          "required": [
+            "skillId",
+            "score",
+            "confidence",
+            "observation"
+          ],
+          "title": "EvidenceProposal",
+          "type": "object"
+        },
+        "PluginReviewObservation": {
+          "properties": {
+            "text": {
+              "maxLength": 400,
+              "minLength": 1,
+              "title": "Text",
+              "type": "string"
+            },
+            "tone": {
+              "$ref": "#/$defs/UITone",
+              "default": "muted"
+            }
+          },
+          "required": [
+            "text"
+          ],
+          "title": "PluginReviewObservation",
+          "type": "object"
+        },
+        "UITone": {
+          "enum": [
+            "green",
+            "amber",
+            "red",
+            "blue",
+            "muted"
+          ],
+          "title": "UITone",
+          "type": "string"
+        }
+      },
+      "additionalProperties": true,
+      "properties": {
+        "evidenceProposals": {
+          "anyOf": [
+            {
+              "items": {
+                "$ref": "#/$defs/EvidenceProposal"
+              },
+              "maxItems": 20,
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Evidenceproposals"
+        },
+        "observations": {
+          "items": {
+            "$ref": "#/$defs/PluginReviewObservation"
+          },
+          "maxItems": 5,
+          "title": "Observations",
+          "type": "array"
+        }
+      },
+      "required": [
+        "observations"
+      ],
+      "title": "EvaluationReviewResponse",
+      "type": "object"
+    },
+    "EventHookResponse": {
+      "$defs": {
+        "EvidenceProposal": {
+          "description": "v0.4: a plugin may propose evidence rows; the server validates, caps\nconfidence, tags source `plugin:<id>` and persists them as type \"plugin\"\nonly when `evidence.write` is granted.",
+          "properties": {
+            "confidence": {
+              "maximum": 1,
+              "minimum": 0,
+              "title": "Confidence",
+              "type": "number"
+            },
+            "observation": {
+              "maxLength": 500,
+              "minLength": 1,
+              "title": "Observation",
+              "type": "string"
+            },
+            "score": {
+              "maximum": 1,
+              "minimum": 0,
+              "title": "Score",
+              "type": "number"
+            },
+            "skillId": {
+              "pattern": "^[a-z0-9-]+(\\.[a-z0-9-]+)*$",
+              "title": "Skillid",
+              "type": "string"
+            }
+          },
+          "required": [
+            "skillId",
+            "score",
+            "confidence",
+            "observation"
+          ],
+          "title": "EvidenceProposal",
+          "type": "object"
+        }
+      },
+      "additionalProperties": true,
+      "description": "Every `events.*` hook answers with (optional) evidence proposals.",
+      "properties": {
+        "evidenceProposals": {
+          "anyOf": [
+            {
+              "items": {
+                "$ref": "#/$defs/EvidenceProposal"
+              },
+              "maxItems": 20,
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Evidenceproposals"
+        }
+      },
+      "title": "EventHookResponse",
+      "type": "object"
+    },
+    "LoopCompletedEventRequest": {
+      "$defs": {
+        "LoopCompletedRound": {
+          "properties": {
+            "mode": {
+              "maxLength": 64,
+              "minLength": 1,
+              "title": "Mode",
+              "type": "string"
+            },
+            "sessionId": {
+              "anyOf": [
+                {
+                  "maxLength": 80,
+                  "minLength": 1,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "title": "Sessionid"
+            }
+          },
+          "required": [
+            "mode"
+          ],
+          "title": "LoopCompletedRound",
+          "type": "object"
+        }
+      },
+      "properties": {
+        "loopId": {
+          "maxLength": 80,
+          "minLength": 1,
+          "title": "Loopid",
+          "type": "string"
+        },
+        "rounds": {
+          "items": {
+            "$ref": "#/$defs/LoopCompletedRound"
+          },
+          "maxItems": 10,
+          "title": "Rounds",
+          "type": "array"
+        }
+      },
+      "required": [
+        "loopId"
+      ],
+      "title": "LoopCompletedEventRequest",
+      "type": "object"
+    },
+    "LoopCompletedRound": {
+      "properties": {
+        "mode": {
+          "maxLength": 64,
+          "minLength": 1,
+          "title": "Mode",
+          "type": "string"
+        },
+        "sessionId": {
+          "anyOf": [
+            {
+              "maxLength": 80,
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Sessionid"
+        }
+      },
+      "required": [
+        "mode"
+      ],
+      "title": "LoopCompletedRound",
+      "type": "object"
+    },
+    "ModeFollowUpRequest": {
+      "$defs": {
+        "AnswerEvaluation": {
+          "properties": {
+            "betterApproach": {
+              "title": "Betterapproach",
+              "type": "string"
+            },
+            "designUpdates": {
+              "anyOf": [
+                {
+                  "items": {
+                    "$ref": "#/$defs/DesignUpdate"
+                  },
+                  "type": "array"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "title": "Designupdates"
+            },
+            "dimensions": {
+              "$ref": "#/$defs/EvaluationDimensions"
+            },
+            "followUpTopics": {
+              "items": {
+                "type": "string"
+              },
+              "title": "Followuptopics",
+              "type": "array"
+            },
+            "missingConcepts": {
+              "items": {
+                "type": "string"
+              },
+              "title": "Missingconcepts",
+              "type": "array"
+            },
+            "modeSignals": {
+              "anyOf": [
+                {
+                  "additionalProperties": true,
+                  "type": "object"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "title": "Modesignals"
+            },
+            "rubric": {
+              "items": {
+                "$ref": "#/$defs/RubricScore"
+              },
+              "title": "Rubric",
+              "type": "array"
+            },
+            "scores": {
+              "items": {
+                "$ref": "#/$defs/SkillScore"
+              },
+              "title": "Scores",
+              "type": "array"
+            },
+            "star": {
+              "anyOf": [
+                {
+                  "$ref": "#/$defs/StarAssessment"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null
+            },
+            "strengths": {
+              "items": {
+                "$ref": "#/$defs/EvaluationStrength"
+              },
+              "title": "Strengths",
+              "type": "array"
+            },
+            "summary": {
+              "title": "Summary",
+              "type": "string"
+            },
+            "weaknesses": {
+              "items": {
+                "$ref": "#/$defs/EvaluationWeakness"
+              },
+              "title": "Weaknesses",
+              "type": "array"
+            }
+          },
+          "required": [
+            "summary",
+            "dimensions",
+            "strengths",
+            "weaknesses",
+            "scores",
+            "missingConcepts",
+            "betterApproach",
+            "followUpTopics"
+          ],
+          "title": "AnswerEvaluation",
+          "type": "object"
+        },
+        "DesignUpdate": {
+          "description": "§9.1: evaluator's per-dimension status update.\n\nDeprecated: new modes should emit opaque payloads under `modeSignals`\n(e.g. `modeSignals.designUpdates`); kept for stored rows and older plugins.",
+          "properties": {
+            "dimension": {
+              "title": "Dimension",
+              "type": "string"
+            },
+            "notes": {
+              "default": "",
+              "title": "Notes",
+              "type": "string"
+            },
+            "status": {
+              "$ref": "#/$defs/DesignUpdateStatus"
+            }
+          },
+          "required": [
+            "dimension",
+            "status"
+          ],
+          "title": "DesignUpdate",
+          "type": "object"
+        },
+        "DesignUpdateStatus": {
+          "enum": [
+            "not_covered",
+            "partial",
+            "covered"
+          ],
+          "title": "DesignUpdateStatus",
+          "type": "string"
+        },
+        "EvaluationDimension": {
+          "properties": {
+            "rationale": {
+              "title": "Rationale",
+              "type": "string"
+            },
+            "score": {
+              "maximum": 1,
+              "minimum": 0,
+              "title": "Score",
+              "type": "number"
+            }
+          },
+          "required": [
+            "score",
+            "rationale"
+          ],
+          "title": "EvaluationDimension",
+          "type": "object"
+        },
+        "EvaluationDimensions": {
+          "properties": {
+            "communication": {
+              "$ref": "#/$defs/EvaluationDimension"
+            },
+            "correctness": {
+              "$ref": "#/$defs/EvaluationDimension"
+            },
+            "evidence": {
+              "$ref": "#/$defs/EvaluationDimension"
+            },
+            "reasoning": {
+              "$ref": "#/$defs/EvaluationDimension"
+            },
+            "roleRelevance": {
+              "$ref": "#/$defs/EvaluationDimension"
+            },
+            "structure": {
+              "$ref": "#/$defs/EvaluationDimension"
+            },
+            "technicalDepth": {
+              "$ref": "#/$defs/EvaluationDimension"
+            }
+          },
+          "required": [
+            "correctness",
+            "technicalDepth",
+            "reasoning",
+            "structure",
+            "communication",
+            "evidence",
+            "roleRelevance"
+          ],
+          "title": "EvaluationDimensions",
+          "type": "object"
+        },
+        "EvaluationStrength": {
+          "properties": {
+            "evidence": {
+              "title": "Evidence",
+              "type": "string"
+            },
+            "skill": {
+              "pattern": "^[a-z0-9-]+(\\.[a-z0-9-]+)*$",
+              "title": "Skill",
+              "type": "string"
+            }
+          },
+          "required": [
+            "skill",
+            "evidence"
+          ],
+          "title": "EvaluationStrength",
+          "type": "object"
+        },
+        "EvaluationWeakness": {
+          "properties": {
+            "evidence": {
+              "title": "Evidence",
+              "type": "string"
+            },
+            "severity": {
+              "$ref": "#/$defs/WeaknessSeverity"
+            },
+            "skill": {
+              "pattern": "^[a-z0-9-]+(\\.[a-z0-9-]+)*$",
+              "title": "Skill",
+              "type": "string"
+            }
+          },
+          "required": [
+            "skill",
+            "severity",
+            "evidence"
+          ],
+          "title": "EvaluationWeakness",
+          "type": "object"
+        },
+        "RubricScore": {
+          "description": "§9.1: one independently-scored rubric dimension of an interview mode.",
+          "properties": {
+            "id": {
+              "title": "Id",
+              "type": "string"
+            },
+            "label": {
+              "default": "",
+              "title": "Label",
+              "type": "string"
+            },
+            "rationale": {
+              "default": "",
+              "title": "Rationale",
+              "type": "string"
+            },
+            "score": {
+              "maximum": 1,
+              "minimum": 0,
+              "title": "Score",
+              "type": "number"
+            }
+          },
+          "required": [
+            "id",
+            "score"
+          ],
+          "title": "RubricScore",
+          "type": "object"
+        },
+        "SkillScore": {
+          "properties": {
+            "confidence": {
+              "maximum": 1,
+              "minimum": 0,
+              "title": "Confidence",
+              "type": "number"
+            },
+            "score": {
+              "maximum": 1,
+              "minimum": 0,
+              "title": "Score",
+              "type": "number"
+            },
+            "skill": {
+              "pattern": "^[a-z0-9-]+(\\.[a-z0-9-]+)*$",
+              "title": "Skill",
+              "type": "string"
+            }
+          },
+          "required": [
+            "skill",
+            "score",
+            "confidence"
+          ],
+          "title": "SkillScore",
+          "type": "object"
+        },
+        "StarAssessment": {
+          "description": "STAR coverage for behavioral/hr answers (§8.4); null for other rounds.",
+          "properties": {
+            "action": {
+              "title": "Action",
+              "type": "boolean"
+            },
+            "notes": {
+              "title": "Notes",
+              "type": "string"
+            },
+            "result": {
+              "title": "Result",
+              "type": "boolean"
+            },
+            "situation": {
+              "title": "Situation",
+              "type": "boolean"
+            },
+            "task": {
+              "title": "Task",
+              "type": "boolean"
+            }
+          },
+          "required": [
+            "situation",
+            "task",
+            "action",
+            "result",
+            "notes"
+          ],
+          "title": "StarAssessment",
+          "type": "object"
+        },
+        "WeaknessSeverity": {
+          "enum": [
+            "low",
+            "medium",
+            "high"
+          ],
+          "title": "WeaknessSeverity",
+          "type": "string"
+        }
+      },
+      "properties": {
+        "depth": {
+          "minimum": 0,
+          "title": "Depth",
+          "type": "integer"
+        },
+        "evaluation": {
+          "$ref": "#/$defs/AnswerEvaluation"
+        },
+        "maxDepth": {
+          "minimum": 0,
+          "title": "Maxdepth",
+          "type": "integer"
+        },
+        "modeId": {
+          "pattern": "^[a-z0-9][a-z0-9_-]{0,63}$",
+          "title": "Modeid",
+          "type": "string"
+        },
+        "state": {
+          "additionalProperties": true,
+          "title": "State",
+          "type": "object"
+        }
+      },
+      "required": [
+        "modeId",
+        "evaluation",
+        "state",
+        "depth",
+        "maxDepth"
+      ],
+      "title": "ModeFollowUpRequest",
+      "type": "object"
+    },
+    "ModeFollowUpResponse": {
+      "additionalProperties": true,
+      "properties": {
+        "ask": {
+          "title": "Ask",
+          "type": "boolean"
+        },
+        "focus": {
+          "anyOf": [
+            {
+              "maxLength": 200,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Focus"
+        },
+        "reason": {
+          "default": "",
+          "maxLength": 400,
+          "title": "Reason",
+          "type": "string"
+        }
+      },
+      "required": [
+        "ask"
+      ],
+      "title": "ModeFollowUpResponse",
+      "type": "object"
+    },
+    "ModeMockRequest": {
+      "properties": {
+        "input": {
+          "additionalProperties": true,
+          "title": "Input",
+          "type": "object"
+        },
+        "modeId": {
+          "pattern": "^[a-z0-9][a-z0-9_-]{0,63}$",
+          "title": "Modeid",
+          "type": "string"
+        },
+        "task": {
+          "enum": [
+            "interviewer",
+            "evaluator"
+          ],
+          "title": "Task",
+          "type": "string"
+        }
+      },
+      "required": [
+        "modeId",
+        "task",
+        "input"
+      ],
+      "title": "ModeMockRequest",
+      "type": "object"
+    },
+    "ModeMockResponse": {
+      "additionalProperties": true,
+      "properties": {
+        "output": {
+          "title": "Output"
+        }
+      },
+      "required": [
+        "output"
+      ],
+      "title": "ModeMockResponse",
+      "type": "object"
+    },
+    "ModePrepareTurnRequest": {
+      "properties": {
+        "followUp": {
+          "title": "Followup",
+          "type": "boolean"
+        },
+        "modeId": {
+          "pattern": "^[a-z0-9][a-z0-9_-]{0,63}$",
+          "title": "Modeid",
+          "type": "string"
+        },
+        "state": {
+          "additionalProperties": true,
+          "title": "State",
+          "type": "object"
+        }
+      },
+      "required": [
+        "modeId",
+        "state",
+        "followUp"
+      ],
+      "title": "ModePrepareTurnRequest",
+      "type": "object"
+    },
+    "ModePrepareTurnResponse": {
+      "additionalProperties": true,
+      "properties": {
+        "turn": {
+          "additionalProperties": true,
+          "title": "Turn",
+          "type": "object"
+        }
+      },
+      "required": [
+        "turn"
+      ],
+      "title": "ModePrepareTurnResponse",
+      "type": "object"
+    },
+    "ModeReduceQuestion": {
+      "properties": {
+        "extra": {
+          "additionalProperties": true,
+          "title": "Extra",
+          "type": "object"
+        },
+        "skillId": {
+          "pattern": "^[a-z0-9-]+(\\.[a-z0-9-]+)*$",
+          "title": "Skillid",
+          "type": "string"
+        },
+        "topic": {
+          "maxLength": 200,
+          "title": "Topic",
+          "type": "string"
+        }
+      },
+      "required": [
+        "skillId",
+        "topic"
+      ],
+      "title": "ModeReduceQuestion",
+      "type": "object"
+    },
+    "ModeReduceRequest": {
+      "$defs": {
+        "AnswerEvaluation": {
+          "properties": {
+            "betterApproach": {
+              "title": "Betterapproach",
+              "type": "string"
+            },
+            "designUpdates": {
+              "anyOf": [
+                {
+                  "items": {
+                    "$ref": "#/$defs/DesignUpdate"
+                  },
+                  "type": "array"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "title": "Designupdates"
+            },
+            "dimensions": {
+              "$ref": "#/$defs/EvaluationDimensions"
+            },
+            "followUpTopics": {
+              "items": {
+                "type": "string"
+              },
+              "title": "Followuptopics",
+              "type": "array"
+            },
+            "missingConcepts": {
+              "items": {
+                "type": "string"
+              },
+              "title": "Missingconcepts",
+              "type": "array"
+            },
+            "modeSignals": {
+              "anyOf": [
+                {
+                  "additionalProperties": true,
+                  "type": "object"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "title": "Modesignals"
+            },
+            "rubric": {
+              "items": {
+                "$ref": "#/$defs/RubricScore"
+              },
+              "title": "Rubric",
+              "type": "array"
+            },
+            "scores": {
+              "items": {
+                "$ref": "#/$defs/SkillScore"
+              },
+              "title": "Scores",
+              "type": "array"
+            },
+            "star": {
+              "anyOf": [
+                {
+                  "$ref": "#/$defs/StarAssessment"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null
+            },
+            "strengths": {
+              "items": {
+                "$ref": "#/$defs/EvaluationStrength"
+              },
+              "title": "Strengths",
+              "type": "array"
+            },
+            "summary": {
+              "title": "Summary",
+              "type": "string"
+            },
+            "weaknesses": {
+              "items": {
+                "$ref": "#/$defs/EvaluationWeakness"
+              },
+              "title": "Weaknesses",
+              "type": "array"
+            }
+          },
+          "required": [
+            "summary",
+            "dimensions",
+            "strengths",
+            "weaknesses",
+            "scores",
+            "missingConcepts",
+            "betterApproach",
+            "followUpTopics"
+          ],
+          "title": "AnswerEvaluation",
+          "type": "object"
+        },
+        "DesignUpdate": {
+          "description": "§9.1: evaluator's per-dimension status update.\n\nDeprecated: new modes should emit opaque payloads under `modeSignals`\n(e.g. `modeSignals.designUpdates`); kept for stored rows and older plugins.",
+          "properties": {
+            "dimension": {
+              "title": "Dimension",
+              "type": "string"
+            },
+            "notes": {
+              "default": "",
+              "title": "Notes",
+              "type": "string"
+            },
+            "status": {
+              "$ref": "#/$defs/DesignUpdateStatus"
+            }
+          },
+          "required": [
+            "dimension",
+            "status"
+          ],
+          "title": "DesignUpdate",
+          "type": "object"
+        },
+        "DesignUpdateStatus": {
+          "enum": [
+            "not_covered",
+            "partial",
+            "covered"
+          ],
+          "title": "DesignUpdateStatus",
+          "type": "string"
+        },
+        "EvaluationDimension": {
+          "properties": {
+            "rationale": {
+              "title": "Rationale",
+              "type": "string"
+            },
+            "score": {
+              "maximum": 1,
+              "minimum": 0,
+              "title": "Score",
+              "type": "number"
+            }
+          },
+          "required": [
+            "score",
+            "rationale"
+          ],
+          "title": "EvaluationDimension",
+          "type": "object"
+        },
+        "EvaluationDimensions": {
+          "properties": {
+            "communication": {
+              "$ref": "#/$defs/EvaluationDimension"
+            },
+            "correctness": {
+              "$ref": "#/$defs/EvaluationDimension"
+            },
+            "evidence": {
+              "$ref": "#/$defs/EvaluationDimension"
+            },
+            "reasoning": {
+              "$ref": "#/$defs/EvaluationDimension"
+            },
+            "roleRelevance": {
+              "$ref": "#/$defs/EvaluationDimension"
+            },
+            "structure": {
+              "$ref": "#/$defs/EvaluationDimension"
+            },
+            "technicalDepth": {
+              "$ref": "#/$defs/EvaluationDimension"
+            }
+          },
+          "required": [
+            "correctness",
+            "technicalDepth",
+            "reasoning",
+            "structure",
+            "communication",
+            "evidence",
+            "roleRelevance"
+          ],
+          "title": "EvaluationDimensions",
+          "type": "object"
+        },
+        "EvaluationStrength": {
+          "properties": {
+            "evidence": {
+              "title": "Evidence",
+              "type": "string"
+            },
+            "skill": {
+              "pattern": "^[a-z0-9-]+(\\.[a-z0-9-]+)*$",
+              "title": "Skill",
+              "type": "string"
+            }
+          },
+          "required": [
+            "skill",
+            "evidence"
+          ],
+          "title": "EvaluationStrength",
+          "type": "object"
+        },
+        "EvaluationWeakness": {
+          "properties": {
+            "evidence": {
+              "title": "Evidence",
+              "type": "string"
+            },
+            "severity": {
+              "$ref": "#/$defs/WeaknessSeverity"
+            },
+            "skill": {
+              "pattern": "^[a-z0-9-]+(\\.[a-z0-9-]+)*$",
+              "title": "Skill",
+              "type": "string"
+            }
+          },
+          "required": [
+            "skill",
+            "severity",
+            "evidence"
+          ],
+          "title": "EvaluationWeakness",
+          "type": "object"
+        },
+        "ModeReduceQuestion": {
+          "properties": {
+            "extra": {
+              "additionalProperties": true,
+              "title": "Extra",
+              "type": "object"
+            },
+            "skillId": {
+              "pattern": "^[a-z0-9-]+(\\.[a-z0-9-]+)*$",
+              "title": "Skillid",
+              "type": "string"
+            },
+            "topic": {
+              "maxLength": 200,
+              "title": "Topic",
+              "type": "string"
+            }
+          },
+          "required": [
+            "skillId",
+            "topic"
+          ],
+          "title": "ModeReduceQuestion",
+          "type": "object"
+        },
+        "RubricScore": {
+          "description": "§9.1: one independently-scored rubric dimension of an interview mode.",
+          "properties": {
+            "id": {
+              "title": "Id",
+              "type": "string"
+            },
+            "label": {
+              "default": "",
+              "title": "Label",
+              "type": "string"
+            },
+            "rationale": {
+              "default": "",
+              "title": "Rationale",
+              "type": "string"
+            },
+            "score": {
+              "maximum": 1,
+              "minimum": 0,
+              "title": "Score",
+              "type": "number"
+            }
+          },
+          "required": [
+            "id",
+            "score"
+          ],
+          "title": "RubricScore",
+          "type": "object"
+        },
+        "SkillScore": {
+          "properties": {
+            "confidence": {
+              "maximum": 1,
+              "minimum": 0,
+              "title": "Confidence",
+              "type": "number"
+            },
+            "score": {
+              "maximum": 1,
+              "minimum": 0,
+              "title": "Score",
+              "type": "number"
+            },
+            "skill": {
+              "pattern": "^[a-z0-9-]+(\\.[a-z0-9-]+)*$",
+              "title": "Skill",
+              "type": "string"
+            }
+          },
+          "required": [
+            "skill",
+            "score",
+            "confidence"
+          ],
+          "title": "SkillScore",
+          "type": "object"
+        },
+        "StarAssessment": {
+          "description": "STAR coverage for behavioral/hr answers (§8.4); null for other rounds.",
+          "properties": {
+            "action": {
+              "title": "Action",
+              "type": "boolean"
+            },
+            "notes": {
+              "title": "Notes",
+              "type": "string"
+            },
+            "result": {
+              "title": "Result",
+              "type": "boolean"
+            },
+            "situation": {
+              "title": "Situation",
+              "type": "boolean"
+            },
+            "task": {
+              "title": "Task",
+              "type": "boolean"
+            }
+          },
+          "required": [
+            "situation",
+            "task",
+            "action",
+            "result",
+            "notes"
+          ],
+          "title": "StarAssessment",
+          "type": "object"
+        },
+        "WeaknessSeverity": {
+          "enum": [
+            "low",
+            "medium",
+            "high"
+          ],
+          "title": "WeaknessSeverity",
+          "type": "string"
+        }
+      },
+      "properties": {
+        "evaluation": {
+          "$ref": "#/$defs/AnswerEvaluation"
+        },
+        "modeId": {
+          "pattern": "^[a-z0-9][a-z0-9_-]{0,63}$",
+          "title": "Modeid",
+          "type": "string"
+        },
+        "question": {
+          "$ref": "#/$defs/ModeReduceQuestion"
+        },
+        "state": {
+          "additionalProperties": true,
+          "title": "State",
+          "type": "object"
+        }
+      },
+      "required": [
+        "modeId",
+        "state",
+        "evaluation",
+        "question"
+      ],
+      "title": "ModeReduceRequest",
+      "type": "object"
+    },
+    "ModeReduceResponse": {
+      "additionalProperties": true,
+      "properties": {
+        "state": {
+          "additionalProperties": true,
+          "title": "State",
+          "type": "object"
+        }
+      },
+      "required": [
+        "state"
+      ],
+      "title": "ModeReduceResponse",
+      "type": "object"
+    },
+    "PluginPrepActivity": {
+      "properties": {
+        "action": {
+          "maxLength": 500,
+          "minLength": 1,
+          "title": "Action",
+          "type": "string"
+        },
+        "skillId": {
+          "pattern": "^[a-z0-9-]+(\\.[a-z0-9-]+)*$",
+          "title": "Skillid",
+          "type": "string"
+        },
+        "successCriteria": {
+          "anyOf": [
+            {
+              "items": {
+                "maxLength": 200,
+                "minLength": 1,
+                "type": "string"
+              },
+              "maxItems": 5,
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Successcriteria"
+        },
+        "title": {
+          "maxLength": 120,
+          "minLength": 1,
+          "title": "Title",
+          "type": "string"
+        }
+      },
+      "required": [
+        "skillId",
+        "title",
+        "action"
+      ],
+      "title": "PluginPrepActivity",
+      "type": "object"
+    },
+    "PluginReviewObservation": {
+      "$defs": {
+        "UITone": {
+          "enum": [
+            "green",
+            "amber",
+            "red",
+            "blue",
+            "muted"
+          ],
+          "title": "UITone",
+          "type": "string"
+        }
+      },
+      "properties": {
+        "text": {
+          "maxLength": 400,
+          "minLength": 1,
+          "title": "Text",
+          "type": "string"
+        },
+        "tone": {
+          "$ref": "#/$defs/UITone",
+          "default": "muted"
+        }
+      },
+      "required": [
+        "text"
+      ],
+      "title": "PluginReviewObservation",
+      "type": "object"
+    },
+    "PreparationSuggestRequest": {
+      "properties": {
+        "gaps": {
+          "items": {
+            "additionalProperties": true,
+            "type": "object"
+          },
+          "maxItems": 10,
+          "title": "Gaps",
+          "type": "array"
+        },
+        "skillIds": {
+          "items": {
+            "pattern": "^[a-z0-9-]+(\\.[a-z0-9-]+)*$",
+            "type": "string"
+          },
+          "maxItems": 20,
+          "title": "Skillids",
+          "type": "array"
+        }
+      },
+      "required": [
+        "gaps",
+        "skillIds"
+      ],
+      "title": "PreparationSuggestRequest",
+      "type": "object"
+    },
+    "PreparationSuggestResponse": {
+      "$defs": {
+        "PluginPrepActivity": {
+          "properties": {
+            "action": {
+              "maxLength": 500,
+              "minLength": 1,
+              "title": "Action",
+              "type": "string"
+            },
+            "skillId": {
+              "pattern": "^[a-z0-9-]+(\\.[a-z0-9-]+)*$",
+              "title": "Skillid",
+              "type": "string"
+            },
+            "successCriteria": {
+              "anyOf": [
+                {
+                  "items": {
+                    "maxLength": 200,
+                    "minLength": 1,
+                    "type": "string"
+                  },
+                  "maxItems": 5,
+                  "type": "array"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "title": "Successcriteria"
+            },
+            "title": {
+              "maxLength": 120,
+              "minLength": 1,
+              "title": "Title",
+              "type": "string"
+            }
+          },
+          "required": [
+            "skillId",
+            "title",
+            "action"
+          ],
+          "title": "PluginPrepActivity",
+          "type": "object"
+        }
+      },
+      "additionalProperties": true,
+      "properties": {
+        "activities": {
+          "items": {
+            "$ref": "#/$defs/PluginPrepActivity"
+          },
+          "maxItems": 10,
+          "title": "Activities",
+          "type": "array"
+        }
+      },
+      "required": [
+        "activities"
+      ],
+      "title": "PreparationSuggestResponse",
+      "type": "object"
+    },
+    "QuestionsSuggestRequest": {
+      "properties": {
+        "count": {
+          "default": 5,
+          "maximum": 20,
+          "minimum": 1,
+          "title": "Count",
+          "type": "integer"
+        },
+        "level": {
+          "anyOf": [
+            {
+              "maxLength": 40,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Level"
+        },
+        "roundType": {
+          "anyOf": [
+            {
+              "const": "mixed",
+              "type": "string"
+            },
+            {
+              "pattern": "^[a-z0-9][a-z0-9_-]{0,63}$",
+              "type": "string"
+            }
+          ],
+          "title": "Roundtype"
+        },
+        "skillId": {
+          "pattern": "^[a-z0-9-]+(\\.[a-z0-9-]+)*$",
+          "title": "Skillid",
+          "type": "string"
+        }
+      },
+      "required": [
+        "skillId",
+        "roundType"
+      ],
+      "title": "QuestionsSuggestRequest",
+      "type": "object"
+    },
+    "QuestionsSuggestResponse": {
+      "$defs": {
+        "CandidateLite": {
+          "description": "A question candidate without its source attribution.",
+          "properties": {
+            "difficulty": {
+              "anyOf": [
+                {
+                  "$ref": "#/$defs/QuestionDifficulty"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null
+            },
+            "expectedConcepts": {
+              "anyOf": [
+                {
+                  "items": {
+                    "maxLength": 200,
+                    "minLength": 1,
+                    "type": "string"
+                  },
+                  "maxItems": 8,
+                  "type": "array"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "title": "Expectedconcepts"
+            },
+            "mode": {
+              "anyOf": [
+                {
+                  "pattern": "^[a-z0-9][a-z0-9_-]{0,63}$",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "title": "Mode"
+            },
+            "skillId": {
+              "pattern": "^[a-z0-9-]+(\\.[a-z0-9-]+)*$",
+              "title": "Skillid",
+              "type": "string"
+            },
+            "text": {
+              "maxLength": 1200,
+              "minLength": 10,
+              "title": "Text",
+              "type": "string"
+            }
+          },
+          "required": [
+            "skillId",
+            "text"
+          ],
+          "title": "CandidateLite",
+          "type": "object"
+        },
+        "QuestionDifficulty": {
+          "enum": [
+            "easy",
+            "medium",
+            "hard"
+          ],
+          "title": "QuestionDifficulty",
+          "type": "string"
+        }
+      },
+      "additionalProperties": true,
+      "properties": {
+        "questions": {
+          "items": {
+            "$ref": "#/$defs/CandidateLite"
+          },
+          "maxItems": 50,
+          "title": "Questions",
+          "type": "array"
+        }
+      },
+      "required": [
+        "questions"
+      ],
+      "title": "QuestionsSuggestResponse",
+      "type": "object"
+    },
+    "ReadinessUpdatedEventRequest": {
+      "properties": {
+        "changedSkillIds": {
+          "items": {
+            "pattern": "^[a-z0-9-]+(\\.[a-z0-9-]+)*$",
+            "type": "string"
+          },
+          "maxItems": 100,
+          "title": "Changedskillids",
+          "type": "array"
+        }
+      },
+      "required": [
+        "changedSkillIds"
+      ],
+      "title": "ReadinessUpdatedEventRequest",
+      "type": "object"
+    },
+    "ResourceLite": {
+      "description": "A prep resource without its host-stamped skill id and source.",
+      "properties": {
+        "kind": {
+          "title": "Kind",
+          "type": "string"
+        },
+        "skillId": {
+          "anyOf": [
+            {
+              "pattern": "^[a-z0-9-]+(\\.[a-z0-9-]+)*$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Skillid"
+        },
+        "source": {
+          "anyOf": [
+            {
+              "maxLength": 120,
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Source"
+        },
+        "summary": {
+          "anyOf": [
+            {
+              "maxLength": 600,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Summary"
+        },
+        "title": {
+          "maxLength": 200,
+          "minLength": 1,
+          "title": "Title",
+          "type": "string"
+        },
+        "url": {
+          "anyOf": [
+            {
+              "maxLength": 2000,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Url"
+        }
+      },
+      "required": [
+        "title",
+        "kind"
+      ],
+      "title": "ResourceLite",
+      "type": "object"
+    },
+    "ResourcesSuggestRequest": {
+      "properties": {
+        "skillIds": {
+          "items": {
+            "pattern": "^[a-z0-9-]+(\\.[a-z0-9-]+)*$",
+            "type": "string"
+          },
+          "maxItems": 20,
+          "minItems": 1,
+          "title": "Skillids",
+          "type": "array"
+        }
+      },
+      "required": [
+        "skillIds"
+      ],
+      "title": "ResourcesSuggestRequest",
+      "type": "object"
+    },
+    "ResourcesSuggestResponse": {
+      "$defs": {
+        "ResourceLite": {
+          "description": "A prep resource without its host-stamped skill id and source.",
+          "properties": {
+            "kind": {
+              "title": "Kind",
+              "type": "string"
+            },
+            "skillId": {
+              "anyOf": [
+                {
+                  "pattern": "^[a-z0-9-]+(\\.[a-z0-9-]+)*$",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "title": "Skillid"
+            },
+            "source": {
+              "anyOf": [
+                {
+                  "maxLength": 120,
+                  "minLength": 1,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "title": "Source"
+            },
+            "summary": {
+              "anyOf": [
+                {
+                  "maxLength": 600,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "title": "Summary"
+            },
+            "title": {
+              "maxLength": 200,
+              "minLength": 1,
+              "title": "Title",
+              "type": "string"
+            },
+            "url": {
+              "anyOf": [
+                {
+                  "maxLength": 2000,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "title": "Url"
+            }
+          },
+          "required": [
+            "title",
+            "kind"
+          ],
+          "title": "ResourceLite",
+          "type": "object"
+        }
+      },
+      "additionalProperties": true,
+      "properties": {
+        "resources": {
+          "items": {
+            "$ref": "#/$defs/ResourceLite"
+          },
+          "maxItems": 50,
+          "title": "Resources",
+          "type": "array"
+        }
+      },
+      "required": [
+        "resources"
+      ],
+      "title": "ResourcesSuggestResponse",
+      "type": "object"
+    },
+    "SessionCompletedEventRequest": {
+      "$defs": {
+        "SessionCompletedScore": {
+          "properties": {
+            "answers": {
+              "minimum": 0,
+              "title": "Answers",
+              "type": "integer"
+            },
+            "meanScore": {
+              "maximum": 1,
+              "minimum": 0,
+              "title": "Meanscore",
+              "type": "number"
+            }
+          },
+          "required": [
+            "meanScore",
+            "answers"
+          ],
+          "title": "SessionCompletedScore",
+          "type": "object"
+        }
+      },
+      "properties": {
+        "roundType": {
+          "maxLength": 40,
+          "title": "Roundtype",
+          "type": "string"
+        },
+        "scores": {
+          "additionalProperties": {
+            "$ref": "#/$defs/SessionCompletedScore"
+          },
+          "title": "Scores",
+          "type": "object"
+        },
+        "sessionId": {
+          "maxLength": 80,
+          "minLength": 1,
+          "title": "Sessionid",
+          "type": "string"
+        }
+      },
+      "required": [
+        "sessionId",
+        "roundType"
+      ],
+      "title": "SessionCompletedEventRequest",
+      "type": "object"
+    },
+    "SessionCompletedScore": {
+      "properties": {
+        "answers": {
+          "minimum": 0,
+          "title": "Answers",
+          "type": "integer"
+        },
+        "meanScore": {
+          "maximum": 1,
+          "minimum": 0,
+          "title": "Meanscore",
+          "type": "number"
+        }
+      },
+      "required": [
+        "meanScore",
+        "answers"
+      ],
+      "title": "SessionCompletedScore",
+      "type": "object"
+    },
+    "TargetChangedEventRequest": {
+      "properties": {
+        "company": {
+          "anyOf": [
+            {
+              "maxLength": 160,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Company"
+        },
+        "role": {
+          "maxLength": 120,
+          "title": "Role",
+          "type": "string"
+        },
+        "targetId": {
+          "maxLength": 80,
+          "minLength": 1,
+          "title": "Targetid",
+          "type": "string"
+        }
+      },
+      "required": [
+        "targetId",
+        "role"
+      ],
+      "title": "TargetChangedEventRequest",
+      "type": "object"
+    },
+    "UiFrameRunRequest": {
+      "properties": {
+        "component": {
+          "anyOf": [
+            {
+              "maxLength": 80,
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Component"
+        },
+        "page": {
+          "anyOf": [
+            {
+              "maxLength": 120,
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Page"
+        },
+        "request": {
+          "anyOf": [
+            {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Request"
+        }
+      },
+      "title": "UiFrameRunRequest",
+      "type": "object"
+    },
+    "UiFrameRunResponse": {
+      "$defs": {
+        "UIActionNavigate": {
+          "additionalProperties": false,
+          "properties": {
+            "to": {
+              "maxLength": 300,
+              "minLength": 1,
+              "title": "To",
+              "type": "string"
+            },
+            "type": {
+              "const": "navigate",
+              "title": "Type",
+              "type": "string"
+            }
+          },
+          "required": [
+            "type",
+            "to"
+          ],
+          "title": "UIActionNavigate",
+          "type": "object"
+        },
+        "UIActionOpenPluginPage": {
+          "additionalProperties": false,
+          "properties": {
+            "path": {
+              "maxLength": 120,
+              "pattern": "^/",
+              "title": "Path",
+              "type": "string"
+            },
+            "type": {
+              "const": "openPluginPage",
+              "title": "Type",
+              "type": "string"
+            }
+          },
+          "required": [
+            "type",
+            "path"
+          ],
+          "title": "UIActionOpenPluginPage",
+          "type": "object"
+        },
+        "UIActionRunPlugin": {
+          "additionalProperties": false,
+          "properties": {
+            "request": {
+              "additionalProperties": true,
+              "title": "Request",
+              "type": "object"
+            },
+            "type": {
+              "const": "runPlugin",
+              "title": "Type",
+              "type": "string"
+            }
+          },
+          "required": [
+            "type",
+            "request"
+          ],
+          "title": "UIActionRunPlugin",
+          "type": "object"
+        },
+        "UIActionStartInterview": {
+          "additionalProperties": false,
+          "properties": {
+            "modeId": {
+              "anyOf": [
+                {
+                  "pattern": "^[a-z0-9][a-z0-9-]{0,63}$",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "title": "Modeid"
+            },
+            "plannedQuestions": {
+              "anyOf": [
+                {
+                  "maximum": 10,
+                  "minimum": 1,
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "title": "Plannedquestions"
+            },
+            "roundType": {
+              "anyOf": [
+                {
+                  "const": "mixed",
+                  "type": "string"
+                },
+                {
+                  "pattern": "^[a-z0-9][a-z0-9_-]{0,63}$",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "title": "Roundtype"
+            },
+            "type": {
+              "const": "startInterview",
+              "title": "Type",
+              "type": "string"
+            }
+          },
+          "required": [
+            "type"
+          ],
+          "title": "UIActionStartInterview",
+          "type": "object"
+        },
+        "UIActionStartPractice": {
+          "additionalProperties": false,
+          "properties": {
+            "skillId": {
+              "pattern": "^[a-z0-9-]+(\\.[a-z0-9-]+)*$",
+              "title": "Skillid",
+              "type": "string"
+            },
+            "type": {
+              "const": "startPractice",
+              "title": "Type",
+              "type": "string"
+            }
+          },
+          "required": [
+            "type",
+            "skillId"
+          ],
+          "title": "UIActionStartPractice",
+          "type": "object"
+        },
+        "UINodeBadge": {
+          "additionalProperties": false,
+          "properties": {
+            "text": {
+              "maxLength": 500,
+              "minLength": 1,
+              "title": "Text",
+              "type": "string"
+            },
+            "tone": {
+              "$ref": "#/$defs/UITone"
+            },
+            "type": {
+              "const": "badge",
+              "title": "Type",
+              "type": "string"
+            }
+          },
+          "required": [
+            "type",
+            "text",
+            "tone"
+          ],
+          "title": "UINodeBadge",
+          "type": "object"
+        },
+        "UINodeButton": {
+          "additionalProperties": false,
+          "properties": {
+            "action": {
+              "discriminator": {
+                "mapping": {
+                  "navigate": "#/$defs/UIActionNavigate",
+                  "openPluginPage": "#/$defs/UIActionOpenPluginPage",
+                  "runPlugin": "#/$defs/UIActionRunPlugin",
+                  "startInterview": "#/$defs/UIActionStartInterview",
+                  "startPractice": "#/$defs/UIActionStartPractice"
+                },
+                "propertyName": "type"
+              },
+              "oneOf": [
+                {
+                  "$ref": "#/$defs/UIActionNavigate"
+                },
+                {
+                  "$ref": "#/$defs/UIActionStartInterview"
+                },
+                {
+                  "$ref": "#/$defs/UIActionStartPractice"
+                },
+                {
+                  "$ref": "#/$defs/UIActionRunPlugin"
+                },
+                {
+                  "$ref": "#/$defs/UIActionOpenPluginPage"
+                }
+              ],
+              "title": "Action"
+            },
+            "label": {
+              "maxLength": 500,
+              "minLength": 1,
+              "title": "Label",
+              "type": "string"
+            },
+            "type": {
+              "const": "button",
+              "title": "Type",
+              "type": "string"
+            },
+            "variant": {
+              "anyOf": [
+                {
+                  "enum": [
+                    "primary",
+                    "secondary"
+                  ],
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "title": "Variant"
+            }
+          },
+          "required": [
+            "type",
+            "label",
+            "action"
+          ],
+          "title": "UINodeButton",
+          "type": "object"
+        },
+        "UINodeCard": {
+          "additionalProperties": false,
+          "properties": {
+            "children": {
+              "items": {
+                "discriminator": {
+                  "mapping": {
+                    "badge": "#/$defs/UINodeBadge",
+                    "button": "#/$defs/UINodeButton",
+                    "card": "#/$defs/UINodeCard",
+                    "divider": "#/$defs/UINodeDivider",
+                    "emptyState": "#/$defs/UINodeEmptyState",
+                    "evidenceList": "#/$defs/UINodeEvidenceList",
+                    "heading": "#/$defs/UINodeHeading",
+                    "list": "#/$defs/UINodeList",
+                    "progressList": "#/$defs/UINodeProgressList",
+                    "readinessChart": "#/$defs/UINodeReadinessChart",
+                    "row": "#/$defs/UINodeRow",
+                    "skillScore": "#/$defs/UINodeSkillScore",
+                    "stack": "#/$defs/UINodeStack",
+                    "stat": "#/$defs/UINodeStat",
+                    "tabs": "#/$defs/UINodeTabs",
+                    "text": "#/$defs/UINodeText"
+                  },
+                  "propertyName": "type"
+                },
+                "oneOf": [
+                  {
+                    "$ref": "#/$defs/UINodeStack"
+                  },
+                  {
+                    "$ref": "#/$defs/UINodeRow"
+                  },
+                  {
+                    "$ref": "#/$defs/UINodeCard"
+                  },
+                  {
+                    "$ref": "#/$defs/UINodeHeading"
+                  },
+                  {
+                    "$ref": "#/$defs/UINodeText"
+                  },
+                  {
+                    "$ref": "#/$defs/UINodeStat"
+                  },
+                  {
+                    "$ref": "#/$defs/UINodeBadge"
+                  },
+                  {
+                    "$ref": "#/$defs/UINodeSkillScore"
+                  },
+                  {
+                    "$ref": "#/$defs/UINodeProgressList"
+                  },
+                  {
+                    "$ref": "#/$defs/UINodeList"
+                  },
+                  {
+                    "$ref": "#/$defs/UINodeEvidenceList"
+                  },
+                  {
+                    "$ref": "#/$defs/UINodeReadinessChart"
+                  },
+                  {
+                    "$ref": "#/$defs/UINodeTabs"
+                  },
+                  {
+                    "$ref": "#/$defs/UINodeEmptyState"
+                  },
+                  {
+                    "$ref": "#/$defs/UINodeDivider"
+                  },
+                  {
+                    "$ref": "#/$defs/UINodeButton"
+                  }
+                ]
+              },
+              "title": "Children",
+              "type": "array"
+            },
+            "subtitle": {
+              "anyOf": [
+                {
+                  "maxLength": 500,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "title": "Subtitle"
+            },
+            "title": {
+              "anyOf": [
+                {
+                  "maxLength": 500,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "title": "Title"
+            },
+            "type": {
+              "const": "card",
+              "title": "Type",
+              "type": "string"
+            }
+          },
+          "required": [
+            "type",
+            "children"
+          ],
+          "title": "UINodeCard",
+          "type": "object"
+        },
+        "UINodeDivider": {
+          "additionalProperties": false,
+          "properties": {
+            "type": {
+              "const": "divider",
+              "title": "Type",
+              "type": "string"
+            }
+          },
+          "required": [
+            "type"
+          ],
+          "title": "UINodeDivider",
+          "type": "object"
+        },
+        "UINodeEmptyState": {
+          "additionalProperties": false,
+          "properties": {
+            "description": {
+              "anyOf": [
+                {
+                  "maxLength": 500,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "title": "Description"
+            },
+            "title": {
+              "maxLength": 500,
+              "minLength": 1,
+              "title": "Title",
+              "type": "string"
+            },
+            "type": {
+              "const": "emptyState",
+              "title": "Type",
+              "type": "string"
+            }
+          },
+          "required": [
+            "type",
+            "title"
+          ],
+          "title": "UINodeEmptyState",
+          "type": "object"
+        },
+        "UINodeEvidenceList": {
+          "additionalProperties": false,
+          "properties": {
+            "items": {
+              "items": {
+                "$ref": "#/$defs/UINodeEvidenceListItem"
+              },
+              "maxItems": 50,
+              "title": "Items",
+              "type": "array"
+            },
+            "type": {
+              "const": "evidenceList",
+              "title": "Type",
+              "type": "string"
+            }
+          },
+          "required": [
+            "type",
+            "items"
+          ],
+          "title": "UINodeEvidenceList",
+          "type": "object"
+        },
+        "UINodeEvidenceListItem": {
+          "additionalProperties": false,
+          "properties": {
+            "createdAt": {
+              "anyOf": [
+                {
+                  "maxLength": 40,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "title": "Createdat"
+            },
+            "observation": {
+              "maxLength": 500,
+              "minLength": 1,
+              "title": "Observation",
+              "type": "string"
+            },
+            "score": {
+              "anyOf": [
+                {
+                  "maximum": 1,
+                  "minimum": 0,
+                  "type": "number"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "title": "Score"
+            },
+            "skillId": {
+              "pattern": "^[a-z0-9-]+(\\.[a-z0-9-]+)*$",
+              "title": "Skillid",
+              "type": "string"
+            }
+          },
+          "required": [
+            "skillId",
+            "observation"
+          ],
+          "title": "UINodeEvidenceListItem",
+          "type": "object"
+        },
+        "UINodeHeading": {
+          "additionalProperties": false,
+          "properties": {
+            "level": {
+              "default": 2,
+              "enum": [
+                2,
+                3
+              ],
+              "title": "Level",
+              "type": "integer"
+            },
+            "text": {
+              "maxLength": 500,
+              "minLength": 1,
+              "title": "Text",
+              "type": "string"
+            },
+            "type": {
+              "const": "heading",
+              "title": "Type",
+              "type": "string"
+            }
+          },
+          "required": [
+            "type",
+            "text"
+          ],
+          "title": "UINodeHeading",
+          "type": "object"
+        },
+        "UINodeList": {
+          "additionalProperties": false,
+          "properties": {
+            "items": {
+              "items": {
+                "$ref": "#/$defs/UINodeListItem"
+              },
+              "maxItems": 50,
+              "title": "Items",
+              "type": "array"
+            },
+            "type": {
+              "const": "list",
+              "title": "Type",
+              "type": "string"
+            }
+          },
+          "required": [
+            "type",
+            "items"
+          ],
+          "title": "UINodeList",
+          "type": "object"
+        },
+        "UINodeListItem": {
+          "additionalProperties": false,
+          "properties": {
+            "text": {
+              "maxLength": 500,
+              "minLength": 1,
+              "title": "Text",
+              "type": "string"
+            },
+            "tone": {
+              "anyOf": [
+                {
+                  "$ref": "#/$defs/UITone"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null
+            }
+          },
+          "required": [
+            "text"
+          ],
+          "title": "UINodeListItem",
+          "type": "object"
+        },
+        "UINodeProgressList": {
+          "additionalProperties": false,
+          "properties": {
+            "items": {
+              "items": {
+                "$ref": "#/$defs/UINodeProgressListItem"
+              },
+              "maxItems": 50,
+              "title": "Items",
+              "type": "array"
+            },
+            "type": {
+              "const": "progressList",
+              "title": "Type",
+              "type": "string"
+            }
+          },
+          "required": [
+            "type",
+            "items"
+          ],
+          "title": "UINodeProgressList",
+          "type": "object"
+        },
+        "UINodeProgressListItem": {
+          "additionalProperties": false,
+          "properties": {
+            "label": {
+              "maxLength": 500,
+              "minLength": 1,
+              "title": "Label",
+              "type": "string"
+            },
+            "tone": {
+              "anyOf": [
+                {
+                  "$ref": "#/$defs/UITone"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null
+            },
+            "value": {
+              "maximum": 1,
+              "minimum": 0,
+              "title": "Value",
+              "type": "number"
+            }
+          },
+          "required": [
+            "label",
+            "value"
+          ],
+          "title": "UINodeProgressListItem",
+          "type": "object"
+        },
+        "UINodeReadinessChart": {
+          "additionalProperties": false,
+          "properties": {
+            "label": {
+              "anyOf": [
+                {
+                  "maxLength": 500,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "title": "Label"
+            },
+            "points": {
+              "items": {
+                "maximum": 1,
+                "minimum": 0,
+                "type": "number"
+              },
+              "maxItems": 200,
+              "title": "Points",
+              "type": "array"
+            },
+            "type": {
+              "const": "readinessChart",
+              "title": "Type",
+              "type": "string"
+            }
+          },
+          "required": [
+            "type",
+            "points"
+          ],
+          "title": "UINodeReadinessChart",
+          "type": "object"
+        },
+        "UINodeRow": {
+          "additionalProperties": false,
+          "properties": {
+            "children": {
+              "items": {
+                "discriminator": {
+                  "mapping": {
+                    "badge": "#/$defs/UINodeBadge",
+                    "button": "#/$defs/UINodeButton",
+                    "card": "#/$defs/UINodeCard",
+                    "divider": "#/$defs/UINodeDivider",
+                    "emptyState": "#/$defs/UINodeEmptyState",
+                    "evidenceList": "#/$defs/UINodeEvidenceList",
+                    "heading": "#/$defs/UINodeHeading",
+                    "list": "#/$defs/UINodeList",
+                    "progressList": "#/$defs/UINodeProgressList",
+                    "readinessChart": "#/$defs/UINodeReadinessChart",
+                    "row": "#/$defs/UINodeRow",
+                    "skillScore": "#/$defs/UINodeSkillScore",
+                    "stack": "#/$defs/UINodeStack",
+                    "stat": "#/$defs/UINodeStat",
+                    "tabs": "#/$defs/UINodeTabs",
+                    "text": "#/$defs/UINodeText"
+                  },
+                  "propertyName": "type"
+                },
+                "oneOf": [
+                  {
+                    "$ref": "#/$defs/UINodeStack"
+                  },
+                  {
+                    "$ref": "#/$defs/UINodeRow"
+                  },
+                  {
+                    "$ref": "#/$defs/UINodeCard"
+                  },
+                  {
+                    "$ref": "#/$defs/UINodeHeading"
+                  },
+                  {
+                    "$ref": "#/$defs/UINodeText"
+                  },
+                  {
+                    "$ref": "#/$defs/UINodeStat"
+                  },
+                  {
+                    "$ref": "#/$defs/UINodeBadge"
+                  },
+                  {
+                    "$ref": "#/$defs/UINodeSkillScore"
+                  },
+                  {
+                    "$ref": "#/$defs/UINodeProgressList"
+                  },
+                  {
+                    "$ref": "#/$defs/UINodeList"
+                  },
+                  {
+                    "$ref": "#/$defs/UINodeEvidenceList"
+                  },
+                  {
+                    "$ref": "#/$defs/UINodeReadinessChart"
+                  },
+                  {
+                    "$ref": "#/$defs/UINodeTabs"
+                  },
+                  {
+                    "$ref": "#/$defs/UINodeEmptyState"
+                  },
+                  {
+                    "$ref": "#/$defs/UINodeDivider"
+                  },
+                  {
+                    "$ref": "#/$defs/UINodeButton"
+                  }
+                ]
+              },
+              "title": "Children",
+              "type": "array"
+            },
+            "type": {
+              "const": "row",
+              "title": "Type",
+              "type": "string"
+            }
+          },
+          "required": [
+            "type",
+            "children"
+          ],
+          "title": "UINodeRow",
+          "type": "object"
+        },
+        "UINodeSkillScore": {
+          "additionalProperties": false,
+          "properties": {
+            "confidence": {
+              "anyOf": [
+                {
+                  "maximum": 1,
+                  "minimum": 0,
+                  "type": "number"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "title": "Confidence"
+            },
+            "label": {
+              "anyOf": [
+                {
+                  "maxLength": 500,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "title": "Label"
+            },
+            "score": {
+              "anyOf": [
+                {
+                  "maximum": 1,
+                  "minimum": 0,
+                  "type": "number"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Score"
+            },
+            "skillId": {
+              "pattern": "^[a-z0-9-]+(\\.[a-z0-9-]+)*$",
+              "title": "Skillid",
+              "type": "string"
+            },
+            "type": {
+              "const": "skillScore",
+              "title": "Type",
+              "type": "string"
+            }
+          },
+          "required": [
+            "type",
+            "skillId",
+            "score"
+          ],
+          "title": "UINodeSkillScore",
+          "type": "object"
+        },
+        "UINodeStack": {
+          "additionalProperties": false,
+          "properties": {
+            "children": {
+              "items": {
+                "discriminator": {
+                  "mapping": {
+                    "badge": "#/$defs/UINodeBadge",
+                    "button": "#/$defs/UINodeButton",
+                    "card": "#/$defs/UINodeCard",
+                    "divider": "#/$defs/UINodeDivider",
+                    "emptyState": "#/$defs/UINodeEmptyState",
+                    "evidenceList": "#/$defs/UINodeEvidenceList",
+                    "heading": "#/$defs/UINodeHeading",
+                    "list": "#/$defs/UINodeList",
+                    "progressList": "#/$defs/UINodeProgressList",
+                    "readinessChart": "#/$defs/UINodeReadinessChart",
+                    "row": "#/$defs/UINodeRow",
+                    "skillScore": "#/$defs/UINodeSkillScore",
+                    "stack": "#/$defs/UINodeStack",
+                    "stat": "#/$defs/UINodeStat",
+                    "tabs": "#/$defs/UINodeTabs",
+                    "text": "#/$defs/UINodeText"
+                  },
+                  "propertyName": "type"
+                },
+                "oneOf": [
+                  {
+                    "$ref": "#/$defs/UINodeStack"
+                  },
+                  {
+                    "$ref": "#/$defs/UINodeRow"
+                  },
+                  {
+                    "$ref": "#/$defs/UINodeCard"
+                  },
+                  {
+                    "$ref": "#/$defs/UINodeHeading"
+                  },
+                  {
+                    "$ref": "#/$defs/UINodeText"
+                  },
+                  {
+                    "$ref": "#/$defs/UINodeStat"
+                  },
+                  {
+                    "$ref": "#/$defs/UINodeBadge"
+                  },
+                  {
+                    "$ref": "#/$defs/UINodeSkillScore"
+                  },
+                  {
+                    "$ref": "#/$defs/UINodeProgressList"
+                  },
+                  {
+                    "$ref": "#/$defs/UINodeList"
+                  },
+                  {
+                    "$ref": "#/$defs/UINodeEvidenceList"
+                  },
+                  {
+                    "$ref": "#/$defs/UINodeReadinessChart"
+                  },
+                  {
+                    "$ref": "#/$defs/UINodeTabs"
+                  },
+                  {
+                    "$ref": "#/$defs/UINodeEmptyState"
+                  },
+                  {
+                    "$ref": "#/$defs/UINodeDivider"
+                  },
+                  {
+                    "$ref": "#/$defs/UINodeButton"
+                  }
+                ]
+              },
+              "title": "Children",
+              "type": "array"
+            },
+            "gap": {
+              "anyOf": [
+                {
+                  "enum": [
+                    "sm",
+                    "md",
+                    "lg"
+                  ],
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "title": "Gap"
+            },
+            "type": {
+              "const": "stack",
+              "title": "Type",
+              "type": "string"
+            }
+          },
+          "required": [
+            "type",
+            "children"
+          ],
+          "title": "UINodeStack",
+          "type": "object"
+        },
+        "UINodeStat": {
+          "additionalProperties": false,
+          "properties": {
+            "label": {
+              "maxLength": 500,
+              "minLength": 1,
+              "title": "Label",
+              "type": "string"
+            },
+            "tone": {
+              "anyOf": [
+                {
+                  "$ref": "#/$defs/UITone"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null
+            },
+            "trend": {
+              "anyOf": [
+                {
+                  "enum": [
+                    "up",
+                    "down",
+                    "flat"
+                  ],
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "title": "Trend"
+            },
+            "type": {
+              "const": "stat",
+              "title": "Type",
+              "type": "string"
+            },
+            "value": {
+              "maxLength": 500,
+              "minLength": 1,
+              "title": "Value",
+              "type": "string"
+            }
+          },
+          "required": [
+            "type",
+            "label",
+            "value"
+          ],
+          "title": "UINodeStat",
+          "type": "object"
+        },
+        "UINodeTab": {
+          "additionalProperties": false,
+          "properties": {
+            "children": {
+              "items": {
+                "discriminator": {
+                  "mapping": {
+                    "badge": "#/$defs/UINodeBadge",
+                    "button": "#/$defs/UINodeButton",
+                    "card": "#/$defs/UINodeCard",
+                    "divider": "#/$defs/UINodeDivider",
+                    "emptyState": "#/$defs/UINodeEmptyState",
+                    "evidenceList": "#/$defs/UINodeEvidenceList",
+                    "heading": "#/$defs/UINodeHeading",
+                    "list": "#/$defs/UINodeList",
+                    "progressList": "#/$defs/UINodeProgressList",
+                    "readinessChart": "#/$defs/UINodeReadinessChart",
+                    "row": "#/$defs/UINodeRow",
+                    "skillScore": "#/$defs/UINodeSkillScore",
+                    "stack": "#/$defs/UINodeStack",
+                    "stat": "#/$defs/UINodeStat",
+                    "tabs": "#/$defs/UINodeTabs",
+                    "text": "#/$defs/UINodeText"
+                  },
+                  "propertyName": "type"
+                },
+                "oneOf": [
+                  {
+                    "$ref": "#/$defs/UINodeStack"
+                  },
+                  {
+                    "$ref": "#/$defs/UINodeRow"
+                  },
+                  {
+                    "$ref": "#/$defs/UINodeCard"
+                  },
+                  {
+                    "$ref": "#/$defs/UINodeHeading"
+                  },
+                  {
+                    "$ref": "#/$defs/UINodeText"
+                  },
+                  {
+                    "$ref": "#/$defs/UINodeStat"
+                  },
+                  {
+                    "$ref": "#/$defs/UINodeBadge"
+                  },
+                  {
+                    "$ref": "#/$defs/UINodeSkillScore"
+                  },
+                  {
+                    "$ref": "#/$defs/UINodeProgressList"
+                  },
+                  {
+                    "$ref": "#/$defs/UINodeList"
+                  },
+                  {
+                    "$ref": "#/$defs/UINodeEvidenceList"
+                  },
+                  {
+                    "$ref": "#/$defs/UINodeReadinessChart"
+                  },
+                  {
+                    "$ref": "#/$defs/UINodeTabs"
+                  },
+                  {
+                    "$ref": "#/$defs/UINodeEmptyState"
+                  },
+                  {
+                    "$ref": "#/$defs/UINodeDivider"
+                  },
+                  {
+                    "$ref": "#/$defs/UINodeButton"
+                  }
+                ]
+              },
+              "title": "Children",
+              "type": "array"
+            },
+            "label": {
+              "maxLength": 500,
+              "minLength": 1,
+              "title": "Label",
+              "type": "string"
+            }
+          },
+          "required": [
+            "label",
+            "children"
+          ],
+          "title": "UINodeTab",
+          "type": "object"
+        },
+        "UINodeTabs": {
+          "additionalProperties": false,
+          "properties": {
+            "tabs": {
+              "items": {
+                "$ref": "#/$defs/UINodeTab"
+              },
+              "maxItems": 8,
+              "minItems": 1,
+              "title": "Tabs",
+              "type": "array"
+            },
+            "type": {
+              "const": "tabs",
+              "title": "Type",
+              "type": "string"
+            }
+          },
+          "required": [
+            "type",
+            "tabs"
+          ],
+          "title": "UINodeTabs",
+          "type": "object"
+        },
+        "UINodeText": {
+          "additionalProperties": false,
+          "properties": {
+            "text": {
+              "maxLength": 500,
+              "minLength": 1,
+              "title": "Text",
+              "type": "string"
+            },
+            "tone": {
+              "anyOf": [
+                {
+                  "$ref": "#/$defs/UITone"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null
+            },
+            "type": {
+              "const": "text",
+              "title": "Type",
+              "type": "string"
+            }
+          },
+          "required": [
+            "type",
+            "text"
+          ],
+          "title": "UINodeText",
+          "type": "object"
+        },
+        "UITone": {
+          "enum": [
+            "green",
+            "amber",
+            "red",
+            "blue",
+            "muted"
+          ],
+          "title": "UITone",
+          "type": "string"
+        }
+      },
+      "additionalProperties": true,
+      "properties": {
+        "output": {
+          "title": "Output"
+        },
+        "ui": {
+          "anyOf": [
+            {
+              "discriminator": {
+                "mapping": {
+                  "badge": "#/$defs/UINodeBadge",
+                  "button": "#/$defs/UINodeButton",
+                  "card": "#/$defs/UINodeCard",
+                  "divider": "#/$defs/UINodeDivider",
+                  "emptyState": "#/$defs/UINodeEmptyState",
+                  "evidenceList": "#/$defs/UINodeEvidenceList",
+                  "heading": "#/$defs/UINodeHeading",
+                  "list": "#/$defs/UINodeList",
+                  "progressList": "#/$defs/UINodeProgressList",
+                  "readinessChart": "#/$defs/UINodeReadinessChart",
+                  "row": "#/$defs/UINodeRow",
+                  "skillScore": "#/$defs/UINodeSkillScore",
+                  "stack": "#/$defs/UINodeStack",
+                  "stat": "#/$defs/UINodeStat",
+                  "tabs": "#/$defs/UINodeTabs",
+                  "text": "#/$defs/UINodeText"
+                },
+                "propertyName": "type"
+              },
+              "oneOf": [
+                {
+                  "$ref": "#/$defs/UINodeStack"
+                },
+                {
+                  "$ref": "#/$defs/UINodeRow"
+                },
+                {
+                  "$ref": "#/$defs/UINodeCard"
+                },
+                {
+                  "$ref": "#/$defs/UINodeHeading"
+                },
+                {
+                  "$ref": "#/$defs/UINodeText"
+                },
+                {
+                  "$ref": "#/$defs/UINodeStat"
+                },
+                {
+                  "$ref": "#/$defs/UINodeBadge"
+                },
+                {
+                  "$ref": "#/$defs/UINodeSkillScore"
+                },
+                {
+                  "$ref": "#/$defs/UINodeProgressList"
+                },
+                {
+                  "$ref": "#/$defs/UINodeList"
+                },
+                {
+                  "$ref": "#/$defs/UINodeEvidenceList"
+                },
+                {
+                  "$ref": "#/$defs/UINodeReadinessChart"
+                },
+                {
+                  "$ref": "#/$defs/UINodeTabs"
+                },
+                {
+                  "$ref": "#/$defs/UINodeEmptyState"
+                },
+                {
+                  "$ref": "#/$defs/UINodeDivider"
+                },
+                {
+                  "$ref": "#/$defs/UINodeButton"
+                }
+              ]
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Ui"
+        }
+      },
+      "required": [
+        "output"
+      ],
+      "title": "UiFrameRunResponse",
+      "type": "object"
+    },
+    "UiRenderRequest": {
+      "properties": {
+        "component": {
+          "maxLength": 80,
+          "minLength": 1,
+          "title": "Component",
+          "type": "string"
+        },
+        "page": {
+          "anyOf": [
+            {
+              "maxLength": 120,
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Page"
+        },
+        "params": {
+          "default": null,
+          "title": "Params"
+        },
+        "slot": {
+          "anyOf": [
+            {
+              "maxLength": 60,
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Slot"
+        }
+      },
+      "required": [
+        "component"
+      ],
+      "title": "UiRenderRequest",
+      "type": "object"
+    },
+    "UiRenderResponse": {
+      "$defs": {
+        "UIActionNavigate": {
+          "additionalProperties": false,
+          "properties": {
+            "to": {
+              "maxLength": 300,
+              "minLength": 1,
+              "title": "To",
+              "type": "string"
+            },
+            "type": {
+              "const": "navigate",
+              "title": "Type",
+              "type": "string"
+            }
+          },
+          "required": [
+            "type",
+            "to"
+          ],
+          "title": "UIActionNavigate",
+          "type": "object"
+        },
+        "UIActionOpenPluginPage": {
+          "additionalProperties": false,
+          "properties": {
+            "path": {
+              "maxLength": 120,
+              "pattern": "^/",
+              "title": "Path",
+              "type": "string"
+            },
+            "type": {
+              "const": "openPluginPage",
+              "title": "Type",
+              "type": "string"
+            }
+          },
+          "required": [
+            "type",
+            "path"
+          ],
+          "title": "UIActionOpenPluginPage",
+          "type": "object"
+        },
+        "UIActionRunPlugin": {
+          "additionalProperties": false,
+          "properties": {
+            "request": {
+              "additionalProperties": true,
+              "title": "Request",
+              "type": "object"
+            },
+            "type": {
+              "const": "runPlugin",
+              "title": "Type",
+              "type": "string"
+            }
+          },
+          "required": [
+            "type",
+            "request"
+          ],
+          "title": "UIActionRunPlugin",
+          "type": "object"
+        },
+        "UIActionStartInterview": {
+          "additionalProperties": false,
+          "properties": {
+            "modeId": {
+              "anyOf": [
+                {
+                  "pattern": "^[a-z0-9][a-z0-9-]{0,63}$",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "title": "Modeid"
+            },
+            "plannedQuestions": {
+              "anyOf": [
+                {
+                  "maximum": 10,
+                  "minimum": 1,
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "title": "Plannedquestions"
+            },
+            "roundType": {
+              "anyOf": [
+                {
+                  "const": "mixed",
+                  "type": "string"
+                },
+                {
+                  "pattern": "^[a-z0-9][a-z0-9_-]{0,63}$",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "title": "Roundtype"
+            },
+            "type": {
+              "const": "startInterview",
+              "title": "Type",
+              "type": "string"
+            }
+          },
+          "required": [
+            "type"
+          ],
+          "title": "UIActionStartInterview",
+          "type": "object"
+        },
+        "UIActionStartPractice": {
+          "additionalProperties": false,
+          "properties": {
+            "skillId": {
+              "pattern": "^[a-z0-9-]+(\\.[a-z0-9-]+)*$",
+              "title": "Skillid",
+              "type": "string"
+            },
+            "type": {
+              "const": "startPractice",
+              "title": "Type",
+              "type": "string"
+            }
+          },
+          "required": [
+            "type",
+            "skillId"
+          ],
+          "title": "UIActionStartPractice",
+          "type": "object"
+        },
+        "UINodeBadge": {
+          "additionalProperties": false,
+          "properties": {
+            "text": {
+              "maxLength": 500,
+              "minLength": 1,
+              "title": "Text",
+              "type": "string"
+            },
+            "tone": {
+              "$ref": "#/$defs/UITone"
+            },
+            "type": {
+              "const": "badge",
+              "title": "Type",
+              "type": "string"
+            }
+          },
+          "required": [
+            "type",
+            "text",
+            "tone"
+          ],
+          "title": "UINodeBadge",
+          "type": "object"
+        },
+        "UINodeButton": {
+          "additionalProperties": false,
+          "properties": {
+            "action": {
+              "discriminator": {
+                "mapping": {
+                  "navigate": "#/$defs/UIActionNavigate",
+                  "openPluginPage": "#/$defs/UIActionOpenPluginPage",
+                  "runPlugin": "#/$defs/UIActionRunPlugin",
+                  "startInterview": "#/$defs/UIActionStartInterview",
+                  "startPractice": "#/$defs/UIActionStartPractice"
+                },
+                "propertyName": "type"
+              },
+              "oneOf": [
+                {
+                  "$ref": "#/$defs/UIActionNavigate"
+                },
+                {
+                  "$ref": "#/$defs/UIActionStartInterview"
+                },
+                {
+                  "$ref": "#/$defs/UIActionStartPractice"
+                },
+                {
+                  "$ref": "#/$defs/UIActionRunPlugin"
+                },
+                {
+                  "$ref": "#/$defs/UIActionOpenPluginPage"
+                }
+              ],
+              "title": "Action"
+            },
+            "label": {
+              "maxLength": 500,
+              "minLength": 1,
+              "title": "Label",
+              "type": "string"
+            },
+            "type": {
+              "const": "button",
+              "title": "Type",
+              "type": "string"
+            },
+            "variant": {
+              "anyOf": [
+                {
+                  "enum": [
+                    "primary",
+                    "secondary"
+                  ],
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "title": "Variant"
+            }
+          },
+          "required": [
+            "type",
+            "label",
+            "action"
+          ],
+          "title": "UINodeButton",
+          "type": "object"
+        },
+        "UINodeCard": {
+          "additionalProperties": false,
+          "properties": {
+            "children": {
+              "items": {
+                "discriminator": {
+                  "mapping": {
+                    "badge": "#/$defs/UINodeBadge",
+                    "button": "#/$defs/UINodeButton",
+                    "card": "#/$defs/UINodeCard",
+                    "divider": "#/$defs/UINodeDivider",
+                    "emptyState": "#/$defs/UINodeEmptyState",
+                    "evidenceList": "#/$defs/UINodeEvidenceList",
+                    "heading": "#/$defs/UINodeHeading",
+                    "list": "#/$defs/UINodeList",
+                    "progressList": "#/$defs/UINodeProgressList",
+                    "readinessChart": "#/$defs/UINodeReadinessChart",
+                    "row": "#/$defs/UINodeRow",
+                    "skillScore": "#/$defs/UINodeSkillScore",
+                    "stack": "#/$defs/UINodeStack",
+                    "stat": "#/$defs/UINodeStat",
+                    "tabs": "#/$defs/UINodeTabs",
+                    "text": "#/$defs/UINodeText"
+                  },
+                  "propertyName": "type"
+                },
+                "oneOf": [
+                  {
+                    "$ref": "#/$defs/UINodeStack"
+                  },
+                  {
+                    "$ref": "#/$defs/UINodeRow"
+                  },
+                  {
+                    "$ref": "#/$defs/UINodeCard"
+                  },
+                  {
+                    "$ref": "#/$defs/UINodeHeading"
+                  },
+                  {
+                    "$ref": "#/$defs/UINodeText"
+                  },
+                  {
+                    "$ref": "#/$defs/UINodeStat"
+                  },
+                  {
+                    "$ref": "#/$defs/UINodeBadge"
+                  },
+                  {
+                    "$ref": "#/$defs/UINodeSkillScore"
+                  },
+                  {
+                    "$ref": "#/$defs/UINodeProgressList"
+                  },
+                  {
+                    "$ref": "#/$defs/UINodeList"
+                  },
+                  {
+                    "$ref": "#/$defs/UINodeEvidenceList"
+                  },
+                  {
+                    "$ref": "#/$defs/UINodeReadinessChart"
+                  },
+                  {
+                    "$ref": "#/$defs/UINodeTabs"
+                  },
+                  {
+                    "$ref": "#/$defs/UINodeEmptyState"
+                  },
+                  {
+                    "$ref": "#/$defs/UINodeDivider"
+                  },
+                  {
+                    "$ref": "#/$defs/UINodeButton"
+                  }
+                ]
+              },
+              "title": "Children",
+              "type": "array"
+            },
+            "subtitle": {
+              "anyOf": [
+                {
+                  "maxLength": 500,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "title": "Subtitle"
+            },
+            "title": {
+              "anyOf": [
+                {
+                  "maxLength": 500,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "title": "Title"
+            },
+            "type": {
+              "const": "card",
+              "title": "Type",
+              "type": "string"
+            }
+          },
+          "required": [
+            "type",
+            "children"
+          ],
+          "title": "UINodeCard",
+          "type": "object"
+        },
+        "UINodeDivider": {
+          "additionalProperties": false,
+          "properties": {
+            "type": {
+              "const": "divider",
+              "title": "Type",
+              "type": "string"
+            }
+          },
+          "required": [
+            "type"
+          ],
+          "title": "UINodeDivider",
+          "type": "object"
+        },
+        "UINodeEmptyState": {
+          "additionalProperties": false,
+          "properties": {
+            "description": {
+              "anyOf": [
+                {
+                  "maxLength": 500,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "title": "Description"
+            },
+            "title": {
+              "maxLength": 500,
+              "minLength": 1,
+              "title": "Title",
+              "type": "string"
+            },
+            "type": {
+              "const": "emptyState",
+              "title": "Type",
+              "type": "string"
+            }
+          },
+          "required": [
+            "type",
+            "title"
+          ],
+          "title": "UINodeEmptyState",
+          "type": "object"
+        },
+        "UINodeEvidenceList": {
+          "additionalProperties": false,
+          "properties": {
+            "items": {
+              "items": {
+                "$ref": "#/$defs/UINodeEvidenceListItem"
+              },
+              "maxItems": 50,
+              "title": "Items",
+              "type": "array"
+            },
+            "type": {
+              "const": "evidenceList",
+              "title": "Type",
+              "type": "string"
+            }
+          },
+          "required": [
+            "type",
+            "items"
+          ],
+          "title": "UINodeEvidenceList",
+          "type": "object"
+        },
+        "UINodeEvidenceListItem": {
+          "additionalProperties": false,
+          "properties": {
+            "createdAt": {
+              "anyOf": [
+                {
+                  "maxLength": 40,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "title": "Createdat"
+            },
+            "observation": {
+              "maxLength": 500,
+              "minLength": 1,
+              "title": "Observation",
+              "type": "string"
+            },
+            "score": {
+              "anyOf": [
+                {
+                  "maximum": 1,
+                  "minimum": 0,
+                  "type": "number"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "title": "Score"
+            },
+            "skillId": {
+              "pattern": "^[a-z0-9-]+(\\.[a-z0-9-]+)*$",
+              "title": "Skillid",
+              "type": "string"
+            }
+          },
+          "required": [
+            "skillId",
+            "observation"
+          ],
+          "title": "UINodeEvidenceListItem",
+          "type": "object"
+        },
+        "UINodeHeading": {
+          "additionalProperties": false,
+          "properties": {
+            "level": {
+              "default": 2,
+              "enum": [
+                2,
+                3
+              ],
+              "title": "Level",
+              "type": "integer"
+            },
+            "text": {
+              "maxLength": 500,
+              "minLength": 1,
+              "title": "Text",
+              "type": "string"
+            },
+            "type": {
+              "const": "heading",
+              "title": "Type",
+              "type": "string"
+            }
+          },
+          "required": [
+            "type",
+            "text"
+          ],
+          "title": "UINodeHeading",
+          "type": "object"
+        },
+        "UINodeList": {
+          "additionalProperties": false,
+          "properties": {
+            "items": {
+              "items": {
+                "$ref": "#/$defs/UINodeListItem"
+              },
+              "maxItems": 50,
+              "title": "Items",
+              "type": "array"
+            },
+            "type": {
+              "const": "list",
+              "title": "Type",
+              "type": "string"
+            }
+          },
+          "required": [
+            "type",
+            "items"
+          ],
+          "title": "UINodeList",
+          "type": "object"
+        },
+        "UINodeListItem": {
+          "additionalProperties": false,
+          "properties": {
+            "text": {
+              "maxLength": 500,
+              "minLength": 1,
+              "title": "Text",
+              "type": "string"
+            },
+            "tone": {
+              "anyOf": [
+                {
+                  "$ref": "#/$defs/UITone"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null
+            }
+          },
+          "required": [
+            "text"
+          ],
+          "title": "UINodeListItem",
+          "type": "object"
+        },
+        "UINodeProgressList": {
+          "additionalProperties": false,
+          "properties": {
+            "items": {
+              "items": {
+                "$ref": "#/$defs/UINodeProgressListItem"
+              },
+              "maxItems": 50,
+              "title": "Items",
+              "type": "array"
+            },
+            "type": {
+              "const": "progressList",
+              "title": "Type",
+              "type": "string"
+            }
+          },
+          "required": [
+            "type",
+            "items"
+          ],
+          "title": "UINodeProgressList",
+          "type": "object"
+        },
+        "UINodeProgressListItem": {
+          "additionalProperties": false,
+          "properties": {
+            "label": {
+              "maxLength": 500,
+              "minLength": 1,
+              "title": "Label",
+              "type": "string"
+            },
+            "tone": {
+              "anyOf": [
+                {
+                  "$ref": "#/$defs/UITone"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null
+            },
+            "value": {
+              "maximum": 1,
+              "minimum": 0,
+              "title": "Value",
+              "type": "number"
+            }
+          },
+          "required": [
+            "label",
+            "value"
+          ],
+          "title": "UINodeProgressListItem",
+          "type": "object"
+        },
+        "UINodeReadinessChart": {
+          "additionalProperties": false,
+          "properties": {
+            "label": {
+              "anyOf": [
+                {
+                  "maxLength": 500,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "title": "Label"
+            },
+            "points": {
+              "items": {
+                "maximum": 1,
+                "minimum": 0,
+                "type": "number"
+              },
+              "maxItems": 200,
+              "title": "Points",
+              "type": "array"
+            },
+            "type": {
+              "const": "readinessChart",
+              "title": "Type",
+              "type": "string"
+            }
+          },
+          "required": [
+            "type",
+            "points"
+          ],
+          "title": "UINodeReadinessChart",
+          "type": "object"
+        },
+        "UINodeRow": {
+          "additionalProperties": false,
+          "properties": {
+            "children": {
+              "items": {
+                "discriminator": {
+                  "mapping": {
+                    "badge": "#/$defs/UINodeBadge",
+                    "button": "#/$defs/UINodeButton",
+                    "card": "#/$defs/UINodeCard",
+                    "divider": "#/$defs/UINodeDivider",
+                    "emptyState": "#/$defs/UINodeEmptyState",
+                    "evidenceList": "#/$defs/UINodeEvidenceList",
+                    "heading": "#/$defs/UINodeHeading",
+                    "list": "#/$defs/UINodeList",
+                    "progressList": "#/$defs/UINodeProgressList",
+                    "readinessChart": "#/$defs/UINodeReadinessChart",
+                    "row": "#/$defs/UINodeRow",
+                    "skillScore": "#/$defs/UINodeSkillScore",
+                    "stack": "#/$defs/UINodeStack",
+                    "stat": "#/$defs/UINodeStat",
+                    "tabs": "#/$defs/UINodeTabs",
+                    "text": "#/$defs/UINodeText"
+                  },
+                  "propertyName": "type"
+                },
+                "oneOf": [
+                  {
+                    "$ref": "#/$defs/UINodeStack"
+                  },
+                  {
+                    "$ref": "#/$defs/UINodeRow"
+                  },
+                  {
+                    "$ref": "#/$defs/UINodeCard"
+                  },
+                  {
+                    "$ref": "#/$defs/UINodeHeading"
+                  },
+                  {
+                    "$ref": "#/$defs/UINodeText"
+                  },
+                  {
+                    "$ref": "#/$defs/UINodeStat"
+                  },
+                  {
+                    "$ref": "#/$defs/UINodeBadge"
+                  },
+                  {
+                    "$ref": "#/$defs/UINodeSkillScore"
+                  },
+                  {
+                    "$ref": "#/$defs/UINodeProgressList"
+                  },
+                  {
+                    "$ref": "#/$defs/UINodeList"
+                  },
+                  {
+                    "$ref": "#/$defs/UINodeEvidenceList"
+                  },
+                  {
+                    "$ref": "#/$defs/UINodeReadinessChart"
+                  },
+                  {
+                    "$ref": "#/$defs/UINodeTabs"
+                  },
+                  {
+                    "$ref": "#/$defs/UINodeEmptyState"
+                  },
+                  {
+                    "$ref": "#/$defs/UINodeDivider"
+                  },
+                  {
+                    "$ref": "#/$defs/UINodeButton"
+                  }
+                ]
+              },
+              "title": "Children",
+              "type": "array"
+            },
+            "type": {
+              "const": "row",
+              "title": "Type",
+              "type": "string"
+            }
+          },
+          "required": [
+            "type",
+            "children"
+          ],
+          "title": "UINodeRow",
+          "type": "object"
+        },
+        "UINodeSkillScore": {
+          "additionalProperties": false,
+          "properties": {
+            "confidence": {
+              "anyOf": [
+                {
+                  "maximum": 1,
+                  "minimum": 0,
+                  "type": "number"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "title": "Confidence"
+            },
+            "label": {
+              "anyOf": [
+                {
+                  "maxLength": 500,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "title": "Label"
+            },
+            "score": {
+              "anyOf": [
+                {
+                  "maximum": 1,
+                  "minimum": 0,
+                  "type": "number"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Score"
+            },
+            "skillId": {
+              "pattern": "^[a-z0-9-]+(\\.[a-z0-9-]+)*$",
+              "title": "Skillid",
+              "type": "string"
+            },
+            "type": {
+              "const": "skillScore",
+              "title": "Type",
+              "type": "string"
+            }
+          },
+          "required": [
+            "type",
+            "skillId",
+            "score"
+          ],
+          "title": "UINodeSkillScore",
+          "type": "object"
+        },
+        "UINodeStack": {
+          "additionalProperties": false,
+          "properties": {
+            "children": {
+              "items": {
+                "discriminator": {
+                  "mapping": {
+                    "badge": "#/$defs/UINodeBadge",
+                    "button": "#/$defs/UINodeButton",
+                    "card": "#/$defs/UINodeCard",
+                    "divider": "#/$defs/UINodeDivider",
+                    "emptyState": "#/$defs/UINodeEmptyState",
+                    "evidenceList": "#/$defs/UINodeEvidenceList",
+                    "heading": "#/$defs/UINodeHeading",
+                    "list": "#/$defs/UINodeList",
+                    "progressList": "#/$defs/UINodeProgressList",
+                    "readinessChart": "#/$defs/UINodeReadinessChart",
+                    "row": "#/$defs/UINodeRow",
+                    "skillScore": "#/$defs/UINodeSkillScore",
+                    "stack": "#/$defs/UINodeStack",
+                    "stat": "#/$defs/UINodeStat",
+                    "tabs": "#/$defs/UINodeTabs",
+                    "text": "#/$defs/UINodeText"
+                  },
+                  "propertyName": "type"
+                },
+                "oneOf": [
+                  {
+                    "$ref": "#/$defs/UINodeStack"
+                  },
+                  {
+                    "$ref": "#/$defs/UINodeRow"
+                  },
+                  {
+                    "$ref": "#/$defs/UINodeCard"
+                  },
+                  {
+                    "$ref": "#/$defs/UINodeHeading"
+                  },
+                  {
+                    "$ref": "#/$defs/UINodeText"
+                  },
+                  {
+                    "$ref": "#/$defs/UINodeStat"
+                  },
+                  {
+                    "$ref": "#/$defs/UINodeBadge"
+                  },
+                  {
+                    "$ref": "#/$defs/UINodeSkillScore"
+                  },
+                  {
+                    "$ref": "#/$defs/UINodeProgressList"
+                  },
+                  {
+                    "$ref": "#/$defs/UINodeList"
+                  },
+                  {
+                    "$ref": "#/$defs/UINodeEvidenceList"
+                  },
+                  {
+                    "$ref": "#/$defs/UINodeReadinessChart"
+                  },
+                  {
+                    "$ref": "#/$defs/UINodeTabs"
+                  },
+                  {
+                    "$ref": "#/$defs/UINodeEmptyState"
+                  },
+                  {
+                    "$ref": "#/$defs/UINodeDivider"
+                  },
+                  {
+                    "$ref": "#/$defs/UINodeButton"
+                  }
+                ]
+              },
+              "title": "Children",
+              "type": "array"
+            },
+            "gap": {
+              "anyOf": [
+                {
+                  "enum": [
+                    "sm",
+                    "md",
+                    "lg"
+                  ],
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "title": "Gap"
+            },
+            "type": {
+              "const": "stack",
+              "title": "Type",
+              "type": "string"
+            }
+          },
+          "required": [
+            "type",
+            "children"
+          ],
+          "title": "UINodeStack",
+          "type": "object"
+        },
+        "UINodeStat": {
+          "additionalProperties": false,
+          "properties": {
+            "label": {
+              "maxLength": 500,
+              "minLength": 1,
+              "title": "Label",
+              "type": "string"
+            },
+            "tone": {
+              "anyOf": [
+                {
+                  "$ref": "#/$defs/UITone"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null
+            },
+            "trend": {
+              "anyOf": [
+                {
+                  "enum": [
+                    "up",
+                    "down",
+                    "flat"
+                  ],
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "title": "Trend"
+            },
+            "type": {
+              "const": "stat",
+              "title": "Type",
+              "type": "string"
+            },
+            "value": {
+              "maxLength": 500,
+              "minLength": 1,
+              "title": "Value",
+              "type": "string"
+            }
+          },
+          "required": [
+            "type",
+            "label",
+            "value"
+          ],
+          "title": "UINodeStat",
+          "type": "object"
+        },
+        "UINodeTab": {
+          "additionalProperties": false,
+          "properties": {
+            "children": {
+              "items": {
+                "discriminator": {
+                  "mapping": {
+                    "badge": "#/$defs/UINodeBadge",
+                    "button": "#/$defs/UINodeButton",
+                    "card": "#/$defs/UINodeCard",
+                    "divider": "#/$defs/UINodeDivider",
+                    "emptyState": "#/$defs/UINodeEmptyState",
+                    "evidenceList": "#/$defs/UINodeEvidenceList",
+                    "heading": "#/$defs/UINodeHeading",
+                    "list": "#/$defs/UINodeList",
+                    "progressList": "#/$defs/UINodeProgressList",
+                    "readinessChart": "#/$defs/UINodeReadinessChart",
+                    "row": "#/$defs/UINodeRow",
+                    "skillScore": "#/$defs/UINodeSkillScore",
+                    "stack": "#/$defs/UINodeStack",
+                    "stat": "#/$defs/UINodeStat",
+                    "tabs": "#/$defs/UINodeTabs",
+                    "text": "#/$defs/UINodeText"
+                  },
+                  "propertyName": "type"
+                },
+                "oneOf": [
+                  {
+                    "$ref": "#/$defs/UINodeStack"
+                  },
+                  {
+                    "$ref": "#/$defs/UINodeRow"
+                  },
+                  {
+                    "$ref": "#/$defs/UINodeCard"
+                  },
+                  {
+                    "$ref": "#/$defs/UINodeHeading"
+                  },
+                  {
+                    "$ref": "#/$defs/UINodeText"
+                  },
+                  {
+                    "$ref": "#/$defs/UINodeStat"
+                  },
+                  {
+                    "$ref": "#/$defs/UINodeBadge"
+                  },
+                  {
+                    "$ref": "#/$defs/UINodeSkillScore"
+                  },
+                  {
+                    "$ref": "#/$defs/UINodeProgressList"
+                  },
+                  {
+                    "$ref": "#/$defs/UINodeList"
+                  },
+                  {
+                    "$ref": "#/$defs/UINodeEvidenceList"
+                  },
+                  {
+                    "$ref": "#/$defs/UINodeReadinessChart"
+                  },
+                  {
+                    "$ref": "#/$defs/UINodeTabs"
+                  },
+                  {
+                    "$ref": "#/$defs/UINodeEmptyState"
+                  },
+                  {
+                    "$ref": "#/$defs/UINodeDivider"
+                  },
+                  {
+                    "$ref": "#/$defs/UINodeButton"
+                  }
+                ]
+              },
+              "title": "Children",
+              "type": "array"
+            },
+            "label": {
+              "maxLength": 500,
+              "minLength": 1,
+              "title": "Label",
+              "type": "string"
+            }
+          },
+          "required": [
+            "label",
+            "children"
+          ],
+          "title": "UINodeTab",
+          "type": "object"
+        },
+        "UINodeTabs": {
+          "additionalProperties": false,
+          "properties": {
+            "tabs": {
+              "items": {
+                "$ref": "#/$defs/UINodeTab"
+              },
+              "maxItems": 8,
+              "minItems": 1,
+              "title": "Tabs",
+              "type": "array"
+            },
+            "type": {
+              "const": "tabs",
+              "title": "Type",
+              "type": "string"
+            }
+          },
+          "required": [
+            "type",
+            "tabs"
+          ],
+          "title": "UINodeTabs",
+          "type": "object"
+        },
+        "UINodeText": {
+          "additionalProperties": false,
+          "properties": {
+            "text": {
+              "maxLength": 500,
+              "minLength": 1,
+              "title": "Text",
+              "type": "string"
+            },
+            "tone": {
+              "anyOf": [
+                {
+                  "$ref": "#/$defs/UITone"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null
+            },
+            "type": {
+              "const": "text",
+              "title": "Type",
+              "type": "string"
+            }
+          },
+          "required": [
+            "type",
+            "text"
+          ],
+          "title": "UINodeText",
+          "type": "object"
+        },
+        "UITone": {
+          "enum": [
+            "green",
+            "amber",
+            "red",
+            "blue",
+            "muted"
+          ],
+          "title": "UITone",
+          "type": "string"
+        }
+      },
+      "additionalProperties": true,
+      "properties": {
+        "ui": {
+          "discriminator": {
+            "mapping": {
+              "badge": "#/$defs/UINodeBadge",
+              "button": "#/$defs/UINodeButton",
+              "card": "#/$defs/UINodeCard",
+              "divider": "#/$defs/UINodeDivider",
+              "emptyState": "#/$defs/UINodeEmptyState",
+              "evidenceList": "#/$defs/UINodeEvidenceList",
+              "heading": "#/$defs/UINodeHeading",
+              "list": "#/$defs/UINodeList",
+              "progressList": "#/$defs/UINodeProgressList",
+              "readinessChart": "#/$defs/UINodeReadinessChart",
+              "row": "#/$defs/UINodeRow",
+              "skillScore": "#/$defs/UINodeSkillScore",
+              "stack": "#/$defs/UINodeStack",
+              "stat": "#/$defs/UINodeStat",
+              "tabs": "#/$defs/UINodeTabs",
+              "text": "#/$defs/UINodeText"
+            },
+            "propertyName": "type"
+          },
+          "oneOf": [
+            {
+              "$ref": "#/$defs/UINodeStack"
+            },
+            {
+              "$ref": "#/$defs/UINodeRow"
+            },
+            {
+              "$ref": "#/$defs/UINodeCard"
+            },
+            {
+              "$ref": "#/$defs/UINodeHeading"
+            },
+            {
+              "$ref": "#/$defs/UINodeText"
+            },
+            {
+              "$ref": "#/$defs/UINodeStat"
+            },
+            {
+              "$ref": "#/$defs/UINodeBadge"
+            },
+            {
+              "$ref": "#/$defs/UINodeSkillScore"
+            },
+            {
+              "$ref": "#/$defs/UINodeProgressList"
+            },
+            {
+              "$ref": "#/$defs/UINodeList"
+            },
+            {
+              "$ref": "#/$defs/UINodeEvidenceList"
+            },
+            {
+              "$ref": "#/$defs/UINodeReadinessChart"
+            },
+            {
+              "$ref": "#/$defs/UINodeTabs"
+            },
+            {
+              "$ref": "#/$defs/UINodeEmptyState"
+            },
+            {
+              "$ref": "#/$defs/UINodeDivider"
+            },
+            {
+              "$ref": "#/$defs/UINodeButton"
+            }
+          ],
+          "title": "Ui"
+        }
+      },
+      "required": [
+        "ui"
+      ],
+      "title": "UiRenderResponse",
+      "type": "object"
+    }
+  }
+}

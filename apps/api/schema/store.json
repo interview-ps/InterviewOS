@@ -1,0 +1,30 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "group": "store",
+  "tables": [
+    "candidate_profiles",
+    "target_roles",
+    "interview_sessions",
+    "interview_loops",
+    "resume_reviews",
+    "usage_events",
+    "interview_questions",
+    "candidate_answers",
+    "answer_evaluations",
+    "skill_nodes",
+    "skill_evidence",
+    "plugin_installs",
+    "readiness_scores",
+    "preparation_actions",
+    "interview_packs",
+    "user_questions",
+    "runtime_sessions",
+    "interview_debriefs",
+    "star_stories",
+    "settings",
+    "mcp_servers",
+    "external_contexts",
+    "plugin_settings",
+    "plugin_storage"
+  ]
+}

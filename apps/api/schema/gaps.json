@@ -1,0 +1,86 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "group": "gaps",
+  "models": {
+    "Gap": {
+      "$defs": {
+        "GapSeverity": {
+          "enum": [
+            "low",
+            "medium",
+            "high"
+          ],
+          "title": "GapSeverity",
+          "type": "string"
+        }
+      },
+      "properties": {
+        "currentScore": {
+          "anyOf": [
+            {
+              "maximum": 1,
+              "minimum": 0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Currentscore"
+        },
+        "gap": {
+          "minimum": 0,
+          "title": "Gap",
+          "type": "number"
+        },
+        "importance": {
+          "maximum": 1,
+          "minimum": 0,
+          "title": "Importance",
+          "type": "number"
+        },
+        "label": {
+          "title": "Label",
+          "type": "string"
+        },
+        "reason": {
+          "title": "Reason",
+          "type": "string"
+        },
+        "severity": {
+          "$ref": "#/$defs/GapSeverity"
+        },
+        "skillId": {
+          "pattern": "^[a-z0-9-]+(\\.[a-z0-9-]+)*$",
+          "title": "Skillid",
+          "type": "string"
+        },
+        "targetScore": {
+          "maximum": 1,
+          "minimum": 0,
+          "title": "Targetscore",
+          "type": "number"
+        },
+        "uncertainty": {
+          "maximum": 1,
+          "minimum": 0,
+          "title": "Uncertainty",
+          "type": "number"
+        }
+      },
+      "required": [
+        "skillId",
+        "label",
+        "importance",
+        "targetScore",
+        "gap",
+        "uncertainty",
+        "severity",
+        "reason"
+      ],
+      "title": "Gap",
+      "type": "object"
+    }
+  }
+}

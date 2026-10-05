@@ -1,0 +1,855 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "group": "assessment",
+  "models": {
+    "AnswerEvaluation": {
+      "$defs": {
+        "DesignUpdate": {
+          "description": "§9.1: evaluator's per-dimension status update.\n\nDeprecated: new modes should emit opaque payloads under `modeSignals`\n(e.g. `modeSignals.designUpdates`); kept for stored rows and older plugins.",
+          "properties": {
+            "dimension": {
+              "title": "Dimension",
+              "type": "string"
+            },
+            "notes": {
+              "default": "",
+              "title": "Notes",
+              "type": "string"
+            },
+            "status": {
+              "$ref": "#/$defs/DesignUpdateStatus"
+            }
+          },
+          "required": [
+            "dimension",
+            "status"
+          ],
+          "title": "DesignUpdate",
+          "type": "object"
+        },
+        "DesignUpdateStatus": {
+          "enum": [
+            "not_covered",
+            "partial",
+            "covered"
+          ],
+          "title": "DesignUpdateStatus",
+          "type": "string"
+        },
+        "EvaluationDimension": {
+          "properties": {
+            "rationale": {
+              "title": "Rationale",
+              "type": "string"
+            },
+            "score": {
+              "maximum": 1,
+              "minimum": 0,
+              "title": "Score",
+              "type": "number"
+            }
+          },
+          "required": [
+            "score",
+            "rationale"
+          ],
+          "title": "EvaluationDimension",
+          "type": "object"
+        },
+        "EvaluationDimensions": {
+          "properties": {
+            "communication": {
+              "$ref": "#/$defs/EvaluationDimension"
+            },
+            "correctness": {
+              "$ref": "#/$defs/EvaluationDimension"
+            },
+            "evidence": {
+              "$ref": "#/$defs/EvaluationDimension"
+            },
+            "reasoning": {
+              "$ref": "#/$defs/EvaluationDimension"
+            },
+            "roleRelevance": {
+              "$ref": "#/$defs/EvaluationDimension"
+            },
+            "structure": {
+              "$ref": "#/$defs/EvaluationDimension"
+            },
+            "technicalDepth": {
+              "$ref": "#/$defs/EvaluationDimension"
+            }
+          },
+          "required": [
+            "correctness",
+            "technicalDepth",
+            "reasoning",
+            "structure",
+            "communication",
+            "evidence",
+            "roleRelevance"
+          ],
+          "title": "EvaluationDimensions",
+          "type": "object"
+        },
+        "EvaluationStrength": {
+          "properties": {
+            "evidence": {
+              "title": "Evidence",
+              "type": "string"
+            },
+            "skill": {
+              "pattern": "^[a-z0-9-]+(\\.[a-z0-9-]+)*$",
+              "title": "Skill",
+              "type": "string"
+            }
+          },
+          "required": [
+            "skill",
+            "evidence"
+          ],
+          "title": "EvaluationStrength",
+          "type": "object"
+        },
+        "EvaluationWeakness": {
+          "properties": {
+            "evidence": {
+              "title": "Evidence",
+              "type": "string"
+            },
+            "severity": {
+              "$ref": "#/$defs/WeaknessSeverity"
+            },
+            "skill": {
+              "pattern": "^[a-z0-9-]+(\\.[a-z0-9-]+)*$",
+              "title": "Skill",
+              "type": "string"
+            }
+          },
+          "required": [
+            "skill",
+            "severity",
+            "evidence"
+          ],
+          "title": "EvaluationWeakness",
+          "type": "object"
+        },
+        "RubricScore": {
+          "description": "§9.1: one independently-scored rubric dimension of an interview mode.",
+          "properties": {
+            "id": {
+              "title": "Id",
+              "type": "string"
+            },
+            "label": {
+              "default": "",
+              "title": "Label",
+              "type": "string"
+            },
+            "rationale": {
+              "default": "",
+              "title": "Rationale",
+              "type": "string"
+            },
+            "score": {
+              "maximum": 1,
+              "minimum": 0,
+              "title": "Score",
+              "type": "number"
+            }
+          },
+          "required": [
+            "id",
+            "score"
+          ],
+          "title": "RubricScore",
+          "type": "object"
+        },
+        "SkillScore": {
+          "properties": {
+            "confidence": {
+              "maximum": 1,
+              "minimum": 0,
+              "title": "Confidence",
+              "type": "number"
+            },
+            "score": {
+              "maximum": 1,
+              "minimum": 0,
+              "title": "Score",
+              "type": "number"
+            },
+            "skill": {
+              "pattern": "^[a-z0-9-]+(\\.[a-z0-9-]+)*$",
+              "title": "Skill",
+              "type": "string"
+            }
+          },
+          "required": [
+            "skill",
+            "score",
+            "confidence"
+          ],
+          "title": "SkillScore",
+          "type": "object"
+        },
+        "StarAssessment": {
+          "description": "STAR coverage for behavioral/hr answers (§8.4); null for other rounds.",
+          "properties": {
+            "action": {
+              "title": "Action",
+              "type": "boolean"
+            },
+            "notes": {
+              "title": "Notes",
+              "type": "string"
+            },
+            "result": {
+              "title": "Result",
+              "type": "boolean"
+            },
+            "situation": {
+              "title": "Situation",
+              "type": "boolean"
+            },
+            "task": {
+              "title": "Task",
+              "type": "boolean"
+            }
+          },
+          "required": [
+            "situation",
+            "task",
+            "action",
+            "result",
+            "notes"
+          ],
+          "title": "StarAssessment",
+          "type": "object"
+        },
+        "WeaknessSeverity": {
+          "enum": [
+            "low",
+            "medium",
+            "high"
+          ],
+          "title": "WeaknessSeverity",
+          "type": "string"
+        }
+      },
+      "properties": {
+        "betterApproach": {
+          "title": "Betterapproach",
+          "type": "string"
+        },
+        "designUpdates": {
+          "anyOf": [
+            {
+              "items": {
+                "$ref": "#/$defs/DesignUpdate"
+              },
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Designupdates"
+        },
+        "dimensions": {
+          "$ref": "#/$defs/EvaluationDimensions"
+        },
+        "followUpTopics": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Followuptopics",
+          "type": "array"
+        },
+        "missingConcepts": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Missingconcepts",
+          "type": "array"
+        },
+        "modeSignals": {
+          "anyOf": [
+            {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Modesignals"
+        },
+        "rubric": {
+          "items": {
+            "$ref": "#/$defs/RubricScore"
+          },
+          "title": "Rubric",
+          "type": "array"
+        },
+        "scores": {
+          "items": {
+            "$ref": "#/$defs/SkillScore"
+          },
+          "title": "Scores",
+          "type": "array"
+        },
+        "star": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/StarAssessment"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "strengths": {
+          "items": {
+            "$ref": "#/$defs/EvaluationStrength"
+          },
+          "title": "Strengths",
+          "type": "array"
+        },
+        "summary": {
+          "title": "Summary",
+          "type": "string"
+        },
+        "weaknesses": {
+          "items": {
+            "$ref": "#/$defs/EvaluationWeakness"
+          },
+          "title": "Weaknesses",
+          "type": "array"
+        }
+      },
+      "required": [
+        "summary",
+        "dimensions",
+        "strengths",
+        "weaknesses",
+        "scores",
+        "missingConcepts",
+        "betterApproach",
+        "followUpTopics"
+      ],
+      "title": "AnswerEvaluation",
+      "type": "object"
+    },
+    "AssessedItem": {
+      "properties": {
+        "evidenceIds": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Evidenceids",
+          "type": "array"
+        },
+        "note": {
+          "title": "Note",
+          "type": "string"
+        },
+        "skillId": {
+          "pattern": "^[a-z0-9-]+(\\.[a-z0-9-]+)*$",
+          "title": "Skillid",
+          "type": "string"
+        }
+      },
+      "required": [
+        "skillId",
+        "note"
+      ],
+      "title": "AssessedItem",
+      "type": "object"
+    },
+    "AssessmentState": {
+      "$defs": {
+        "AssessedItem": {
+          "properties": {
+            "evidenceIds": {
+              "items": {
+                "type": "string"
+              },
+              "title": "Evidenceids",
+              "type": "array"
+            },
+            "note": {
+              "title": "Note",
+              "type": "string"
+            },
+            "skillId": {
+              "pattern": "^[a-z0-9-]+(\\.[a-z0-9-]+)*$",
+              "title": "Skillid",
+              "type": "string"
+            }
+          },
+          "required": [
+            "skillId",
+            "note"
+          ],
+          "title": "AssessedItem",
+          "type": "object"
+        },
+        "Gap": {
+          "properties": {
+            "currentScore": {
+              "anyOf": [
+                {
+                  "maximum": 1,
+                  "minimum": 0,
+                  "type": "number"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "title": "Currentscore"
+            },
+            "gap": {
+              "minimum": 0,
+              "title": "Gap",
+              "type": "number"
+            },
+            "importance": {
+              "maximum": 1,
+              "minimum": 0,
+              "title": "Importance",
+              "type": "number"
+            },
+            "label": {
+              "title": "Label",
+              "type": "string"
+            },
+            "reason": {
+              "title": "Reason",
+              "type": "string"
+            },
+            "severity": {
+              "$ref": "#/$defs/GapSeverity"
+            },
+            "skillId": {
+              "pattern": "^[a-z0-9-]+(\\.[a-z0-9-]+)*$",
+              "title": "Skillid",
+              "type": "string"
+            },
+            "targetScore": {
+              "maximum": 1,
+              "minimum": 0,
+              "title": "Targetscore",
+              "type": "number"
+            },
+            "uncertainty": {
+              "maximum": 1,
+              "minimum": 0,
+              "title": "Uncertainty",
+              "type": "number"
+            }
+          },
+          "required": [
+            "skillId",
+            "label",
+            "importance",
+            "targetScore",
+            "gap",
+            "uncertainty",
+            "severity",
+            "reason"
+          ],
+          "title": "Gap",
+          "type": "object"
+        },
+        "GapSeverity": {
+          "enum": [
+            "low",
+            "medium",
+            "high"
+          ],
+          "title": "GapSeverity",
+          "type": "string"
+        },
+        "ReadinessStatus": {
+          "enum": [
+            "unknown",
+            "weak",
+            "developing",
+            "strong"
+          ],
+          "title": "ReadinessStatus",
+          "type": "string"
+        },
+        "SkillReadiness": {
+          "properties": {
+            "children": {
+              "items": {
+                "pattern": "^[a-z0-9-]+(\\.[a-z0-9-]+)*$",
+                "type": "string"
+              },
+              "title": "Children",
+              "type": "array"
+            },
+            "confidence": {
+              "maximum": 1,
+              "minimum": 0,
+              "title": "Confidence",
+              "type": "number"
+            },
+            "evidenceIds": {
+              "items": {
+                "type": "string"
+              },
+              "title": "Evidenceids",
+              "type": "array"
+            },
+            "label": {
+              "title": "Label",
+              "type": "string"
+            },
+            "score": {
+              "anyOf": [
+                {
+                  "maximum": 1,
+                  "minimum": 0,
+                  "type": "number"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "title": "Score"
+            },
+            "skillId": {
+              "pattern": "^[a-z0-9-]+(\\.[a-z0-9-]+)*$",
+              "title": "Skillid",
+              "type": "string"
+            },
+            "status": {
+              "$ref": "#/$defs/ReadinessStatus"
+            }
+          },
+          "required": [
+            "skillId",
+            "label",
+            "confidence",
+            "status"
+          ],
+          "title": "SkillReadiness",
+          "type": "object"
+        }
+      },
+      "properties": {
+        "gaps": {
+          "items": {
+            "$ref": "#/$defs/Gap"
+          },
+          "title": "Gaps",
+          "type": "array"
+        },
+        "observations": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Observations",
+          "type": "array"
+        },
+        "skillAssessments": {
+          "additionalProperties": {
+            "$ref": "#/$defs/SkillReadiness"
+          },
+          "title": "Skillassessments",
+          "type": "object"
+        },
+        "strengths": {
+          "items": {
+            "$ref": "#/$defs/AssessedItem"
+          },
+          "title": "Strengths",
+          "type": "array"
+        },
+        "strongAnswers": {
+          "items": {
+            "$ref": "#/$defs/AssessedItem"
+          },
+          "title": "Stronganswers",
+          "type": "array"
+        },
+        "weakAnswers": {
+          "items": {
+            "$ref": "#/$defs/AssessedItem"
+          },
+          "title": "Weakanswers",
+          "type": "array"
+        }
+      },
+      "title": "AssessmentState",
+      "type": "object"
+    },
+    "DesignUpdate": {
+      "$defs": {
+        "DesignUpdateStatus": {
+          "enum": [
+            "not_covered",
+            "partial",
+            "covered"
+          ],
+          "title": "DesignUpdateStatus",
+          "type": "string"
+        }
+      },
+      "description": "§9.1: evaluator's per-dimension status update.\n\nDeprecated: new modes should emit opaque payloads under `modeSignals`\n(e.g. `modeSignals.designUpdates`); kept for stored rows and older plugins.",
+      "properties": {
+        "dimension": {
+          "title": "Dimension",
+          "type": "string"
+        },
+        "notes": {
+          "default": "",
+          "title": "Notes",
+          "type": "string"
+        },
+        "status": {
+          "$ref": "#/$defs/DesignUpdateStatus"
+        }
+      },
+      "required": [
+        "dimension",
+        "status"
+      ],
+      "title": "DesignUpdate",
+      "type": "object"
+    },
+    "EvaluationDimension": {
+      "properties": {
+        "rationale": {
+          "title": "Rationale",
+          "type": "string"
+        },
+        "score": {
+          "maximum": 1,
+          "minimum": 0,
+          "title": "Score",
+          "type": "number"
+        }
+      },
+      "required": [
+        "score",
+        "rationale"
+      ],
+      "title": "EvaluationDimension",
+      "type": "object"
+    },
+    "EvaluationDimensions": {
+      "$defs": {
+        "EvaluationDimension": {
+          "properties": {
+            "rationale": {
+              "title": "Rationale",
+              "type": "string"
+            },
+            "score": {
+              "maximum": 1,
+              "minimum": 0,
+              "title": "Score",
+              "type": "number"
+            }
+          },
+          "required": [
+            "score",
+            "rationale"
+          ],
+          "title": "EvaluationDimension",
+          "type": "object"
+        }
+      },
+      "properties": {
+        "communication": {
+          "$ref": "#/$defs/EvaluationDimension"
+        },
+        "correctness": {
+          "$ref": "#/$defs/EvaluationDimension"
+        },
+        "evidence": {
+          "$ref": "#/$defs/EvaluationDimension"
+        },
+        "reasoning": {
+          "$ref": "#/$defs/EvaluationDimension"
+        },
+        "roleRelevance": {
+          "$ref": "#/$defs/EvaluationDimension"
+        },
+        "structure": {
+          "$ref": "#/$defs/EvaluationDimension"
+        },
+        "technicalDepth": {
+          "$ref": "#/$defs/EvaluationDimension"
+        }
+      },
+      "required": [
+        "correctness",
+        "technicalDepth",
+        "reasoning",
+        "structure",
+        "communication",
+        "evidence",
+        "roleRelevance"
+      ],
+      "title": "EvaluationDimensions",
+      "type": "object"
+    },
+    "EvaluationStrength": {
+      "properties": {
+        "evidence": {
+          "title": "Evidence",
+          "type": "string"
+        },
+        "skill": {
+          "pattern": "^[a-z0-9-]+(\\.[a-z0-9-]+)*$",
+          "title": "Skill",
+          "type": "string"
+        }
+      },
+      "required": [
+        "skill",
+        "evidence"
+      ],
+      "title": "EvaluationStrength",
+      "type": "object"
+    },
+    "EvaluationWeakness": {
+      "$defs": {
+        "WeaknessSeverity": {
+          "enum": [
+            "low",
+            "medium",
+            "high"
+          ],
+          "title": "WeaknessSeverity",
+          "type": "string"
+        }
+      },
+      "properties": {
+        "evidence": {
+          "title": "Evidence",
+          "type": "string"
+        },
+        "severity": {
+          "$ref": "#/$defs/WeaknessSeverity"
+        },
+        "skill": {
+          "pattern": "^[a-z0-9-]+(\\.[a-z0-9-]+)*$",
+          "title": "Skill",
+          "type": "string"
+        }
+      },
+      "required": [
+        "skill",
+        "severity",
+        "evidence"
+      ],
+      "title": "EvaluationWeakness",
+      "type": "object"
+    },
+    "RubricScore": {
+      "description": "§9.1: one independently-scored rubric dimension of an interview mode.",
+      "properties": {
+        "id": {
+          "title": "Id",
+          "type": "string"
+        },
+        "label": {
+          "default": "",
+          "title": "Label",
+          "type": "string"
+        },
+        "rationale": {
+          "default": "",
+          "title": "Rationale",
+          "type": "string"
+        },
+        "score": {
+          "maximum": 1,
+          "minimum": 0,
+          "title": "Score",
+          "type": "number"
+        }
+      },
+      "required": [
+        "id",
+        "score"
+      ],
+      "title": "RubricScore",
+      "type": "object"
+    },
+    "SkillScore": {
+      "properties": {
+        "confidence": {
+          "maximum": 1,
+          "minimum": 0,
+          "title": "Confidence",
+          "type": "number"
+        },
+        "score": {
+          "maximum": 1,
+          "minimum": 0,
+          "title": "Score",
+          "type": "number"
+        },
+        "skill": {
+          "pattern": "^[a-z0-9-]+(\\.[a-z0-9-]+)*$",
+          "title": "Skill",
+          "type": "string"
+        }
+      },
+      "required": [
+        "skill",
+        "score",
+        "confidence"
+      ],
+      "title": "SkillScore",
+      "type": "object"
+    },
+    "StarAssessment": {
+      "description": "STAR coverage for behavioral/hr answers (§8.4); null for other rounds.",
+      "properties": {
+        "action": {
+          "title": "Action",
+          "type": "boolean"
+        },
+        "notes": {
+          "title": "Notes",
+          "type": "string"
+        },
+        "result": {
+          "title": "Result",
+          "type": "boolean"
+        },
+        "situation": {
+          "title": "Situation",
+          "type": "boolean"
+        },
+        "task": {
+          "title": "Task",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "situation",
+        "task",
+        "action",
+        "result",
+        "notes"
+      ],
+      "title": "StarAssessment",
+      "type": "object"
+    }
+  }
+}

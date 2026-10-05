@@ -1,0 +1,1372 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "group": "interview",
+  "models": {
+    "Answer": {
+      "properties": {
+        "createdAt": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Createdat"
+        },
+        "id": {
+          "title": "Id",
+          "type": "string"
+        },
+        "questionId": {
+          "title": "Questionid",
+          "type": "string"
+        },
+        "sessionId": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Sessionid"
+        },
+        "text": {
+          "title": "Text",
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "questionId",
+        "text"
+      ],
+      "title": "Answer",
+      "type": "object"
+    },
+    "ExpectedConcept": {
+      "properties": {
+        "concept": {
+          "title": "Concept",
+          "type": "string"
+        },
+        "keywords": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Keywords",
+          "type": "array"
+        },
+        "skillId": {
+          "pattern": "^[a-z0-9-]+(\\.[a-z0-9-]+)*$",
+          "title": "Skillid",
+          "type": "string"
+        }
+      },
+      "required": [
+        "concept",
+        "skillId"
+      ],
+      "title": "ExpectedConcept",
+      "type": "object"
+    },
+    "InterviewSession": {
+      "$defs": {
+        "InterviewStatus": {
+          "enum": [
+            "created",
+            "analyzing",
+            "ready",
+            "question",
+            "answer",
+            "evaluating",
+            "follow_up",
+            "complete",
+            "debrief"
+          ],
+          "title": "InterviewStatus",
+          "type": "string"
+        }
+      },
+      "properties": {
+        "answerIds": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Answerids",
+          "type": "array"
+        },
+        "completedAt": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Completedat"
+        },
+        "currentRound": {
+          "default": 0,
+          "minimum": 0,
+          "title": "Currentround",
+          "type": "integer"
+        },
+        "id": {
+          "title": "Id",
+          "type": "string"
+        },
+        "plannedQuestions": {
+          "default": 4,
+          "exclusiveMinimum": 0,
+          "title": "Plannedquestions",
+          "type": "integer"
+        },
+        "questionIds": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Questionids",
+          "type": "array"
+        },
+        "runtimeThreadId": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Runtimethreadid"
+        },
+        "startedAt": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Startedat"
+        },
+        "status": {
+          "$ref": "#/$defs/InterviewStatus",
+          "default": "created"
+        }
+      },
+      "required": [
+        "id"
+      ],
+      "title": "InterviewSession",
+      "type": "object"
+    },
+    "InterviewStateSlice": {
+      "$defs": {
+        "Answer": {
+          "properties": {
+            "createdAt": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "title": "Createdat"
+            },
+            "id": {
+              "title": "Id",
+              "type": "string"
+            },
+            "questionId": {
+              "title": "Questionid",
+              "type": "string"
+            },
+            "sessionId": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "title": "Sessionid"
+            },
+            "text": {
+              "title": "Text",
+              "type": "string"
+            }
+          },
+          "required": [
+            "id",
+            "questionId",
+            "text"
+          ],
+          "title": "Answer",
+          "type": "object"
+        },
+        "ExpectedConcept": {
+          "properties": {
+            "concept": {
+              "title": "Concept",
+              "type": "string"
+            },
+            "keywords": {
+              "items": {
+                "type": "string"
+              },
+              "title": "Keywords",
+              "type": "array"
+            },
+            "skillId": {
+              "pattern": "^[a-z0-9-]+(\\.[a-z0-9-]+)*$",
+              "title": "Skillid",
+              "type": "string"
+            }
+          },
+          "required": [
+            "concept",
+            "skillId"
+          ],
+          "title": "ExpectedConcept",
+          "type": "object"
+        },
+        "Question": {
+          "properties": {
+            "createdAt": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "title": "Createdat"
+            },
+            "difficulty": {
+              "$ref": "#/$defs/QuestionDifficulty"
+            },
+            "expectedConcepts": {
+              "items": {
+                "$ref": "#/$defs/ExpectedConcept"
+              },
+              "title": "Expectedconcepts",
+              "type": "array"
+            },
+            "followUpOf": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "title": "Followupof"
+            },
+            "id": {
+              "title": "Id",
+              "type": "string"
+            },
+            "sessionId": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "title": "Sessionid"
+            },
+            "skillId": {
+              "pattern": "^[a-z0-9-]+(\\.[a-z0-9-]+)*$",
+              "title": "Skillid",
+              "type": "string"
+            },
+            "subSkills": {
+              "items": {
+                "pattern": "^[a-z0-9-]+(\\.[a-z0-9-]+)*$",
+                "type": "string"
+              },
+              "title": "Subskills",
+              "type": "array"
+            },
+            "text": {
+              "title": "Text",
+              "type": "string"
+            },
+            "topic": {
+              "title": "Topic",
+              "type": "string"
+            }
+          },
+          "required": [
+            "id",
+            "skillId",
+            "topic",
+            "text",
+            "difficulty"
+          ],
+          "title": "Question",
+          "type": "object"
+        },
+        "QuestionDifficulty": {
+          "enum": [
+            "easy",
+            "medium",
+            "hard"
+          ],
+          "title": "QuestionDifficulty",
+          "type": "string"
+        }
+      },
+      "properties": {
+        "activeQuestion": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Question"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "currentRound": {
+          "default": 0,
+          "minimum": 0,
+          "title": "Currentround",
+          "type": "integer"
+        },
+        "interviewerObservations": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Interviewerobservations",
+          "type": "array"
+        },
+        "previousAnswers": {
+          "items": {
+            "$ref": "#/$defs/Answer"
+          },
+          "title": "Previousanswers",
+          "type": "array"
+        },
+        "previousQuestions": {
+          "items": {
+            "$ref": "#/$defs/Question"
+          },
+          "title": "Previousquestions",
+          "type": "array"
+        },
+        "sessionId": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Sessionid"
+        }
+      },
+      "title": "InterviewStateSlice",
+      "type": "object"
+    },
+    "LoopDebrief": {
+      "$defs": {
+        "LoopRoundSignal": {
+          "description": "Per-round signal in the loop debrief — evidence-backed, never hire/no-hire.",
+          "properties": {
+            "evidence": {
+              "items": {
+                "type": "string"
+              },
+              "title": "Evidence",
+              "type": "array"
+            },
+            "label": {
+              "default": "",
+              "title": "Label",
+              "type": "string"
+            },
+            "mode": {
+              "title": "Mode",
+              "type": "string"
+            },
+            "signal": {
+              "$ref": "#/$defs/LoopSignal"
+            }
+          },
+          "required": [
+            "mode",
+            "signal"
+          ],
+          "title": "LoopRoundSignal",
+          "type": "object"
+        },
+        "LoopSignal": {
+          "enum": [
+            "strong",
+            "mixed",
+            "weak"
+          ],
+          "title": "LoopSignal",
+          "type": "string"
+        },
+        "ReadinessChange": {
+          "properties": {
+            "after": {
+              "anyOf": [
+                {
+                  "type": "number"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "After"
+            },
+            "before": {
+              "anyOf": [
+                {
+                  "type": "number"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Before"
+            }
+          },
+          "required": [
+            "before",
+            "after"
+          ],
+          "title": "ReadinessChange",
+          "type": "object"
+        }
+      },
+      "properties": {
+        "readinessChange": {
+          "$ref": "#/$defs/ReadinessChange"
+        },
+        "rounds": {
+          "items": {
+            "$ref": "#/$defs/LoopRoundSignal"
+          },
+          "title": "Rounds",
+          "type": "array"
+        },
+        "summary": {
+          "title": "Summary",
+          "type": "string"
+        },
+        "topActions": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Topactions",
+          "type": "array"
+        }
+      },
+      "required": [
+        "summary",
+        "rounds",
+        "readinessChange"
+      ],
+      "title": "LoopDebrief",
+      "type": "object"
+    },
+    "LoopRound": {
+      "$defs": {
+        "LoopRoundStatus": {
+          "enum": [
+            "pending",
+            "in_progress",
+            "complete"
+          ],
+          "title": "LoopRoundStatus",
+          "type": "string"
+        },
+        "ReadinessSnapshot": {
+          "description": "Snapshot of readiness at a loop round boundary: overall + per-requirement.",
+          "properties": {
+            "overall": {
+              "anyOf": [
+                {
+                  "type": "number"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Overall"
+            },
+            "requirements": {
+              "additionalProperties": {
+                "anyOf": [
+                  {
+                    "type": "number"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "title": "Requirements",
+              "type": "object"
+            }
+          },
+          "required": [
+            "overall",
+            "requirements"
+          ],
+          "title": "ReadinessSnapshot",
+          "type": "object"
+        },
+        "RoundHandoff": {
+          "description": "§9.4: deterministic cross-round handoff computed from a round's evaluations.",
+          "properties": {
+            "observations": {
+              "items": {
+                "type": "string"
+              },
+              "title": "Observations",
+              "type": "array"
+            },
+            "strongSkills": {
+              "items": {
+                "$ref": "#/$defs/RoundHandoffStrongSkill"
+              },
+              "title": "Strongskills",
+              "type": "array"
+            },
+            "weakSkills": {
+              "items": {
+                "$ref": "#/$defs/RoundHandoffWeakSkill"
+              },
+              "title": "Weakskills",
+              "type": "array"
+            }
+          },
+          "required": [
+            "weakSkills",
+            "strongSkills",
+            "observations"
+          ],
+          "title": "RoundHandoff",
+          "type": "object"
+        },
+        "RoundHandoffStrongSkill": {
+          "properties": {
+            "label": {
+              "default": "",
+              "title": "Label",
+              "type": "string"
+            },
+            "score": {
+              "title": "Score",
+              "type": "number"
+            },
+            "skillId": {
+              "pattern": "^[a-z0-9-]+(\\.[a-z0-9-]+)*$",
+              "title": "Skillid",
+              "type": "string"
+            }
+          },
+          "required": [
+            "skillId",
+            "score"
+          ],
+          "title": "RoundHandoffStrongSkill",
+          "type": "object"
+        },
+        "RoundHandoffWeakSkill": {
+          "properties": {
+            "label": {
+              "default": "",
+              "title": "Label",
+              "type": "string"
+            },
+            "observation": {
+              "title": "Observation",
+              "type": "string"
+            },
+            "score": {
+              "title": "Score",
+              "type": "number"
+            },
+            "skillId": {
+              "pattern": "^[a-z0-9-]+(\\.[a-z0-9-]+)*$",
+              "title": "Skillid",
+              "type": "string"
+            }
+          },
+          "required": [
+            "skillId",
+            "score",
+            "observation"
+          ],
+          "title": "RoundHandoffWeakSkill",
+          "type": "object"
+        },
+        "SkillDelta": {
+          "description": "§9.4: per-skill readiness movement evidenced by a round's evaluations.",
+          "properties": {
+            "after": {
+              "anyOf": [
+                {
+                  "type": "number"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "After"
+            },
+            "before": {
+              "anyOf": [
+                {
+                  "type": "number"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Before"
+            },
+            "label": {
+              "default": "",
+              "title": "Label",
+              "type": "string"
+            },
+            "skillId": {
+              "pattern": "^[a-z0-9-]+(\\.[a-z0-9-]+)*$",
+              "title": "Skillid",
+              "type": "string"
+            }
+          },
+          "required": [
+            "skillId",
+            "before",
+            "after"
+          ],
+          "title": "SkillDelta",
+          "type": "object"
+        }
+      },
+      "properties": {
+        "handoff": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/RoundHandoff"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "label": {
+          "default": "",
+          "title": "Label",
+          "type": "string"
+        },
+        "mode": {
+          "pattern": "^[a-z0-9][a-z0-9_-]{0,63}$",
+          "title": "Mode",
+          "type": "string"
+        },
+        "plannedQuestions": {
+          "maximum": 6,
+          "minimum": 1,
+          "title": "Plannedquestions",
+          "type": "integer"
+        },
+        "readinessAfter": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ReadinessSnapshot"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "readinessBefore": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ReadinessSnapshot"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "sessionId": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Sessionid"
+        },
+        "skillDeltas": {
+          "items": {
+            "$ref": "#/$defs/SkillDelta"
+          },
+          "title": "Skilldeltas",
+          "type": "array"
+        },
+        "status": {
+          "$ref": "#/$defs/LoopRoundStatus",
+          "default": "pending"
+        }
+      },
+      "required": [
+        "mode",
+        "plannedQuestions"
+      ],
+      "title": "LoopRound",
+      "type": "object"
+    },
+    "LoopRoundSignal": {
+      "$defs": {
+        "LoopSignal": {
+          "enum": [
+            "strong",
+            "mixed",
+            "weak"
+          ],
+          "title": "LoopSignal",
+          "type": "string"
+        }
+      },
+      "description": "Per-round signal in the loop debrief — evidence-backed, never hire/no-hire.",
+      "properties": {
+        "evidence": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Evidence",
+          "type": "array"
+        },
+        "label": {
+          "default": "",
+          "title": "Label",
+          "type": "string"
+        },
+        "mode": {
+          "title": "Mode",
+          "type": "string"
+        },
+        "signal": {
+          "$ref": "#/$defs/LoopSignal"
+        }
+      },
+      "required": [
+        "mode",
+        "signal"
+      ],
+      "title": "LoopRoundSignal",
+      "type": "object"
+    },
+    "Question": {
+      "$defs": {
+        "ExpectedConcept": {
+          "properties": {
+            "concept": {
+              "title": "Concept",
+              "type": "string"
+            },
+            "keywords": {
+              "items": {
+                "type": "string"
+              },
+              "title": "Keywords",
+              "type": "array"
+            },
+            "skillId": {
+              "pattern": "^[a-z0-9-]+(\\.[a-z0-9-]+)*$",
+              "title": "Skillid",
+              "type": "string"
+            }
+          },
+          "required": [
+            "concept",
+            "skillId"
+          ],
+          "title": "ExpectedConcept",
+          "type": "object"
+        },
+        "QuestionDifficulty": {
+          "enum": [
+            "easy",
+            "medium",
+            "hard"
+          ],
+          "title": "QuestionDifficulty",
+          "type": "string"
+        }
+      },
+      "properties": {
+        "createdAt": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Createdat"
+        },
+        "difficulty": {
+          "$ref": "#/$defs/QuestionDifficulty"
+        },
+        "expectedConcepts": {
+          "items": {
+            "$ref": "#/$defs/ExpectedConcept"
+          },
+          "title": "Expectedconcepts",
+          "type": "array"
+        },
+        "followUpOf": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Followupof"
+        },
+        "id": {
+          "title": "Id",
+          "type": "string"
+        },
+        "sessionId": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Sessionid"
+        },
+        "skillId": {
+          "pattern": "^[a-z0-9-]+(\\.[a-z0-9-]+)*$",
+          "title": "Skillid",
+          "type": "string"
+        },
+        "subSkills": {
+          "items": {
+            "pattern": "^[a-z0-9-]+(\\.[a-z0-9-]+)*$",
+            "type": "string"
+          },
+          "title": "Subskills",
+          "type": "array"
+        },
+        "text": {
+          "title": "Text",
+          "type": "string"
+        },
+        "topic": {
+          "title": "Topic",
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "skillId",
+        "topic",
+        "text",
+        "difficulty"
+      ],
+      "title": "Question",
+      "type": "object"
+    },
+    "ReadinessChange": {
+      "properties": {
+        "after": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "After"
+        },
+        "before": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Before"
+        }
+      },
+      "required": [
+        "before",
+        "after"
+      ],
+      "title": "ReadinessChange",
+      "type": "object"
+    },
+    "ReadinessSnapshot": {
+      "description": "Snapshot of readiness at a loop round boundary: overall + per-requirement.",
+      "properties": {
+        "overall": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Overall"
+        },
+        "requirements": {
+          "additionalProperties": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "title": "Requirements",
+          "type": "object"
+        }
+      },
+      "required": [
+        "overall",
+        "requirements"
+      ],
+      "title": "ReadinessSnapshot",
+      "type": "object"
+    },
+    "RoundHandoff": {
+      "$defs": {
+        "RoundHandoffStrongSkill": {
+          "properties": {
+            "label": {
+              "default": "",
+              "title": "Label",
+              "type": "string"
+            },
+            "score": {
+              "title": "Score",
+              "type": "number"
+            },
+            "skillId": {
+              "pattern": "^[a-z0-9-]+(\\.[a-z0-9-]+)*$",
+              "title": "Skillid",
+              "type": "string"
+            }
+          },
+          "required": [
+            "skillId",
+            "score"
+          ],
+          "title": "RoundHandoffStrongSkill",
+          "type": "object"
+        },
+        "RoundHandoffWeakSkill": {
+          "properties": {
+            "label": {
+              "default": "",
+              "title": "Label",
+              "type": "string"
+            },
+            "observation": {
+              "title": "Observation",
+              "type": "string"
+            },
+            "score": {
+              "title": "Score",
+              "type": "number"
+            },
+            "skillId": {
+              "pattern": "^[a-z0-9-]+(\\.[a-z0-9-]+)*$",
+              "title": "Skillid",
+              "type": "string"
+            }
+          },
+          "required": [
+            "skillId",
+            "score",
+            "observation"
+          ],
+          "title": "RoundHandoffWeakSkill",
+          "type": "object"
+        }
+      },
+      "description": "§9.4: deterministic cross-round handoff computed from a round's evaluations.",
+      "properties": {
+        "observations": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Observations",
+          "type": "array"
+        },
+        "strongSkills": {
+          "items": {
+            "$ref": "#/$defs/RoundHandoffStrongSkill"
+          },
+          "title": "Strongskills",
+          "type": "array"
+        },
+        "weakSkills": {
+          "items": {
+            "$ref": "#/$defs/RoundHandoffWeakSkill"
+          },
+          "title": "Weakskills",
+          "type": "array"
+        }
+      },
+      "required": [
+        "weakSkills",
+        "strongSkills",
+        "observations"
+      ],
+      "title": "RoundHandoff",
+      "type": "object"
+    },
+    "RoundHandoffStrongSkill": {
+      "properties": {
+        "label": {
+          "default": "",
+          "title": "Label",
+          "type": "string"
+        },
+        "score": {
+          "title": "Score",
+          "type": "number"
+        },
+        "skillId": {
+          "pattern": "^[a-z0-9-]+(\\.[a-z0-9-]+)*$",
+          "title": "Skillid",
+          "type": "string"
+        }
+      },
+      "required": [
+        "skillId",
+        "score"
+      ],
+      "title": "RoundHandoffStrongSkill",
+      "type": "object"
+    },
+    "RoundHandoffWeakSkill": {
+      "properties": {
+        "label": {
+          "default": "",
+          "title": "Label",
+          "type": "string"
+        },
+        "observation": {
+          "title": "Observation",
+          "type": "string"
+        },
+        "score": {
+          "title": "Score",
+          "type": "number"
+        },
+        "skillId": {
+          "pattern": "^[a-z0-9-]+(\\.[a-z0-9-]+)*$",
+          "title": "Skillid",
+          "type": "string"
+        }
+      },
+      "required": [
+        "skillId",
+        "score",
+        "observation"
+      ],
+      "title": "RoundHandoffWeakSkill",
+      "type": "object"
+    },
+    "RubricDimension": {
+      "description": "§9.1: one independent rubric dimension the evaluator must score.",
+      "properties": {
+        "description": {
+          "default": "",
+          "maxLength": 300,
+          "title": "Description",
+          "type": "string"
+        },
+        "id": {
+          "maxLength": 60,
+          "minLength": 1,
+          "title": "Id",
+          "type": "string"
+        },
+        "label": {
+          "maxLength": 120,
+          "minLength": 1,
+          "title": "Label",
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "label"
+      ],
+      "title": "RubricDimension",
+      "type": "object"
+    },
+    "SkillDelta": {
+      "description": "§9.4: per-skill readiness movement evidenced by a round's evaluations.",
+      "properties": {
+        "after": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "After"
+        },
+        "before": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Before"
+        },
+        "label": {
+          "default": "",
+          "title": "Label",
+          "type": "string"
+        },
+        "skillId": {
+          "pattern": "^[a-z0-9-]+(\\.[a-z0-9-]+)*$",
+          "title": "Skillid",
+          "type": "string"
+        }
+      },
+      "required": [
+        "skillId",
+        "before",
+        "after"
+      ],
+      "title": "SkillDelta",
+      "type": "object"
+    },
+    "VoiceFeedback": {
+      "$defs": {
+        "VoiceSignal": {
+          "properties": {
+            "id": {
+              "$ref": "#/$defs/VoiceSignalId"
+            },
+            "message": {
+              "maxLength": 300,
+              "minLength": 1,
+              "title": "Message",
+              "type": "string"
+            },
+            "status": {
+              "$ref": "#/$defs/VoiceSignalStatus"
+            }
+          },
+          "required": [
+            "id",
+            "status",
+            "message"
+          ],
+          "title": "VoiceSignal",
+          "type": "object"
+        },
+        "VoiceSignalId": {
+          "enum": [
+            "structure",
+            "filler",
+            "pauses",
+            "length",
+            "conclusion",
+            "clarity"
+          ],
+          "title": "VoiceSignalId",
+          "type": "string"
+        },
+        "VoiceSignalStatus": {
+          "enum": [
+            "ok",
+            "watch"
+          ],
+          "title": "VoiceSignalStatus",
+          "type": "string"
+        }
+      },
+      "properties": {
+        "disclaimer": {
+          "title": "Disclaimer",
+          "type": "string"
+        },
+        "fillerCount": {
+          "minimum": 0,
+          "title": "Fillercount",
+          "type": "integer"
+        },
+        "signals": {
+          "items": {
+            "$ref": "#/$defs/VoiceSignal"
+          },
+          "maxItems": 6,
+          "minItems": 6,
+          "title": "Signals",
+          "type": "array"
+        },
+        "wordCount": {
+          "minimum": 0,
+          "title": "Wordcount",
+          "type": "integer"
+        },
+        "wordsPerMinute": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Wordsperminute"
+        }
+      },
+      "required": [
+        "signals",
+        "wordCount",
+        "fillerCount",
+        "wordsPerMinute",
+        "disclaimer"
+      ],
+      "title": "VoiceFeedback",
+      "type": "object"
+    },
+    "VoiceMetrics": {
+      "properties": {
+        "durationSec": {
+          "maximum": 3600,
+          "minimum": 0,
+          "title": "Durationsec",
+          "type": "number"
+        },
+        "longPauseCount": {
+          "minimum": 0,
+          "title": "Longpausecount",
+          "type": "integer"
+        },
+        "longestPauseSec": {
+          "maximum": 3600,
+          "minimum": 0,
+          "title": "Longestpausesec",
+          "type": "number"
+        }
+      },
+      "required": [
+        "durationSec",
+        "longPauseCount",
+        "longestPauseSec"
+      ],
+      "title": "VoiceMetrics",
+      "type": "object"
+    },
+    "VoiceSignal": {
+      "$defs": {
+        "VoiceSignalId": {
+          "enum": [
+            "structure",
+            "filler",
+            "pauses",
+            "length",
+            "conclusion",
+            "clarity"
+          ],
+          "title": "VoiceSignalId",
+          "type": "string"
+        },
+        "VoiceSignalStatus": {
+          "enum": [
+            "ok",
+            "watch"
+          ],
+          "title": "VoiceSignalStatus",
+          "type": "string"
+        }
+      },
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/VoiceSignalId"
+        },
+        "message": {
+          "maxLength": 300,
+          "minLength": 1,
+          "title": "Message",
+          "type": "string"
+        },
+        "status": {
+          "$ref": "#/$defs/VoiceSignalStatus"
+        }
+      },
+      "required": [
+        "id",
+        "status",
+        "message"
+      ],
+      "title": "VoiceSignal",
+      "type": "object"
+    }
+  }
+}

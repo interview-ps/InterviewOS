@@ -1,0 +1,796 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "group": "resume",
+  "models": {
+    "AtsCheck": {
+      "$defs": {
+        "AtsCheckStatus": {
+          "enum": [
+            "pass",
+            "warn",
+            "fail"
+          ],
+          "title": "AtsCheckStatus",
+          "type": "string"
+        }
+      },
+      "properties": {
+        "detail": {
+          "title": "Detail",
+          "type": "string"
+        },
+        "id": {
+          "title": "Id",
+          "type": "string"
+        },
+        "label": {
+          "title": "Label",
+          "type": "string"
+        },
+        "status": {
+          "$ref": "#/$defs/AtsCheckStatus"
+        },
+        "weight": {
+          "title": "Weight",
+          "type": "number"
+        }
+      },
+      "required": [
+        "id",
+        "label",
+        "status",
+        "detail",
+        "weight"
+      ],
+      "title": "AtsCheck",
+      "type": "object"
+    },
+    "AtsKeywordCoverage": {
+      "$defs": {
+        "AtsKeywordMissing": {
+          "properties": {
+            "label": {
+              "title": "Label",
+              "type": "string"
+            },
+            "skillId": {
+              "title": "Skillid",
+              "type": "string"
+            }
+          },
+          "required": [
+            "skillId",
+            "label"
+          ],
+          "title": "AtsKeywordMissing",
+          "type": "object"
+        },
+        "AtsKeywordPresent": {
+          "properties": {
+            "label": {
+              "title": "Label",
+              "type": "string"
+            },
+            "skillId": {
+              "title": "Skillid",
+              "type": "string"
+            },
+            "snippet": {
+              "title": "Snippet",
+              "type": "string"
+            }
+          },
+          "required": [
+            "skillId",
+            "label",
+            "snippet"
+          ],
+          "title": "AtsKeywordPresent",
+          "type": "object"
+        }
+      },
+      "properties": {
+        "missing": {
+          "items": {
+            "$ref": "#/$defs/AtsKeywordMissing"
+          },
+          "title": "Missing",
+          "type": "array"
+        },
+        "present": {
+          "items": {
+            "$ref": "#/$defs/AtsKeywordPresent"
+          },
+          "title": "Present",
+          "type": "array"
+        }
+      },
+      "required": [
+        "present",
+        "missing"
+      ],
+      "title": "AtsKeywordCoverage",
+      "type": "object"
+    },
+    "AtsKeywordMissing": {
+      "properties": {
+        "label": {
+          "title": "Label",
+          "type": "string"
+        },
+        "skillId": {
+          "title": "Skillid",
+          "type": "string"
+        }
+      },
+      "required": [
+        "skillId",
+        "label"
+      ],
+      "title": "AtsKeywordMissing",
+      "type": "object"
+    },
+    "AtsKeywordPresent": {
+      "properties": {
+        "label": {
+          "title": "Label",
+          "type": "string"
+        },
+        "skillId": {
+          "title": "Skillid",
+          "type": "string"
+        },
+        "snippet": {
+          "title": "Snippet",
+          "type": "string"
+        }
+      },
+      "required": [
+        "skillId",
+        "label",
+        "snippet"
+      ],
+      "title": "AtsKeywordPresent",
+      "type": "object"
+    },
+    "AtsResult": {
+      "$defs": {
+        "AtsCheck": {
+          "properties": {
+            "detail": {
+              "title": "Detail",
+              "type": "string"
+            },
+            "id": {
+              "title": "Id",
+              "type": "string"
+            },
+            "label": {
+              "title": "Label",
+              "type": "string"
+            },
+            "status": {
+              "$ref": "#/$defs/AtsCheckStatus"
+            },
+            "weight": {
+              "title": "Weight",
+              "type": "number"
+            }
+          },
+          "required": [
+            "id",
+            "label",
+            "status",
+            "detail",
+            "weight"
+          ],
+          "title": "AtsCheck",
+          "type": "object"
+        },
+        "AtsCheckStatus": {
+          "enum": [
+            "pass",
+            "warn",
+            "fail"
+          ],
+          "title": "AtsCheckStatus",
+          "type": "string"
+        },
+        "AtsKeywordCoverage": {
+          "properties": {
+            "missing": {
+              "items": {
+                "$ref": "#/$defs/AtsKeywordMissing"
+              },
+              "title": "Missing",
+              "type": "array"
+            },
+            "present": {
+              "items": {
+                "$ref": "#/$defs/AtsKeywordPresent"
+              },
+              "title": "Present",
+              "type": "array"
+            }
+          },
+          "required": [
+            "present",
+            "missing"
+          ],
+          "title": "AtsKeywordCoverage",
+          "type": "object"
+        },
+        "AtsKeywordMissing": {
+          "properties": {
+            "label": {
+              "title": "Label",
+              "type": "string"
+            },
+            "skillId": {
+              "title": "Skillid",
+              "type": "string"
+            }
+          },
+          "required": [
+            "skillId",
+            "label"
+          ],
+          "title": "AtsKeywordMissing",
+          "type": "object"
+        },
+        "AtsKeywordPresent": {
+          "properties": {
+            "label": {
+              "title": "Label",
+              "type": "string"
+            },
+            "skillId": {
+              "title": "Skillid",
+              "type": "string"
+            },
+            "snippet": {
+              "title": "Snippet",
+              "type": "string"
+            }
+          },
+          "required": [
+            "skillId",
+            "label",
+            "snippet"
+          ],
+          "title": "AtsKeywordPresent",
+          "type": "object"
+        }
+      },
+      "properties": {
+        "checks": {
+          "items": {
+            "$ref": "#/$defs/AtsCheck"
+          },
+          "title": "Checks",
+          "type": "array"
+        },
+        "keywordCoverage": {
+          "$ref": "#/$defs/AtsKeywordCoverage"
+        },
+        "score": {
+          "maximum": 100,
+          "minimum": 0,
+          "title": "Score",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "score",
+        "checks",
+        "keywordCoverage"
+      ],
+      "title": "AtsResult",
+      "type": "object"
+    },
+    "ResumeAlignment": {
+      "properties": {
+        "requirement": {
+          "title": "Requirement",
+          "type": "string"
+        },
+        "resumeEvidence": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Resumeevidence"
+        },
+        "suggestion": {
+          "default": "",
+          "title": "Suggestion",
+          "type": "string"
+        }
+      },
+      "required": [
+        "requirement",
+        "resumeEvidence"
+      ],
+      "title": "ResumeAlignment",
+      "type": "object"
+    },
+    "ResumeGuard": {
+      "properties": {
+        "dropped": {
+          "minimum": 0,
+          "title": "Dropped",
+          "type": "integer"
+        },
+        "substitutions": {
+          "minimum": 0,
+          "title": "Substitutions",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "substitutions",
+        "dropped"
+      ],
+      "title": "ResumeGuard",
+      "type": "object"
+    },
+    "ResumeReview": {
+      "$defs": {
+        "AtsCheck": {
+          "properties": {
+            "detail": {
+              "title": "Detail",
+              "type": "string"
+            },
+            "id": {
+              "title": "Id",
+              "type": "string"
+            },
+            "label": {
+              "title": "Label",
+              "type": "string"
+            },
+            "status": {
+              "$ref": "#/$defs/AtsCheckStatus"
+            },
+            "weight": {
+              "title": "Weight",
+              "type": "number"
+            }
+          },
+          "required": [
+            "id",
+            "label",
+            "status",
+            "detail",
+            "weight"
+          ],
+          "title": "AtsCheck",
+          "type": "object"
+        },
+        "AtsCheckStatus": {
+          "enum": [
+            "pass",
+            "warn",
+            "fail"
+          ],
+          "title": "AtsCheckStatus",
+          "type": "string"
+        },
+        "AtsKeywordCoverage": {
+          "properties": {
+            "missing": {
+              "items": {
+                "$ref": "#/$defs/AtsKeywordMissing"
+              },
+              "title": "Missing",
+              "type": "array"
+            },
+            "present": {
+              "items": {
+                "$ref": "#/$defs/AtsKeywordPresent"
+              },
+              "title": "Present",
+              "type": "array"
+            }
+          },
+          "required": [
+            "present",
+            "missing"
+          ],
+          "title": "AtsKeywordCoverage",
+          "type": "object"
+        },
+        "AtsKeywordMissing": {
+          "properties": {
+            "label": {
+              "title": "Label",
+              "type": "string"
+            },
+            "skillId": {
+              "title": "Skillid",
+              "type": "string"
+            }
+          },
+          "required": [
+            "skillId",
+            "label"
+          ],
+          "title": "AtsKeywordMissing",
+          "type": "object"
+        },
+        "AtsKeywordPresent": {
+          "properties": {
+            "label": {
+              "title": "Label",
+              "type": "string"
+            },
+            "skillId": {
+              "title": "Skillid",
+              "type": "string"
+            },
+            "snippet": {
+              "title": "Snippet",
+              "type": "string"
+            }
+          },
+          "required": [
+            "skillId",
+            "label",
+            "snippet"
+          ],
+          "title": "AtsKeywordPresent",
+          "type": "object"
+        },
+        "AtsResult": {
+          "properties": {
+            "checks": {
+              "items": {
+                "$ref": "#/$defs/AtsCheck"
+              },
+              "title": "Checks",
+              "type": "array"
+            },
+            "keywordCoverage": {
+              "$ref": "#/$defs/AtsKeywordCoverage"
+            },
+            "score": {
+              "maximum": 100,
+              "minimum": 0,
+              "title": "Score",
+              "type": "integer"
+            }
+          },
+          "required": [
+            "score",
+            "checks",
+            "keywordCoverage"
+          ],
+          "title": "AtsResult",
+          "type": "object"
+        },
+        "ResumeAlignment": {
+          "properties": {
+            "requirement": {
+              "title": "Requirement",
+              "type": "string"
+            },
+            "resumeEvidence": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Resumeevidence"
+            },
+            "suggestion": {
+              "default": "",
+              "title": "Suggestion",
+              "type": "string"
+            }
+          },
+          "required": [
+            "requirement",
+            "resumeEvidence"
+          ],
+          "title": "ResumeAlignment",
+          "type": "object"
+        },
+        "ResumeGuard": {
+          "properties": {
+            "dropped": {
+              "minimum": 0,
+              "title": "Dropped",
+              "type": "integer"
+            },
+            "substitutions": {
+              "minimum": 0,
+              "title": "Substitutions",
+              "type": "integer"
+            }
+          },
+          "required": [
+            "substitutions",
+            "dropped"
+          ],
+          "title": "ResumeGuard",
+          "type": "object"
+        },
+        "ResumeSuggestion": {
+          "description": "§9.5: one guarded bullet-rewrite suggestion persisted in a review.",
+          "properties": {
+            "dropped": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "title": "Dropped"
+            },
+            "improved": {
+              "title": "Improved",
+              "type": "string"
+            },
+            "original": {
+              "title": "Original",
+              "type": "string"
+            },
+            "rationale": {
+              "default": "",
+              "title": "Rationale",
+              "type": "string"
+            },
+            "skillIds": {
+              "items": {
+                "type": "string"
+              },
+              "title": "Skillids",
+              "type": "array"
+            }
+          },
+          "required": [
+            "original",
+            "improved"
+          ],
+          "title": "ResumeSuggestion",
+          "type": "object"
+        },
+        "ResumeTailoring": {
+          "properties": {
+            "alignment": {
+              "items": {
+                "$ref": "#/$defs/ResumeAlignment"
+              },
+              "title": "Alignment",
+              "type": "array"
+            },
+            "deEmphasize": {
+              "items": {
+                "type": "string"
+              },
+              "title": "Deemphasize",
+              "type": "array"
+            },
+            "emphasize": {
+              "items": {
+                "type": "string"
+              },
+              "title": "Emphasize",
+              "type": "array"
+            },
+            "prepGaps": {
+              "items": {
+                "type": "string"
+              },
+              "title": "Prepgaps",
+              "type": "array"
+            },
+            "summary": {
+              "title": "Summary",
+              "type": "string"
+            }
+          },
+          "required": [
+            "summary"
+          ],
+          "title": "ResumeTailoring",
+          "type": "object"
+        }
+      },
+      "description": "§9.5: persisted `resume_reviews` row payload.",
+      "properties": {
+        "ats": {
+          "$ref": "#/$defs/AtsResult"
+        },
+        "candidateId": {
+          "title": "Candidateid",
+          "type": "string"
+        },
+        "createdAt": {
+          "title": "Createdat",
+          "type": "string"
+        },
+        "guard": {
+          "$ref": "#/$defs/ResumeGuard"
+        },
+        "id": {
+          "title": "Id",
+          "type": "string"
+        },
+        "linkedGapSkillIds": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Linkedgapskillids",
+          "type": "array"
+        },
+        "suggestions": {
+          "items": {
+            "$ref": "#/$defs/ResumeSuggestion"
+          },
+          "title": "Suggestions",
+          "type": "array"
+        },
+        "tailoring": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ResumeTailoring"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "targetId": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Targetid"
+        }
+      },
+      "required": [
+        "id",
+        "candidateId",
+        "targetId",
+        "ats",
+        "suggestions",
+        "tailoring",
+        "createdAt"
+      ],
+      "title": "ResumeReview",
+      "type": "object"
+    },
+    "ResumeSuggestion": {
+      "description": "§9.5: one guarded bullet-rewrite suggestion persisted in a review.",
+      "properties": {
+        "dropped": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Dropped"
+        },
+        "improved": {
+          "title": "Improved",
+          "type": "string"
+        },
+        "original": {
+          "title": "Original",
+          "type": "string"
+        },
+        "rationale": {
+          "default": "",
+          "title": "Rationale",
+          "type": "string"
+        },
+        "skillIds": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Skillids",
+          "type": "array"
+        }
+      },
+      "required": [
+        "original",
+        "improved"
+      ],
+      "title": "ResumeSuggestion",
+      "type": "object"
+    },
+    "ResumeTailoring": {
+      "$defs": {
+        "ResumeAlignment": {
+          "properties": {
+            "requirement": {
+              "title": "Requirement",
+              "type": "string"
+            },
+            "resumeEvidence": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Resumeevidence"
+            },
+            "suggestion": {
+              "default": "",
+              "title": "Suggestion",
+              "type": "string"
+            }
+          },
+          "required": [
+            "requirement",
+            "resumeEvidence"
+          ],
+          "title": "ResumeAlignment",
+          "type": "object"
+        }
+      },
+      "properties": {
+        "alignment": {
+          "items": {
+            "$ref": "#/$defs/ResumeAlignment"
+          },
+          "title": "Alignment",
+          "type": "array"
+        },
+        "deEmphasize": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Deemphasize",
+          "type": "array"
+        },
+        "emphasize": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Emphasize",
+          "type": "array"
+        },
+        "prepGaps": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Prepgaps",
+          "type": "array"
+        },
+        "summary": {
+          "title": "Summary",
+          "type": "string"
+        }
+      },
+      "required": [
+        "summary"
+      ],
+      "title": "ResumeTailoring",
+      "type": "object"
+    }
+  }
+}
