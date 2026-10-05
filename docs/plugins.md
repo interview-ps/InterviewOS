@@ -1,36 +1,47 @@
 # Plugin Development Guide
 
 Plugins extend Interview OS with local code that can read *declared and granted*
-state slices and optionally propose evidence. They run in an isolated child
-process — never inside the server process.
+state slices and optionally propose evidence. They run **in-process** in the
+FastAPI backend (pure Octop model; see `docs/design/python-plugin-system.md`
+§12) — trust is accepted up front, and the host keeps each plugin to only what
+it declares.
 
 ## Layout
 
-A plugin is a directory with a manifest and an entry file:
+A plugin is a Python package directory with a manifest and an entry module:
 
 ```
 my-plugin/
-  skill.yaml        # manifest (manifest.json also accepted)
-  index.ts          # or index.js / index.mjs — the entry file
+  plugin.yaml       # manifest
+  main.py           # entry: defines setup(ctx)
 ```
 
 Bundled plugins live in `plugins/`; installed ones go to `data/plugins/`.
-`INTERVIEW_OS_PLUGINS_DIR` overrides the bundled-plugin directory.
 
-## SDK
+## Authoring
 
-`@interview-os/plugin-sdk` (in `packages/plugin-sdk`) exports:
+`main.py` defines `setup(ctx)`, registering what the plugin contributes:
 
-- `defineSkill(def)` — marks the entry file's default export as a skill. `def`
-  is `{ id, name?, version?, permissions, capabilities?, inputs?, execute(ctx) }`.
-- `loadManifestFile(dir)` / `findEntryFile(dir)` — manifest + entry resolution.
-- `runPluginWithMock` (from `@interview-os/plugin-sdk/testing`) — executes a
-  plugin in-process against a `MockRuntime` for tests.
+- `ctx.middleware(instance)` — a **hook** plugin's handler methods (the lifecycle
+  hooks below, as snake_case methods such as `questions_suggest`).
+- `ctx.tool(name, fn)` — a **tool** plugin's callable.
+- `ctx.skills("skills")` — a **skill** plugin's skills directory.
 
-The entry file's default export must be a `defineSkill` result. `execute`
-receives a `PluginContext`: `{ input, request?, runtime?, log }`.
+`ctx` also exposes a read-only `state` view and an `evidence(proposal)` sink
+(enqueue-only); `ctx.runtime` is bound only with a granted `runtime.invoke`. Hook
+request/response shapes are the Pydantic models in
+`apps/api/src/interview_os/core/plugin_api.py`; deterministic helpers shared by
+the bundled mode plugins live in
+`apps/api/src/interview_os/plugins/testing/mock_helpers.py`. Plugins are loaded
+by `PluginManager` / `load_plugin_dir` and exercised by the tests under
+`apps/api/tests/plugins/`.
 
-## Manifest fields (`skill.yaml`)
+The previous TypeScript SDK / `interview-os` CLI / `@interview-os/plugin-sdk`
+(scaffold, `validate`, `test`, `build`, `build-ui`) is retired at the phase-8
+cut-over: authoring a Python plugin is just `plugin.yaml` + `main.py` (plus
+optional `prompts/` and `ui/`), and there is no build step.
+
+## Manifest fields (`plugin.yaml`)
 
 | field | notes |
 |---|---|
@@ -41,9 +52,9 @@ receives a `PluginContext`: `{ input, request?, runtime?, log }`.
 | `capabilities` | discovery tags (see below) |
 | `inputs` | `{key, permission}` pairs — the state slices the plugin wants |
 | `outputs` | free-form string list describing what it emits |
-| `engines` | e.g. `{"interview-os": ">=0.4.0"}` — checked at load; incompatible plugins load but cannot run |
+| `engines` | e.g. `{"interview-os": ">=0.4.0", "plugin-api": "^1.1.0"}` — checked at load; incompatible plugins load but cannot run |
 
-`kind` is forced to `"plugin"` by the loader.
+`kind` is `tool`, `skill` or `hook` (the legacy `plugin` value is treated as a hook).
 
 ## Inputs and permissions
 
@@ -72,7 +83,7 @@ spawning processes — are enforced by isolation, not by permission grants.
 ## Capabilities
 
 `interview`, `evaluation`, `question_source`, `preparation`, `resources`,
-`company_pack`, `role_pack`, `tool`, `checklist`.
+`company_pack`, `role_pack`, `tool`, `checklist`, `ui`, `interview_mode`.
 
 Two capabilities are wired into the product:
 
@@ -104,19 +115,16 @@ observation}]` alongside its main output:
 
 ## CLI
 
-```sh
-pnpm interview-os create-skill <name>   # scaffold skill.yaml + index.ts + index.test.ts
-pnpm interview-os validate <dir>        # check manifest, entry file, exports
-```
-
-The CLI is `packages/plugin-sdk/bin/interview-os.mjs`.
+The `interview-os` CLI is retired with the TypeScript SDK (phase-8 cut-over).
+Authoring a Python plugin needs no build tooling; load it with
+`POST /api/plugins/install { url: "<path>" }` or drop the directory under
+`data/plugins/`.
 
 ## Testing
 
-`runPluginWithMock` from `@interview-os/plugin-sdk/testing` runs a plugin
-in-process with a deterministic `MockRuntime` — the same deterministic handlers
-the server tests use. Scaffolded plugins include `index.test.ts` showing the
-pattern.
+Plugin tests live in `apps/api/tests/plugins/`: they load the directory with
+`load_plugin_dir` and invoke the middleware hook methods directly, against the
+deterministic helpers in `apps/api/src/interview_os/plugins/testing/mock_helpers.py`.
 
 ## Install, enable, grant
 
@@ -136,20 +144,20 @@ pattern.
 
 ## Isolation limits
 
-Each run spawns a Node child process with `--permission`:
+Plugins run **in-process** in the FastAPI backend (the pure Octop model; trust is
+accepted up front, `docs/design/python-plugin-system.md` §12). The host enforces
+least privilege at the API boundary, not with an OS sandbox:
 
-- Filesystem access limited to the plugin's own directory (and the runner).
-- No environment inheritance (the runner sees an empty env, except the
-  `SystemRoot` variable Node itself requires to start on Windows).
-- `net`/`http`/`https`/`dns`/`tls`/`child_process`/`worker_threads`/`cluster`/
-  `module`/`wasi`/`repl` blocked via a module-resolve hook; `fetch`,
-  `WebSocket`, `process.binding`/`dlopen` removed or stubbed.
-- Output capped, run time-boxed, stderr truncated in logs.
+- A plugin receives only the input slices it declares in `inputs` **and** the user
+  granted; `ctx.runtime` exists only with a granted `runtime.invoke`.
+- Only `evidence.write` is an allowed `*.write`; anything else is rejected at load.
+- Hook requests/responses are schema-validated; output is size-capped and runs are
+  time-boxed.
+- UI runs only through declared slots (declarative trees, or plugin components in a
+  sandboxed opaque-origin iframe reached over the postMessage bridge).
 
-**Honest caveat (Node 24):** network isolation is enforced by blocking modules
-and globals, not by an OS-level sandbox or container. Treat plugins as
-*untrusted-ish*: the isolation is a strong speed bump, not a security boundary
-equivalent to a VM. Only install plugins you have reason to trust.
+**Honest caveat:** in-process plugins are *trusted local code* once loaded — only
+install plugins you have reason to trust.
 
 ## Plugin UI (v0.4)
 
@@ -183,8 +191,12 @@ taxonomy:                # extra skill nodes, registered at load
 
 **Slots**: `dashboard.cards`, `dashboard.sidebar`, `target.tabs`,
 `prepare.activities`, `interview.toolbar`, `interview.sidebar`,
-`readiness.panels`, `resume.tabs`, `settings.sections`. Icons: `database`,
-`cloud`, `code`, `book`, `chart`, `puzzle`, `shield`, `star`.
+`interview.question`, `readiness.panels`, `resume.tabs`, `settings.sections`.
+Icons: `database`, `cloud`, `code`, `book`, `chart`, `puzzle`, `shield`, `star`.
+
+The `interview.question` slot renders inside the live interview question card —
+but only for contributions from the plugin that owns the session's mode, with
+`params = { modeId, extra: question.extra }` (e.g. the coding problem panel).
 
 ### Declarative contributions
 
@@ -234,46 +246,60 @@ navigation — only the postMessage SDK. Design-system components
 tokens are available via `@interview-os/ui` imports (served from the host's
 runtime bundle through the import map).
 
-## Plugin API v1 — typed hooks
+## Plugin API — typed hooks
 
-`PLUGIN_API_VERSION = "1.0.0"` (`packages/core/src/platform/plugin-api.ts`).
+`PLUGIN_API_VERSION = "1.1.0"` (`apps/api/src/interview_os/core/plugin_api.py`).
 Every capability is backed by a **hook** — a typed request/response contract in
 the `PLUGIN_HOOKS` registry. The host validates the request before invoking and
 the response after; an invalid response is a `PLUGIN_OUTPUT` error for that
 hook only (callers fail soft where they already did).
 
-| Hook | Capability | Request → Response |
-| --- | --- | --- |
-| `questions.suggest` | `question_source` | `{ skillId, roundType, level, count }` → `{ questions }` |
-| `resources.suggest` | `resources` | `{ skillIds }` → `{ resources }` (host fills `skillId`/`source`) |
-| `ui.render` | `ui` | `{ slot?, component, page?, params? }` → `{ ui }` |
-| `ui.frameRun` | `ui` | `{ component?, page?, request }` → `{ output, ui? }` |
-| `evaluation.review` | `evaluation` | `{ question, answer|null, evaluation }` → `{ observations ≤5, evidenceProposals? }` |
-| `preparation.suggest` | `preparation` | `{ gaps ≤10, skillIds }` → `{ activities ≤10 }` |
-| `events.sessionCompleted` | manifest `events` | `{ sessionId, roundType, scores }` → `{ evidenceProposals? }` |
-| `events.readinessUpdated` | manifest `events` | `{ changedSkillIds }` → `{ evidenceProposals? }` |
+| Hook | Since | Capability | Request → Response |
+| --- | --- | --- | --- |
+| `questions.suggest` | 1.0.0 | `question_source` | `{ skillId, roundType, level, count }` → `{ questions }` |
+| `resources.suggest` | 1.0.0 | `resources` | `{ skillIds }` → `{ resources }` (host fills `skillId`/`source`) |
+| `ui.render` | 1.0.0 | `ui` | `{ slot?, component, page?, params? }` → `{ ui }` |
+| `ui.frameRun` | 1.0.0 | `ui` | `{ component?, page?, request }` → `{ output, ui? }` |
+| `mode.reduce` | 1.1.0 | `interview_mode` | `{ modeId, state, evaluation, question }` → `{ state }` |
+| `mode.followUp` | 1.1.0 | `interview_mode` | `{ modeId, evaluation, state, depth, maxDepth }` → `FollowUpDecision` |
+| `mode.prepareTurn` | 1.1.0 | `interview_mode` | `{ modeId, state, followUp }` → `{ turn }` (JSON ≤4KB; `{}` on failure) |
+| `mode.mock` | 1.1.0 | `interview_mode` | `{ modeId, task: "interviewer"\|"evaluator", input }` → `{ output }` |
+| `evaluation.review` | 1.0.0 | `evaluation` | `{ question, answer|null, evaluation }` → `{ observations ≤5, evidenceProposals? }` |
+| `preparation.suggest` | 1.0.0 | `preparation` | `{ gaps ≤10, skillIds }` → `{ activities ≤10 }` |
+| `events.sessionCompleted` | 1.0.0 | manifest `events` | `{ sessionId, roundType, scores }` → `{ evidenceProposals? }` |
+| `events.readinessUpdated` | 1.0.0 | manifest `events` | `{ changedSkillIds }` → `{ evidenceProposals? }` |
+| `events.answerEvaluated` | 1.1.0 | manifest `events` | `{ sessionId, questionId, skillId, roundType, rubric, scores }` — never answer text → `{ evidenceProposals? }` |
+| `events.loopCompleted` | 1.1.0 | manifest `events` | `{ loopId, rounds: [{mode, sessionId}] }` → `{ evidenceProposals? }` |
+| `events.targetChanged` | 1.1.0 | manifest `events` | `{ targetId, role, company? }` → `{ evidenceProposals? }` |
 
 **Versioning**: `engines["plugin-api"]` is a semver range checked like
 `engines["interview-os"]`; missing means `^1.0.0`. Additive contract changes
 bump minor, breaking changes bump major; the host supports the current major.
+Every hook, event, UI slot, permission and manifest feature carries a `since`
+version; `GET /api/platform` returns the full catalogue (`apiVersion`, `hooks`,
+`events`, `capabilities`, `permissions`, `uiSlots`, `answerFieldTypes`,
+`manifestFeatures`) — derive from it, don't hardcode lists. When a manifest
+declares a `plugin-api` floor below the `since` of a hook/feature it uses, the
+loader and `interview-os validate` emit a **warning** (advisory, not a load
+error).
 
-**Handlers style (preferred)**:
+**Hook handlers (preferred)**:
 
-```ts
-export default defineSkill({
-  id: "my-plugin",
-  permissions: ["readiness.read"],
-  capabilities: ["question_source"],
-  handlers: {
-    "questions.suggest": async (req, ctx) => ({ questions: [/* … */] }),
-  },
-});
+```python
+class MyPlugin:
+    async def questions_suggest(self, req):
+        return QuestionsSuggestResponse(questions=[...])
+
+
+def setup(ctx):
+    ctx.middleware(MyPlugin())
 ```
 
-`ctx` gives `input`, `settings`, `storage`, `runtime` (with `runtime.invoke`),
-and `log`. Legacy `execute(ctx)` still works — it receives
-`request.kind`-style objects (`LEGACY_HOOK_KIND` maps hooks back to the old
-`"questions"`/`"resources"`/`"ui"`/`"ui-frame"` kinds).
+`setup(ctx)` runs once at load; each hook method receives the validated request
+model and returns the response model. A plugin may also implement a legacy
+module- or instance-level `execute(input, request)` (used by
+`POST /api/plugins/:id/run`); `LEGACY_HOOK_KIND` maps hooks back to the old
+`"questions"`/`"resources"`/`"ui"`/`"ui-frame"` kinds.
 
 **Capability ↔ hook rules (load time)**: every declared capability must be
 backed by a hook it owns — via `handlers`, manifest `hooks`, or legacy
@@ -298,6 +324,82 @@ the orchestrator lock**, sequentially per plugin; evidenceProposals go through
 the normal gate; `readinessUpdated` never re-fires for plugin-caused readiness
 changes (recompute reasons tagged `plugin*`).
 
+## Plugin interview modes (v1)
+
+A plugin with the `interview_mode` capability may define whole interview
+**modes** via the manifest `modes` section (≤5). The built-in `technical`,
+`system_design`, `behavioral`, `hiring_manager`, `hr` and `coding` rounds are
+themselves bundled mode plugins under `plugins/<name>-mode`; core keeps only
+the legacy `mixed` round:
+
+```yaml
+capabilities: [interview_mode, ui]
+permissions: [answers.read]          # only needed to see answer text/code
+hooks: [mode.mock, ui.render]        # all mode.* hooks optional
+modes:
+  - id: coding                        # ^[a-z0-9][a-z0-9_-]{0,63}$; must not
+                                      # collide with "mixed" or another mode
+    label: Coding
+    description: Solve a small algorithmic problem.
+    scope:                            # inScope = (include empty || any include
+      include: [coding]               #   subtree) && no exclude subtree
+      exclude: []
+    fallbackSkills: [coding]          # empty-pool fallback (default: each
+                                      # include root + its children)
+    answerFormat: text+code           # "text" (default), "text+code", "fields"
+    answerFields:                     # ≤8 — required when format is "fields";
+      - { key: choice, label: "Pick", type: choice, options: [a, b], required: true }
+      - { key: why, label: "Why?", type: text }   # types: text|code|choice|number
+    rubric:                           # 1–12 dimensions, exact-ids enforced
+      - { id: correctness, label: Correctness }
+    initialState: { problem: null, phase: briefing }
+    reduce:                           # declarative default reducer
+      copyExtra: [problem]            # question.extra keys copied into state
+      set: { phase: working }         # constants set each turn
+    context:                          # host-side context for the interviewer
+      companyThemes: true             #   skill input — never sent to the plugin
+      storyTitles: false
+    followUp: rules                   # "generic" | "rules" | "never"
+                                      # (default: rules if followUpRules, else
+                                      # generic; "never" + followUpReason
+                                      # disables chaining)
+    followUpRules:                    # evaluated in order, respect maxDepth
+      - { rubricId: correctness, below: 0.6, focus: correctness }
+    interviewerPrompt: prompts/interviewer.md   # relative paths inside the
+    evaluatorPrompt: prompts/evaluator.md       # plugin dir, ≤16KB each
+```
+
+- **Fully declarative is valid** — `mode.reduce`, `mode.followUp`,
+  `mode.prepareTurn` and `mode.mock` hooks are optional overrides; their
+  failure falls back to the declarative descriptor (`mode.prepareTurn` → `{}`).
+- `mode.prepareTurn` runs before each interviewer call and returns a per-turn
+  `turn` object passed to the interviewer as `modeTurn` (a string
+  `turn.focusDimension` additionally feeds the `focusDimension` input) — use it
+  for per-turn computed data like the system-design plugin's next uncovered
+  dimension.
+- `mode.mock` provides deterministic `MockRuntime` output for
+  `interviewer.<mode>` / `answer-evaluator.<mode>` tasks. Evaluator mock input
+  omits `answer`/`code`/`fields` unless `answers.read` was granted. Shared deterministic
+  helpers (concept coverage, STAR detection, generic templates) live in
+  `@interview-os/plugin-sdk/mock-helpers`.
+- Registered modes appear in `GET /api/modes` and every mode picker; disabling
+  the plugin hides the mode for new sessions (typed `VALIDATION` error) while
+  stored sessions keep rendering (fallback label, read-only code).
+- Prompt bodies are host-side material: paths must resolve inside the plugin
+  directory (traversal rejected at manifest parse and at load).
+- **`answerFormat: "fields"`**: the host renders the declared `answerFields`
+  declaratively (no plugin code runs in the browser), validates submissions
+  server-side (unknown keys, wrong types, missing required, non-option choices
+  and overlong text/code are `VALIDATION` errors), persists them on the answer
+  row, and passes them to the evaluator and to `evaluation.review`/`mode.mock`
+  inputs — the last two only when `answers.read` was granted.
+- **`modeSignals`** (v1.1): evaluators may emit an opaque
+  `modeSignals: record` (≤ 8 KB JSON, else dropped with a warning) on the
+  evaluation; it is persisted and handed back to `mode.reduce` as
+  `evaluation.modeSignals`. The legacy top-level `designUpdates` still parses —
+  system-design-mode reads `modeSignals.designUpdates` first and falls back to
+  it — but new modes should use `modeSignals`.
+
 ## Settings and storage
 
 Manifest `settings` (≤ 20 fields: `string|number|boolean|enum`) declares
@@ -320,22 +422,13 @@ capability is required; id collisions with existing packs are load errors for
 that pack. `taxonomy` nodes register at load; `appliesTo.skillPrefixes`
 limits `evaluation.review` to matching skills.
 
-## Backend bundling and the contract kit
+## Bundling
 
-```sh
-interview-os build <dir>      # esbuild index.ts+deps → dist/index.js (ESM; SDK external)
-interview-os validate <dir>   # manifest + capability↔hook + contract tests
-interview-os schema           # JSON Schema for skill.yaml (editors)
-interview-os build-ui <dir>   # ui/src/index.tsx → ui/index.js
-```
-
-The loader prefers `dist/index.js` when present, so plugins can use npm
-dependencies. `runContractTests({ dir })`
-(`@interview-os/plugin-sdk/testing`) loads the manifest, checks
-capability↔hook coverage, invokes each declared hook with built-in fixtures
-(overridable via `opts.fixtures`), and validates responses against the hook
-schemas. `packages/plugin-sdk/schema/skill.schema.json` is generated by
-`scripts/gen-schema.ts` (`z.toJSONSchema`) and kept current by a test.
+There is no build step: the host imports `main.py` directly (the TypeScript
+esbuild SDK/CLI is retired at the phase-8 cut-over). Hook schemas are the Pydantic
+models in `apps/api/src/interview_os/core/plugin_api.py`; the JSON Schema export in
+`apps/api/schema/` is regenerated with
+`uv run --project apps/api python -m interview_os.export_schema`.
 
 ## Runtime providers (trusted local code — not plugins)
 
