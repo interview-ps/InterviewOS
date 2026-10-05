@@ -7,6 +7,7 @@ machine, rounds, modes, taxonomy, voice, resources).
 """
 
 from . import plugin_api
+from .assessment import normalize_evaluation
 from .gaps import TARGET_SCORE_BY_LEVEL, calculate_gaps
 from .models import *  # noqa: F403
 from .models import __all__ as _models_all
@@ -43,6 +44,7 @@ from .plugin_api import (
     HookSpec,
     capability_hooks,
     hook_capability,
+    is_plugin_api_compatible,
     is_plugin_hook_name,
 )
 from .prioritize import (
@@ -119,6 +121,7 @@ __all__ = [
     "hook_capability",
     "humanize_skill_segment",
     "is_plugin_hook_name",
+    "is_plugin_api_compatible",
     "is_skill_id",
     "parent_skill_id",
     "plugin_api",
@@ -178,6 +181,7 @@ __all__ = [
     "mode_plugin_id",
     "next_events",
     "normalize_skill_id",
+    "normalize_evaluation",
     "parent_of",
     "register_nodes",
     "register_plugin_modes",

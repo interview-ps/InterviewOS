@@ -30,6 +30,7 @@ from .models.platform import (
     PluginSettingValue,
     UINode,
     UITone,
+    satisfies,
 )
 from .models.shared import CamelModel, JsonScalar, LooseCamelModel
 from .models.skills import EvidenceProposal, PluginCapability
@@ -85,10 +86,18 @@ __all__ = [
     "UiRenderResponse",
     "capability_hooks",
     "hook_capability",
+    "is_plugin_api_compatible",
     "is_plugin_hook_name",
 ]
 
 PLUGIN_API_VERSION = "1.1.0"
+
+
+def is_plugin_api_compatible(range_spec: str | None) -> bool:
+    """`engines["plugin-api"]` compat: missing = ^1.0.0, checked like interview-os."""
+
+    return range_spec is None or satisfies(PLUGIN_API_VERSION, range_spec)
+
 
 PluginApiSince = Literal["1.0.0", "1.1.0"]
 

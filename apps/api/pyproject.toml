@@ -53,3 +53,10 @@ python_version = "3.13"
 strict = true
 files = ["src", "tests"]
 mypy_path = "src"
+
+[tool.ruff.lint.per-file-ignores]
+# Prompt and mock-template strings are content, not code: wrapping them would
+# change the text the model receives.
+"src/interview_os/plugins/testing/mock_helpers.py" = ["E501"]
+# Prompt texts are content, not code: wrapping them would change the prompt.
+"src/interview_os/skills/**/prompts.py" = ["E501"]

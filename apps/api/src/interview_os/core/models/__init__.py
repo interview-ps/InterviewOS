@@ -161,6 +161,7 @@ from .platform import (
     is_valid_version,
     parse_version,
     plugin_applies_to_skill,
+    satisfies,
     ui_path_error,
     validate_ui_tree,
 )
@@ -457,6 +458,7 @@ __all__ = [
     "parse_version",
     "plugin_applies_to_skill",
     "plugin_evidence_proposals",
+    "satisfies",
     "ui_path_error",
     "validate_ui_tree",
 ]

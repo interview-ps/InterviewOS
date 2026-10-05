@@ -87,6 +87,7 @@ __all__ = [
     "is_valid_version",
     "parse_version",
     "plugin_applies_to_skill",
+    "satisfies",
     "ui_path_error",
     "validate_ui_tree",
 ]
@@ -120,6 +121,66 @@ def compare_semver(a: Semver, b: Semver) -> int:
 
 def format_semver(version: Semver) -> str:
     return f"{version.major}.{version.minor}.{version.patch}"
+
+
+_COMPARATOR_RE = re.compile(r"^(>=|<=|>|<)?\s*(\d+)\.(\d+)\.(\d+)$")
+
+
+def _caret_upper(version: Semver) -> Semver:
+    if version.major > 0:
+        return Semver(version.major + 1, 0, 0)
+    if version.minor > 0:
+        return Semver(0, version.minor + 1, 0)
+    return Semver(0, 0, version.patch + 1)
+
+
+def satisfies(version: str, range_spec: str) -> bool:
+    """Minimal semver range check: `*`, exact `x.y.z`, `>=`, `>`, `<=`, `<`,
+    `^x.y.z`, `~x.y.z`, and space-separated AND of comparators
+    (e.g. `>=0.4.0 <0.5.0`). Unknown tokens make the whole range unsatisfied.
+    """
+
+    parsed = parse_version(version)
+    if parsed is None:
+        return False
+    trimmed = range_spec.strip()
+    if trimmed in ("", "*"):
+        return True
+    for token in re.split(r"\s+", trimmed):
+        if token.startswith("^"):
+            base = parse_version(token[1:])
+            if (
+                base is None
+                or compare_semver(parsed, base) < 0
+                or compare_semver(parsed, _caret_upper(base)) >= 0
+            ):
+                return False
+            continue
+        if token.startswith("~"):
+            base = parse_version(token[1:])
+            if base is None:
+                return False
+            upper = Semver(base.major, base.minor + 1, 0)
+            if compare_semver(parsed, base) < 0 or compare_semver(parsed, upper) >= 0:
+                return False
+            continue
+        match = _COMPARATOR_RE.match(token)
+        if match is None:
+            return False
+        target = Semver(int(match[2]), int(match[3]), int(match[4]))
+        comparison = compare_semver(parsed, target)
+        operator = match[1] or ""
+        if operator == ">=" and comparison < 0:
+            return False
+        if operator == "<=" and comparison > 0:
+            return False
+        if operator == ">" and comparison <= 0:
+            return False
+        if operator == "<" and comparison >= 0:
+            return False
+        if operator == "" and comparison != 0:
+            return False
+    return True
 
 
 # --------------------------------------------------------------------- MCP (v0.4)
