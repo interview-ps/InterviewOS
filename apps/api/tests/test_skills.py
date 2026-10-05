@@ -15,6 +15,7 @@ from interview_os.core.models import (
     Permission,
     ReadinessStatus,
     Requirement,
+    RequirementKind,
     SkillKind,
     SkillManifest,
     SkillReadiness,
@@ -74,7 +75,6 @@ async def test_resume_analyzer_extracts_profile(
     assert isinstance(output.name, str)
     CandidateProfile(
         id="cand_test",
-        resume_text=str(example["resumeText"]),
         skills=output.skills,
         experience=output.experience,
         projects=output.projects,
@@ -109,7 +109,7 @@ async def test_gap_analyzer_is_deterministic(host: SkillHost, runtime: MockRunti
             skill_id="distributed-systems.caching",
             label="Caching",
             importance=0.8,
-            kind="required",
+            kind=RequirementKind.REQUIRED,
             evidence="cache",
         )
     ]
@@ -200,3 +200,147 @@ async def test_runtime_is_gated_behind_runtime_invoke(runtime: MockRuntime) -> N
     host.register(_Probe())  # type: ignore[arg-type]
     with pytest.raises(PermissionError, match="cannot use the runtime"):
         await host.invoke("probe", {}, _ctx(runtime))
+
+
+async def test_interviewer_asks_a_question(host: SkillHost, runtime: MockRuntime) -> None:
+    output = await host.invoke(
+        "interviewer",
+        {
+            "skillId": "distributed-systems.caching",
+            "label": "Caching",
+            "role": "Senior Backend Engineer",
+            "level": "senior",
+            "company": "Northwind Cloud",
+            "reason": "weak area",
+            "previousQuestions": ["What is a cache?"],
+            "candidateSummary": "Backend engineer with 6 years.",
+            "roundType": "mixed",
+        },
+        _ctx(runtime),
+    )
+    assert output.question
+    assert output.topic
+    assert output.difficulty in ("easy", "medium", "hard")
+    assert output.expected_concepts
+
+
+async def test_answer_evaluator_normalizes_and_scores(
+    host: SkillHost, runtime: MockRuntime
+) -> None:
+    output = await host.invoke(
+        "answer-evaluator",
+        {
+            "question": {
+                "text": "How would you keep cache entries consistent?",
+                "topic": "Cache consistency",
+                "skillId": "distributed-systems.caching",
+                "expectedConcepts": [
+                    {
+                        "concept": "TTL",
+                        "skillId": "distributed-systems.caching",
+                        "keywords": ["ttl"],
+                    }
+                ],
+                "difficulty": "medium",
+            },
+            "answer": "I would use a TTL with explicit invalidation on writes.",
+            "role": "Senior Backend Engineer",
+            "level": "senior",
+            "roundType": "mixed",
+        },
+        _ctx(runtime),
+    )
+    assert output.summary
+    assert output.scores
+    assert all(0.0 <= score.score <= 1.0 for score in output.scores)
+    assert all(0.0 <= score.confidence <= 1.0 for score in output.scores)
+
+
+async def test_debriefs_on_the_mock_runtime(host: SkillHost, runtime: MockRuntime) -> None:
+    debrief = await host.invoke(
+        "interview-debrief",
+        {
+            "role": "Senior Backend Engineer",
+            "questions": [{"text": "Q1", "skillId": "python", "topic": "Python"}],
+            "evaluations": [
+                {
+                    "summary": "ok",
+                    "strengths": [{"skill": "python", "evidence": "clear"}],
+                    "weaknesses": [{"skill": "sql", "severity": "high", "evidence": "thin"}],
+                }
+            ],
+            "openActions": [{"skillId": "sql", "action": "Practice SQL joins"}],
+        },
+        _ctx(runtime),
+    )
+    assert "Mock interview" in debrief.summary
+    assert debrief.went_well
+    assert debrief.next_actions == ["Practice SQL joins"]
+
+    loop = await host.invoke(
+        "loop-debrief",
+        {
+            "role": "Senior Backend Engineer",
+            "company": "Northwind Cloud",
+            "rounds": [
+                {
+                    "mode": "technical",
+                    "label": "Technical",
+                    "summaries": ["Solid fundamentals."],
+                    "rubricAverages": {"correctness": 0.8, "reasoning": 0.7},
+                    "handoff": None,
+                },
+                {
+                    "mode": "hr",
+                    "label": "HR",
+                    "summaries": [],
+                    "rubricAverages": {"communication": 0.3},
+                    "handoff": {
+                        "weakSkills": [
+                            {
+                                "skillId": "communication",
+                                "score": 0.3,
+                                "observation": "rambling",
+                            }
+                        ],
+                        "strongSkills": [],
+                        "observations": [],
+                    },
+                },
+            ],
+            "readinessChange": {"before": 0.4, "after": 0.55},
+        },
+        _ctx(runtime),
+    )
+    assert loop.rounds[0].signal == "strong"
+    assert loop.rounds[1].signal == "weak"
+    assert loop.readiness_change.after == pytest.approx(0.55)
+    assert any("Communication" in action for action in loop.top_actions)
+
+
+async def test_interview_planner_selects_through_the_host(
+    host: SkillHost, runtime: MockRuntime
+) -> None:
+    output = await host.invoke(
+        "interview-planner",
+        {
+            "requirements": [
+                {
+                    "skillId": "python",
+                    "label": "Python",
+                    "importance": 0.9,
+                    "kind": "required",
+                    "evidence": "python",
+                }
+            ],
+            "readiness": {},
+            "evidence": [],
+            "askedThisSession": [],
+            "askedPreviousSession": [],
+            "questionIndex": 0,
+        },
+        _ctx(runtime),
+    )
+    assert output is not None
+    assert output.skill_id == "python"
+    assert output.candidates

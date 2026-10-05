@@ -11,6 +11,12 @@ from collections.abc import Awaitable, Callable
 from ...ai.interface import AgentTask
 from ...ai.mock import MockRuntime
 from ..analyze.mocks import company_profiler_mock, jd_analyzer_mock, resume_analyzer_mock
+from ..evaluate.mocks import (
+    answer_evaluator_mock,
+    interview_debrief_mock,
+    loop_debrief_mock,
+)
+from ..interview.mocks import interviewer_mock
 
 __all__ = ["install_mode_mock_fallback", "register_mock_handlers"]
 
@@ -19,6 +25,10 @@ MOCK_HANDLERS: dict[str, Callable[[object], object]] = {
     "resume-analyzer": resume_analyzer_mock,
     "jd-analyzer": jd_analyzer_mock,
     "company-profiler": company_profiler_mock,
+    "interviewer": interviewer_mock,
+    "answer-evaluator": answer_evaluator_mock,
+    "interview-debrief": interview_debrief_mock,
+    "loop-debrief": loop_debrief_mock,
 }
 
 

@@ -5,7 +5,9 @@ from __future__ import annotations
 from typing import Any
 
 from .analyze import company_profiler, gap_analyzer, jd_analyzer, resume_analyzer
+from .evaluate import answer_evaluator, interview_debrief, loop_debrief
 from .host import SkillHost
+from .interview import interview_planner, interviewer
 
 __all__ = ["BUILTIN_SKILLS", "register_builtin_skills"]
 
@@ -15,6 +17,11 @@ BUILTIN_SKILLS: list[Any] = [
     jd_analyzer,
     gap_analyzer,
     company_profiler,
+    interview_planner,
+    interviewer,
+    answer_evaluator,
+    interview_debrief,
+    loop_debrief,
 ]
 
 

@@ -5,6 +5,7 @@ from __future__ import annotations
 from .analyze import company_profiler, gap_analyzer, jd_analyzer, resume_analyzer
 from .builtins import BUILTIN_SKILLS, register_builtin_skills
 from .common import TaxonomyEntry, normalize_skill_id_value, normalize_skill_ids, taxonomy_entries
+from .evaluate import answer_evaluator, interview_debrief, loop_debrief
 from .framework import (
     InterviewSkill,
     PluginKvStorage,
@@ -31,10 +32,16 @@ from .host import (
     effective_permissions,
     is_manifest_compatible,
 )
+from .interview import interview_planner, interviewer
 from .mock import install_mode_mock_fallback, register_mock_handlers
 
 __all__ = [
     "BUILTIN_SKILLS",
+    "answer_evaluator",
+    "interview_debrief",
+    "interview_planner",
+    "interviewer",
+    "loop_debrief",
     "PLUGIN_OUTPUT_MAX_BYTES",
     "PLUGIN_TIMEOUT_MS",
     "InterviewSkill",
