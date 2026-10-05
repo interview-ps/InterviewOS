@@ -2,7 +2,7 @@
 
 /* eslint-disable */
 
-export interface DesignUpdate { dimension: string; notes?: string; status: DesignUpdateStatus }
+export interface DesignUpdate { dimension: string; notes: string; status: DesignUpdateStatus }
 
 export type DesignUpdateStatus = "not_covered" | "partial" | "covered";
 
@@ -14,7 +14,7 @@ export interface EvaluationStrength { evidence: string; skill: string }
 
 export interface EvaluationWeakness { evidence: string; severity: WeaknessSeverity; skill: string }
 
-export interface RubricScore { id: string; label?: string; rationale?: string; score: number }
+export interface RubricScore { id: string; label: string; rationale: string; score: number }
 
 export interface SkillScore { confidence: number; score: number; skill: string }
 
@@ -22,31 +22,31 @@ export interface StarAssessment { action: boolean; notes: string; result: boolea
 
 export type WeaknessSeverity = "low" | "medium" | "high";
 
-export type AnswerEvaluation = { betterApproach: string; designUpdates?: DesignUpdate[] | null; dimensions: EvaluationDimensions; followUpTopics: string[]; missingConcepts: string[]; modeSignals?: Record<string, unknown> | null; rubric?: RubricScore[]; scores: SkillScore[]; star?: StarAssessment | null; strengths: EvaluationStrength[]; summary: string; weaknesses: EvaluationWeakness[] };
+export type AnswerEvaluation = { betterApproach: string; designUpdates: DesignUpdate[] | null; dimensions: EvaluationDimensions; followUpTopics: string[]; missingConcepts: string[]; modeSignals: Record<string, unknown> | null; rubric: RubricScore[]; scores: SkillScore[]; star: StarAssessment | null; strengths: EvaluationStrength[]; summary: string; weaknesses: EvaluationWeakness[] };
 
-export interface AssessedItem { evidenceIds?: string[]; note: string; skillId: string }
+export interface AssessedItem { evidenceIds: string[]; note: string; skillId: string }
 
-export type Gap = { currentScore?: number | null; gap: number; importance: number; label: string; reason: string; severity: GapSeverity; skillId: string; targetScore: number; uncertainty: number };
+export type Gap = { currentScore: number | null; gap: number; importance: number; label: string; reason: string; severity: GapSeverity; skillId: string; targetScore: number; uncertainty: number };
 
 export type GapSeverity = "low" | "medium" | "high";
 
 export type ReadinessStatus = "unknown" | "weak" | "developing" | "strong";
 
-export type SkillReadiness = { children?: string[]; confidence: number; evidenceIds?: string[]; label: string; score?: number | null; skillId: string; status: ReadinessStatus };
+export type SkillReadiness = { children: string[]; confidence: number; evidenceIds: string[]; label: string; score: number | null; skillId: string; status: ReadinessStatus };
 
-export interface AssessmentState { gaps?: Gap[]; observations?: string[]; skillAssessments?: Record<string, SkillReadiness>; strengths?: AssessedItem[]; strongAnswers?: AssessedItem[]; weakAnswers?: AssessedItem[] }
+export interface AssessmentState { gaps: Gap[]; observations: string[]; skillAssessments: Record<string, SkillReadiness>; strengths: AssessedItem[]; strongAnswers: AssessedItem[]; weakAnswers: AssessedItem[] }
 
 export interface CandidateSkill { evidence: string; level: number; skillId: string; source: "resume" }
 
 export type Education = { degree?: string | null; end?: string | null; field?: string | null; institution: string };
 
-export type Experience = { company: string; end?: string | null; highlights?: string[]; start?: string | null; title: string };
+export type Experience = { company: string; end?: string | null; highlights: string[]; start?: string | null; title: string };
 
-export interface Project { description: string; name: string; technologies?: string[] }
+export interface Project { description: string; name: string; technologies: string[] }
 
-export interface StarStory { action: string; id: string; result: string; situation: string; skillIds?: string[]; task: string; title: string }
+export interface StarStory { action: string; id: string; result: string; situation: string; skillIds: string[]; task: string; title: string }
 
-export type CandidateProfile = { achievements?: string[]; education?: Education[]; experience?: Experience[]; headline?: string | null; id: string; name?: string | null; projects?: Project[]; skills?: CandidateSkill[]; starStories?: StarStory[] };
+export type CandidateProfile = { achievements: string[]; education: Education[]; experience: Experience[]; headline?: string | null; id: string; name?: string | null; projects: Project[]; skills: CandidateSkill[]; starStories: StarStory[] };
 
 export interface CompanyBehavioralFramework { guidance: string; name: string; themes: string[] }
 
@@ -56,29 +56,29 @@ export interface CompanyPackInfo { communityCount: number; kind: "company"; sour
 
 export interface CompanyTypicalLoopStage { label: string; mode: string; plannedQuestions: number }
 
-export type CompanyProfile = { aliases?: string[]; behavioralFramework: CompanyBehavioralFramework; disclaimer: string; emphasis: CompanyEmphasis[]; followUpDepth: 1 | 2 | 3; id: string; name: string; pack?: CompanyPackInfo | null; roleExpectations?: Record<string, string[]>; rubricEmphasis?: Record<string, number>; typicalLoop: CompanyTypicalLoopStage[] };
+export type CompanyProfile = { aliases: string[]; behavioralFramework: CompanyBehavioralFramework; disclaimer: string; emphasis: CompanyEmphasis[]; followUpDepth: 1 | 2 | 3; id: string; name: string; pack?: CompanyPackInfo | null; roleExpectations: Record<string, string[]>; rubricEmphasis: Record<string, number>; typicalLoop: CompanyTypicalLoopStage[] };
 
 export type Answer = { createdAt?: string | null; id: string; questionId: string; sessionId?: string | null; text: string };
 
-export interface ExpectedConcept { concept: string; keywords?: string[]; skillId: string }
+export interface ExpectedConcept { concept: string; keywords: string[]; skillId: string }
 
 export type InterviewStatus = "created" | "analyzing" | "ready" | "question" | "answer" | "evaluating" | "follow_up" | "complete" | "debrief";
 
-export type InterviewSession = { answerIds?: string[]; completedAt?: string | null; currentRound?: number; id: string; plannedQuestions?: number; questionIds?: string[]; runtimeThreadId?: string | null; startedAt?: string | null; status?: InterviewStatus };
+export type InterviewSession = { answerIds: string[]; completedAt?: string | null; currentRound: number; id: string; plannedQuestions: number; questionIds: string[]; runtimeThreadId?: string | null; startedAt?: string | null; status: InterviewStatus };
 
-export type Question = { createdAt?: string | null; difficulty: QuestionDifficulty; expectedConcepts?: ExpectedConcept[]; followUpOf?: string | null; id: string; sessionId?: string | null; skillId: string; subSkills?: string[]; text: string; topic: string };
+export type Question = { createdAt?: string | null; difficulty: QuestionDifficulty; expectedConcepts: ExpectedConcept[]; followUpOf?: string | null; id: string; sessionId?: string | null; skillId: string; subSkills: string[]; text: string; topic: string };
 
 export type QuestionDifficulty = "easy" | "medium" | "hard";
 
-export type InterviewStateSlice = { activeQuestion?: Question | null; currentRound?: number; interviewerObservations?: string[]; previousAnswers?: Answer[]; previousQuestions?: Question[]; sessionId?: string | null };
+export type InterviewStateSlice = { activeQuestion?: Question | null; currentRound: number; interviewerObservations: string[]; previousAnswers: Answer[]; previousQuestions: Question[]; sessionId?: string | null };
 
-export interface LoopRoundSignal { evidence?: string[]; label?: string; mode: string; signal: LoopSignal }
+export interface LoopRoundSignal { evidence: string[]; label: string; mode: string; signal: LoopSignal }
 
 export type LoopSignal = "strong" | "mixed" | "weak";
 
 export type ReadinessChange = { after: number | null; before: number | null };
 
-export interface LoopDebrief { readinessChange: ReadinessChange; rounds: LoopRoundSignal[]; summary: string; topActions?: string[] }
+export interface LoopDebrief { readinessChange: ReadinessChange; rounds: LoopRoundSignal[]; summary: string; topActions: string[] }
 
 export type LoopRoundStatus = "pending" | "in_progress" | "complete";
 
@@ -86,15 +86,15 @@ export type ReadinessSnapshot = { overall: number | null; requirements: Record<s
 
 export interface RoundHandoff { observations: string[]; strongSkills: RoundHandoffStrongSkill[]; weakSkills: RoundHandoffWeakSkill[] }
 
-export interface RoundHandoffStrongSkill { label?: string; score: number; skillId: string }
+export interface RoundHandoffStrongSkill { label: string; score: number; skillId: string }
 
-export interface RoundHandoffWeakSkill { label?: string; observation: string; score: number; skillId: string }
+export interface RoundHandoffWeakSkill { label: string; observation: string; score: number; skillId: string }
 
-export type SkillDelta = { after: number | null; before: number | null; label?: string; skillId: string };
+export type SkillDelta = { after: number | null; before: number | null; label: string; skillId: string };
 
-export type LoopRound = { handoff?: RoundHandoff | null; label?: string; mode: string; plannedQuestions: number; readinessAfter?: ReadinessSnapshot | null; readinessBefore?: ReadinessSnapshot | null; sessionId?: string | null; skillDeltas?: SkillDelta[]; status?: LoopRoundStatus };
+export type LoopRound = { handoff: RoundHandoff | null; label: string; mode: string; plannedQuestions: number; readinessAfter: ReadinessSnapshot | null; readinessBefore: ReadinessSnapshot | null; sessionId: string | null; skillDeltas: SkillDelta[]; status: LoopRoundStatus };
 
-export interface RubricDimension { description?: string; id: string; label: string }
+export interface RubricDimension { description: string; id: string; label: string }
 
 export interface VoiceSignal { id: VoiceSignalId; message: string; status: VoiceSignalStatus }
 
@@ -106,7 +106,7 @@ export type VoiceFeedback = { disclaimer: string; fillerCount: number; signals: 
 
 export interface VoiceMetrics { durationSec: number; longPauseCount: number; longestPauseSec: number }
 
-export interface CompanyPackBehavioralFramework { guidance?: string; name: string; themes?: string[] }
+export interface CompanyPackBehavioralFramework { guidance: string; name: string; themes: string[] }
 
 export type CompanyPackStage = { label: string; mode: string; plannedQuestions: number; provenance: Provenance; source?: string | null };
 
@@ -118,17 +118,17 @@ export type PackSource = { id: string; title: string; url?: string | null };
 
 export type Provenance = "sourced" | "community";
 
-export type CompanyPack = { aliases?: string[]; behavioralFramework: CompanyPackBehavioralFramework; competencies?: PackItem[]; description?: string; emphasis?: CompanyEmphasis[]; evaluationGuidance?: PackItem[]; followUpDepth?: 1 | 2 | 3; format?: string; id: string; maintainers?: string[]; name: string; questionStyle?: PackItem[]; questions?: PackQuestion[]; roleExpectations?: Record<string, string[]>; sources?: PackSource[]; stages: CompanyPackStage[]; version: string };
+export type CompanyPack = { aliases: string[]; behavioralFramework: CompanyPackBehavioralFramework; competencies: PackItem[]; description: string; emphasis: CompanyEmphasis[]; evaluationGuidance: PackItem[]; followUpDepth: 1 | 2 | 3; format: string; id: string; maintainers: string[]; name: string; questionStyle: PackItem[]; questions: PackQuestion[]; roleExpectations: Record<string, string[]>; sources: PackSource[]; stages: CompanyPackStage[]; version: string };
 
-export type CompanyPackOverlayAppliesTo = { mode?: string | null; roleKeywords?: string[] };
+export type CompanyPackOverlayAppliesTo = { mode?: string | null; roleKeywords: string[] };
 
-export type CompanyPackOverlay = { appliesTo?: CompanyPackOverlayAppliesTo; competencies?: PackItem[]; evaluationGuidance?: PackItem[]; questionStyle?: PackItem[]; questions?: PackQuestion[]; stages?: CompanyPackStage[] | null };
+export type CompanyPackOverlay = { appliesTo: CompanyPackOverlayAppliesTo; competencies: PackItem[]; evaluationGuidance: PackItem[]; questionStyle: PackItem[]; questions: PackQuestion[]; stages?: CompanyPackStage[] | null };
 
-export type CompanyPackWithOverlays = { aliases?: string[]; behavioralFramework: CompanyPackBehavioralFramework; competencies?: PackItem[]; description?: string; emphasis?: CompanyEmphasis[]; evaluationGuidance?: PackItem[]; followUpDepth?: 1 | 2 | 3; format?: string; id: string; maintainers?: string[]; name: string; overlays?: CompanyPackOverlay[]; questionStyle?: PackItem[]; questions?: PackQuestion[]; roleExpectations?: Record<string, string[]>; sources?: PackSource[]; stages: CompanyPackStage[]; version: string };
+export type CompanyPackWithOverlays = { aliases: string[]; behavioralFramework: CompanyPackBehavioralFramework; competencies: PackItem[]; description: string; emphasis: CompanyEmphasis[]; evaluationGuidance: PackItem[]; followUpDepth: 1 | 2 | 3; format: string; id: string; maintainers: string[]; name: string; overlays: CompanyPackOverlay[]; questionStyle: PackItem[]; questions: PackQuestion[]; roleExpectations: Record<string, string[]>; sources: PackSource[]; stages: CompanyPackStage[]; version: string };
 
 export interface InterviewPackRound { label: string; mode: string; plannedQuestions: number }
 
-export interface InterviewPack { author?: string; description?: string; durationMinutes: number; format?: string; id: string; name: string; rounds: InterviewPackRound[]; skills: string[]; version: string }
+export interface InterviewPack { author: string; description: string; durationMinutes: number; format: string; id: string; name: string; rounds: InterviewPackRound[]; skills: string[]; version: string }
 
 export type PrepResourceKind = "docs" | "explanation" | "practice" | "article" | "video";
 
@@ -144,9 +144,9 @@ export interface RolePackDimension { skillId: string; weight: number }
 
 export type RolePackRubric = { criteria: string[]; mode?: string | null; skillId?: string | null };
 
-export interface RolePackTaxonomyNode { id: string; keywords?: string[]; label: string }
+export interface RolePackTaxonomyNode { id: string; keywords: string[]; label: string }
 
-export interface RolePack { defaultQuestionCategories: string[]; description?: string; dimensions: RolePackDimension[]; format?: string; id: string; maintainers?: string[]; name: string; questions?: PackQuestion[]; resources?: PackResource[]; rubrics?: RolePackRubric[]; sources?: PackSource[]; taxonomy?: RolePackTaxonomyNode[]; version: string }
+export interface RolePack { defaultQuestionCategories: string[]; description: string; dimensions: RolePackDimension[]; format: string; id: string; maintainers: string[]; name: string; questions: PackQuestion[]; resources: PackResource[]; rubrics: RolePackRubric[]; sources: PackSource[]; taxonomy: RolePackTaxonomyNode[]; version: string }
 
 export interface AnswerEvaluationRow { answerId: string; createdAt: string; data: unknown; id: string; questionId: string; readinessDelta: unknown; sessionId: string }
 
@@ -192,9 +192,9 @@ export interface ExportBundle { appVersion: string; candidate: ExportCandidateSe
 
 export interface ExternalContext { createdAt: string; id: string; serverId: string; text: string; title: string; tool: string }
 
-export type McpServerConfig = { args?: string[]; command: string; description?: string | null; envPassthrough?: string[]; id: string; name: string };
+export type McpServerConfig = { args: string[]; command: string; description?: string | null; envPassthrough: string[]; id: string; name: string };
 
-export interface McpConfig { servers?: McpServerConfig[] }
+export interface McpConfig { servers: McpServerConfig[] }
 
 export type PluginAppliesTo = { skillPrefixes?: string[] | null };
 
@@ -228,7 +228,7 @@ export interface UINodeEvidenceList { items: UINodeEvidenceListItem[]; type: "ev
 
 export type UINodeEvidenceListItem = { createdAt?: string | null; observation: string; score?: number | null; skillId: string };
 
-export type UINodeHeading = { level?: 2 | 3; text: string; type: "heading" };
+export type UINodeHeading = { level: 2 | 3; text: string; type: "heading" };
 
 export interface UINodeList { items: UINodeListItem[]; type: "list" }
 
@@ -258,19 +258,19 @@ export interface AnswerEvaluatedRubricScore { id: string; score: number }
 
 export interface AnswerEvaluatedSkillScore { score: number; skill: string }
 
-export interface AnswerEvaluatedEventRequest { questionId: string; roundType: string; rubric?: AnswerEvaluatedRubricScore[]; scores?: AnswerEvaluatedSkillScore[]; sessionId: string; skillId: string }
+export interface AnswerEvaluatedEventRequest { questionId: string; roundType: string; rubric: AnswerEvaluatedRubricScore[]; scores: AnswerEvaluatedSkillScore[]; sessionId: string; skillId: string }
 
 export type CandidateLite = { difficulty?: QuestionDifficulty | null; expectedConcepts?: string[] | null; mode?: string | null; skillId: string; text: string };
 
 export type EvaluationReviewAnswer = { code?: string | null; fields?: Record<string, string | number> | null; language?: string | null; text: string };
 
-export type EvaluationReviewQuestion = { expectedConcepts?: string[]; roundType: "mixed" | string; skillId: string; text: string };
+export type EvaluationReviewQuestion = { expectedConcepts: string[]; roundType: "mixed" | string; skillId: string; text: string };
 
 export type EvaluationReviewRequest = { answer: EvaluationReviewAnswer | null; evaluation: AnswerEvaluation; question: EvaluationReviewQuestion };
 
 export interface EvidenceProposal { confidence: number; observation: string; score: number; skillId: string }
 
-export interface PluginReviewObservation { text: string; tone?: UITone }
+export interface PluginReviewObservation { text: string; tone: UITone }
 
 export type EvaluationReviewResponse = { evidenceProposals?: EvidenceProposal[] | null; observations: PluginReviewObservation[] };
 
@@ -278,11 +278,11 @@ export type EventHookResponse = { evidenceProposals?: EvidenceProposal[] | null 
 
 export type LoopCompletedRound = { mode: string; sessionId?: string | null };
 
-export interface LoopCompletedEventRequest { loopId: string; rounds?: LoopCompletedRound[] }
+export interface LoopCompletedEventRequest { loopId: string; rounds: LoopCompletedRound[] }
 
 export interface ModeFollowUpRequest { depth: number; evaluation: AnswerEvaluation; maxDepth: number; modeId: string; state: Record<string, unknown> }
 
-export type ModeFollowUpResponse = { ask: boolean; focus?: string | null; reason?: string };
+export type ModeFollowUpResponse = { ask: boolean; focus?: string | null; reason: string };
 
 export type ModeMockRequest = { input: Record<string, unknown>; modeId: string; task: "interviewer" | "evaluator" };
 
@@ -292,7 +292,7 @@ export interface ModePrepareTurnRequest { followUp: boolean; modeId: string; sta
 
 export interface ModePrepareTurnResponse { turn: Record<string, unknown> }
 
-export interface ModeReduceQuestion { extra?: Record<string, unknown>; skillId: string; topic: string }
+export interface ModeReduceQuestion { extra: Record<string, unknown>; skillId: string; topic: string }
 
 export interface ModeReduceRequest { evaluation: AnswerEvaluation; modeId: string; question: ModeReduceQuestion; state: Record<string, unknown> }
 
@@ -304,7 +304,7 @@ export interface PreparationSuggestRequest { gaps: Record<string, unknown>[]; sk
 
 export interface PreparationSuggestResponse { activities: PluginPrepActivity[] }
 
-export type QuestionsSuggestRequest = { count?: number; level?: string | null; roundType: "mixed" | string; skillId: string };
+export type QuestionsSuggestRequest = { count: number; level?: string | null; roundType: "mixed" | string; skillId: string };
 
 export interface QuestionsSuggestResponse { questions: CandidateLite[] }
 
@@ -318,7 +318,7 @@ export interface ResourcesSuggestResponse { resources: ResourceLite[] }
 
 export interface SessionCompletedScore { answers: number; meanScore: number }
 
-export interface SessionCompletedEventRequest { roundType: string; scores?: Record<string, SessionCompletedScore>; sessionId: string }
+export interface SessionCompletedEventRequest { roundType: string; scores: Record<string, SessionCompletedScore>; sessionId: string }
 
 export type TargetChangedEventRequest = { company?: string | null; role: string; targetId: string };
 
@@ -326,7 +326,7 @@ export type UiFrameRunRequest = { component?: string | null; page?: string | nul
 
 export type UiFrameRunResponse = { output: unknown; ui?: UINodeStack | UINodeRow | UINodeCard | UINodeHeading | UINodeText | UINodeStat | UINodeBadge | UINodeSkillScore | UINodeProgressList | UINodeList | UINodeEvidenceList | UINodeReadinessChart | UINodeTabs | UINodeEmptyState | UINodeDivider | UINodeButton | null };
 
-export type UiRenderRequest = { component: string; page?: string | null; params?: unknown; slot?: string | null };
+export type UiRenderRequest = { component: string; page?: string | null; params: unknown; slot?: string | null };
 
 export type UiRenderResponse = { ui: UINodeStack | UINodeRow | UINodeCard | UINodeHeading | UINodeText | UINodeStat | UINodeBadge | UINodeSkillScore | UINodeProgressList | UINodeList | UINodeEvidenceList | UINodeReadinessChart | UINodeTabs | UINodeEmptyState | UINodeDivider | UINodeButton };
 
@@ -334,17 +334,17 @@ export type PracticeRecord = { actionId?: string | null; createdAt: string; id: 
 
 export type PrepActionStatus = "open" | "in_progress" | "done" | "superseded";
 
-export interface PrepAction { action: string; createdAt: string; id: string; priority: number; reason: string; skillId: string; sourceEvidenceIds?: string[]; status?: PrepActionStatus; successCriteria?: string[] }
+export interface PrepAction { action: string; createdAt: string; id: string; priority: number; reason: string; skillId: string; sourceEvidenceIds: string[]; status: PrepActionStatus; successCriteria: string[] }
 
 export type PrepResource = { kind: PrepResourceKind; skillId: string; source: string; summary?: string | null; title: string; url?: string | null };
 
-export interface PreparationState { completedTopics?: string[]; nextActions?: PrepAction[]; practiceHistory?: PracticeRecord[]; priorities?: string[] }
+export interface PreparationState { completedTopics: string[]; nextActions: PrepAction[]; practiceHistory: PracticeRecord[]; priorities: string[] }
 
 export type EvidenceType = "resume_claim" | "interview_answer" | "practice" | "self_report" | "plugin";
 
 export type Evidence = { confidence: number; createdAt: string; id: string; observation: string; questionId?: string | null; score: number; sessionId?: string | null; skillId: string; source?: string | null; type: EvidenceType };
 
-export interface ReadinessGraph { dimensions?: Record<string, SkillReadiness>; lastUpdated: string; overall: number; overallConfidence: number }
+export interface ReadinessGraph { dimensions: Record<string, SkillReadiness>; lastUpdated: string; overall: number; overallConfidence: number }
 
 export type AtsCheckStatus = "pass" | "warn" | "fail";
 
@@ -358,15 +358,15 @@ export interface AtsKeywordCoverage { missing: AtsKeywordMissing[]; present: Ats
 
 export interface AtsResult { checks: AtsCheck[]; keywordCoverage: AtsKeywordCoverage; score: number }
 
-export type ResumeAlignment = { requirement: string; resumeEvidence: string | null; suggestion?: string };
+export type ResumeAlignment = { requirement: string; resumeEvidence: string | null; suggestion: string };
 
 export interface ResumeGuard { dropped: number; substitutions: number }
 
-export type ResumeSuggestion = { dropped?: string | null; improved: string; original: string; rationale?: string; skillIds?: string[] };
+export type ResumeSuggestion = { dropped?: string | null; improved: string; original: string; rationale: string; skillIds: string[] };
 
-export interface ResumeTailoring { alignment?: ResumeAlignment[]; deEmphasize?: string[]; emphasize?: string[]; prepGaps?: string[]; summary: string }
+export interface ResumeTailoring { alignment: ResumeAlignment[]; deEmphasize: string[]; emphasize: string[]; prepGaps: string[]; summary: string }
 
-export type ResumeReview = { ats: AtsResult; candidateId: string; createdAt: string; guard?: ResumeGuard; id: string; linkedGapSkillIds?: string[]; suggestions: ResumeSuggestion[]; tailoring: ResumeTailoring | null; targetId: string | null };
+export type ResumeReview = { ats: AtsResult; candidateId: string; createdAt: string; guard: ResumeGuard; id: string; linkedGapSkillIds: string[]; suggestions: ResumeSuggestion[]; tailoring: ResumeTailoring | null; targetId: string | null };
 
 export type CamelModel = Record<string, unknown>;
 
@@ -376,23 +376,23 @@ export type StrictCamelModel = Record<string, unknown>;
 
 export type AnswerFieldType = "text" | "code" | "choice" | "number";
 
-export type PluginAnswerField = { key: string; label: string; options?: string[] | null; required?: boolean; type: AnswerFieldType };
+export type PluginAnswerField = { key: string; label: string; options?: string[] | null; required: boolean; type: AnswerFieldType };
 
-export type PluginInterviewMode = { description?: string; focusSkills?: string[]; guidance?: string | null; id: string; label: string; plannedQuestions?: number; roundType: "mixed" | string };
+export type PluginInterviewMode = { description: string; focusSkills: string[]; guidance?: string | null; id: string; label: string; plannedQuestions: number; roundType: "mixed" | string };
 
-export interface PluginModeContext { companyThemes?: boolean; storyTitles?: boolean }
+export interface PluginModeContext { companyThemes: boolean; storyTitles: boolean }
 
 export interface PluginModeFollowUpRule { below: number; focus: string; rubricId: string }
 
 export type PluginModeReduce = { copyExtra?: string[] | null; set?: Record<string, unknown> | null };
 
-export interface PluginModeScope { exclude?: string[]; include?: string[] }
+export interface PluginModeScope { exclude: string[]; include: string[] }
 
-export type PluginModeDefinition = { answerFields?: PluginAnswerField[]; answerFormat?: "text" | "text+code" | "fields"; context?: PluginModeContext; description?: string; evaluatorPrompt?: string | null; fallbackSkills?: string[]; followUp?: "generic" | "rules" | "never" | null; followUpReason?: string | null; followUpRules?: PluginModeFollowUpRule[] | null; id: string; initialState?: Record<string, unknown>; interviewerPrompt?: string | null; label: string; reduce?: PluginModeReduce | null; rubric: RubricDimension[]; scope?: PluginModeScope };
+export type PluginModeDefinition = { answerFields: PluginAnswerField[]; answerFormat: "text" | "text+code" | "fields"; context: PluginModeContext; description: string; evaluatorPrompt?: string | null; fallbackSkills: string[]; followUp?: "generic" | "rules" | "never" | null; followUpReason?: string | null; followUpRules?: PluginModeFollowUpRule[] | null; id: string; initialState: Record<string, unknown>; interviewerPrompt?: string | null; label: string; reduce?: PluginModeReduce | null; rubric: RubricDimension[]; scope: PluginModeScope };
 
 export type PluginOutputExtensions = { evidenceProposals?: EvidenceProposal[] | null };
 
-export interface PluginTaxonomyNode { id: string; keywords?: string[]; label: string }
+export interface PluginTaxonomyNode { id: string; keywords: string[]; label: string }
 
 export type PluginUICommand = { action: UIActionNavigate | UIActionStartInterview | UIActionStartPractice | UIActionRunPlugin | UIActionOpenPluginPage; id: string; label: string };
 
@@ -406,7 +406,7 @@ export type PluginUIPage = { component: string; entry?: string | null; kind: "de
 
 export type PluginUISlot = "dashboard.cards" | "dashboard.sidebar" | "target.tabs" | "prepare.activities" | "interview.sidebar" | "interview.toolbar" | "interview.question" | "readiness.panels" | "resume.tabs" | "settings.sections";
 
-export interface PluginUI { commands?: PluginUICommand[]; navigation?: PluginUINavItem[]; pages?: PluginUIPage[]; slots?: Record<string, PluginUIContribution[]> }
+export interface PluginUI { commands: PluginUICommand[]; navigation: PluginUINavItem[]; pages: PluginUIPage[]; slots: Record<string, PluginUIContribution[]> }
 
 export type Permission = "candidate.read" | "candidate.write" | "target.read" | "target.write" | "readiness.read" | "evidence.write" | "interview.read" | "interview.write" | "stories.read" | "stories.write" | "resume.read" | "resume.write" | "preparation.write" | "taxonomy.read" | "answers.read" | "runtime.invoke";
 
@@ -418,9 +418,9 @@ export type SkillManifestEngines = { "interview-os": string; "plugin-api"?: stri
 
 export interface SkillManifestInput { key: string; permission: Permission }
 
-export type SkillManifest = { appliesTo?: PluginAppliesTo | null; author?: string | null; capabilities?: PluginCapability[] | null; description?: string; engines?: SkillManifestEngines | null; events?: ("sessionCompleted" | "readinessUpdated" | "answerEvaluated" | "loopCompleted" | "targetChanged")[] | null; hooks?: string[] | null; id: string; inputs?: SkillManifestInput[]; interviewModes?: PluginInterviewMode[] | null; kind: SkillKind; modes?: PluginModeDefinition[] | null; name?: string | null; outputs?: string[]; permissions?: Permission[]; settings?: PluginSettingField[] | null; taxonomy?: PluginTaxonomyNode[] | null; ui?: PluginUI | null; version: string };
+export type SkillManifest = { appliesTo?: PluginAppliesTo | null; author?: string | null; capabilities?: PluginCapability[] | null; description: string; engines?: SkillManifestEngines | null; events?: ("sessionCompleted" | "readinessUpdated" | "answerEvaluated" | "loopCompleted" | "targetChanged")[] | null; hooks?: string[] | null; id: string; inputs: SkillManifestInput[]; interviewModes?: PluginInterviewMode[] | null; kind: SkillKind; modes?: PluginModeDefinition[] | null; name?: string | null; outputs: string[]; permissions: Permission[]; settings?: PluginSettingField[] | null; taxonomy?: PluginTaxonomyNode[] | null; ui?: PluginUI | null; version: string };
 
-export interface CompanyNotesProfile { behavioralThemes?: string[]; focusSkillIds?: string[]; interviewStyle?: string; values?: string[] }
+export interface CompanyNotesProfile { behavioralThemes: string[]; focusSkillIds: string[]; interviewStyle: string; values: string[] }
 
 export type Level = "junior" | "mid" | "senior" | "staff";
 
@@ -428,6 +428,6 @@ export type Requirement = { baseImportance?: number | null; boostedBy?: string |
 
 export type RequirementKind = "required" | "preferred";
 
-export type TargetRole = { company: string; companyNotes?: string | null; companyProfile?: CompanyNotesProfile | null; companyProfileId?: string | null; id: string; jobDescription: string; level: Level; preferredSkills?: Requirement[]; requirements?: Requirement[]; role: string; rolePackId?: string | null };
+export type TargetRole = { company: string; companyNotes?: string | null; companyProfile?: CompanyNotesProfile | null; companyProfileId?: string | null; id: string; jobDescription: string; level: Level; preferredSkills: Requirement[]; requirements: Requirement[]; role: string; rolePackId?: string | null };
 
 export interface InterviewOSState { assessment: AssessmentState; candidate: CandidateProfile; interview: InterviewStateSlice; preparation: PreparationState; readiness: ReadinessGraph; target: TargetRole }

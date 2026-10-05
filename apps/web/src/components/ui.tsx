@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { taxonomy } from "@interview-os/core";
+import { taxonomy } from "@interview-os/frontend-types";
 import { Pill, type Tone } from "@interview-os/ui";
 
 /* -- design system lives in @interview-os/ui; re-exported here so existing

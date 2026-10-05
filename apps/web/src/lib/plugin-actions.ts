@@ -1,5 +1,5 @@
-import { APP_ROUTE_ALLOWLIST, uiPathError } from "@interview-os/core";
-import type { UIAction } from "@interview-os/core";
+import { APP_ROUTE_ALLOWLIST, uiPathError } from "@interview-os/frontend-types";
+import type { UIAction } from "@interview-os/frontend-types";
 import { api } from "@/lib/api";
 import { toast } from "@/components/ui";
 

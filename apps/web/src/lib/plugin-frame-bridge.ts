@@ -4,7 +4,7 @@ import {
   parseFrameMessage,
   theme,
 } from "@interview-os/ui";
-import { UIActionSchema } from "@interview-os/core";
+import { UIActionSchema } from "@interview-os/frontend-types";
 import { api } from "@/lib/api";
 import { runUIAction } from "@/lib/plugin-actions";
 

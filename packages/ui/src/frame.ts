@@ -1,6 +1,6 @@
 import { z } from "zod";
 import type { ReactNode } from "react";
-import type { UIAction, UINode } from "@interview-os/core";
+import type { UIAction, UINode } from "@interview-os/frontend-types";
 import type { Theme } from "./tokens.js";
 
 /**

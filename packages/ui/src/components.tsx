@@ -1,5 +1,5 @@
 import { useState, type ReactNode } from "react";
-import type { UITone } from "@interview-os/core";
+import type { UITone } from "@interview-os/frontend-types";
 
 export type Tone = UITone;
 

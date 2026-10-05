@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router";
 import { DeclarativeRenderer } from "@interview-os/ui";
-import type { UINode } from "@interview-os/core";
+import type { UINode } from "@interview-os/frontend-types";
 import { api } from "@/lib/api";
 import { runUIAction } from "@/lib/plugin-actions";
 import { PluginFrame, useUIContributions } from "@/components/plugin-ui";

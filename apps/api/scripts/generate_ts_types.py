@@ -23,6 +23,25 @@ _PRIMITIVES = {"string": "string", "number": "number", "integer": "number", "boo
 _IDENTIFIER_RE = re.compile(r"^[A-Za-z_$][A-Za-z0-9_$]*$")
 
 
+def _is_nullable(node: Any) -> bool:
+    """True when a JSON-Schema node accepts `null`."""
+
+    if not isinstance(node, dict):
+        return False
+    if node.get("type") == "null":
+        return True
+    node_type = node.get("type")
+    if isinstance(node_type, list) and "null" in node_type:
+        return True
+    for key in ("anyOf", "oneOf"):
+        members = node.get(key) or []
+        if any(isinstance(item, dict) and item.get("type") == "null" for item in members):
+            return True
+    if "allOf" in node:
+        return any(_is_nullable(item) for item in node["allOf"])
+    return False
+
+
 def _key(name: str) -> str:
     return name if _IDENTIFIER_RE.match(name) else json.dumps(name)
 
@@ -76,6 +95,13 @@ class Generator:
                 return f"Record<string, {self.type_expr(extra)}>"
             return "Record<string, unknown>"
         required = set(node.get("required", []))
+        for key, value in props.items():
+            if not isinstance(value, dict):
+                continue
+            # The serializer omits a field only when it is nullable and unset
+            # (and not marked emit_null); every other field is always present.
+            if not _is_nullable(value) or value.get("emit_null") is True:
+                required.add(key)
         fields = [
             f"{_key(key)}{'' if key in required else '?'}: {self.type_expr(value)}"
             for key, value in props.items()

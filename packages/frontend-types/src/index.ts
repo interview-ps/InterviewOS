@@ -8,6 +8,15 @@
  *     packages/frontend-types/src/generated.ts
  */
 export * from "./generated";
-export * from "./ui";
 export * as taxonomy from "./taxonomy";
 export { VOICE_DISCLAIMER } from "./voice";
+export {
+  UIToneSchema,
+  UIActionSchema,
+  UINodeSchema,
+  APP_ROUTE_ALLOWLIST,
+  UI_TREE_LIMITS,
+  uiPathError,
+  validateUITree,
+} from "./ui";
+export type { UITone, UIAction, UINode, SkillId, RoundType } from "./ui";

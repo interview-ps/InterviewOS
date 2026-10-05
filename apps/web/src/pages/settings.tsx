@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { VOICE_DISCLAIMER } from "@interview-os/core";
+import { VOICE_DISCLAIMER } from "@interview-os/frontend-types";
 import {
   api,
   type AppSettings,

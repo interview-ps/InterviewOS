@@ -1,4 +1,4 @@
-import type { UIAction, UINode } from "@interview-os/core";
+import type { UIAction, UINode } from "@interview-os/frontend-types";
 import {
   Badge,
   Bar,

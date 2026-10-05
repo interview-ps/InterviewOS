@@ -6,7 +6,7 @@ import {
   type PluginFrameRunResult,
   type PluginFrameSDK,
 } from "../frame.js";
-import type { UIAction } from "@interview-os/core";
+import type { UIAction } from "@interview-os/frontend-types";
 
 const REQUEST_TIMEOUT_MS = 15_000;
 let seq = 0;

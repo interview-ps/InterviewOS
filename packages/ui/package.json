@@ -1,7 +1,7 @@
 {
   "name": "@interview-os/ui",
   "version": "0.4.0",
-  "private": true,
+  "private": false,
   "type": "module",
   "exports": {
     ".": "./src/index.ts",
@@ -10,12 +10,41 @@
     "./renderer": "./src/renderer.tsx",
     "./theme.css": "./src/theme.css"
   },
+  "files": [
+    "dist",
+    "src/theme.css"
+  ],
+  "publishConfig": {
+    "access": "public",
+    "main": "./dist/index.js",
+    "types": "./dist/index.d.ts",
+    "exports": {
+      ".": {
+        "types": "./dist/index.d.ts",
+        "default": "./dist/index.js"
+      },
+      "./frame": {
+        "types": "./dist/frame.d.ts",
+        "default": "./dist/frame.js"
+      },
+      "./schema": {
+        "types": "./dist/schema.d.ts",
+        "default": "./dist/schema.js"
+      },
+      "./renderer": {
+        "types": "./dist/renderer.d.ts",
+        "default": "./dist/renderer.js"
+      },
+      "./theme.css": "./dist/theme.css"
+    }
+  },
   "scripts": {
     "typecheck": "tsc --noEmit -p tsconfig.json",
+    "build": "tsc -p tsconfig.build.json && node -e \"require('node:fs').copyFileSync('src/theme.css','dist/theme.css')\"",
     "build:runtime": "vite build --config vite.runtime.config.ts"
   },
   "dependencies": {
-    "@interview-os/core": "workspace:*",
+    "@interview-os/frontend-types": "workspace:*",
     "zod": "4.6.5"
   },
   "peerDependencies": {
