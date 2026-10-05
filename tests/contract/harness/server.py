@@ -132,6 +132,41 @@ def _spawn_hono(tmpdir: Path) -> ServerHandle:
     )
 
 
+def _spawn_fastapi(tmpdir: Path) -> ServerHandle:
+    port = _free_port()
+    log_path = tmpdir / "server.log"
+    log_file = log_path.open("w", encoding="utf-8", errors="replace")
+    api_dir = REPO_ROOT / "apps" / "api"
+    proc = subprocess.Popen(
+        [
+            "uv",
+            "run",
+            "--project",
+            str(api_dir),
+            "uvicorn",
+            "interview_os.main:app",
+            "--host",
+            "127.0.0.1",
+            "--port",
+            str(port),
+            "--log-level",
+            "warning",
+        ],
+        cwd=str(api_dir),
+        env=_server_env(tmpdir, port),
+        stdout=log_file,
+        stderr=subprocess.STDOUT,
+        shell=False,
+    )
+    return ServerHandle(
+        base_url=f"http://127.0.0.1:{port}",
+        proc=proc,
+        tmpdir=tmpdir,
+        log_path=log_path,
+        _log_file=log_file,
+    )
+
+
 def wait_ready(handle: ServerHandle, timeout_s: float = READY_TIMEOUT_S) -> None:
     deadline = time.monotonic() + timeout_s
     while time.monotonic() < deadline:
@@ -176,12 +211,9 @@ def launch_server(tmpdir: Path) -> ServerHandle:
         return ServerHandle(base_url=external.rstrip("/"), proc=None, tmpdir=tmpdir)
 
     backend = os.environ.get("CONTRACT_BACKEND", "hono")
-    if backend == "fastapi":
-        raise pytest.UsageError("fastapi backend not available yet")
-    if backend != "hono":
-        raise pytest.UsageError(f"unknown CONTRACT_BACKEND {backend!r} (expected 'hono')")
-
-    handle = _spawn_hono(tmpdir)
+    handle = _spawn_fastapi(tmpdir) if backend == "fastapi" else _spawn_hono(tmpdir)
+    if backend not in ("hono", "fastapi"):
+        raise pytest.UsageError(f"unknown CONTRACT_BACKEND {backend!r} (expected 'hono' or 'fastapi')")
     SPAWNED_TMPDIRS.append(handle.tmpdir)
     try:
         wait_ready(handle)

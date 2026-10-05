@@ -11,7 +11,7 @@ from collections.abc import Callable
 from datetime import UTC, datetime
 from typing import TYPE_CHECKING
 
-from ..ai.interface import AIRuntime, ReasoningEffort
+from ..ai.interface import AIRuntime, ProgressUpdate, ReasoningEffort
 from ..ai.logger import Logger
 from ..core import taxonomy
 from ..core.models import (
@@ -45,7 +45,7 @@ def _utcnow() -> datetime:
 class ProgressOptions:
     """Streaming progress pushed to SSE/API callers during long AI operations."""
 
-    def __init__(self, on_progress: Callable[[object], None] | None = None) -> None:
+    def __init__(self, on_progress: Callable[[ProgressUpdate], None] | None = None) -> None:
         self.on_progress = on_progress
 
 

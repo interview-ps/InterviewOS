@@ -25,8 +25,8 @@ __all__ = [
     "REPO_ROOT",
 ]
 
-# apps/api/src/interview_os/paths.py -> apps/api -> apps -> repo root
-REPO_ROOT = Path(__file__).resolve().parents[3]
+# apps/api/src/interview_os/paths.py -> interview_os -> src -> api -> apps -> repo root
+REPO_ROOT = Path(__file__).resolve().parents[4]
 
 DEFAULT_DB_PATH = Path(os.environ.get("INTERVIEW_OS_DB", REPO_ROOT / "data/interview-os.db"))
 DEFAULT_PLUGINS_DIR = Path(os.environ.get("INTERVIEW_OS_PLUGINS_DIR", REPO_ROOT / "plugins"))

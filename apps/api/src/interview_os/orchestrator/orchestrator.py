@@ -26,6 +26,7 @@ from ..core.models import (
     AppError,
     CamelModel,
     CandidateProfile,
+    CompanyProfile,
     Gap,
     InterviewEvent,
     InterviewStatus,
@@ -57,6 +58,7 @@ from .services import (
     LoopService,
     McpService,
     NextQuestionResult,
+    OrchestratorSettings,
     PackService,
     PluginDirs,
     PluginInterviewModeRef,
@@ -327,10 +329,10 @@ class InterviewOrchestrator:
 
     # ----------------------------------------------------------------- settings
 
-    async def get_settings(self):  # type: ignore[no-untyped-def]
+    async def get_settings(self) -> OrchestratorSettings:
         return await self._settings.get_settings()
 
-    async def update_settings(self, patch: Mapping[str, object]):  # type: ignore[no-untyped-def]
+    async def update_settings(self, patch: Mapping[str, object]) -> OrchestratorSettings:
         async with self._hold():
             return await self._settings.update_settings(patch)
 
@@ -373,7 +375,7 @@ class InterviewOrchestrator:
         self._enqueue_target_changed()
         return result
 
-    async def list_company_profiles(self):  # type: ignore[no-untyped-def]
+    async def list_company_profiles(self) -> list[CompanyProfile]:
         return await self._targets.list_company_profiles()
 
     async def update_target_company_profile(
