@@ -5,7 +5,7 @@ import {
   type StarStory,
   type StoryCoachResult,
 } from "@/lib/api";
-import { Button, Card, CardTitle, EmptyState, ErrorNote, PageHeader, Pill, Spinner, skillLabel } from "@/components/ui";
+import { Button, Callout, Card, CardTitle, EmptyState, ErrorNote, PageHeader, Pill, SkeletonCard, Spinner, skillLabel } from "@/components/ui";
 
 const STAR_FIELDS = ["situation", "task", "action", "result"] as const;
 type StarField = (typeof STAR_FIELDS)[number];
@@ -105,17 +105,16 @@ export default function Stories() {
         </p>
       )}
       <ErrorNote error={error} />
-      {!stories && !error && <Spinner label="Loading stories…" />}
+      <Callout title="How to write a strong STAR story">
+        Situation, Task, Action, Result. Replace every <code>[add …]</code> placeholder
+        with a real detail — Interview OS never invents facts.
+      </Callout>
+      {!stories && !error && <SkeletonCard lines={4} />}
       {stories?.length === 0 && (
         <Card>
           <EmptyState
             title="No stories yet"
-            description="Generate from your resume or set up your workspace first — stories extracted during resume analysis appear here."
-            action={
-              <Button variant="secondary" onClick={generate} disabled={generating}>
-                Generate from resume
-              </Button>
-            }
+            description="Generate from your resume, or set up your workspace first — stories extracted during resume analysis appear here."
           />
         </Card>
       )}

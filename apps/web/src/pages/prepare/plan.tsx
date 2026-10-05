@@ -6,7 +6,20 @@ import {
   type PrepAction,
   type PrepResource,
 } from "@/lib/api";
-import { Button, Card, CardTitle, EmptyState, ErrorNote, PageHeader, Pill, SkeletonCard, skillLabel, toast } from "@/components/ui";
+import {
+  Button,
+  Callout,
+  Card,
+  CardTitle,
+  EmptyState,
+  ErrorNote,
+  PageHeader,
+  Pill,
+  SectionHeading,
+  SkeletonCard,
+  skillLabel,
+  toast,
+} from "@/components/ui";
 import { PluginSlot } from "@/components/plugin-ui";
 
 const ACTION_STATUS: Record<string, string> = {
@@ -24,7 +37,6 @@ function Resources({
   busy,
   canFetch,
   onChanged,
-  onError,
   onPractice,
   run,
 }: {
@@ -32,7 +44,6 @@ function Resources({
   busy: boolean;
   canFetch: boolean;
   onChanged: () => void;
-  onError: (e: unknown) => void;
   onPractice: () => void;
   run: (id: string, fn: () => Promise<unknown>) => void;
 }) {
@@ -66,9 +77,7 @@ function Resources({
                 <span className="font-medium text-ink">{r.title}</span>
               )}
               <span className="text-muted">{r.source}</span>
-              {r.summary && (
-                <span className="w-full text-muted">{r.summary}</span>
-              )}
+              {r.summary && <span className="w-full text-muted">{r.summary}</span>}
             </li>
           ))}
         </ul>
@@ -79,9 +88,7 @@ function Resources({
           disabled={busy}
           data-testid={`find-resources-${action.id}`}
           onClick={() =>
-            run(action.id, () =>
-              api.fetchActionResources(action.id).then(onChanged),
-            )
+            run(action.id, () => api.fetchActionResources(action.id).then(onChanged))
           }
           className="mt-1 text-xs text-blue underline"
         >
@@ -97,14 +104,12 @@ function ActionCard({
   busy,
   canFetchResources,
   onChanged,
-  onError,
   run,
 }: {
   action: PrepAction;
   busy: boolean;
   canFetchResources: boolean;
   onChanged: () => void;
-  onError: (e: unknown) => void;
   run: (id: string, fn: () => Promise<unknown>) => void;
 }) {
   const navigate = useNavigate();
@@ -139,14 +144,23 @@ function ActionCard({
       <div className="flex flex-wrap items-center gap-2">
         <Pill tone={a.priority === 1 ? "amber" : "muted"}>#{a.priority}</Pill>
         <span className="font-medium">{skillLabel(a.skillId)}</span>
-        <Pill tone={a.status === "in_progress" ? "blue" : "muted"}>{ACTION_STATUS[a.status]}</Pill>
+        <Pill tone={a.status === "in_progress" ? "blue" : "muted"}>
+          {ACTION_STATUS[a.status]}
+        </Pill>
       </div>
-      <p className="mt-2 text-sm">{a.action}</p>
-      {a.reason && <p className="mt-1 text-xs text-muted">Why: {a.reason}</p>}
-      <fieldset className="mt-2 space-y-1">
+      <p className="mt-2 text-base">{a.action}</p>
+      {a.reason && (
+        <div className="mt-2">
+          <Callout title="Why this matters">{a.reason}</Callout>
+        </div>
+      )}
+      <fieldset className="mt-3 space-y-1">
         <legend className="sr-only">Success criteria for {a.action}</legend>
+        <p className="text-xs font-semibold uppercase tracking-wide text-muted">
+          You'll know it's done when
+        </p>
         {a.successCriteria.map((c, i) => (
-          <label key={i} className="flex items-start gap-2 text-xs text-muted">
+          <label key={i} className="flex items-start gap-2 text-sm text-muted">
             <input
               type="checkbox"
               checked={checked.has(c)}
@@ -162,24 +176,24 @@ function ActionCard({
         busy={busy}
         canFetch={canFetchResources}
         onChanged={onChanged}
-        onError={onError}
         onPractice={verify}
         run={run}
       />
-      <div className="mt-3 flex flex-wrap gap-2">
+      <div className="mt-3 flex flex-wrap items-center gap-2">
         {a.status === "open" && (
           <Button
-            variant="secondary"
             disabled={busy}
             onClick={() => run(a.id, () => api.updateAction(a.id, "in_progress").then(onChanged))}
           >
             Start
           </Button>
         )}
-        <Button disabled={busy} onClick={markDone}>
-          {busy ? "Working…" : `Mark done${checked.size ? ` (${checked.size}/${a.successCriteria.length})` : ""}`}
+        <Button variant="secondary" disabled={busy} onClick={markDone}>
+          {busy
+            ? "Working…"
+            : `Mark done${checked.size ? ` (${checked.size}/${a.successCriteria.length})` : ""}`}
         </Button>
-        <Button variant="secondary" disabled={busy} onClick={verify}>
+        <Button variant="ghost" disabled={busy} onClick={verify}>
           Verify with a question
         </Button>
       </div>
@@ -211,18 +225,24 @@ export default function PrepPlan() {
 
   const recalc = () => {
     setBusy("recalc");
-    api.recalculatePlan().then(load).catch((e) => setError(e)).finally(() => setBusy(null));
+    api
+      .recalculatePlan()
+      .then(load)
+      .catch((e) => setError(e))
+      .finally(() => setBusy(null));
   };
 
   const run = (id: string, fn: () => Promise<unknown>) => {
     setBusy(id);
-    fn().catch((e) => setError(e)).finally(() => setBusy(null));
+    fn()
+      .catch((e) => setError(e))
+      .finally(() => setBusy(null));
   };
 
   if (!actions && !error) {
     return (
       <div className="space-y-5">
-        <PageHeader title="Prep Plan" />
+        <PageHeader title="Preparation plan" />
         <SkeletonCard />
         <SkeletonCard />
       </div>
@@ -232,6 +252,8 @@ export default function PrepPlan() {
   const open = (actions ?? [])
     .filter((a) => a.status === "open" || a.status === "in_progress")
     .sort((a, b) => a.priority - b.priority);
+  const today = open.slice(0, 3);
+  const upcoming = open.slice(3);
   const history = (actions ?? [])
     .filter((a) => a.status === "done" || a.status === "superseded")
     .sort((a, b) => b.createdAt.localeCompare(a.createdAt));
@@ -239,8 +261,8 @@ export default function PrepPlan() {
   return (
     <div className="space-y-5">
       <PageHeader
-        title="Prep Plan"
-        subtitle="Actions generated from your gaps — finish one, then verify with a question."
+        title="Preparation plan"
+        subtitle="An adaptive plan built from your gaps — finish an action, then verify it with a question."
         actions={
           <Button variant="secondary" onClick={recalc} disabled={busy === "recalc"}>
             {busy === "recalc" ? "Recalculating…" : "Recalculate"}
@@ -263,17 +285,43 @@ export default function PrepPlan() {
         </Card>
       )}
 
-      {open.map((a) => (
-        <ActionCard
-          key={a.id}
-          action={a}
-          busy={busy === a.id}
-          canFetchResources={canFetchResources}
-          onChanged={load}
-          onError={(e) => setError(e)}
-          run={run}
-        />
-      ))}
+      {today.length > 0 && (
+        <div className="space-y-4">
+          <SectionHeading
+            title="Today"
+            description="The actions that will move your readiness most."
+          />
+          {today.map((a) => (
+            <ActionCard
+              key={a.id}
+              action={a}
+              busy={busy === a.id}
+              canFetchResources={canFetchResources}
+              onChanged={load}
+              run={run}
+            />
+          ))}
+        </div>
+      )}
+
+      {upcoming.length > 0 && (
+        <div className="space-y-4">
+          <SectionHeading
+            title="Upcoming"
+            description="Lower-priority actions for later."
+          />
+          {upcoming.map((a) => (
+            <ActionCard
+              key={a.id}
+              action={a}
+              busy={busy === a.id}
+              canFetchResources={canFetchResources}
+              onChanged={load}
+              run={run}
+            />
+          ))}
+        </div>
+      )}
 
       {history.length > 0 && (
         <Card>
@@ -283,20 +331,42 @@ export default function PrepPlan() {
             className="flex w-full items-center justify-between text-left"
           >
             <CardTitle>History ({history.length})</CardTitle>
-            <span aria-hidden className="text-muted">{showHistory ? "▾" : "▸"}</span>
+            <span aria-hidden className="text-muted">
+              {showHistory ? "▾" : "▸"}
+            </span>
           </button>
           {showHistory && (
             <ul className="space-y-2 text-sm">
               {history.map((a) => (
-                <li key={a.id} className="flex items-center justify-between gap-2 border-t border-line pt-2">
+                <li
+                  key={a.id}
+                  className="flex items-center justify-between gap-2 border-t border-line pt-2"
+                >
                   <span className="text-muted line-through">{a.action}</span>
-                  <Pill tone={a.status === "done" ? "green" : "muted"}>{ACTION_STATUS[a.status]}</Pill>
+                  <Pill tone={a.status === "done" ? "green" : "muted"}>
+                    {ACTION_STATUS[a.status]}
+                  </Pill>
                 </li>
               ))}
             </ul>
           )}
         </Card>
       )}
+
+      <Card>
+        <SectionHeading
+          title="Improve your application materials"
+          description="ATS review, bullet rewrites, and role tailoring — grounded only in your resume."
+          action={
+            <Link to="/resume">
+              <Button variant="secondary" size="small">
+                Open resume coach
+              </Button>
+            </Link>
+          }
+        />
+      </Card>
+
       <PluginSuggestions onAccepted={load} onError={(e) => setError(e)} />
       <PluginSlot slot="prepare.activities" />
     </div>
@@ -325,9 +395,7 @@ function PluginSuggestions({
       <div className="mt-2 space-y-3">
         {visible.map((g) => (
           <div key={g.pluginId}>
-            <p className="text-xs font-medium text-muted">
-              from plugin {g.pluginName}
-            </p>
+            <p className="text-xs font-medium text-muted">from plugin {g.pluginName}</p>
             <ul className="mt-1 space-y-2">
               {g.activities.map((a, i) => {
                 const key = `${g.pluginId}:${i}`;
