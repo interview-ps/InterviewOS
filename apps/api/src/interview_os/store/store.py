@@ -38,6 +38,7 @@ from ..core.models import (
     InterviewSessionRow,
     JsonScalar,
     ModeState,
+    Permission,
     PreparationActionRow,
     PrepResource,
     ReadinessScoreRow,
@@ -62,10 +63,14 @@ __all__ = [
     "EvaluationRow",
     "EvidenceRow",
     "McpServerRow",
+    "PluginInstallRow",
+    "PluginSettingRow",
+    "PluginStorageRow",
     "PrepActionRow",
     "QuestionRow",
     "ReadinessDeltaEntry",
     "ReadinessRow",
+    "RuntimeSessionRow",
     "SessionRow",
     "Store",
     "StoreDataError",
@@ -240,6 +245,16 @@ class PrepActionRow(CamelModel):
     source: str
 
 
+class RuntimeSessionRow(CamelModel):
+    id: str
+    session_id: str
+    runtime: str
+    runtime_session_id: str
+    thread_id: str
+    status: str
+    created_at: str
+
+
 class McpServerRow(CamelModel):
     """`mcp_servers` state (the command lives only in `interview-os.mcp.json`)."""
 
@@ -249,7 +264,37 @@ class McpServerRow(CamelModel):
     updated_at: str | None
 
 
+class PluginInstallRow(CamelModel):
+    """`plugin_installs` — one row per bundled/installed plugin."""
+
+    id: str
+    enabled: int
+    granted_permissions: list[Permission]
+    source: str
+    source_url: str | None
+    dir_name: str | None
+    installed_at: str | None
+    updated_at: str | None
+
+
+class PluginSettingRow(CamelModel):
+    """`plugin_settings` — one declared setting value (JSON) per plugin/key."""
+
+    plugin_id: str
+    key: str
+    value: Any
+
+
+class PluginStorageRow(CamelModel):
+    """`plugin_storage` — plugin-owned KV rows (JSON), wiped on uninstall."""
+
+    plugin_id: str
+    key: str
+    value: Any
+
+
 _STR_LIST = TypeAdapter(list[str])
+_PERMISSION_LIST = TypeAdapter(list[Permission])
 _SKILL_LIST = TypeAdapter(list[SkillId])
 _CONCEPT_LIST = TypeAdapter(list[ExpectedConcept])
 _RESOURCE_LIST = TypeAdapter(list[PrepResource])
@@ -1257,6 +1302,72 @@ class Store:
     def list_all_debriefs(self) -> list[InterviewDebriefRow]:
         return [_debrief(row) for row in self._many("interview_debriefs")]
 
+    # ------------------------------------------------- runtime sessions (§9.1)
+
+    def insert_runtime_session(
+        self,
+        *,
+        id: str,
+        session_id: str,
+        runtime: str,
+        runtime_session_id: str,
+        thread_id: str,
+        created_at: str,
+        status: str = "open",
+    ) -> None:
+        self._insert(
+            "runtime_sessions",
+            {
+                "id": id,
+                "session_id": session_id,
+                "runtime": runtime,
+                "runtime_session_id": runtime_session_id,
+                "thread_id": thread_id,
+                "status": status,
+                "created_at": created_at,
+            },
+        )
+
+    def get_runtime_session(self, session_id: str) -> RuntimeSessionRow | None:
+        rows = self._query(
+            "SELECT * FROM runtime_sessions WHERE session_id = :session_id"
+            " ORDER BY created_at DESC",
+            {"session_id": session_id},
+        )
+        return None if not rows else _runtime_session(rows[0])
+
+    def update_runtime_session_status(self, id: str, status: str) -> None:
+        self._update("runtime_sessions", {"id": id}, {"status": status})
+
+    def reset_all(self) -> None:
+        """Test-mode only: wipe persisted state (excludes MCP/plugin config tables)."""
+
+        tables = (
+            "candidate_profiles",
+            "target_roles",
+            "interview_sessions",
+            "interview_loops",
+            "interview_questions",
+            "candidate_answers",
+            "answer_evaluations",
+            "skill_nodes",
+            "skill_evidence",
+            "readiness_scores",
+            "preparation_actions",
+            "runtime_sessions",
+            "interview_debriefs",
+            "star_stories",
+            "settings",
+            "resume_reviews",
+            "usage_events",
+            "interview_packs",
+            "user_questions",
+            "plugin_installs",
+        )
+        with self.transaction() as tx:
+            for table in tables:
+                tx._exec(f'DELETE FROM "{table}"')
+
     # ------------------------------------------------- star stories (§8.4)
 
     def insert_story(
@@ -1508,6 +1619,77 @@ class Store:
                 Base.metadata.tables["external_contexts"].c.id == id
             )
         )
+
+    # --------------------------------------- plugin installs (v0.4)
+
+    def upsert_plugin_install(self, row: PluginInstallRow) -> None:
+        """Insert or replace a plugin install row by id (`upsertPluginInstall`)."""
+
+        values = {
+            "enabled": row.enabled,
+            "granted_permissions": _dump(row.granted_permissions),
+            "source": row.source,
+            "source_url": row.source_url,
+            "dir_name": row.dir_name,
+            "installed_at": row.installed_at,
+            "updated_at": row.updated_at,
+        }
+        if self._one("plugin_installs", {"id": row.id}) is None:
+            self._insert("plugin_installs", {"id": row.id, **values})
+        else:
+            self._update("plugin_installs", {"id": row.id}, values)
+
+    def get_plugin_install(self, id: str) -> PluginInstallRow | None:
+        row = self._one("plugin_installs", {"id": id})
+        return None if row is None else _plugin_install(row)
+
+    def list_plugin_installs(self) -> list[PluginInstallRow]:
+        return [_plugin_install(row) for row in self._many("plugin_installs")]
+
+    def delete_plugin_install(self, id: str) -> None:
+        """Drop the install row; plugin-owned settings + KV rows go with it."""
+
+        with self.transaction() as tx:
+            tx.delete_rows_where("plugin_installs", id=id)
+            tx.delete_rows_where("plugin_storage", plugin_id=id)
+            tx.delete_rows_where("plugin_settings", plugin_id=id)
+
+    # --------------------------------- v1 plugin settings + KV storage
+
+    def get_plugin_settings(self, plugin_id: str) -> dict[str, Any]:
+        where = {"plugin_id": plugin_id}
+        parsed = [_plugin_setting(row) for row in self._many_where("plugin_settings", where)]
+        return {row.key: row.value for row in parsed}
+
+    def set_plugin_setting(self, plugin_id: str, key: str, value: Any) -> None:
+        keys = {"plugin_id": plugin_id, "key": key}
+        if self._one("plugin_settings", keys) is None:
+            self._insert("plugin_settings", {**keys, "value": _dump(value)})
+        else:
+            self._update("plugin_settings", keys, {"value": _dump(value)})
+
+    def get_plugin_storage_value(self, plugin_id: str, key: str) -> Any:
+        row = self._one("plugin_storage", {"plugin_id": plugin_id, "key": key})
+        return None if row is None else _plugin_storage(row).value
+
+    def set_plugin_storage_value(self, plugin_id: str, key: str, value: Any) -> None:
+        keys = {"plugin_id": plugin_id, "key": key}
+        if self._one("plugin_storage", keys) is None:
+            self._insert("plugin_storage", {**keys, "value": _dump(value)})
+        else:
+            self._update("plugin_storage", keys, {"value": _dump(value)})
+
+    def delete_plugin_storage_value(self, plugin_id: str, key: str) -> None:
+        self.delete_rows_where("plugin_storage", plugin_id=plugin_id, key=key)
+
+    def plugin_storage_bytes(self, plugin_id: str) -> int:
+        """Total KV footprint: `len(key) + len(JSON.stringify(value))` per row."""
+
+        total = 0
+        for row in self._many_where("plugin_storage", {"plugin_id": plugin_id}):
+            parsed = _plugin_storage(row)
+            total += len(parsed.key) + len(_dump(parsed.value))
+        return total
 
     # --------------------------------------------- export bundle reads
 
@@ -1988,6 +2170,18 @@ def _evidence(row: Mapping[str, Any]) -> EvidenceRow:
     )
 
 
+def _runtime_session(row: Mapping[str, Any]) -> RuntimeSessionRow:
+    return RuntimeSessionRow(
+        id=row["id"],
+        session_id=row["session_id"],
+        runtime=row["runtime"],
+        runtime_session_id=row["runtime_session_id"],
+        thread_id=row["thread_id"],
+        status=row["status"],
+        created_at=row["created_at"],
+    )
+
+
 def _readiness(row: Mapping[str, Any]) -> ReadinessRow:
     return ReadinessRow(
         id=row["id"],
@@ -2117,4 +2311,35 @@ def _external_context(row: Mapping[str, Any]) -> ExternalContextRow:
         title=row["title"],
         text=row["text"],
         created_at=row["created_at"],
+    )
+
+
+def _plugin_install(row: Mapping[str, Any]) -> PluginInstallRow:
+    return PluginInstallRow(
+        id=row["id"],
+        enabled=row["enabled"],
+        granted_permissions=_load(
+            _PERMISSION_LIST, row["granted_permissions"], "plugin_installs", "granted_permissions"
+        ),
+        source=row["source"],
+        source_url=row["source_url"],
+        dir_name=row["dir_name"],
+        installed_at=row["installed_at"],
+        updated_at=row["updated_at"],
+    )
+
+
+def _plugin_setting(row: Mapping[str, Any]) -> PluginSettingRow:
+    return PluginSettingRow(
+        plugin_id=row["plugin_id"],
+        key=row["key"],
+        value=_load(_ANY, row["value"], "plugin_settings", "value"),
+    )
+
+
+def _plugin_storage(row: Mapping[str, Any]) -> PluginStorageRow:
+    return PluginStorageRow(
+        plugin_id=row["plugin_id"],
+        key=row["key"],
+        value=_load(_ANY, row["value"], "plugin_storage", "value"),
     )

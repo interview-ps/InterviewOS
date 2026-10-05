@@ -1,9 +1,24 @@
 # Design: FastAPI Backend Refactor
 
-Status: **Draft / proposal**.
+Status: **Accepted — implementation started** (see migration status below).
 Scope: replace the TypeScript backend (`apps/server`, `packages/runtime`, and the
 server-side use of `packages/core`) with a Python FastAPI backend. The React UI
 (`apps/web`) stays.
+
+## Migration status
+
+| Phase | State |
+|---|---|
+| 0. Contract suite + golden fixtures | **Done** (`30d9ffc`). `tests/contract/` 104 tests, 91/91 routes, snapshots byte-identical across runs. `tests/golden/` 428 cases, synced by vitest. |
+| 1. `apps/api` scaffold: core models, store, Alembic baseline, schema export | **Done** (`0f7a846`). 87 tests incl. DDL parity (zero diffs) against a server-generated DB; store opens a copy of the real DB. |
+| 2. Port `core` logic (reproduce golden fixtures) | **Done** (`6571845`). 428/428 golden cases green; 557 tests total; `js_compat` for JS number/date parity. |
+| 3. Port `ai/` runtimes + `run_structured` | **Done** (`b4bb74c`). 729 tests (4 live opt-in skipped); codex suite drives the real `fake-codex.mjs`; claude seam with lazy Python SDK import. |
+| 4. Port skills + `SkillHost` | **Done** (`ebb6205`, `4310afc`, `a6aa373`, `cd1f735`). Framework, `SkillHost`, all 12 built-in skills + deterministic mocks, builtins registry; 744 tests. |
+| 5. Port orchestrator services | **Done** (`9b8cdab` foundation, `a5e7790` 5a, this commit 5b). `PackRegistry`, `McpManager`, the 15 services, the plugin executor, and the `InterviewOrchestrator` facade. Exit gate green: 823 tests (4 skipped), `ruff` + `mypy --strict` clean, feedback-loop pytest green. Phase-6 blockers logged in [`notes/phase-5b.md`](./notes/phase-5b.md). |
+| 6. Port HTTP routers + streaming + static serving | Not started |
+| 7. Plugin system (Octop model) + port 9 bundled plugins | Not started |
+| 8. Cut-over | Not started |
+| 9. Fine-grained locks default | Not started |
 
 Companion design: **[Python Plugin System (Octop model)](./python-plugin-system.md)**.
 The plugin system is specified there and only referenced here (§12).

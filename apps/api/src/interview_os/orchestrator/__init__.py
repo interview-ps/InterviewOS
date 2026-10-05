@@ -1,6 +1,12 @@
 """Orchestrator package — port of `apps/server/src/orchestrator/`."""
 
 from .context import ProgressOptions, WorkflowContext
+from .orchestrator import (
+    CompleteInterviewResult,
+    InterviewOrchestrator,
+    LockManager,
+    OrchestratorDeps,
+)
 from .projection import (
     OrchestratorQuestion,
     PrepActionRowLike,
@@ -9,6 +15,10 @@ from .projection import (
 )
 
 __all__ = [
+    "CompleteInterviewResult",
+    "InterviewOrchestrator",
+    "LockManager",
+    "OrchestratorDeps",
     "OrchestratorQuestion",
     "PrepActionRowLike",
     "ProgressOptions",

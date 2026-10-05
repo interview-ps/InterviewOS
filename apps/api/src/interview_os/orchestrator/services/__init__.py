@@ -1,20 +1,135 @@
 """Orchestrator domain services (one module per service)."""
 
+from .debrief import DebriefService
 from .export import ExportService
 from .history import HistoryService
+from .interview import (
+    INTERVIEWER_SESSION_INSTRUCTIONS,
+    AvailableMode,
+    InternalStartInput,
+    InterviewService,
+    InterviewServiceDeps,
+    ModeHookName,
+    NextQuestionResult,
+    PluginInterviewModeRef,
+    PluginReview,
+    PluginReviewPublic,
+    SkillImpact,
+    StartInterviewInput,
+    SubmitAnswerInput,
+    SubmitAnswerResult,
+    validate_answer_fields,
+)
+from .loop import (
+    AdvanceLoopResult,
+    LoopContext,
+    LoopRoundInput,
+    LoopService,
+    LoopView,
+    StartLoopInput,
+    StartLoopResult,
+)
 from .mcp import McpService
 from .pack import PackService
+from .plugin import (
+    AcceptPluginSuggestionResult,
+    EvaluationReviewAnswerInput,
+    EvaluationReviewsArgs,
+    PermissionViewEntry,
+    PluginDirs,
+    PluginEvidenceWriteResult,
+    PluginPrepSuggestionGroup,
+    PluginRegistrationMeta,
+    PluginRunResult,
+    PluginService,
+    PluginSource,
+    PluginUIContributionView,
+    PluginUIRenderRequest,
+    PluginUIRunResult,
+    PluginView,
+    ResolvedUIFrame,
+    UIFrameRunSelector,
+    UIFrameSelector,
+)
+from .preparation import (
+    CompleteActionResult,
+    PreparationPlan,
+    PreparationService,
+    PreparationServiceDeps,
+)
+from .readiness import ReadinessService
 from .resume import ResumeService
-from .settings import OrchestratorSettings, SettingsService
+from .settings import OrchestratorSettings, QuestionSources, SettingsService
 from .story import StoryService
+from .target import TargetPlanResult, TargetService, TargetSummary
+from .workspace import (
+    SetupWorkspaceInput,
+    SetupWorkspaceResult,
+    TargetInput,
+    WorkspaceService,
+)
 
 __all__ = [
+    "INTERVIEWER_SESSION_INSTRUCTIONS",
+    "AcceptPluginSuggestionResult",
+    "AdvanceLoopResult",
+    "AvailableMode",
+    "CompleteActionResult",
+    "DebriefService",
+    "EvaluationReviewAnswerInput",
+    "EvaluationReviewsArgs",
     "ExportService",
     "HistoryService",
+    "InternalStartInput",
+    "InterviewService",
+    "InterviewServiceDeps",
+    "LoopContext",
+    "LoopRoundInput",
+    "LoopService",
+    "LoopView",
     "McpService",
+    "ModeHookName",
+    "NextQuestionResult",
     "OrchestratorSettings",
     "PackService",
+    "PermissionViewEntry",
+    "PluginDirs",
+    "PluginEvidenceWriteResult",
+    "PluginInterviewModeRef",
+    "PluginPrepSuggestionGroup",
+    "PluginRegistrationMeta",
+    "PluginReview",
+    "PluginReviewPublic",
+    "PluginRunResult",
+    "PluginService",
+    "PluginSource",
+    "PluginUIContributionView",
+    "PluginUIRenderRequest",
+    "PluginUIRunResult",
+    "PluginView",
+    "PreparationPlan",
+    "PreparationService",
+    "PreparationServiceDeps",
+    "QuestionSources",
+    "ReadinessService",
+    "ResolvedUIFrame",
     "ResumeService",
     "SettingsService",
+    "SetupWorkspaceInput",
+    "SetupWorkspaceResult",
+    "SkillImpact",
+    "StartInterviewInput",
+    "StartLoopInput",
+    "StartLoopResult",
     "StoryService",
+    "SubmitAnswerInput",
+    "SubmitAnswerResult",
+    "TargetInput",
+    "TargetPlanResult",
+    "TargetService",
+    "TargetSummary",
+    "UIFrameRunSelector",
+    "UIFrameSelector",
+    "WorkspaceService",
+    "validate_answer_fields",
 ]
