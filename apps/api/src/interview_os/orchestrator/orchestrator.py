@@ -4,14 +4,15 @@ The single public surface the HTTP layer (phase 6) and the feedback-loop test
 depend on. Every mutating entrypoint runs inside a lock scope; plugin events are
 fire-and-forget on a serialized queue.
 
-Locking: this port implements the `global` mode only (one lock for every scope),
-which is the parity mode used through phases 5–8. `LockManager(mode=...)` is the
-seam phase 9 replaces with the fine-grained key ranks (design §8.1).
+Locking: `LockManager` supports `global` (one lock for every scope — the parity
+mode used through phases 5–8 and the default) and `fine` (one lock per scope
+key, acquired in a total order). See design §8.1.
 """
 
 from __future__ import annotations
 
 import asyncio
+import contextvars
 import os
 from collections.abc import AsyncIterator, Callable, Mapping
 from contextlib import asynccontextmanager
@@ -100,19 +101,67 @@ __all__ = ["InterviewOrchestrator", "LockManager", "OrchestratorDeps"]
 
 _LOCK_GLOBAL = "global"
 
+#: Keys already held by the current task (the no-nesting guard, design §8.1).
+_HELD_KEYS: contextvars.ContextVar[frozenset[str]] = contextvars.ContextVar(
+    "interview_os_held_lock_keys", default=frozenset()
+)
+
 
 class LockManager:
-    """Aggregate-lock manager. Phase 5b implements `global` only; `fine` lands in phase 9."""
+    """Aggregate-lock manager (design §8.1).
+
+    `global` (the parity default) maps every scope to one lock. `fine` acquires
+    one lock per scope key, in a total order (sorted keys) so concurrent
+    acquisitions cannot deadlock; keys default to `global` when a caller passes
+    none, so an unkeyed call still serializes with everything. Nesting with new
+    keys is rejected; re-entering only already-held keys is allowed.
+    """
+
+    MODES = ("global", "fine")
 
     def __init__(self, mode: str | None = None) -> None:
-        self.mode = mode or os.environ.get("INTERVIEW_OS_LOCK_MODE", "global")
-        self._global = asyncio.Lock()
+        resolved = mode or os.environ.get("INTERVIEW_OS_LOCK_MODE", "global")
+        self.mode = resolved if resolved in self.MODES else "global"
+        self._locks: dict[str, asyncio.Lock] = {}
+
+    def lock_for(self, key: str) -> asyncio.Lock:
+        lock = self._locks.get(key)
+        if lock is None:
+            lock = asyncio.Lock()
+            self._locks[key] = lock
+        return lock
 
     @asynccontextmanager
     async def hold(self, *keys: str) -> AsyncIterator[None]:
-        # global mode: every key maps to the one lock (today's semantics).
-        async with self._global:
-            yield
+        if self.mode == "global":
+            async with self.lock_for(_LOCK_GLOBAL):
+                yield
+            return
+
+        wanted = frozenset(key for key in keys if key) or frozenset({_LOCK_GLOBAL})
+        ordered = sorted(wanted)
+        held = _HELD_KEYS.get()
+        if held:
+            if wanted <= held:
+                yield  # re-entrant: every requested key is already held
+                return
+            raise RuntimeError(
+                "nested lock acquisition with new keys is not allowed (design §8.1)"
+            )
+
+        acquired: list[str] = []
+        try:
+            for key in ordered:
+                await self.lock_for(key).acquire()
+                acquired.append(key)
+            token = _HELD_KEYS.set(wanted)
+            try:
+                yield
+            finally:
+                _HELD_KEYS.reset(token)
+        finally:
+            for key in reversed(acquired):
+                self.lock_for(key).release()
 
 
 @dataclass
