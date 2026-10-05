@@ -8,3 +8,4 @@
  *     packages/frontend-types/src/generated.ts
  */
 export * from "./generated";
+export * from "./ui";
