@@ -2,7 +2,7 @@ import { Link } from "react-router";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { api, type HistoryEntry, type HistoryQuestion, type TargetListItem, type InterviewLoop } from "@/lib/api";
 import { useAvailableModes } from "@/lib/modes";
-import { Bar, Button, Card, CardTitle, EmptyState, ErrorNote, PageHeader, Pill, SkeletonCard, Spinner, skillLabel } from "@/components/ui";
+import { Bar, Button, Card, CardTitle, EmptyState, ErrorNote, PageHeader, Pill, SkeletonCard, Spinner, humanize, skillLabel } from "@/components/ui";
 
 const fmtScore = (n: number | null | undefined) =>
   n === null || n === undefined ? "—" : `${Math.round(n * 100)}%`;
@@ -44,7 +44,7 @@ function QuestionNode({ node, depth = 0 }: { node: HistoryQuestion; depth?: numb
               <span>delivery:</span>
               {node.answer.voice.feedback.signals.map((s) => (
                 <Pill key={s.id} tone={s.status === "ok" ? "green" : "amber"}>
-                  {s.id}
+                  {humanize(s.id)}
                 </Pill>
               ))}
               <span>
@@ -97,6 +97,7 @@ export default function History() {
   const [targetId, setTargetId] = useState("");
   const [loopId, setLoopId] = useState("");
   const [weakOnly, setWeakOnly] = useState(false);
+  const [shown, setShown] = useState(10);
   const available = useAvailableModes();
 
   // filter list = available modes + any mode present in stored sessions
@@ -115,6 +116,7 @@ export default function History() {
   }, [available, entries]);
 
   const load = useCallback(() => {
+    setShown(10);
     api
       .history({
         mode: mode || undefined,
@@ -206,6 +208,20 @@ export default function History() {
             />
             Weak answers only
           </label>
+          {(mode || targetId || loopId || weakOnly) && (
+            <Button
+              variant="ghost"
+              size="small"
+              onClick={() => {
+                setMode("");
+                setTargetId("");
+                setLoopId("");
+                setWeakOnly(false);
+              }}
+            >
+              Clear filters
+            </Button>
+          )}
         </div>
       </Card>
       <ErrorNote error={error} />
@@ -222,7 +238,7 @@ export default function History() {
           />
         </Card>
       )}
-      {entries?.map((e) => (
+      {(entries ?? []).slice(0, shown).map((e) => (
         <Card key={e.session.id}>
           <button onClick={() => toggle(e.session.id)} aria-expanded={expanded === e.session.id} className="w-full text-left">
             <div className="flex flex-wrap items-center gap-2">
@@ -232,7 +248,7 @@ export default function History() {
               {e.target && (
                 <span className="text-sm text-muted">{e.target.role} — {e.target.company}</span>
               )}
-              {e.target && <Pill tone="muted">{e.target.companyProfileId} profile</Pill>}
+              {e.target && <Pill tone="muted">{humanize(e.target.companyProfileId)} profile</Pill>}
               {e.loop && (
                 <Pill tone="blue">loop round {e.loop.round}/{e.loop.totalRounds}</Pill>
               )}
@@ -277,6 +293,13 @@ export default function History() {
           )}
         </Card>
       ))}
+      {(entries?.length ?? 0) > shown && (
+        <div className="text-center">
+          <Button variant="secondary" onClick={() => setShown((s) => s + 10)}>
+            Show more
+          </Button>
+        </div>
+      )}
     </div>
   );
 }
