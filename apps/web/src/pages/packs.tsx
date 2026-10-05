@@ -964,7 +964,7 @@ export default function Packs() {
   if (!packs && !error) {
     return (
       <div className="space-y-5">
-        <PageHeader title="Packs" />
+        <PageHeader title="Content library" />
         <SkeletonCard lines={4} />
         <SkeletonCard lines={4} />
       </div>
@@ -974,8 +974,8 @@ export default function Packs() {
   return (
     <div className="space-y-5">
       <PageHeader
-        title="Packs"
-        subtitle="Installable content — company, role and interview packs, plus your own question bank."
+        title="Content library"
+        subtitle="Company, role and interview packs — install the ones that match your target, or add your own questions."
       />
       <ErrorNote error={error} />
       <div className="flex gap-1 border-b border-line" role="tablist">

@@ -337,7 +337,11 @@ export default function Settings() {
           </div>
         )}
         {status && (
-          <dl className="mt-3 grid grid-cols-[8rem_1fr] gap-y-2 text-sm">
+          <details className="mt-3">
+            <summary className="cursor-pointer text-sm text-muted">
+              Advanced diagnostics
+            </summary>
+            <dl className="mt-2 grid grid-cols-[8rem_1fr] gap-y-2 text-sm">
             <dt className="text-muted">Status</dt>
             <dd>
               <Pill tone={status.available ? "green" : "amber"}>{status.status}</Pill>
@@ -356,6 +360,7 @@ export default function Settings() {
               automatically.
             </dd>
           </dl>
+          </details>
         )}
         <div className="mt-4">
           <Button variant="secondary" onClick={check} disabled={checking}>
