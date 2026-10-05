@@ -225,10 +225,11 @@ class SkillHost:
     def assert_can(
         self,
         skill_id: str,
-        permission: Permission,
+        permission: Permission | str,
         granted: tuple[Permission, ...] | None = None,
     ) -> None:
         """§9.6 write gate — the orchestrator calls this before persisting output."""
+        permission = Permission(permission)
         manifest = self._entry(skill_id).manifest
         effective = effective_permissions(manifest, granted)
         if permission not in effective:

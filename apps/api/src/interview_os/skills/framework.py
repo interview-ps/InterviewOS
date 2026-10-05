@@ -184,7 +184,9 @@ async def run_structured[M: BaseModel](ctx: SkillContext, task: SkillTask[M]) ->
         StructuredTask(
             task_id=task.task_id,
             instructions=task.instructions,
-            input=task.input,
+            # The TS skill passes its Zod-parsed object; the Python skill holds a
+            # model, so hand the runtime the same JSON shape the prompt shows.
+            input=json_input(task.input),
             schema=task.schema,
             session=SessionRef(runtime_session_id) if runtime_session_id else None,
             stream_field=task.stream_field,
