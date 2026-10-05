@@ -32,11 +32,13 @@ import { StatusDot } from "@/ui";
 type NavEntry = { href: string; label: string };
 
 /* Navigation is organised around the candidate's journey, not the internal
-   feature list: four primary goals, then Progress, Library, and Workspace. */
+   feature list: the prepare-and-practise steps, then Progress, Library, and
+   Workspace. */
 const NAV_JOURNEY: NavEntry[] = [
   { href: "/", label: "Home" },
   { href: "/target", label: "Target" },
   { href: "/prepare", label: "Prepare" },
+  { href: "/resume", label: "Resume" },
   { href: "/interview", label: "Interview" },
 ];
 const NAV_PROGRESS: NavEntry[] = [
@@ -49,13 +51,11 @@ const NAV_LIBRARY: NavEntry[] = [
 ];
 const NAV_WORKSPACE: NavEntry[] = [{ href: "/settings", label: "Settings" }];
 
-/* Full list (incl. /resume, which is reached contextually from Prepare and
-   Target rather than the primary rail) — used for labels and selection. */
+/* Full list — used for breadcrumb labels and menu selection. */
 const NAV: NavEntry[] = [
   ...NAV_JOURNEY,
   ...NAV_PROGRESS,
   ...NAV_LIBRARY,
-  { href: "/resume", label: "Resume coach" },
   ...NAV_WORKSPACE,
 ];
 
