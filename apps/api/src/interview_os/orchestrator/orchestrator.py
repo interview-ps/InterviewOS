@@ -4,9 +4,10 @@ The single public surface the HTTP layer (phase 6) and the feedback-loop test
 depend on. Every mutating entrypoint runs inside a lock scope; plugin events are
 fire-and-forget on a serialized queue.
 
-Locking: `LockManager` supports `global` (one lock for every scope — the parity
-mode used through phases 5–8 and the default) and `fine` (one lock per scope
-key, acquired in a total order). See design §8.1.
+Locking: `LockManager` defaults to `fine` (one lock per scope key, acquired in a
+total order; every facade method passes the scopes it touches). `global` (one
+lock for every scope) remains available via `INTERVIEW_OS_LOCK_MODE=global` as
+the parity fallback. See design §8.1.
 """
 
 from __future__ import annotations
@@ -110,7 +111,7 @@ _HELD_KEYS: contextvars.ContextVar[frozenset[str]] = contextvars.ContextVar(
 class LockManager:
     """Aggregate-lock manager (design §8.1).
 
-    `global` (the parity default) maps every scope to one lock. `fine` acquires
+    `global` maps every scope to one lock. `fine` (the default) acquires
     one lock per scope key, in a total order (sorted keys) so concurrent
     acquisitions cannot deadlock; keys default to `global` when a caller passes
     none, so an unkeyed call still serializes with everything. Nesting with new
@@ -120,7 +121,7 @@ class LockManager:
     MODES = ("global", "fine")
 
     def __init__(self, mode: str | None = None) -> None:
-        resolved = mode or os.environ.get("INTERVIEW_OS_LOCK_MODE", "global")
+        resolved = mode or os.environ.get("INTERVIEW_OS_LOCK_MODE", "fine")
         self.mode = resolved if resolved in self.MODES else "global"
         self._locks: dict[str, asyncio.Lock] = {}
 
@@ -319,7 +320,7 @@ class InterviewOrchestrator:
             for item in fired:
                 plugin_id = str(item["pluginId"])
                 proposals = item.get("proposals")
-                async with self._hold():
+                async with self._hold("plugins", "readiness"):
                     result = await self._plugins.persist_plugin_evidence(
                         plugin_id, list(proposals) if isinstance(proposals, list) else []
                     )
@@ -382,7 +383,7 @@ class InterviewOrchestrator:
         return await self._settings.get_settings()
 
     async def update_settings(self, patch: Mapping[str, object]) -> OrchestratorSettings:
-        async with self._hold():
+        async with self._hold("settings"):
             return await self._settings.update_settings(patch)
 
     # ----------------------------------------------------------------- pipeline
@@ -390,17 +391,17 @@ class InterviewOrchestrator:
     async def setup_workspace(
         self, input: SetupWorkspaceInput, opts: ProgressOptions | None = None
     ) -> SetupWorkspaceResult:
-        async with self._hold():
+        async with self._hold("candidate", "target", "readiness", "preparation"):
             result = await self._workspace.setup_workspace(input, opts)
         self._enqueue_target_changed()
         return result
 
     async def analyze_candidate(self, resume_text: str) -> CandidateProfile:
-        async with self._hold():
+        async with self._hold("candidate"):
             return await self._workspace.analyze_candidate_internal(resume_text)
 
     async def analyze_target(self, input: TargetInput) -> TargetRole:
-        async with self._hold():
+        async with self._hold("target"):
             target = await self._workspace.analyze_target_internal(input)
         self._enqueue_target_changed()
         return target
@@ -413,13 +414,13 @@ class InterviewOrchestrator:
     async def add_target(
         self, input: TargetInput, opts: ProgressOptions | None = None
     ) -> TargetPlanResult:
-        async with self._hold():
+        async with self._hold("target", "readiness", "preparation"):
             result = await self._targets.add_target(input, opts)
         self._enqueue_target_changed()
         return result
 
     async def activate_target(self, id: str) -> TargetPlanResult:
-        async with self._hold():
+        async with self._hold("target", "readiness", "preparation"):
             result = await self._targets.activate_target(id)
         self._enqueue_target_changed()
         return result
@@ -430,13 +431,13 @@ class InterviewOrchestrator:
     async def update_target_company_profile(
         self, target_id: str, company_profile_id: str
     ) -> TargetPlanResult:
-        async with self._hold():
+        async with self._hold("target", "readiness"):
             return await self._targets.update_target_company_profile(target_id, company_profile_id)
 
     async def set_target_role_pack(
         self, target_id: str, role_pack_id: str | None
     ) -> TargetPlanResult:
-        async with self._hold():
+        async with self._hold("target", "readiness"):
             return await self._targets.set_target_role_pack(target_id, role_pack_id)
 
     # ---------------------------------------------------------------- readiness
@@ -445,14 +446,14 @@ class InterviewOrchestrator:
         return self._readiness.graph_for_active()
 
     async def recompute_readiness(self, reason: str) -> ReadinessGraph:
-        async with self._hold():
+        async with self._hold("readiness"):
             return await self._recompute_readiness_internal(reason)
 
     async def _recompute_readiness_internal(self, reason: str) -> ReadinessGraph:
         return await self._readiness.recompute_readiness_internal(reason)
 
     async def calculate_gaps(self) -> list[Gap]:
-        async with self._hold():
+        async with self._hold("readiness"):
             return await self._calculate_gaps_internal()
 
     async def _calculate_gaps_internal(self) -> list[Gap]:
@@ -461,7 +462,7 @@ class InterviewOrchestrator:
     # ------------------------------------------------------------ gaps + plan
 
     async def build_preparation_plan(self) -> list[PrepActionRowLike]:
-        async with self._hold():
+        async with self._hold("readiness", "preparation"):
             plan = await self._build_preparation_plan_internal()
         return plan.actions
 
@@ -481,7 +482,7 @@ class InterviewOrchestrator:
         input: Mapping[str, object] | StartInterviewInput | None = None,
         opts: ProgressOptions | None = None,
     ) -> NextQuestionResult:
-        async with self._hold():
+        async with self._hold("interview", "target", "candidate", "readiness", "preparation"):
             return await self._interview.start_interview_internal(
                 input if input is not None else {}, opts
             )
@@ -489,7 +490,7 @@ class InterviewOrchestrator:
     async def next_question(
         self, session_id: str, opts: ProgressOptions | None = None
     ) -> NextQuestionResult:
-        async with self._hold():
+        async with self._hold("interview", "target", "candidate", "readiness"):
             return await self._interview.next_question_internal(session_id, opts)
 
     async def submit_answer(
@@ -498,7 +499,7 @@ class InterviewOrchestrator:
         answer: str | SubmitAnswerInput | Mapping[str, object],
         opts: ProgressOptions | None = None,
     ) -> SubmitAnswerResult:
-        async with self._hold():
+        async with self._hold("interview", "readiness", "preparation"):
             result = await self._interview.submit_answer(session_id, answer, opts)
         await self._enqueue_answer_evaluated(session_id, result)
         return result
@@ -527,7 +528,9 @@ class InterviewOrchestrator:
     async def complete_interview(
         self, session_id: str, opts: ProgressOptions | None = None
     ) -> CompleteInterviewResult:
-        async with self._hold():
+        async with self._hold(
+            "interview", "loop", "readiness", "preparation", "target", "candidate"
+        ):
             session = self._store.get_session(session_id)
             if session is None:
                 raise AppError("NOT_FOUND", f"no session {session_id}")
@@ -587,7 +590,7 @@ class InterviewOrchestrator:
         }
 
     async def create_debrief(self, session_id: str, opts: ProgressOptions | None = None):  # type: ignore[no-untyped-def]
-        async with self._hold():
+        async with self._hold("interview", "readiness"):
             return await self._create_debrief_internal(session_id, opts)
 
     async def _create_debrief_internal(self, session_id: str, opts: ProgressOptions | None):  # type: ignore[no-untyped-def]
@@ -600,7 +603,9 @@ class InterviewOrchestrator:
         input: Mapping[str, object] | None = None,
         opts: ProgressOptions | None = None,
     ) -> Any:
-        async with self._hold():
+        async with self._hold(
+            "loop", "interview", "readiness", "preparation", "target", "candidate"
+        ):
             return await self._loop.start_loop(input, opts)
 
     async def _advance_loop_internal(
@@ -615,7 +620,7 @@ class InterviewOrchestrator:
         return await self._loop.list_loops()
 
     async def abandon_loop(self, id: str) -> Any:
-        async with self._hold():
+        async with self._hold("loop"):
             return await self._loop.abandon_loop(id)
 
     # ------------------------------------------------------------------- packs
@@ -624,11 +629,11 @@ class InterviewOrchestrator:
         return await self._packs.list_packs()
 
     async def install_pack_from_git(self, kind: InstallablePackKind, url: str) -> Any:
-        async with self._hold():
+        async with self._hold("packs", "plugins", "readiness"):
             return await self._packs.install_pack_from_git(kind, url)
 
     async def uninstall_pack(self, kind: InstallablePackKind, id: str) -> None:
-        async with self._hold():
+        async with self._hold("packs", "plugins", "readiness"):
             await self._packs.uninstall_pack(kind, id)
 
     async def list_interview_packs(self) -> Any:
@@ -638,24 +643,26 @@ class InterviewOrchestrator:
         return await self._packs.get_interview_pack(id)
 
     async def create_interview_pack(self, input: object) -> Any:
-        async with self._hold():
+        async with self._hold("packs"):
             return await self._packs.create_interview_pack(
                 CreateInterviewPackInput.model_validate(input)
             )
 
     async def delete_interview_pack(self, id: str) -> None:
-        async with self._hold():
+        async with self._hold("packs"):
             await self._packs.delete_interview_pack(id)
 
     async def export_interview_pack(self, id: str) -> Any:
         return await self._packs.export_interview_pack(id)
 
     async def import_interview_pack(self, content: str) -> Any:
-        async with self._hold():
+        async with self._hold("packs"):
             return await self._packs.import_interview_pack(content)
 
     async def start_loop_from_pack(self, id: str, opts: ProgressOptions | None = None) -> Any:
-        async with self._hold():
+        async with self._hold(
+            "packs", "loop", "interview", "readiness", "preparation", "target", "candidate"
+        ):
             return await self._packs.start_loop_from_pack(id, opts)
 
     # ----------------------------------------------------------- question bank
@@ -664,19 +671,19 @@ class InterviewOrchestrator:
         return await self._packs.list_question_bank()
 
     async def add_user_question(self, item: object) -> Any:
-        async with self._hold():
+        async with self._hold("packs"):
             return await self._packs.add_user_question(QuestionBankItem.model_validate(item))
 
     async def delete_user_question(self, id: str) -> None:
-        async with self._hold():
+        async with self._hold("packs"):
             await self._packs.delete_user_question(id)
 
     async def import_question_bank(self, content: str) -> Any:
-        async with self._hold():
+        async with self._hold("packs"):
             return await self._packs.import_question_bank(content)
 
     async def fetch_plugin_resources(self, action_id: str) -> PrepActionRowLike:
-        async with self._hold():
+        async with self._hold("preparation", "plugins"):
             return await self._preparation.fetch_plugin_resources(action_id)
 
     # ----------------------------------------------------------------- queries
@@ -717,11 +724,11 @@ class InterviewOrchestrator:
     async def complete_action(
         self, action_id: str, opts: Mapping[str, object] | None = None
     ) -> CompleteActionResult:
-        async with self._hold():
+        async with self._hold("preparation", "readiness"):
             return await self._preparation.complete_action(action_id, opts)
 
     async def update_action_status(self, action_id: str, status: str) -> None:
-        async with self._hold():
+        async with self._hold("preparation"):
             await self._preparation.update_action_status(action_id, status)
 
     # ----------------------------------------------------------------- stories
@@ -730,21 +737,21 @@ class InterviewOrchestrator:
         return await self._stories.list_stories()
 
     async def generate_stories(self, opts: ProgressOptions | None = None) -> Any:
-        async with self._hold():
+        async with self._hold("stories", "candidate"):
             return await self._stories.generate_stories(opts)
 
     async def update_story(self, id: str, patch: StoryPatch) -> Any:
-        async with self._hold():
+        async with self._hold("stories"):
             return await self._stories.update_story(id, patch)
 
     async def coach_story(self, id: str, opts: ProgressOptions | None = None) -> Any:
-        async with self._hold():
+        async with self._hold("stories"):
             return await self._stories.coach_story(id, opts)
 
     # ------------------------------------------------------------ resume coach
 
     async def review_resume(self, opts: ProgressOptions | None = None) -> ResumeReview:
-        async with self._hold():
+        async with self._hold("resume", "candidate"):
             return await self._resume.review_resume(opts)
 
     async def latest_resume_review(self) -> ResumeReview | None:
@@ -764,14 +771,14 @@ class InterviewOrchestrator:
         self._plugins.set_plugin_load_errors(errors)
 
     async def sync_plugin_modes(self) -> None:
-        async with self._hold():
+        async with self._hold("plugins"):
             await self._plugins.sync_plugin_modes()
 
     async def plugin_mode_mock_fallback(self, task_id: str, input: object) -> object | None:
         return await self._plugins.mode_mock_fallback(task_id, input)
 
     async def register_skill_node(self, skill_id: str) -> None:
-        async with self._hold():
+        async with self._hold("readiness"):
             self._workflow.register_skill_node(skill_id)
 
     def list_skill_manifests(self) -> list[SkillManifest]:
@@ -783,15 +790,15 @@ class InterviewOrchestrator:
     async def set_plugin_enabled(
         self, id: str, enabled: bool, granted_permissions: list[Permission] | None = None
     ) -> PluginView:
-        async with self._hold():
+        async with self._hold("plugins", "readiness"):
             return await self._plugins.set_plugin_enabled(id, enabled, granted_permissions)
 
     async def install_plugin_from_git(self, url: str) -> PluginView:
-        async with self._hold():
+        async with self._hold("plugins", "readiness"):
             return await self._plugins.install_plugin_from_git(url)
 
     async def uninstall_plugin(self, id: str) -> None:
-        async with self._hold():
+        async with self._hold("plugins", "readiness"):
             await self._plugins.uninstall_plugin(id)
 
     async def invoke_plugin_hook(self, id: str, hook: str, req: object) -> object:
@@ -807,7 +814,7 @@ class InterviewOrchestrator:
     async def set_plugin_settings(
         self, id: str, values: Mapping[str, object]
     ) -> dict[str, object]:
-        async with self._hold():
+        async with self._hold("plugins"):
             return await self._plugins.set_plugin_settings(id, values)
 
     async def plugin_prep_suggestions(self) -> list[PluginPrepSuggestionGroup]:
@@ -816,7 +823,7 @@ class InterviewOrchestrator:
     async def accept_plugin_suggestion(
         self, plugin_id: str, activity: object
     ) -> AcceptPluginSuggestionResult:
-        async with self._hold():
+        async with self._hold("preparation", "plugins", "readiness"):
             return await self._plugins.accept_plugin_suggestion(plugin_id, activity)
 
     async def sync_plugin_packs(self) -> None:
@@ -826,7 +833,7 @@ class InterviewOrchestrator:
         return await self._plugins.find_plugins_by_capability(cap)
 
     async def run_plugin(self, id: str, request: object | None = None) -> PluginRunResult:
-        async with self._hold():
+        async with self._hold("plugins", "readiness"):
             return await self._plugins.run_plugin(id, request)
 
     async def render_plugin_ui(self, id: str, req: PluginUIRenderRequest) -> UINode:
@@ -853,7 +860,7 @@ class InterviewOrchestrator:
         return await self._mcp.list_mcp_servers()
 
     async def update_mcp_server(self, id: str, patch: object) -> Any:
-        async with self._hold():
+        async with self._hold("mcp"):
             return await self._mcp.update_mcp_server(id, McpServerPatch.model_validate(patch))
 
     async def list_mcp_tools(self, id: str) -> Any:
@@ -864,7 +871,7 @@ class InterviewOrchestrator:
         tool = input.get("tool")
         args = input.get("args")
         title = input.get("title")
-        async with self._hold():
+        async with self._hold("mcp"):
             return await self._mcp.fetch_external_context(
                 server_id=str(server_id),
                 tool=str(tool),
@@ -876,7 +883,7 @@ class InterviewOrchestrator:
         return await self._mcp.list_external_contexts()
 
     async def delete_external_context(self, id: str) -> None:
-        async with self._hold():
+        async with self._hold("mcp"):
             await self._mcp.delete_external_context(id)
 
     # ------------------------------------------------------------ export/import
@@ -889,7 +896,20 @@ class InterviewOrchestrator:
 
     async def import_state(self, bundle: object, opts: Mapping[str, object] | None = None) -> Any:
         mode = str(opts["mode"]) if opts is not None and opts.get("mode") is not None else "replace"
-        async with self._hold():
+        async with self._hold(
+            "candidate",
+            "target",
+            "readiness",
+            "preparation",
+            "interview",
+            "loop",
+            "stories",
+            "resume",
+            "settings",
+            "packs",
+            "plugins",
+            "mcp",
+        ):
             return await self._exporter.import_state(bundle, mode=mode)
 
     # -------------------------------------------------------------------- misc
