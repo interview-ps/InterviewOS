@@ -15,8 +15,11 @@ def plugin_interviewer_prompt(guidance: str) -> str:
     return (
         "You are the interviewer for an interview round provided by an Interview OS "
         "plugin mode. Produce ONE interview question as JSON matching the required "
-        "output schema. Never repeat earlier questions. When the mode calls for an "
-        'artifact, return it in "problem" (object or string); otherwise null.\n\n'
+        "output schema. Every required field must be present: set "
+        '"difficulty" to exactly "easy", "medium" or "hard" (adapted to the level '
+        'and role), and return the mode artifact in "problem" (object or string) '
+        "when the mode calls for one, otherwise null. Never repeat earlier "
+        "questions.\n\n"
         f"Mode guidance:\n{guidance.strip() or _INTERVIEWER_FALLBACK}"
     )
 
