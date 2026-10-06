@@ -58,15 +58,15 @@ export default function PluginPage() {
 
   return (
     <div>
-      <PageHeader
-        title={page.title}
-        subtitle={`from plugin ${plugin.pluginName}`}
-      />
-      <p className="mb-3 -mt-3 text-sm">
+      <p className="mb-2 text-sm">
         <Link to="/skills" className="text-blue underline">
           ← Back to Extensions
         </Link>
       </p>
+      <PageHeader
+        title={page.title}
+        subtitle={`from plugin ${plugin.pluginName}`}
+      />
       {page.kind === "frame" ? (
         <PluginFrame
           plugin={plugin}

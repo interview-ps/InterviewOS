@@ -57,7 +57,7 @@ export const theme = {
     brand: "0 8px 24px -10px rgba(var(--brand-rgb), 0.35)",
   },
   /** Compact spacing scale — desktop-density rhythm. */
-  spacing: {
+  space: {
     xs: "0.25rem",
     sm: "0.375rem",
     md: "0.5rem",

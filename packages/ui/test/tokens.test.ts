@@ -33,8 +33,8 @@ describe("tokens.ts ↔ theme.css sync", () => {
 
   it("compact spacing and sizes match", () => {
     const kebab = (s: string) => s.replace(/[A-Z]/g, (c) => `-${c.toLowerCase()}`);
-    for (const [key, value] of Object.entries(theme.spacing)) {
-      expect(cssVar(`spacing-${key}`), key).toBe(value);
+    for (const [key, value] of Object.entries(theme.space)) {
+      expect(cssVar(`space-${key}`), key).toBe(value);
     }
     for (const [key, value] of Object.entries(theme.size)) {
       expect(cssVar(`size-${kebab(key)}`), key).toBe(value);

@@ -102,6 +102,16 @@ QUESTIONS: list[dict[str, Any]] = [
 
 SQL_SKILLS = ["sql", "sql.query-optimization", "sql.indexing", "sql.transactions", "sql.locking"]
 
+# Display names for this plugin's own skills: the platform readiness graph only
+# carries labels for skills it already knows, so the rest would read as raw ids.
+SKILL_LABELS = {
+    "sql": "SQL",
+    "sql.query-optimization": "Query Optimization",
+    "sql.indexing": "Indexing",
+    "sql.transactions": "Transactions",
+    "sql.locking": "Locking",
+}
+
 TAB_SKILLS: list[dict[str, Any]] = [
     {"label": "Queries", "skills": ["sql", "sql.query-optimization"]},
     {"label": "Indexes", "skills": ["sql.indexing"]},
@@ -146,12 +156,27 @@ def _candidate(question: dict[str, Any]) -> CandidateLite:
     )
 
 
-def readiness_card(readiness: dict[str, Any]) -> dict[str, Any]:
-    dims = [
+def _assessed(readiness: dict[str, Any]) -> list[dict[str, Any]]:
+    """SQL dimensions that carry evidence — the plugin asserts nothing without them."""
+    return [
         readiness[skill]
         for skill in SQL_SKILLS
         if isinstance(readiness.get(skill), dict) and readiness[skill].get("score") is not None
     ]
+
+
+def _label(readiness: dict[str, Any], skill: str) -> str:
+    """A display name for a skill: the graph's label if it has one, else our own."""
+    dim = readiness.get(skill)
+    if isinstance(dim, dict):
+        label = dim.get("label")
+        if isinstance(label, str) and label:
+            return label
+    return SKILL_LABELS.get(skill, skill)
+
+
+def readiness_card(readiness: dict[str, Any]) -> dict[str, Any]:
+    dims = _assessed(readiness)
     mean = (
         sum(float(dim.get("score") or 0) for dim in dims) / len(dims) if dims else None
     )
@@ -240,7 +265,7 @@ def home_page(readiness: dict[str, Any], gaps: list[dict[str, Any]]) -> dict[str
                         {
                             "type": "skillScore",
                             "skillId": skill,
-                            "label": (readiness.get(skill) or {}).get("label") or skill,
+                            "label": _label(readiness, skill),
                             "score": (readiness.get(skill) or {}).get("score"),
                             "confidence": (readiness.get(skill) or {}).get("confidence") or 0,
                         }
@@ -251,19 +276,28 @@ def home_page(readiness: dict[str, Any], gaps: list[dict[str, Any]]) -> dict[str
         }
         for tab in TAB_SKILLS
     ]
-    tail: dict[str, Any] = (
-        {
+    if not _assessed(readiness):
+        # Nothing assessed: "no weaknesses" would read as a clean bill of health.
+        tail: dict[str, Any] = {
+            "type": "emptyState",
+            "title": "No PostgreSQL evidence yet",
+            "description": (
+                "None of these skills are assessed yet — run a PostgreSQL interview "
+                "to get a baseline."
+            ),
+        }
+    elif weaknesses:
+        tail = {
             "type": "card",
             "title": "Recent weaknesses",
             "children": [{"type": "list", "items": weaknesses}],
         }
-        if weaknesses
-        else {
+    else:
+        tail = {
             "type": "emptyState",
             "title": "No PostgreSQL weaknesses detected",
             "description": "SQL skills are on track.",
         }
-    )
     return {
         "type": "stack",
         "gap": "md",
