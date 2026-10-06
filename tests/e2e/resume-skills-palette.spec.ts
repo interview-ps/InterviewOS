@@ -33,7 +33,6 @@ test.describe("resume coach, skills & plugins, command palette", () => {
 
   test("skills page lists the sample plugin and runs it", async ({ page }) => {
     await page.goto("/skills");
-    await expect(page.getByTestId("skills-table")).toBeVisible();
     await expect(
       page.getByText("interview-day-checklist").first(),
     ).toBeVisible();
@@ -45,6 +44,10 @@ test.describe("resume coach, skills & plugins, command palette", () => {
       page.getByTestId("plugin-checklist").getByText("STAR reminder"),
     ).toBeVisible();
     await page.screenshot({ path: "test-results/rsp-2-skills.png", fullPage: true });
+    // Built-in skill manifests live on the Advanced tab.
+    await page.getByRole("button", { name: "Advanced" }).click();
+    await expect(page.getByTestId("skills-table")).toBeVisible();
+    await page.screenshot({ path: "test-results/rsp-2b-skills-advanced.png", fullPage: true });
   });
 
   test("command palette: Ctrl+K → 'system' → system design session", async ({
