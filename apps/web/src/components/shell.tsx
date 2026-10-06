@@ -16,11 +16,13 @@ import {
   ApiOutlined,
   AppstoreOutlined,
   BgColorsOutlined,
+  BlockOutlined,
   BulbOutlined,
   DesktopOutlined,
   FileTextOutlined,
   HistoryOutlined,
   HomeOutlined,
+  LineChartOutlined,
   MenuFoldOutlined,
   MenuOutlined,
   MenuUnfoldOutlined,
@@ -30,6 +32,7 @@ import {
   SearchOutlined,
   SettingOutlined,
   SunOutlined,
+  ToolOutlined,
   VideoCameraOutlined,
 } from "@ant-design/icons";
 import type { UITone as Tone } from "@interview-os/frontend-types";
@@ -225,6 +228,16 @@ function PluginIcon({ icon }: { icon: string }) {
   );
 }
 
+/** Group headings carry an icon so the rail scans as three short sections. */
+function groupLabel(text: string, icon: ReactNode) {
+  return (
+    <span className="inline-flex items-center gap-2">
+      <span aria-hidden className="inline-flex items-center">{icon}</span>
+      {text}
+    </span>
+  );
+}
+
 function navLinks(entries: NavEntry[]) {
   return entries.map((item) => ({
     key: item.href,
@@ -234,7 +247,7 @@ function navLinks(entries: NavEntry[]) {
   }));
 }
 
-function useNavItems() {
+function useNavItems(): { primary: unknown[]; settings: unknown[] } {
   const contributions = useUIContributions();
 
   return useMemo(() => {
@@ -255,27 +268,25 @@ function useNavItems() {
         };
       }),
     );
-    const items: unknown[] = [
+    const primary: unknown[] = [
       ...navLinks(NAV_JOURNEY),
-      { key: "group-progress", type: "group", label: "Progress", children: navLinks(NAV_PROGRESS) },
+      { key: "group-progress", type: "group", label: groupLabel("Progress", <LineChartOutlined />), children: navLinks(NAV_PROGRESS) },
       {
         key: "group-customizations",
         type: "group",
-        label: "Customizations",
+        label: groupLabel("Customizations", <ToolOutlined />),
         children: navLinks(NAV_CUSTOMIZATIONS),
       },
-      { type: "divider", key: "divider-workspace" },
-      ...navLinks(NAV_WORKSPACE),
     ];
     if (pluginNav.length > 0) {
-      items.push({
+      primary.push({
         key: "plugins-group",
         type: "group",
-        label: "Plugins",
+        label: groupLabel("Plugins", <BlockOutlined />),
         children: pluginNav,
       });
     }
-    return items as never;
+    return { primary, settings: navLinks(NAV_WORKSPACE) };
   }, [contributions]);
 }
 
@@ -558,7 +569,7 @@ export function Shell({ children }: { children: ReactNode }) {
     () => typeof localStorage !== "undefined" && localStorage.getItem(COLLAPSE_KEY) === "1",
   );
   const [refreshKey, setRefreshKey] = useState(0);
-  const items = useNavItems();
+  const { primary: navPrimary, settings: navSettings } = useNavItems();
 
   const refresh = useCallback(() => setRefreshKey((k) => k + 1), []);
 
@@ -689,13 +700,26 @@ export function Shell({ children }: { children: ReactNode }) {
               trigger={null}
               className="interview-sider"
             >
-              <Menu
-                mode="inline"
-                inlineCollapsed={collapsed}
-                selectedKeys={[selectedKey(location.pathname)]}
-                items={items}
-                style={{ borderInlineEnd: "none", paddingTop: 4 }}
-              />
+              <div className="interview-nav">
+                <div className="interview-nav__menu">
+                  <Menu
+                    mode="inline"
+                    inlineCollapsed={collapsed}
+                    selectedKeys={[selectedKey(location.pathname)]}
+                    items={navPrimary as never}
+                    style={{ borderInlineEnd: "none", paddingTop: 4 }}
+                  />
+                </div>
+                <div className="interview-nav__footer">
+                  <Menu
+                    mode="inline"
+                    inlineCollapsed={collapsed}
+                    selectedKeys={[selectedKey(location.pathname)]}
+                    items={navSettings as never}
+                    style={{ borderInlineEnd: "none" }}
+                  />
+                </div>
+              </div>
             </Layout.Sider>
           )}
           <Layout.Content className="interview-content" key={refreshKey}>
@@ -717,7 +741,13 @@ export function Shell({ children }: { children: ReactNode }) {
           <Menu
             mode="inline"
             selectedKeys={[selectedKey(location.pathname)]}
-            items={items}
+            items={
+              [
+                ...navPrimary,
+                { type: "divider", key: "divider-workspace" },
+                ...navSettings,
+              ] as never
+            }
             style={{ borderInlineEnd: "none" }}
           />
         </Drawer>

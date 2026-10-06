@@ -152,6 +152,37 @@ header.interview-header--mobile {
 
 .interview-sider {
   border-right: 1px solid var(--interview-border);
+  display: flex;
+  flex-direction: column;
+}
+
+/* The sider's children container fills it as a column (kept free of antd class
+   names, like the rest of this file). */
+.interview-sider > * {
+  flex: 1 1 auto;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+/* The rail: sections scroll, Settings stays pinned at the bottom. */
+.interview-nav {
+  flex: 1 1 auto;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.interview-nav__menu {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+}
+
+.interview-nav__footer {
+  flex: 0 0 auto;
+  border-top: 1px solid var(--interview-border);
+  padding-top: 4px;
 }
 
 .interview-content {
