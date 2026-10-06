@@ -9,7 +9,6 @@ import {
   Skeleton as AntSkeleton,
   Spin,
   Statistic,
-  Tag,
   Typography,
 } from "antd";
 import type { ButtonProps as AntButtonProps } from "antd";
@@ -52,15 +51,16 @@ export function Button({
 
 /* -- tone vocabulary ------------------------------------------------------- */
 
-const TAG_COLOR: Record<Tone, string> = {
-  green: "success",
-  amber: "warning",
-  red: "error",
-  blue: "processing",
-  muted: "default",
+/** Semantic status pairs — clear text/background combinations, one per tone. */
+const PILL_TONE: Record<Tone, string> = {
+  green: "bg-[var(--color-green-tint)] text-[var(--color-green)]",
+  amber: "bg-[var(--color-accent-tint)] text-[var(--color-accent)]",
+  red: "bg-[var(--color-danger-tint)] text-[var(--color-danger)]",
+  blue: "bg-[var(--color-tint)] text-[var(--color-blue-hover)]",
+  muted: "bg-[var(--color-neutral-tint)] text-[var(--color-neutral)]",
 };
 
-/** Product tag: the Interview OS tone vocabulary over antd Tag. */
+/** Product tag: the Interview OS tone vocabulary, one standardized shape. */
 export function Pill({
   tone = "muted",
   children,
@@ -69,9 +69,11 @@ export function Pill({
   children: ReactNode;
 }) {
   return (
-    <Tag color={TAG_COLOR[tone]} style={{ marginInlineEnd: 0 }}>
+    <span
+      className={`inline-flex h-6 items-center gap-1 rounded-[4px] px-2 text-xs font-medium leading-none ${PILL_TONE[tone]}`}
+    >
       {children}
-    </Tag>
+    </span>
   );
 }
 
@@ -98,7 +100,10 @@ export function PageHeader({
   return (
     <div className="interview-page-header flex flex-wrap items-end justify-between gap-3">
       <div className="min-w-0 flex-1">
-        <Typography.Title level={3} style={{ margin: 0 }}>
+        <Typography.Title
+          level={3}
+          style={{ margin: 0, fontSize: 21, fontWeight: 600, letterSpacing: "-0.01em" }}
+        >
           {title}
         </Typography.Title>
         {subtitle && (
@@ -136,7 +141,7 @@ export function Card({
         className="interview-card"
         title={title}
         extra={extra}
-        styles={{ body: { padding: 20 } }}
+        styles={{ body: { padding: 16 } }}
       >
         {children}
       </AntCard>
@@ -146,7 +151,7 @@ export function Card({
 
 export function CardTitle({ children }: { children: ReactNode }) {
   return (
-    <Typography.Title level={5} style={{ marginTop: 0, marginBottom: 12 }}>
+    <Typography.Title level={5} style={{ marginTop: 0, marginBottom: 10, fontSize: 15, fontWeight: 600 }}>
       {children}
     </Typography.Title>
   );
@@ -155,10 +160,10 @@ export function CardTitle({ children }: { children: ReactNode }) {
 /* -- progress / stats ------------------------------------------------------ */
 
 const BAR_COLOR: Record<string, string> = {
-  blue: "var(--interview-brand)",
-  green: "var(--interview-success)",
-  amber: "var(--interview-warning)",
-  muted: "var(--interview-border)",
+  blue: "var(--color-blue)",
+  green: "var(--color-green)",
+  amber: "var(--color-amber)",
+  muted: "var(--color-divider)",
 };
 
 export function Bar({
@@ -203,7 +208,10 @@ export function Stat({
       title={label}
       value={value as string | number}
       suffix={suffix}
-      styles={{ content: { fontSize: 20, fontWeight: 600 } }}
+      styles={{
+        title: { fontSize: 12 },
+        content: { fontSize: 26, fontWeight: 600, lineHeight: 1.15, letterSpacing: "-0.01em" },
+      }}
     />
   );
 }

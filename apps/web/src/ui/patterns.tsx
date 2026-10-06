@@ -9,11 +9,11 @@ import { Bar, Button, Pill } from "./index";
    readiness, deltas, evidence) so pages stop hand-rolling card stacks. */
 
 const TONE_COLOR: Record<Tone, string> = {
-  green: "var(--interview-success)",
-  amber: "var(--interview-warning)",
-  red: "var(--interview-danger)",
-  blue: "var(--interview-brand)",
-  muted: "var(--interview-text-muted)",
+  green: "var(--color-green)",
+  amber: "var(--color-accent)",
+  red: "var(--color-danger)",
+  blue: "var(--color-blue)",
+  muted: "var(--color-muted)",
 };
 
 /**
@@ -196,8 +196,8 @@ export function Callout({
       role="note"
       style={{
         borderInlineStart: `3px solid ${TONE_COLOR[tone]}`,
-        background: "var(--interview-surface-hover)",
-        borderRadius: "var(--interview-radius-sm)",
+        background: "var(--color-inset)",
+        borderRadius: "var(--radius-sm)",
         padding: "10px 14px",
       }}
     >

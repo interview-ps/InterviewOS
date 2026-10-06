@@ -17,7 +17,7 @@ export function PageHeader({
   return (
     <div className="mb-5 flex flex-wrap items-end justify-between gap-3">
       <div>
-        <h1 className="text-xl font-bold text-navy">{title}</h1>
+        <h1 className="text-[21px] font-semibold tracking-[-0.01em] text-navy">{title}</h1>
         {subtitle && <p className="mt-1 text-sm text-muted">{subtitle}</p>}
       </div>
       {actions && <div className="flex items-center gap-2">{actions}</div>}
@@ -84,7 +84,7 @@ export function Card({
     <section
       id={id}
       data-testid={testId}
-      className={`rounded-[var(--radius-card)] border border-line bg-surface p-3 ${className}`}
+        className={`rounded-[var(--radius-card)] border border-divider bg-surface p-4 ${className}`}
     >
       {children}
     </section>
@@ -92,20 +92,26 @@ export function Card({
 }
 
 export function CardTitle({ children }: { children: ReactNode }) {
-  return <h2 className="mb-2 text-sm font-semibold text-navy">{children}</h2>;
+  return <h2 className="mb-2 text-[15px] font-semibold text-navy">{children}</h2>;
 }
 
 export function Bar({ value, tone = "blue" }: { value: number; tone?: "blue" | "green" | "amber" | "muted" }) {
   const pct = Math.round(Math.max(0, Math.min(1, value)) * 100);
   const color =
-    tone === "green" ? "bg-green" : tone === "amber" ? "bg-accent" : tone === "muted" ? "bg-line" : "bg-blue";
+    tone === "green"
+      ? "bg-[var(--color-green)]"
+      : tone === "amber"
+        ? "bg-[var(--color-amber)]"
+        : tone === "muted"
+          ? "bg-[var(--color-divider)]"
+          : "bg-[var(--color-blue)]";
   return (
     <div
       role="progressbar"
       aria-valuenow={pct}
       aria-valuemin={0}
       aria-valuemax={100}
-      className="h-2.5 w-full overflow-hidden rounded-full bg-tint"
+      className="h-2 w-full overflow-hidden rounded-full bg-[var(--color-divider)]"
     >
       <div className={`h-full rounded-full ${color}`} style={{ width: `${pct}%` }} />
     </div>
@@ -113,16 +119,18 @@ export function Bar({ value, tone = "blue" }: { value: number; tone?: "blue" | "
 }
 
 const PILL_STYLES: Record<Tone, string> = {
-  green: "bg-green-tint text-green",
-  amber: "bg-[#fdf3e7] text-accent",
-  red: "bg-[#fdeef2] text-danger",
-  blue: "bg-tint text-blue",
-  muted: "bg-page text-muted",
+  green: "bg-[var(--color-green-tint)] text-[var(--color-green)]",
+  amber: "bg-[var(--color-accent-tint)] text-[var(--color-accent)]",
+  red: "bg-[var(--color-danger-tint)] text-[var(--color-danger)]",
+  blue: "bg-[var(--color-tint)] text-[var(--color-blue-hover)]",
+  muted: "bg-[var(--color-neutral-tint)] text-[var(--color-neutral)]",
 };
 
 export function Badge({ tone = "muted", children }: { tone?: Tone; children: ReactNode }) {
   return (
-    <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${PILL_STYLES[tone]}`}>
+    <span
+      className={`inline-flex h-6 items-center gap-1 rounded-[4px] px-2 text-xs font-medium leading-none ${PILL_STYLES[tone]}`}
+    >
       {children}
     </span>
   );
@@ -149,8 +157,8 @@ export function ErrorNote({ error }: { error: unknown }) {
     : isUnavailable ? "The AI runtime is unavailable"
     : "Something went wrong";
   return (
-    <div role="alert" className="rounded-[0.6rem] border border-accent/40 bg-[#fdf3e7] p-4 text-sm text-ink">
-      <p className="font-medium text-accent">{heading}</p>
+    <div role="alert" className="rounded-[var(--radius-card)] border border-[color:var(--color-danger-tint)] bg-[var(--color-danger-tint)] p-4 text-sm text-ink">
+      <p className="font-medium text-danger">{heading}</p>
       <p className="mt-1 text-muted">{error instanceof Error ? error.message : String(error)}</p>
       {(isUnavailable || isRuntimeFailure || isTimeout) && (
         <p className="mt-2 text-muted">
@@ -187,8 +195,8 @@ export function Button({
   "data-testid"?: string;
 }) {
   const styles = {
-    primary: "bg-blue text-white hover:bg-blue-hover disabled:bg-line disabled:text-muted",
-    secondary: "border border-line bg-surface text-ink hover:bg-tint disabled:text-muted",
+    primary: "bg-blue text-white hover:bg-blue-hover disabled:bg-divider disabled:text-muted",
+    secondary: "border border-[color:var(--color-control)] bg-surface text-ink hover:bg-[var(--color-inset)] disabled:text-muted",
     ghost: "text-blue hover:underline disabled:text-muted",
   }[variant];
   return (
@@ -221,7 +229,7 @@ export function Stat({
   return (
     <div>
       <p className="text-xs font-medium text-muted">{label}</p>
-      <p className={`mt-0.5 text-lg font-semibold ${tone === "muted" ? "text-muted" : "text-navy"}`}>
+      <p className={`mt-0.5 text-2xl font-semibold tracking-tight ${tone === "muted" ? "text-muted" : "text-navy"}`}>
         {value}
         {arrow && <span className="ml-1 text-sm" aria-label={`trend ${trend}`}>{arrow}</span>}
       </p>
@@ -362,10 +370,10 @@ export function ScreenToolbar({
   className?: string;
 }) {
   return (
-    <div className={`shrink-0 border-b border-line ${className}`}>
+    <div className={`shrink-0 border-b border-divider ${className}`}>
       <div className="flex min-h-10 flex-wrap items-center gap-x-3 gap-y-1 py-1.5">
         {/* The title must never collapse because a description shares its row. */}
-        <h1 className="shrink-0 whitespace-nowrap text-xl font-bold text-navy">{title}</h1>
+        <h1 className="shrink-0 whitespace-nowrap text-[21px] font-semibold tracking-[-0.01em] text-navy">{title}</h1>
         {subtitle && (
           <span className="order-1 min-w-0 basis-full truncate text-[13px] text-muted sm:order-none sm:basis-auto sm:flex-1">
             {subtitle}
@@ -439,12 +447,12 @@ export function Panel({
   return (
     <section
       data-testid={testId}
-      className={`flex min-h-0 flex-col rounded-[var(--radius-card)] border border-line bg-surface ${className}`}
+      className={`flex min-h-0 flex-col rounded-[var(--radius-card)] border border-divider bg-surface ${className}`}
     >
       {(title || actions) && (
-        <header className="flex min-h-9 shrink-0 items-center gap-2 border-b border-line px-3 py-1.5">
+        <header className="flex min-h-10 shrink-0 items-center gap-2 border-b border-divider px-3.5 py-2">
           {title && (
-            <h2 className="min-w-0 truncate text-sm font-semibold text-navy">{title}</h2>
+            <h2 className="min-w-0 truncate text-[15px] font-semibold text-navy">{title}</h2>
           )}
           {actions && (
             <div className="ml-auto flex shrink-0 items-center gap-2">{actions}</div>
@@ -452,12 +460,12 @@ export function Panel({
         </header>
       )}
       <div
-        className={`min-h-0 flex-1 ${padded ? "p-3" : ""} ${scroll ? "overflow-auto" : ""} ${bodyClassName}`}
+        className={`min-h-0 flex-1 ${padded ? "p-3.5" : ""} ${scroll ? "overflow-auto" : ""} ${bodyClassName}`}
       >
         {children}
       </div>
       {footer && (
-        <footer className="shrink-0 border-t border-line px-3 py-2">{footer}</footer>
+        <footer className="shrink-0 border-t border-divider px-3.5 py-2.5">{footer}</footer>
       )}
     </section>
   );
@@ -504,10 +512,10 @@ export function SettingRow({
 }) {
   return (
     <div
-      className={`flex flex-col gap-2 border-b border-line py-2.5 last:border-b-0 sm:flex-row sm:flex-wrap sm:items-start sm:justify-between sm:gap-x-4 sm:gap-y-2 ${className}`}
+      className={`flex flex-col gap-2 border-b border-divider py-3 last:border-b-0 sm:flex-row sm:flex-wrap sm:items-start sm:justify-between sm:gap-x-4 sm:gap-y-2 ${className}`}
     >
       <div className="min-w-0 flex-1">
-        <div className="text-[13px] font-medium text-ink">{label}</div>
+        <div className="text-[13px] font-medium text-navy">{label}</div>
         {description && (
           <div className="mt-0.5 max-w-prose text-xs text-muted">{description}</div>
         )}
@@ -539,14 +547,16 @@ export function DataRow({
   className?: string;
   "data-testid"?: string;
 }) {
-  const cls = `flex w-full items-center gap-2.5 border-b border-line px-2.5 py-1.5 text-left last:border-b-0 ${
-    selected ? "bg-tint" : "hover:bg-tint"
+  const cls = `flex w-full items-center gap-2.5 border-b border-divider px-3 py-2 text-left last:border-b-0 ${
+    selected
+      ? "bg-[var(--color-tint)] shadow-[inset_2px_0_0_0_var(--color-blue)]"
+      : "hover:bg-[var(--color-hover)]"
   } ${className}`;
   const inner = (
     <>
       {leading}
       <span className="min-w-0 flex-1">
-        <span className="block truncate text-[13px] font-medium text-ink">{title}</span>
+        <span className="block truncate text-[13px] font-medium text-navy">{title}</span>
         {meta && <span className="mt-0.5 block truncate text-xs text-muted">{meta}</span>}
       </span>
       {trailing}
@@ -587,14 +597,14 @@ export function StatStrip({
 }) {
   return (
     <div
-      className={`grid grid-cols-2 gap-px overflow-hidden rounded-[var(--radius-card)] border border-line bg-line sm:flex sm:flex-wrap sm:items-stretch sm:gap-0 sm:divide-x sm:divide-line ${className}`}
+      className={`grid grid-cols-2 gap-px overflow-hidden rounded-[var(--radius-card)] border border-divider bg-divider sm:flex sm:flex-wrap sm:items-stretch sm:gap-0 sm:divide-x sm:divide-divider ${className}`}
     >
       {items.map((item, i) => (
-        <div key={i} className="min-w-0 flex-1 bg-surface px-3 py-2">
-          <div className="text-[11px] font-medium uppercase tracking-wide text-muted">
+        <div key={i} className="min-w-0 flex-1 bg-surface px-3.5 py-2.5">
+          <div className="text-xs font-medium text-muted">
             {item.label}
           </div>
-          <div className="mt-0.5 flex flex-wrap items-baseline gap-x-1.5 text-lg font-semibold text-navy">
+          <div className="mt-0.5 flex flex-wrap items-baseline gap-x-1.5 text-[26px] font-semibold leading-tight tracking-tight text-navy">
             {item.value}
             {item.suffix && <span className="text-xs text-muted">{item.suffix}</span>}
           </div>
@@ -632,14 +642,14 @@ export function ExtensionRegion({
   const [open, setOpen] = useState(defaultOpen);
   return (
     <section
-      className={`extension-region overflow-hidden rounded-[var(--radius-card)] border border-line bg-surface ${className}`}
+      className={`extension-region overflow-hidden rounded-[var(--radius-card)] border border-divider bg-surface ${className}`}
       data-testid={testId}
     >
       <button
         type="button"
         aria-expanded={open}
         onClick={() => setOpen((v) => !v)}
-        className="flex w-full cursor-pointer items-center gap-2 px-3 py-2 text-left text-[13px] font-semibold text-navy"
+        className="flex w-full cursor-pointer items-center gap-2 px-3.5 py-2.5 text-left text-[13px] font-semibold text-navy"
       >
         <span
           aria-hidden
@@ -660,7 +670,7 @@ export function ExtensionRegion({
           {description && (
             <p className="px-3 pb-1 text-xs text-muted">{description}</p>
           )}
-          <div className="border-t border-line p-3">{children}</div>
+          <div className="border-t border-divider p-3.5">{children}</div>
         </>
       )}
     </section>
