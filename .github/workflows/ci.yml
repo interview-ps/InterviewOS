@@ -35,6 +35,20 @@ jobs:
           path: ~/.cache/uv
           key: uv-${{ runner.os }}-${{ hashFiles('apps/api/uv.lock', 'tests/contract/uv.lock') }}
 
+      # `tests/ai/` drive the Node fixture `fake_provider_cli.mjs` and
+      # `tests/orchestrator/test_mcp.py` spawns `fake-mcp-server.mjs`, which
+      # imports `@modelcontextprotocol/sdk` — so the workspace deps are needed.
+      - name: Set up Node.js
+        uses: actions/setup-node@v7
+        with:
+          node-version: '24'
+
+      - name: Enable Corepack
+        run: corepack enable
+
+      - name: Install node deps
+        run: pnpm install
+
       - name: Lint
         working-directory: apps/api
         run: uv run ruff check .
