@@ -24,10 +24,16 @@ jobs:
         with:
           persist-credentials: false
 
-      - name: Set up uv
-        uses: astral-sh/setup-uv@v6
+      - name: Install uv
+        run: |
+          curl -LsSf https://astral.sh/uv/install.sh | sh
+          echo "$HOME/.local/bin" >> "$GITHUB_PATH"
+
+      - name: Cache uv
+        uses: actions/cache@v6
         with:
-          enable-cache: true
+          path: ~/.cache/uv
+          key: uv-${{ runner.os }}-${{ hashFiles('apps/api/uv.lock', 'tests/contract/uv.lock') }}
 
       - name: Lint
         working-directory: apps/api
@@ -51,10 +57,16 @@ jobs:
         with:
           persist-credentials: false
 
-      - name: Set up uv
-        uses: astral-sh/setup-uv@v6
+      - name: Install uv
+        run: |
+          curl -LsSf https://astral.sh/uv/install.sh | sh
+          echo "$HOME/.local/bin" >> "$GITHUB_PATH"
+
+      - name: Cache uv
+        uses: actions/cache@v6
         with:
-          enable-cache: true
+          path: ~/.cache/uv
+          key: uv-${{ runner.os }}-${{ hashFiles('apps/api/uv.lock', 'tests/contract/uv.lock') }}
 
       # The suite spawns the fake MCP server fixture (node + @modelcontextprotocol/sdk).
       - name: Set up Node.js
@@ -109,10 +121,16 @@ jobs:
         with:
           persist-credentials: false
 
-      - name: Set up uv
-        uses: astral-sh/setup-uv@v6
+      - name: Install uv
+        run: |
+          curl -LsSf https://astral.sh/uv/install.sh | sh
+          echo "$HOME/.local/bin" >> "$GITHUB_PATH"
+
+      - name: Cache uv
+        uses: actions/cache@v6
         with:
-          enable-cache: true
+          path: ~/.cache/uv
+          key: uv-${{ runner.os }}-${{ hashFiles('apps/api/uv.lock', 'tests/contract/uv.lock') }}
 
       - name: Set up Node.js
         uses: actions/setup-node@v7
