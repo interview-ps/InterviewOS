@@ -239,7 +239,7 @@ function PermissionReview({
                   {row.category}
                   {denied && <span className="ml-2 text-xs">— blocked by isolation</span>}
                   {isEvidence && (
-                    <p className="mt-0.5 text-xs text-amber-700">
+                    <p className="mt-0.5 text-xs text-accent">
                       lets this plugin add evidence to your readiness graph
                     </p>
                   )}

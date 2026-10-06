@@ -319,7 +319,7 @@ export default function Interview() {
           {modes.map((m) => (
             <label
               key={m.id}
-              className={`cursor-pointer rounded-[0.6rem] border p-3 text-sm ${
+              className={`cursor-pointer rounded-[var(--radius-card)] border p-3 text-sm ${
                 roundType === m.id ? "border-blue bg-page" : "border-line"
               }`}
             >
@@ -343,7 +343,7 @@ export default function Interview() {
           <summary className="cursor-pointer text-muted">More</summary>
           <div className="mt-2 grid gap-2 sm:grid-cols-2">
             <label
-              className={`cursor-pointer rounded-[0.6rem] border p-3 text-sm ${
+              className={`cursor-pointer rounded-[var(--radius-card)] border p-3 text-sm ${
                 roundType === "mixed" ? "border-blue bg-page" : "border-line"
               }`}
             >
@@ -388,7 +388,7 @@ export default function Interview() {
               {loopRounds.map((r, i) => (
                 <li
                   key={i}
-                  className="flex flex-wrap items-center gap-2 rounded-[0.5rem] border border-line p-2"
+                  className="flex flex-wrap items-center gap-2 rounded-[var(--radius-sm)] border border-line p-2"
                 >
                   <span className="w-5 text-center text-xs text-muted">{i + 1}</span>
                   <select
@@ -516,7 +516,7 @@ export default function Interview() {
                         type="button"
                         onClick={() => startPluginMode(m.pluginModeId)}
                         disabled={starting}
-                        className="rounded-[0.6rem] border border-divider p-3 text-left text-sm hover:bg-[var(--color-hover)] disabled:opacity-60"
+                        className="rounded-[var(--radius-card)] border border-divider p-3 text-left text-sm hover:bg-[var(--color-hover)] disabled:opacity-60"
                       >
                         <span className="block font-medium text-ink">{m.label}</span>
                         <span className="mt-0.5 block text-xs text-muted">
@@ -628,7 +628,7 @@ export default function Interview() {
                         onChange={(e) => setFetchArgs(e.target.value)}
                         rows={2}
                         aria-label="Tool arguments (JSON)"
-                        className="mt-2 w-full rounded-[0.6rem] border border-line px-3 py-2 font-mono text-xs"
+                        className="mt-2 w-full rounded-[var(--radius-md)] border border-line px-3 py-2 font-mono text-xs"
                       />
                       {argsError && <p className="mt-1 text-xs text-danger">{argsError}</p>}
                       <Button

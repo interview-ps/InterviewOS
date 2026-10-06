@@ -70,7 +70,7 @@ export function Pill({
 }) {
   return (
     <span
-      className={`inline-flex h-6 items-center gap-1 rounded-[4px] px-2 text-xs font-medium leading-none ${PILL_TONE[tone]}`}
+      className={`inline-flex h-6 items-center gap-1 rounded-[var(--radius-xs)] px-2 text-xs font-medium leading-none ${PILL_TONE[tone]}`}
     >
       {children}
     </span>
@@ -162,7 +162,7 @@ export function CardTitle({ children }: { children: ReactNode }) {
 const BAR_COLOR: Record<string, string> = {
   blue: "var(--color-blue)",
   green: "var(--color-green)",
-  amber: "var(--color-amber)",
+  amber: "var(--color-accent)",
   muted: "var(--color-divider)",
 };
 

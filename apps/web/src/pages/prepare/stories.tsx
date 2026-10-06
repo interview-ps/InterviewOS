@@ -138,7 +138,7 @@ export default function Stories() {
                 onChange={(e) =>
                   setDrafts((p) => ({ ...p, [s.id]: { ...p[s.id]!, title: e.target.value } }))
                 }
-                className="w-full rounded-[0.5rem] border border-transparent px-2 py-1 text-base font-semibold text-navy hover:border-line focus:border-line focus:outline-none"
+                className="w-full rounded-[var(--radius-sm)] border border-transparent px-2 py-1 text-base font-semibold text-navy hover:border-line focus:border-line focus:outline-none"
               />
               <Pill tone={s.source === "user" ? "green" : s.source === "generated" ? "blue" : "muted"}>
                 {s.source}
@@ -163,7 +163,7 @@ export default function Stories() {
                       setDrafts((p) => ({ ...p, [s.id]: { ...p[s.id]!, [f]: e.target.value } }))
                     }
                     rows={3}
-                    className="w-full rounded-[0.6rem] border border-line bg-surface p-2 text-sm"
+                    className="w-full rounded-[var(--radius-md)] border border-line bg-surface p-2 text-sm"
                   />
                 </label>
               ))}
@@ -176,7 +176,7 @@ export default function Stories() {
               {saved[s.id] && <span className="text-xs text-green">Saved</span>}
             </div>
             {c && (c.busy || c.feedback) && (
-              <div className="mt-3 rounded-[0.6rem] bg-page p-3 text-sm" data-testid={`coach-${s.id}`} aria-live="polite">
+              <div className="mt-3 rounded-[var(--radius-card)] bg-page p-3 text-sm" data-testid={`coach-${s.id}`} aria-live="polite">
                 {c.busy && !c.feedback && <Spinner label="Coaching…" />}
                 {c.feedback && (
                   <p className="text-muted">

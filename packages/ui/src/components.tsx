@@ -37,7 +37,7 @@ export function EmptyState({
   action?: ReactNode;
 }) {
   return (
-    <div className="rounded-[0.6rem] border border-dashed border-line bg-page p-6 text-center">
+    <div className="rounded-[var(--radius-card)] border border-dashed border-line bg-page p-6 text-center">
       <p className="font-medium text-ink">{title}</p>
       {description && <p className="mx-auto mt-1 max-w-md text-sm text-muted">{description}</p>}
       {action && <div className="mt-4">{action}</div>}
@@ -51,7 +51,7 @@ export function Skeleton({ className = "" }: { className?: string }) {
   return (
     <div
       aria-hidden
-      className={`animate-pulse rounded-[0.5rem] bg-tint ${className}`}
+      className={`animate-pulse rounded-[var(--radius-sm)] bg-tint ${className}`}
     />
   );
 }
@@ -101,7 +101,7 @@ export function Bar({ value, tone = "blue" }: { value: number; tone?: "blue" | "
     tone === "green"
       ? "bg-[var(--color-green)]"
       : tone === "amber"
-        ? "bg-[var(--color-amber)]"
+        ? "bg-[var(--color-accent)]"
         : tone === "muted"
           ? "bg-[var(--color-divider)]"
           : "bg-[var(--color-blue)]";
@@ -129,7 +129,7 @@ const PILL_STYLES: Record<Tone, string> = {
 export function Badge({ tone = "muted", children }: { tone?: Tone; children: ReactNode }) {
   return (
     <span
-      className={`inline-flex h-6 items-center gap-1 rounded-[4px] px-2 text-xs font-medium leading-none ${PILL_STYLES[tone]}`}
+      className={`inline-flex h-6 items-center gap-1 rounded-[var(--radius-xs)] px-2 text-xs font-medium leading-none ${PILL_STYLES[tone]}`}
     >
       {children}
     </span>
@@ -271,7 +271,7 @@ export function EvidenceList({
   return (
     <ul className="space-y-2">
       {items.map((e, i) => (
-        <li key={i} className="rounded-[0.6rem] border border-line bg-page p-3 text-sm">
+        <li key={i} className="rounded-[var(--radius-card)] border border-line bg-page p-3 text-sm">
           <div className="flex items-center justify-between gap-2">
             <span className="font-medium text-ink">{e.skillId}</span>
             {e.score !== undefined && (
@@ -300,7 +300,7 @@ export function InterviewQuestion({
   source?: { label: string; community?: boolean };
 }) {
   return (
-    <div className="rounded-[1rem] border border-line bg-surface p-5">
+    <div className="rounded-[var(--radius-lg)] border border-line bg-surface p-5">
       <div className="mb-2 flex flex-wrap items-center gap-2">
         {skill && <Badge tone="blue">{skill}</Badge>}
         {difficulty && <Badge tone="muted">{difficulty}</Badge>}
@@ -334,7 +334,7 @@ export function Tabs({
             role="tab"
             aria-selected={i === current}
             onClick={() => setActive(i)}
-            className={`rounded-t-[0.6rem] px-3 py-2 text-sm font-medium ${
+            className={`rounded-t-[var(--radius-md)] px-3 py-2 text-sm font-medium ${
               i === current
                 ? "border-b-2 border-blue text-navy"
                 : "text-muted hover:text-ink"

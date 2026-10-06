@@ -75,7 +75,7 @@ export function PluginSettingsForm({
             />
           ) : f.type === "enum" ? (
             <select
-              className="mt-1 block rounded-[0.4rem] border border-line bg-page px-2 py-1 text-sm"
+              className="mt-1 block rounded-[var(--radius-sm)] border border-line bg-page px-2 py-1 text-sm"
               value={String(values[f.key] ?? "")}
               onChange={(e) => update(f.key, e.target.value)}
             >
@@ -88,7 +88,7 @@ export function PluginSettingsForm({
           ) : (
             <input
               type={f.type === "number" ? "number" : "text"}
-              className="mt-1 block w-64 rounded-[0.4rem] border border-line bg-page px-2 py-1 text-sm"
+              className="mt-1 block w-64 rounded-[var(--radius-sm)] border border-line bg-page px-2 py-1 text-sm"
               value={String(values[f.key] ?? "")}
               onChange={(e) =>
                 update(

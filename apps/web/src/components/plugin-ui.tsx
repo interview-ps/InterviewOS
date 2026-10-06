@@ -90,7 +90,7 @@ class ContributionBoundary extends Component<
         <div
           role="alert"
           data-testid="plugin-ui-error"
-          className="rounded-[0.6rem] border border-line bg-page p-3 text-xs text-muted"
+          className="rounded-[var(--radius-card)] border border-line bg-page p-3 text-xs text-muted"
         >
           The “{this.props.pluginId}” plugin view failed to render.
         </div>
@@ -153,7 +153,7 @@ function DeclarativeContribution({
       <div
         role="alert"
         data-testid="plugin-ui-error"
-        className="rounded-[0.6rem] border border-[color:var(--color-accent-tint)] bg-[var(--color-accent-tint)] p-3 text-xs text-[var(--color-accent)]"
+        className="rounded-[var(--radius-card)] border border-[color:var(--color-accent-tint)] bg-[var(--color-accent-tint)] p-3 text-xs text-[var(--color-accent)]"
       >
         Plugin view unavailable — {error}
       </div>
