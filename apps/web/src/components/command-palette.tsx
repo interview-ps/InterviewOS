@@ -312,7 +312,7 @@ export function CommandPalette({
         {error && (
           <p
             role="alert"
-            className="border-b border-line bg-[#fdeef2] px-4 py-2 text-xs text-danger"
+            className="border-b border-divider bg-[var(--color-danger-tint)] px-4 py-2 text-xs text-[var(--color-danger)]"
           >
             {error}
           </p>
@@ -353,10 +353,10 @@ export function CommandPalette({
                         e.preventDefault();
                         execute(cmd);
                       }}
-                      className={`mx-1 flex cursor-pointer items-center gap-3 rounded-[0.5rem] px-3 py-2 text-sm ring-1 ring-inset ${
+                      className={`mx-1 flex cursor-pointer items-center gap-3 rounded-[var(--radius-md)] px-3 py-2 text-sm ring-1 ring-inset ${
                         i === active
-                          ? "bg-tint font-medium text-navy ring-blue"
-                          : "text-ink ring-transparent hover:bg-tint"
+                          ? "bg-[var(--color-tint)] font-medium text-navy ring-[color:var(--color-blue)]"
+                          : "text-ink ring-transparent hover:bg-[var(--color-hover)]"
                       }`}
                     >
                       <span className="min-w-0 truncate">{cmd.title}</span>

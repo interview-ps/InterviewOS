@@ -20,6 +20,10 @@ body {
   background: var(--color-page);
   color: var(--color-ink);
   font-family: var(--font-body);
+  font-size: 14px;
+  line-height: 1.5;
+  overflow-wrap: break-word;
+  -webkit-font-smoothing: antialiased;
 }
 
 h1, h2, h3, h4 {
@@ -32,9 +36,74 @@ h1, h2, h3, h4, .font-display {
   word-spacing: 0.12em;
 }
 
+/* One accessible focus treatment aligned with the accent (never amber here). */
 :focus-visible {
-  outline: 2px solid var(--color-accent);
+  outline: 2px solid var(--color-blue);
   outline-offset: 2px;
+  border-radius: 2px;
+}
+
+/* -- overlays -------------------------------------------------------------- */
+
+/* Settled overlay surfaces are opaque; only the backdrop mask is translucent.
+   Keeps page content from showing through drawers, modals and dropdowns. */
+.interview-drawer-content,
+.interview-modal-content,
+.interview-modal-header,
+.interview-modal-footer,
+.interview-select-dropdown,
+.interview-dropdown-menu {
+  background-color: var(--color-surface);
+}
+
+.interview-drawer-content,
+.interview-modal-content {
+  box-shadow: var(--interview-shadow-md);
+}
+
+/* Bottom sheets get a softer top edge; side drawers stay square. */
+.interview-drawer-bottom .interview-drawer-content {
+  border-start-start-radius: 12px;
+  border-start-end-radius: 12px;
+}
+
+.interview-drawer-mask,
+.interview-modal-mask {
+  background-color: rgba(16, 24, 40, 0.45);
+}
+
+[data-theme="dark"] .interview-drawer-mask,
+[data-theme="dark"] .interview-modal-mask {
+  background-color: rgba(3, 7, 18, 0.6);
+}
+
+/* -- form controls --------------------------------------------------------- */
+
+/* Native controls use the stronger control border, a white surface and a
+   cobalt focus border; panels keep the subtler divider. Ant Design controls
+   already follow the same tokens via ConfigProvider, so they are excluded by
+   their `interview-` class (an opaque search input would otherwise cover the
+   Select's selected label). */
+input:not([class*="interview-"]):not([type="checkbox"]):not([type="radio"]):not([type="file"]),
+select,
+textarea {
+  border-color: var(--interview-control);
+  background-color: var(--color-surface);
+}
+
+input:not([class*="interview-"]):not([type="checkbox"]):not([type="radio"]):not([type="file"]):focus,
+select:focus,
+textarea:focus {
+  border-color: var(--color-blue);
+}
+
+@media (max-width: 991px) {
+  /* Comfortable mobile hit areas for the controls the user actually taps. */
+  .interview-content input:not([class*="interview-"]):not([type="checkbox"]):not([type="radio"]):not([type="file"]),
+  .interview-content select,
+  .interview-content .interview-btn {
+    min-height: 40px;
+  }
 }
 
 /* -- shell ---------------------------------------------------------------- */
