@@ -14,6 +14,8 @@ test.describe("resume coach, skills & plugins, command palette", () => {
     await expect(page.getByTestId("resume-banner")).toBeVisible();
     await page.getByTestId("run-review").click();
     await expect(page.getByTestId("ats-score")).toBeVisible({ timeout: 30_000 });
+    // Bullet suggestions live on their own tab.
+    await page.getByRole("button", { name: "Bullet suggestions" }).click();
     await expect(
       page.getByTestId("suggestions-card").getByText("[add metric]").first(),
     ).toBeVisible({ timeout: 30_000 });

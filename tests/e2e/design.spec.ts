@@ -62,4 +62,15 @@ test.describe("design evidence", () => {
     await expect(page.getByText("What was missing")).toBeVisible({ timeout: 30_000 });
     await page.screenshot({ path: `${SHOTS}/session-coding-eval-1366x768.png` });
   });
+
+  test("resume coach overview + bullets (1366x768)", async ({ page }) => {
+    await page.setViewportSize({ width: 1366, height: 768 });
+    await page.goto("/resume", { waitUntil: "networkidle" });
+    await page.getByTestId("run-review").click();
+    await expect(page.getByTestId("ats-score")).toBeVisible({ timeout: 30_000 });
+    await page.screenshot({ path: `${SHOTS}/resume-overview-1366x768.png` });
+    await page.getByRole("button", { name: "Bullet suggestions" }).click();
+    await expect(page.getByTestId("suggestions-card")).toBeVisible();
+    await page.screenshot({ path: `${SHOTS}/resume-bullets-1366x768.png` });
+  });
 });
