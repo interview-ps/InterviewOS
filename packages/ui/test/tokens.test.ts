@@ -30,4 +30,14 @@ describe("tokens.ts ↔ theme.css sync", () => {
     expect(cssVar("radius-sm")).toBe(theme.radius.sm);
     expect(cssVar("breakpoint-menu")).toBe(theme.breakpoint.menu);
   });
+
+  it("compact spacing and sizes match", () => {
+    const kebab = (s: string) => s.replace(/[A-Z]/g, (c) => `-${c.toLowerCase()}`);
+    for (const [key, value] of Object.entries(theme.spacing)) {
+      expect(cssVar(`spacing-${key}`), key).toBe(value);
+    }
+    for (const [key, value] of Object.entries(theme.size)) {
+      expect(cssVar(`size-${kebab(key)}`), key).toBe(value);
+    }
+  });
 });

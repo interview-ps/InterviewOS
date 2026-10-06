@@ -26,13 +26,28 @@ export const theme = {
     body: "var(--font-inter), ui-sans-serif, system-ui, sans-serif",
   },
   radius: {
-    card: "1rem",
-    sm: "0.6rem",
+    card: "0.375rem",
+    sm: "0.25rem",
   },
+  /** Compact spacing scale — desktop-density rhythm. */
   spacing: {
-    sm: "0.6rem",
-    md: "1rem",
-    lg: "1.25rem",
+    xs: "0.25rem",
+    sm: "0.375rem",
+    md: "0.5rem",
+    lg: "0.75rem",
+    xl: "1rem",
+  },
+  /** Fixed component sizes for the desktop shell and panes. */
+  size: {
+    header: "42px",
+    siderExpanded: "184px",
+    siderCollapsed: "48px",
+    navItem: "32px",
+    toolbar: "40px",
+    row: "32px",
+    rowTwoLine: "48px",
+    control: "30px",
+    inspector: "240px",
   },
   breakpoint: {
     menu: "900px",
