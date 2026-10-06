@@ -6,11 +6,9 @@
         "providers": [
           {
             "available": "<env>",
-            "executable": "<env>",
             "message": "<env>",
             "runtime": "codex",
             "status": "<env>",
-            "version": "<env>",
             "workspace": "<repo>/data/codex-workspace"
           },
           {
@@ -22,29 +20,23 @@
           },
           {
             "available": "<env>",
-            "executable": "<env>",
             "message": "<env>",
             "runtime": "claude",
             "status": "<env>",
-            "version": "<env>",
             "workspace": "<repo>/data/claude-workspace"
           },
           {
             "available": "<env>",
-            "executable": "<env>",
             "message": "<env>",
             "runtime": "opencode",
             "status": "<env>",
-            "version": "<env>",
             "workspace": "<repo>/data/opencode-workspace"
           },
           {
             "available": "<env>",
-            "executable": "<env>",
             "message": "<env>",
             "runtime": "devin",
             "status": "<env>",
-            "version": "<env>",
             "workspace": "<repo>/data/devin-workspace"
           }
         ]
