@@ -13,15 +13,19 @@ import {
 } from "antd";
 import {
   AimOutlined,
+  ApiOutlined,
+  AppstoreOutlined,
   BulbOutlined,
   DesktopOutlined,
   FileTextOutlined,
+  HistoryOutlined,
   HomeOutlined,
   MenuFoldOutlined,
   MenuOutlined,
   MenuUnfoldOutlined,
   MoonOutlined,
   MoreOutlined,
+  RiseOutlined,
   SearchOutlined,
   SettingOutlined,
   SunOutlined,
@@ -55,14 +59,16 @@ const NAV_JOURNEY: NavEntry[] = [
   { href: "/interview", label: "Interview", icon: <VideoCameraOutlined /> },
 ];
 const NAV_PROGRESS: NavEntry[] = [
-  { href: "/readiness", label: "Readiness" },
-  { href: "/history", label: "History" },
+  { href: "/readiness", label: "Readiness", icon: <RiseOutlined /> },
+  { href: "/history", label: "History", icon: <HistoryOutlined /> },
 ];
 const NAV_CUSTOMIZATIONS: NavEntry[] = [
-  { href: "/packs", label: "Packs" },
-  { href: "/skills", label: "Extensions" },
+  { href: "/packs", label: "Packs", icon: <AppstoreOutlined /> },
+  { href: "/skills", label: "Extensions", icon: <ApiOutlined /> },
 ];
-const NAV_WORKSPACE: NavEntry[] = [{ href: "/settings", label: "Settings" }];
+const NAV_WORKSPACE: NavEntry[] = [
+  { href: "/settings", label: "Settings", icon: <SettingOutlined /> },
+];
 
 /* Full list — used for breadcrumb labels and menu selection. */
 const ALL_NAV: NavEntry[] = [
