@@ -45,7 +45,7 @@ import { message } from "@/utils/antdMessage";
 import { useTheme } from "@/theme/ThemeProvider";
 import { CURATED_PALETTES } from "@/theme/palettes";
 import type { ThemePreference } from "@/theme/tokens";
-import { StatusDot } from "@/ui";
+import { Pill, StatusDot } from "@/ui";
 import { displayLabel } from "@/components/ui";
 import { PageTitleProvider, usePageTitle } from "@/lib/page-title";
 import { commandKeyLabel } from "@/lib/platform";
@@ -402,8 +402,8 @@ function Breadcrumbs() {
   return <Breadcrumb items={items} style={{ margin: "8px 0 4px" }} />;
 }
 
-/** Product identity. The secondary branding is desktop-only. */
-function Brand({ compact = false }: { compact?: boolean }) {
+/** Product identity, with the running version. Both are desktop-only. */
+function Brand({ version, compact = false }: { version: string | null; compact?: boolean }) {
   return (
     <Link to="/" className="flex min-w-0 shrink items-center gap-2 no-underline">
       <img
@@ -415,12 +415,8 @@ function Brand({ compact = false }: { compact?: boolean }) {
       />
       <Typography.Text strong style={{ fontSize: 14 }} className="min-w-0 truncate">
         Interview OS
-        {!compact && (
-          <Typography.Text type="secondary" style={{ fontWeight: 400, fontSize: 12 }}>
-            {" "}· by interview.ps
-          </Typography.Text>
-        )}
       </Typography.Text>
+      {!compact && version && <Pill tone="muted">v{version}</Pill>}
     </Link>
   );
 }
@@ -578,6 +574,7 @@ export function Shell({ children }: { children: ReactNode }) {
     () => typeof localStorage !== "undefined" && localStorage.getItem(COLLAPSE_KEY) === "1",
   );
   const [refreshKey, setRefreshKey] = useState(0);
+  const [appVersion, setAppVersion] = useState<string | null>(null);
   const { primary: navPrimary, settings: navSettings } = useNavItems(collapsed);
 
   const refresh = useCallback(() => setRefreshKey((k) => k + 1), []);
@@ -621,6 +618,18 @@ export function Shell({ children }: { children: ReactNode }) {
     };
   }, []);
 
+  // The server owns the project version; the chip stays hidden until it answers.
+  useEffect(() => {
+    let cancelled = false;
+    api
+      .health()
+      .then((h) => !cancelled && setAppVersion(h.version))
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
   // Scroll restoration for hash targets (e.g. /target#add-target).
   useEffect(() => {
     if (!location.hash) return;
@@ -657,7 +666,7 @@ export function Shell({ children }: { children: ReactNode }) {
                 onClick={toggleCollapsed}
                 className="shrink-0"
               />
-              <Brand />
+              <Brand version={appVersion} />
               <div className="ml-auto flex min-w-0 items-center gap-2">
                 <TargetSwitcher onSwitched={refresh} />
                 <Button
@@ -684,7 +693,7 @@ export function Shell({ children }: { children: ReactNode }) {
                   onClick={() => setMenuOpen(true)}
                   className="shrink-0"
                 />
-                <Brand compact />
+                <Brand version={appVersion} compact />
                 <div className="ml-auto flex shrink-0 items-center gap-1">
                   <HeaderOverflowMenu
                     status={status}

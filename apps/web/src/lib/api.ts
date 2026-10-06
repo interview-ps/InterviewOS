@@ -897,6 +897,7 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
 }
 
 export const api = {
+  health: () => request<{ status: string; version: string }>("/api/health"),
   state: () => request<AppState>("/api/state"),
   readiness: () => request<ReadinessGraph>("/api/readiness"),
   skillDetail: (skillId: string) =>
