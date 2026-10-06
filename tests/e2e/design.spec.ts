@@ -40,4 +40,12 @@ test.describe("design evidence", () => {
       }
     }
   });
+
+  test("target requirements tab (1366x768)", async ({ page }) => {
+    await page.setViewportSize({ width: 1366, height: 768 });
+    await page.goto("/target", { waitUntil: "networkidle" });
+    await page.getByRole("button", { name: "Requirements" }).click();
+    await page.waitForTimeout(150);
+    await page.screenshot({ path: `${SHOTS}/target-requirements-1366x768.png` });
+  });
 });

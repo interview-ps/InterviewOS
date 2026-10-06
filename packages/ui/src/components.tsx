@@ -417,6 +417,7 @@ export function Panel({
   actions,
   footer,
   scroll = true,
+  padded = true,
   className = "",
   bodyClassName = "",
   "data-testid": testId,
@@ -426,6 +427,7 @@ export function Panel({
   actions?: ReactNode;
   footer?: ReactNode;
   scroll?: boolean;
+  padded?: boolean;
   className?: string;
   bodyClassName?: string;
   "data-testid"?: string;
@@ -447,7 +449,7 @@ export function Panel({
         </header>
       )}
       <div
-        className={`min-h-0 flex-1 p-3 ${scroll ? "overflow-auto" : ""} ${bodyClassName}`}
+        className={`min-h-0 flex-1 ${padded ? "p-3" : ""} ${scroll ? "overflow-auto" : ""} ${bodyClassName}`}
       >
         {children}
       </div>

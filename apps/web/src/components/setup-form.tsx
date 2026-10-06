@@ -247,7 +247,7 @@ export function SetupForm({
               value={form.resumeText}
               onChange={(e) => setForm((f) => ({ ...f, resumeText: e.target.value }))}
               rows={10}
-              className="w-full rounded-[0.6rem] border border-line bg-surface p-3 font-mono text-xs"
+              className="w-full rounded-[var(--radius-sm)] border border-line bg-surface p-3 font-mono text-xs"
             />
             <input
               type="file"
@@ -264,7 +264,7 @@ export function SetupForm({
               value={form.jobDescription}
               onChange={(e) => setForm((f) => ({ ...f, jobDescription: e.target.value }))}
               rows={10}
-              className="w-full rounded-[0.6rem] border border-line bg-surface p-3 font-mono text-xs"
+              className="w-full rounded-[var(--radius-sm)] border border-line bg-surface p-3 font-mono text-xs"
             />
             <input
               type="file"
@@ -285,7 +285,7 @@ export function SetupForm({
             value={form.jobDescription}
             onChange={(e) => setForm((f) => ({ ...f, jobDescription: e.target.value }))}
             rows={6}
-            className="w-full rounded-[0.6rem] border border-line bg-surface p-3 font-mono text-xs"
+            className="w-full rounded-[var(--radius-sm)] border border-line bg-surface p-3 font-mono text-xs"
           />
           <input
             type="file"
@@ -304,7 +304,7 @@ export function SetupForm({
           <input
             value={form.company}
             onChange={(e) => setForm((f) => ({ ...f, company: e.target.value }))}
-            className="w-full rounded-[0.6rem] border border-line px-3 py-2"
+            className="w-full rounded-[var(--radius-sm)] border border-line px-3 py-2"
           />
         </label>
         <label className="text-sm">
@@ -312,7 +312,7 @@ export function SetupForm({
           <input
             value={form.role}
             onChange={(e) => setForm((f) => ({ ...f, role: e.target.value }))}
-            className="w-full rounded-[0.6rem] border border-line px-3 py-2"
+            className="w-full rounded-[var(--radius-sm)] border border-line px-3 py-2"
           />
         </label>
         <label className="text-sm">
@@ -321,7 +321,7 @@ export function SetupForm({
             aria-label="Level"
             value={form.level}
             onChange={(e) => setForm((f) => ({ ...f, level: e.target.value }))}
-            className="w-full rounded-[0.6rem] border border-line bg-surface px-3 py-2"
+            className="w-full rounded-[var(--radius-sm)] border border-line bg-surface px-3 py-2"
           >
             {LEVELS.map((l) => (
               <option key={l} value={l}>
@@ -332,22 +332,25 @@ export function SetupForm({
         </label>
       </div>
 
-      <label className="mt-3 block text-sm">
-        <span className="mb-1 block font-medium">
+      <details className="mt-3 text-sm">
+        <summary className="cursor-pointer font-medium text-navy">
           Company notes{" "}
           <span className="font-normal text-muted">
             (values, interview style — optional)
           </span>
-        </span>
-        <textarea
-          value={form.companyNotes}
-          onChange={(e) => setForm((f) => ({ ...f, companyNotes: e.target.value }))}
-          rows={3}
-          className="w-full rounded-[0.6rem] border border-line bg-surface p-3 text-xs"
-        />
-      </label>
+        </summary>
+        <label className="mt-2 block">
+          <span className="sr-only">Company notes</span>
+          <textarea
+            value={form.companyNotes}
+            onChange={(e) => setForm((f) => ({ ...f, companyNotes: e.target.value }))}
+            rows={3}
+            className="w-full rounded-[var(--radius-sm)] border border-line bg-surface p-3 text-xs"
+          />
+        </label>
+      </details>
 
-      <div className="mt-4 rounded-[0.6rem] border border-line bg-page p-3">
+      <div className="mt-4 rounded-[var(--radius-sm)] border border-line bg-page p-3">
         <p className="text-sm font-medium text-navy">
           {mode === "target" ? "Ready to add this target" : "Ready to analyze"}
         </p>
@@ -363,7 +366,7 @@ export function SetupForm({
               <select
                 defaultValue=""
                 onChange={(e) => e.target.value && loadExample(e.target.value)}
-                className="rounded-[0.6rem] border border-line bg-surface px-2 py-1.5"
+                className="rounded-[var(--radius-sm)] border border-line bg-surface px-2 py-1.5"
               >
                 <option value="" disabled>
                   Select…
