@@ -4,30 +4,46 @@
  */
 export const theme = {
   colors: {
-    navy: "#012970",
-    blue: "#1647a5",
-    blueHover: "#092e75",
-    accent: "#b45309",
-    green: "#236342",
-    greenTint: "#e8f5ec",
-    ink: "#172033",
-    muted: "#4b556b",
-    line: "#d9e0ed",
-    page: "#f5f7fb",
+    /* surfaces */
+    page: "#f6f7f9",
     surface: "#ffffff",
-    tint: "#eef3fc",
-    weak: "#b45309",
-    danger: "#9f1239",
+    inset: "#f8fafc",
+    tint: "#eff6ff",
+    hover: "#f2f4f7",
+    /* text */
+    navy: "#172033",
+    ink: "#344054",
+    muted: "#667085",
+    /* lines */
+    line: "#e4e7ec",
+    divider: "#e4e7ec",
+    control: "#d0d5dd",
+    /* brand */
+    blue: "#2563eb",
+    blueHover: "#1d4ed8",
+    blueActive: "#1e40af",
+    amber: "#d97706",
+    /* semantic status pairs */
+    green: "#166534",
+    greenTint: "#f0fdf4",
+    accent: "#92400e",
+    accentTint: "#fffbeb",
+    danger: "#b42318",
+    dangerTint: "#fef3f2",
+    neutral: "#475467",
+    neutralTint: "#f2f4f7",
+    weak: "#92400e",
   },
   /** primary = brand blue used for primary buttons/accents */
-  primary: "#1647a5",
+  primary: "#2563eb",
   fonts: {
     display: "var(--font-jakarta), ui-sans-serif, system-ui, sans-serif",
     body: "var(--font-inter), ui-sans-serif, system-ui, sans-serif",
   },
   radius: {
-    card: "0.375rem",
-    sm: "0.25rem",
+    sm: "4px",
+    md: "6px",
+    card: "8px",
   },
   /** Compact spacing scale — desktop-density rhythm. */
   spacing: {
@@ -46,7 +62,7 @@ export const theme = {
     toolbar: "40px",
     row: "32px",
     rowTwoLine: "48px",
-    control: "30px",
+    control: "32px",
     inspector: "240px",
   },
   breakpoint: {

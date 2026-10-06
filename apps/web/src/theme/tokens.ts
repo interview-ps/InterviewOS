@@ -20,19 +20,28 @@ export interface SemanticTokens {
   bgContainer: string;
   bgElevated: string;
   bgLayout: string;
+  inset: string;
   surfaceHover: string;
+  selection: string;
   textPrimary: string;
+  textBody: string;
   textSecondary: string;
   textMuted: string;
   border: string;
   borderSecondary: string;
+  divider: string;
   brand: string;
   brandHover: string;
   brandActive: string;
   link: string;
   success: string;
+  successBg: string;
   warning: string;
+  warningBg: string;
   danger: string;
+  dangerBg: string;
+  neutral: string;
+  neutralBg: string;
   radiusSm: number;
   radiusMd: number;
   radiusLg: number;
@@ -45,61 +54,79 @@ export interface SemanticTokens {
 
 /**
  * Semantic product tokens. Values mirror `theme/variables.css`; the light set
- * is the existing Interview OS identity, the dark set derives from the same
- * navy/blue hues.
+ * is the current Interview OS identity, the dark set derives from the same
+ * neutral/cobalt hues.
  */
 export const semanticTokens: Record<ThemeMode, SemanticTokens> = {
   light: {
-    bg: "#f5f7fb",
+    bg: "#f6f7f9",
     bgContainer: "#ffffff",
     bgElevated: "#ffffff",
-    bgLayout: "#f5f7fb",
-    surfaceHover: "#eef3fc",
+    bgLayout: "#f6f7f9",
+    inset: "#f8fafc",
+    surfaceHover: "#f2f4f7",
+    selection: "#eff6ff",
     textPrimary: "#172033",
-    textSecondary: "#4b556b",
-    textMuted: "#6b7488",
-    border: "#d9e0ed",
-    borderSecondary: "#e8edf7",
+    textBody: "#344054",
+    textSecondary: "#475467",
+    textMuted: "#667085",
+    border: "#d0d5dd",
+    borderSecondary: "#e4e7ec",
+    divider: "#e4e7ec",
     brand: uiTheme.colors.blue,
     brandHover: uiTheme.colors.blueHover,
-    brandActive: uiTheme.colors.navy,
+    brandActive: uiTheme.colors.blueActive,
     link: uiTheme.colors.blue,
     success: uiTheme.colors.green,
+    successBg: uiTheme.colors.greenTint,
     warning: uiTheme.colors.accent,
+    warningBg: uiTheme.colors.accentTint,
     danger: uiTheme.colors.danger,
+    dangerBg: uiTheme.colors.dangerTint,
+    neutral: uiTheme.colors.neutral,
+    neutralBg: uiTheme.colors.neutralTint,
     radiusSm: 4,
     radiusMd: 6,
     radiusLg: 8,
-    shadowSm: "0 1px 3px rgba(1, 41, 112, 0.06), 0 1px 2px rgba(1, 41, 112, 0.04)",
-    shadowMd: "0 8px 24px -12px rgba(1, 41, 112, 0.18)",
-    controlHeight: 30,
+    shadowSm: "0 1px 2px rgba(16, 24, 40, 0.05)",
+    shadowMd: "0 12px 28px -12px rgba(16, 24, 40, 0.18)",
+    controlHeight: 32,
     fontBody: uiTheme.fonts.body,
     fontDisplay: uiTheme.fonts.display,
   },
   dark: {
-    bg: "#080e18",
-    bgContainer: "#111a2e",
-    bgElevated: "#16223b",
-    bgLayout: "#080e18",
-    surfaceHover: "#17223a",
-    textPrimary: "#e7ecf5",
-    textSecondary: "#a6b0c3",
-    textMuted: "#737f95",
-    border: "#26324b",
-    borderSecondary: "#1c2740",
-    brand: "#5b86e6",
-    brandHover: "#7ea1ee",
-    brandActive: "#3f66c9",
-    link: "#7ea1ee",
-    success: "#48b878",
-    warning: "#e2a253",
-    danger: "#e2607a",
+    bg: "#0b1220",
+    bgContainer: "#111827",
+    bgElevated: "#1a2233",
+    bgLayout: "#0b1220",
+    inset: "#0f1726",
+    surfaceHover: "#1c2536",
+    selection: "#16233d",
+    textPrimary: "#e6ebf5",
+    textBody: "#cbd3e1",
+    textSecondary: "#9aa7bd",
+    textMuted: "#7c8aa3",
+    border: "#2a3345",
+    borderSecondary: "#1e2739",
+    divider: "#1e2739",
+    brand: "#5b8def",
+    brandHover: "#78a2f2",
+    brandActive: "#4a7be0",
+    link: "#78a2f2",
+    success: "#4ade80",
+    successBg: "#122b1d",
+    warning: "#fbbf24",
+    warningBg: "#2b230f",
+    danger: "#f87171",
+    dangerBg: "#2c1518",
+    neutral: "#9aa7bd",
+    neutralBg: "#1b2334",
     radiusSm: 4,
     radiusMd: 6,
     radiusLg: 8,
-    shadowSm: "0 1px 3px rgba(0, 0, 0, 0.4)",
-    shadowMd: "0 12px 32px -16px rgba(0, 0, 0, 0.6)",
-    controlHeight: 30,
+    shadowSm: "0 1px 2px rgba(0, 0, 0, 0.4)",
+    shadowMd: "0 16px 36px -16px rgba(0, 0, 0, 0.65)",
+    controlHeight: 32,
     fontBody: uiTheme.fonts.body,
     fontDisplay: uiTheme.fonts.display,
   },

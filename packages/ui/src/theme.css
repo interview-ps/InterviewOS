@@ -1,26 +1,59 @@
 /* v0.4: canonical Tailwind @theme for Interview OS.
- * Values must match src/tokens.ts — enforced by test/tokens.test.ts. */
+ * Values must match src/tokens.ts — enforced by test/tokens.test.ts.
+ *
+ * Colour is applied by meaning, not decoration:
+ *  - navy/graphite  → headings and strong text
+ *  - ink            → primary body text
+ *  - muted          → secondary/supporting text
+ *  - blue           → links, primary actions, focus, selection
+ *  - green          → positive result / confirmed connection
+ *  - accent (amber) → caution, limited evidence, attention
+ *  - danger (red)   → errors, serious negative feedback
+ *  - neutral        → unassessed / inert status
+ */
 @theme {
-  --color-navy: #012970;
-  --color-blue: #1647a5;
-  --color-blue-hover: #092e75;
-  --color-accent: #b45309;
-  --color-green: #236342;
-  --color-green-tint: #e8f5ec;
-  --color-ink: #172033;
-  --color-muted: #4b556b;
-  --color-line: #d9e0ed;
-  --color-page: #f5f7fb;
+  /* surfaces */
+  --color-page: #f6f7f9;
   --color-surface: #ffffff;
-  --color-tint: #eef3fc;
-  --color-weak: #b45309;
-  --color-danger: #9f1239;
+  --color-inset: #f8fafc;
+  --color-tint: #eff6ff;
+  --color-hover: #f2f4f7;
+
+  /* text */
+  --color-navy: #172033;
+  --color-ink: #344054;
+  --color-muted: #667085;
+
+  /* lines — `line` is the subtle divider used by panels/rows;
+     `control` is the stronger border used by form controls. */
+  --color-line: #e4e7ec;
+  --color-divider: #e4e7ec;
+  --color-control: #d0d5dd;
+
+  /* brand / accent */
+  --color-blue: #2563eb;
+  --color-blue-hover: #1d4ed8;
+  --color-blue-active: #1e40af;
+  --color-amber: #d97706;
+
+  /* semantic status pairs (text / background) */
+  --color-green: #166534;
+  --color-green-tint: #f0fdf4;
+  --color-accent: #92400e;
+  --color-accent-tint: #fffbeb;
+  --color-danger: #b42318;
+  --color-danger-tint: #fef3f2;
+  --color-neutral: #475467;
+  --color-neutral-tint: #f2f4f7;
+
+  --color-weak: #92400e;
 
   --font-display: var(--font-jakarta), ui-sans-serif, system-ui, sans-serif;
   --font-body: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
 
-  --radius-card: 0.375rem;
-  --radius-sm: 0.25rem;
+  --radius-sm: 4px;
+  --radius-md: 6px;
+  --radius-card: 8px;
 
   /* compact spacing scale */
   --spacing-xs: 0.25rem;
@@ -37,7 +70,7 @@
   --size-toolbar: 40px;
   --size-row: 32px;
   --size-row-two-line: 48px;
-  --size-control: 30px;
+  --size-control: 32px;
   --size-inspector: 240px;
 
   /* sidebar collapses to a top menu button below 900px */
