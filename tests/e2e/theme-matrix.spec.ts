@@ -58,6 +58,7 @@ test.describe("theme matrix evidence", () => {
     await page.waitForTimeout(200);
     await page.screenshot({ path: `${SHOTS}/palette-rose-home-1366x768.png` });
     await page.goto("/settings", { waitUntil: "networkidle" });
+    await page.getByRole("menuitem", { name: "Appearance" }).click();
     await expect(page.getByTestId("palette-swatches")).toBeVisible();
     await page.waitForTimeout(200);
     await page.screenshot({ path: `${SHOTS}/palette-rose-settings-1366x768.png` });

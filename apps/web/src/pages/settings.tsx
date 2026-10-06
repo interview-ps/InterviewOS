@@ -43,6 +43,7 @@ const EXPORT_PARTS = [
 ] as const;
 
 const CATEGORIES = [
+  { key: "appearance", label: "Appearance" },
   { key: "ai", label: "AI and model" },
   { key: "interview", label: "Interview preferences" },
   { key: "sources", label: "Question sources" },
@@ -251,6 +252,7 @@ export default function Settings() {
     if (hash === "data") setSection("data");
     else if (hash === "mcp") setSection("integrations");
     else if (hash === "diagnostics") setSection("ai");
+    else if (hash === "appearance") setSection("appearance");
   }, [location.hash]);
 
   const check = () => {
@@ -351,10 +353,6 @@ export default function Settings() {
     >
       <ErrorNote error={error} />
 
-      <div className="mt-3 w-full max-w-3xl shrink-0">
-        <AppearanceSettings />
-      </div>
-
       <div className="mt-3 flex min-h-0 flex-1 flex-col gap-3 lg:flex-row lg:gap-4">
         {desktop ? (
           <nav className="w-44 shrink-0 overflow-auto" aria-label="Settings categories">
@@ -377,6 +375,8 @@ export default function Settings() {
         )}
 
         <div className="min-w-0 max-w-3xl flex-1 overflow-auto pb-2">
+          {section === "appearance" && <AppearanceSettings />}
+
           {section === "ai" && (
             <div className="space-y-5">
               <section>
