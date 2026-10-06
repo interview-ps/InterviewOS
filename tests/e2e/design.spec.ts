@@ -122,7 +122,7 @@ test.describe("design evidence", () => {
     if (await queue.isVisible().catch(() => false)) {
       await queue.click();
       await expect(page.getByRole("dialog")).toBeVisible();
-      await page.waitForTimeout(150);
+      await page.waitForTimeout(450);
       await page.screenshot({ path: `${SHOTS}/narrow-prepare-tasks-390x844.png` });
       await page.keyboard.press("Escape");
     }
@@ -131,14 +131,14 @@ test.describe("design evidence", () => {
     await page.goto("/readiness", { waitUntil: "networkidle" });
     await page.getByTestId("skill-row").first().click();
     await expect(page.getByRole("dialog")).toBeVisible();
-    await page.waitForTimeout(150);
+    await page.waitForTimeout(450);
     await page.screenshot({ path: `${SHOTS}/narrow-readiness-detail-390x844.png` });
     await page.keyboard.press("Escape");
 
     // Settings: category selector opens the dropdown.
     await page.goto("/settings", { waitUntil: "networkidle" });
     await page.getByLabel("Settings category").click();
-    await page.waitForTimeout(150);
+    await page.waitForTimeout(450);
     await page.screenshot({ path: `${SHOTS}/narrow-settings-category-390x844.png` });
     await page.keyboard.press("Escape");
 
@@ -149,7 +149,7 @@ test.describe("design evidence", () => {
     await page.getByRole("button", { name: "Bullet suggestions" }).click();
     await page.getByTestId("open-bullets").click();
     await expect(page.getByRole("dialog")).toBeVisible();
-    await page.waitForTimeout(150);
+    await page.waitForTimeout(450);
     await page.screenshot({ path: `${SHOTS}/narrow-resume-bullets-390x844.png` });
   });
 });
