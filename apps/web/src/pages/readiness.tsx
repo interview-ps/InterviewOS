@@ -79,8 +79,10 @@ function TreeNode({
   return (
     <li>
       <div
-        className={`flex items-center gap-2 border-b border-line px-2 py-1 last:border-b-0 ${
-          selected === node.skillId ? "bg-tint" : "hover:bg-tint"
+        className={`flex items-center gap-2 border-b border-divider px-2 py-1 last:border-b-0 ${
+          selected === node.skillId
+            ? "bg-[var(--color-tint)] shadow-[inset_2px_0_0_0_var(--color-blue)]"
+            : "hover:bg-[var(--color-hover)]"
         }`}
         style={{ paddingLeft: `${depth * 0.55 + 0.5}rem` }}
       >
@@ -112,17 +114,17 @@ function TreeNode({
             {displayLabel(node.skillId, node.label)}
           </span>
           {node.score === null ? (
-            <span className="text-xs text-muted">not assessed</span>
+            <span className="col-span-3 whitespace-nowrap text-xs text-muted">
+              not assessed
+            </span>
           ) : (
-            <Bar value={node.score} tone={scoreTone(node)} />
-          )}
-          <span className="text-right text-xs text-muted">
-            {node.score === null ? "" : pct(node.score)}
-          </span>
-          {node.score === null ? (
-            <span />
-          ) : (
-            <StatusPill status={node.status} />
+            <>
+              <Bar value={node.score} tone={scoreTone(node)} />
+              <span className="text-right text-xs tabular-nums text-muted">
+                {pct(node.score)}
+              </span>
+              <StatusPill status={node.status} />
+            </>
           )}
         </button>
       </div>
@@ -295,7 +297,7 @@ export default function Readiness() {
           onClick={() => setFilter(f.key)}
           className={`rounded-[var(--radius-sm)] px-2 py-1 text-xs ${
             filter === f.key
-              ? "bg-tint font-semibold text-navy"
+              ? "bg-[var(--color-tint)] font-semibold text-navy"
               : "text-muted hover:text-ink"
           }`}
         >
@@ -307,7 +309,7 @@ export default function Readiness() {
 
   const listBody = (
     <div
-      className={`rounded-[var(--radius-card)] border border-line bg-surface ${
+      className={`rounded-[var(--radius-card)] border border-divider bg-surface ${
         desktop ? "min-h-0 flex-1 overflow-auto" : ""
       }`}
     >
@@ -349,7 +351,7 @@ export default function Readiness() {
       )}
       {detail && (
         <div className="flex min-h-0 flex-1 flex-col">
-          <div className="flex shrink-0 flex-wrap items-center gap-2 border-b border-line px-3 py-2">
+          <div className="flex shrink-0 flex-wrap items-center gap-2 border-b border-divider px-3 py-2">
             <span className="text-sm font-semibold text-navy">
               {displayLabel(selected!, detail.readiness?.label)}
             </span>
@@ -365,11 +367,11 @@ export default function Readiness() {
             </Pill>
           </div>
           {detail.recommendedAction && (
-            <div className="shrink-0 bg-green-tint px-3 py-2 text-[13px] text-green">
+            <div className="shrink-0 border-s-[3px] border-s-[var(--color-blue)] bg-[var(--color-inset)] px-3 py-2 text-[13px] text-ink">
               {detail.recommendedAction.action}
             </div>
           )}
-          <div className="flex shrink-0 items-center gap-1 border-b border-line px-2">
+          <div className="flex shrink-0 items-center gap-1 border-b border-divider px-2">
             {(
               [
                 ["evidence", "Evidence"],
@@ -384,7 +386,7 @@ export default function Readiness() {
                 onClick={() => setTab(key)}
                 className={`-mb-px border-b-2 px-2.5 py-1.5 text-[13px] ${
                   tab === key
-                    ? "border-blue font-semibold text-navy"
+                    ? "border-[color:var(--color-blue)] font-semibold text-navy"
                     : "border-transparent text-muted hover:text-ink"
                 }`}
               >
@@ -412,7 +414,7 @@ export default function Readiness() {
                       return (
                         <li
                           key={ev.id}
-                          className="rounded-[var(--radius-sm)] border border-line p-2.5 text-[13px]"
+                          className="rounded-[var(--radius-sm)] border border-divider p-2.5 text-[13px]"
                         >
                           <div className="flex flex-wrap items-center gap-2">
                             <Pill tone={src.tone}>{src.label}</Pill>

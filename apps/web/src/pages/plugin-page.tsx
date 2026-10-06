@@ -80,7 +80,7 @@ export default function PluginPage() {
         <div
           role="alert"
           data-testid="plugin-ui-error"
-          className="rounded-[0.6rem] border border-accent/40 bg-[#fdf3e7] p-3 text-sm text-accent"
+          className="rounded-[0.6rem] border border-[color:var(--color-accent-tint)] bg-[var(--color-accent-tint)] p-3 text-sm text-[var(--color-accent)]"
         >
           Plugin page unavailable — {error}
         </div>

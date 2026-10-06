@@ -239,7 +239,11 @@ export default function Dashboard() {
               },
               {
                 label: "Verdict",
-                value: readinessVerdict(readiness.overall, coverage?.rate ?? null),
+                value: (
+                  <span className="text-[15px] font-semibold leading-snug">
+                    {readinessVerdict(readiness.overall, coverage?.rate ?? null)}
+                  </span>
+                ),
                 action: (
                   <Link to="/readiness" className="text-blue underline">
                     See the evidence
@@ -254,6 +258,7 @@ export default function Dashboard() {
           <div className="space-y-3">
             <Panel
               title="Next best action"
+              className="border-s-[3px] border-s-[var(--color-blue)]"
               footer={
                 nextAction ? (
                   <Button size="small" onClick={startPractice} disabled={starting}>

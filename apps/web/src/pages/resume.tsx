@@ -26,16 +26,16 @@ import { useDesktop } from "@/lib/responsive";
 
 const STATUS_ICON = { pass: "✓", warn: "!", fail: "✗" } as const;
 const STATUS_CLS = {
-  pass: "bg-green-tint text-green",
-  warn: "bg-[#fdf3e7] text-accent",
-  fail: "bg-[#fdeef2] text-danger",
+  pass: "bg-[var(--color-green-tint)] text-[var(--color-green)]",
+  warn: "bg-[var(--color-accent-tint)] text-[var(--color-accent)]",
+  fail: "bg-[var(--color-danger-tint)] text-[var(--color-danger)]",
 } as const;
 
 type TabKey = "overview" | "bullets" | "role";
 
 function CheckRow({ check }: { check: AtsCheck }) {
   return (
-    <li className="flex items-start gap-2.5 border-b border-line py-1.5 text-[13px] last:border-b-0">
+    <li className="flex items-start gap-2.5 border-b border-divider py-2 text-[13px] last:border-b-0">
       <span
         aria-label={check.status}
         className={`mt-0.5 flex shrink-0 items-center justify-center rounded-full text-[0.6rem] font-bold ${STATUS_CLS[check.status]}`}
@@ -58,7 +58,7 @@ function Highlighted({ text }: { text: string }) {
     <>
       {parts.map((p, i) =>
         p.startsWith("[") && p.endsWith("]") ? (
-          <mark key={i} className="rounded bg-[#fdf3e7] px-0.5 text-accent">
+          <mark key={i} className="rounded bg-[var(--color-accent-tint)] px-0.5 text-[var(--color-accent)]">
             {p}
           </mark>
         ) : (
@@ -87,7 +87,7 @@ function DiffText({ original, improved }: { original: string; improved: string }
       {parts.map((part, pi) => {
         if (part.startsWith("[") && part.endsWith("]")) {
           return (
-            <mark key={pi} className="rounded bg-[#fdf3e7] px-0.5 text-accent">
+            <mark key={pi} className="rounded bg-[var(--color-accent-tint)] px-0.5 text-[var(--color-accent)]">
               {part}
             </mark>
           );
@@ -99,7 +99,7 @@ function DiffText({ original, improved }: { original: string; improved: string }
               const key = word.toLowerCase().replace(/[^a-z0-9]/g, "");
               const isNew = key.length > 0 && !originalWords.has(key);
               return isNew ? (
-                <mark key={wi} className="rounded bg-green-tint px-0.5 text-green">
+                <mark key={wi} className="rounded bg-[var(--color-green-tint)] px-0.5 text-[var(--color-green)]">
                   {word}
                 </mark>
               ) : (
@@ -218,7 +218,7 @@ export default function Resume() {
   const suggestions = review?.suggestions ?? [];
 
   const bulletList = (
-    <div className="min-h-0 flex-1 overflow-auto rounded-[var(--radius-card)] border border-line bg-surface">
+    <div className="min-h-0 flex-1 overflow-auto rounded-[var(--radius-card)] border border-divider bg-surface">
       {suggestions.length === 0 ? (
         <p className="p-3 text-sm text-muted">No weak bullets found — nice.</p>
       ) : (
@@ -232,8 +232,10 @@ export default function Resume() {
                   setListOpen(false);
                 }}
                 aria-current={selected === i ? "true" : undefined}
-                className={`w-full border-b border-line px-2.5 py-1.5 text-left text-[13px] last:border-b-0 ${
-                  selected === i ? "bg-tint" : "hover:bg-tint"
+                className={`w-full border-b border-divider px-3 py-2 text-left text-[13px] last:border-b-0 ${
+                  selected === i
+                    ? "bg-[var(--color-tint)] shadow-[inset_2px_0_0_0_var(--color-blue)]"
+                    : "hover:bg-[var(--color-hover)]"
                 }`}
               >
                 <span className="block">{s.original}</span>
@@ -278,7 +280,7 @@ export default function Resume() {
             </p>
           </div>
           {suggestion.dropped && (
-            <p className="rounded-[var(--radius-sm)] bg-[#fdeef2] px-2 py-1 text-xs text-danger">
+            <p className="rounded-[var(--radius-sm)] bg-[var(--color-danger-tint)] px-2 py-1 text-xs text-[var(--color-danger)]">
               Dropped to avoid inventing a fact: {suggestion.dropped}
             </p>
           )}
@@ -357,10 +359,10 @@ export default function Resume() {
 
       <p
         data-testid="resume-banner"
-        className="mt-3 shrink-0 rounded-[var(--radius-sm)] border border-line bg-tint px-3 py-1.5 text-xs text-muted"
+        className="mt-3 shrink-0 rounded-[var(--radius-sm)] border border-divider bg-[var(--color-inset)] px-3 py-1.5 text-xs text-muted"
       >
         Interview OS never invents facts — placeholders like{" "}
-        <code className="text-accent">[add metric]</code> are for you to fill in truthfully.
+        <code className="text-[var(--color-accent)]">[add metric]</code> are for you to fill in truthfully.
       </p>
 
       {hasResume === false && (
@@ -397,7 +399,7 @@ export default function Resume() {
             <div className="flex items-center gap-3">
               <div
                 data-testid="ats-score"
-                className="flex h-14 w-14 shrink-0 items-center justify-center rounded-full border-4 border-blue text-lg font-bold text-navy"
+                className="flex h-14 w-14 shrink-0 items-center justify-center rounded-full border-4 border-[color:var(--color-blue)] text-lg font-bold text-navy"
               >
                 {review.ats.score}
               </div>
@@ -557,7 +559,7 @@ export default function Resume() {
                 <div className="mt-3 overflow-x-auto">
                   <table className="w-full text-left text-[13px]">
                     <thead>
-                      <tr className="border-b border-line text-xs uppercase tracking-wide text-muted">
+                      <tr className="border-b border-divider text-xs font-medium text-muted">
                         <th className="py-1.5 pr-4">Requirement</th>
                         <th className="py-1.5 pr-4">In your resume?</th>
                         <th className="py-1.5">Suggestion</th>
@@ -565,7 +567,7 @@ export default function Resume() {
                     </thead>
                     <tbody>
                       {review.tailoring.alignment.map((a, i) => (
-                        <tr key={i} className="border-b border-line/60">
+                        <tr key={i} className="border-b border-divider/70">
                           <td className="py-1.5 pr-4 align-top font-medium text-ink">{a.requirement}</td>
                           <td className="py-1.5 pr-4 align-top text-muted">
                             {a.resumeEvidence ? <span title={a.resumeEvidence}>✓ yes</span> : "— not yet"}

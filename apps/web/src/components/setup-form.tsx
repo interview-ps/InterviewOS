@@ -286,7 +286,7 @@ export function SetupForm({
               value={form.resumeText}
               onChange={(e) => setForm((f) => ({ ...f, resumeText: e.target.value }))}
               rows={10}
-              className="w-full rounded-[var(--radius-sm)] border border-line bg-surface p-3 font-mono text-xs"
+              className="w-full rounded-[var(--radius-sm)] border border-line bg-surface p-3 text-[13px] leading-relaxed"
             />
             <div className="mt-1 flex flex-wrap items-center gap-2">
               <Upload
@@ -319,7 +319,7 @@ export function SetupForm({
               value={form.jobDescription}
               onChange={(e) => setForm((f) => ({ ...f, jobDescription: e.target.value }))}
               rows={10}
-              className="w-full rounded-[var(--radius-sm)] border border-line bg-surface p-3 font-mono text-xs"
+              className="w-full rounded-[var(--radius-sm)] border border-line bg-surface p-3 text-[13px] leading-relaxed"
             />
             <div className="mt-1 flex flex-wrap items-center gap-2">
               <Upload
@@ -356,7 +356,7 @@ export function SetupForm({
             value={form.jobDescription}
             onChange={(e) => setForm((f) => ({ ...f, jobDescription: e.target.value }))}
             rows={6}
-            className="w-full rounded-[var(--radius-sm)] border border-line bg-surface p-3 font-mono text-xs"
+            className="w-full rounded-[var(--radius-sm)] border border-line bg-surface p-3 text-[13px] leading-relaxed"
           />
           <div className="mt-1 flex flex-wrap items-center gap-2">
             <Upload

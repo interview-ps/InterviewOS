@@ -516,7 +516,7 @@ export default function Interview() {
                         type="button"
                         onClick={() => startPluginMode(m.pluginModeId)}
                         disabled={starting}
-                        className="rounded-[0.6rem] border border-line p-3 text-left text-sm hover:bg-tint disabled:opacity-60"
+                        className="rounded-[0.6rem] border border-divider p-3 text-left text-sm hover:bg-[var(--color-hover)] disabled:opacity-60"
                       >
                         <span className="block font-medium text-ink">{m.label}</span>
                         <span className="mt-0.5 block text-xs text-muted">
@@ -545,7 +545,7 @@ export default function Interview() {
                             name="context"
                             checked={contextId === ""}
                             onChange={() => setContextId("")}
-                            className="accent-accent"
+                            className="accent-blue"
                           />
                           <span className="text-muted">No context</span>
                         </label>
@@ -558,7 +558,7 @@ export default function Interview() {
                               name="context"
                               checked={contextId === c.id}
                               onChange={() => setContextId(c.id)}
-                              className="accent-accent"
+                              className="accent-blue"
                             />
                             <span className="truncate">
                               {c.title}{" "}

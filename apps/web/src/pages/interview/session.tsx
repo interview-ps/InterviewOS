@@ -228,8 +228,8 @@ function AnswerFieldsEditor({
               aria-label={f.label}
               className={
                 f.type === "code"
-                  ? "w-full rounded-[var(--radius-sm)] border border-line bg-surface p-2.5 font-mono text-xs"
-                  : "w-full rounded-[var(--radius-sm)] border border-line p-2.5"
+                  ? "w-full rounded-[var(--radius-sm)] border border-line bg-[var(--color-inset)] p-3 font-mono text-[13px] leading-relaxed"
+                  : "w-full rounded-[var(--radius-sm)] border border-line p-2.5 leading-relaxed"
               }
             />
           )}
@@ -442,7 +442,7 @@ export default function InterviewSession() {
   const questionMeta = current && (
     <div className="flex flex-wrap items-center gap-2">
       {/* When a mode panel already names the problem, don't repeat it as a pill. */}
-      {!hasQuestionPanel && <Pill tone="blue">{current.topic}</Pill>}
+      {!hasQuestionPanel && <Pill tone="muted">{current.topic}</Pill>}
       <Pill tone="muted">difficulty {current.difficulty}</Pill>
       {current.followUpOf && (
         <Pill tone="amber">
@@ -494,7 +494,7 @@ export default function InterviewSession() {
         onChange={(e) => setAnswer(e.target.value)}
         rows={grow ? 8 : 4}
         placeholder={acceptsCode ? "Explain your approach…" : "Type your answer…"}
-        className={`w-full resize-none rounded-[var(--radius-sm)] border border-line p-2.5 ${
+        className={`w-full resize-none rounded-[var(--radius-sm)] border border-line p-2.5 leading-relaxed ${
           grow ? "min-h-0 flex-1" : ""
         }`}
       />
@@ -532,7 +532,7 @@ export default function InterviewSession() {
         spellCheck={false}
         placeholder="Paste or write your solution — reviewed, not executed."
         aria-label="Code answer"
-        className="min-h-0 w-full flex-1 resize-none rounded-[var(--radius-sm)] border border-line bg-surface p-2.5 font-mono text-xs"
+        className="min-h-0 w-full flex-1 resize-none rounded-[var(--radius-sm)] border border-line bg-[var(--color-inset)] p-3 font-mono text-[13px] leading-relaxed"
       />
       <p className="mt-1 text-xs text-muted">Code is reviewed, not executed.</p>
     </div>
@@ -707,7 +707,7 @@ export default function InterviewSession() {
                       <p className="text-xs font-medium text-muted">from plugin {r.pluginName}</p>
                       <ul className="mt-1 list-disc space-y-0.5 pl-5 text-sm">
                         {r.observations.map((o, i) => (
-                          <li key={i} className={o.tone === "amber" ? "text-amber" : o.tone === "red" ? "text-red" : ""}>
+                          <li key={i} className={o.tone === "amber" ? "text-[var(--color-accent)]" : o.tone === "red" ? "text-[var(--color-danger)]" : ""}>
                             {o.text}
                           </li>
                         ))}
@@ -875,7 +875,7 @@ export default function InterviewSession() {
           }
           actions={
             <>
-              {detail?.session.mode === "practice" && <Pill tone="amber">Practice</Pill>}
+              {detail?.session.mode === "practice" && <Pill tone="blue">Practice</Pill>}
               {detail && !done && <Pill tone="muted">Question {questionNo} of {detail.session.plannedQuestions}</Pill>}
               {hasInspector && (
                 <Button

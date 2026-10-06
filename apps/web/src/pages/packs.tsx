@@ -248,7 +248,7 @@ function RolePacks({
             <li
               key={p.id}
               className={`rounded-[0.6rem] border p-3 ${
-                target?.rolePackId === p.id ? "border-accent bg-tint" : "border-line"
+                target?.rolePackId === p.id ? "border-[color:var(--color-blue)] bg-[var(--color-tint)]" : "border-divider"
               }`}
               data-testid={`role-pack-${p.id}`}
             >
@@ -259,7 +259,7 @@ function RolePacks({
                   value={p.id}
                   checked={selected === p.id}
                   onChange={() => setSelected(p.id)}
-                  className="mt-1 accent-accent"
+                  className="mt-1 accent-blue"
                 />
                 <span className="min-w-0 flex-1">
                   <span className="flex flex-wrap items-center gap-2">
@@ -291,7 +291,7 @@ function RolePacks({
                 value=""
                 checked={selected === ""}
                 onChange={() => setSelected("")}
-                className="accent-accent"
+                className="accent-blue"
               />
               <span className="text-sm text-muted">None — JD requirements only</span>
             </label>
@@ -436,8 +436,8 @@ function InterviewPackCreator({
               key={r.skillId}
               className={`cursor-pointer rounded-full border px-3 py-1 text-xs ${
                 skills.includes(r.skillId)
-                  ? "border-accent bg-tint text-navy"
-                  : "border-line text-muted"
+                  ? "border-[color:var(--color-blue)] bg-[var(--color-tint)] text-navy"
+                  : "border-divider text-muted"
               }`}
             >
               <input

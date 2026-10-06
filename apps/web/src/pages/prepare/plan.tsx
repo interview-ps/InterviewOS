@@ -286,7 +286,7 @@ function ActionDetail({
               type="checkbox"
               checked={checked.has(c)}
               onChange={() => toggle(c)}
-              className="mt-0.5 accent-accent"
+              className="mt-0.5 accent-blue"
             />
             <span>{c}</span>
           </label>

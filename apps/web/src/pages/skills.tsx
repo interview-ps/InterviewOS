@@ -273,7 +273,7 @@ function PermissionReview({
                       aria-label={`grant ${row.category}`}
                       checked={perms.length > 0 && perms.every((p) => checked.has(p))}
                       onChange={(e) => toggle(perms, e.target.checked)}
-                      className="accent-accent"
+                      className="accent-blue"
                       {...(isEvidence ? { "data-testid": "grant-evidence-write" } : {})}
                     />
                   )}
@@ -578,7 +578,7 @@ export default function Skills() {
             <Panel title="Plugin load errors" data-testid="plugin-errors">
               <ul className="space-y-1.5 text-[13px]">
                 {data.pluginErrors.map((e, i) => (
-                  <li key={i} className="rounded-[var(--radius-sm)] bg-[#fdeef2] p-2">
+                  <li key={i} className="rounded-[var(--radius-sm)] bg-[var(--color-danger-tint)] p-2">
                     <span className="font-medium text-danger">
                       {e.dir}
                       <span className="text-muted">/{e.file}</span>

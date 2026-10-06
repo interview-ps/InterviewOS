@@ -124,7 +124,7 @@ function McpServerRow({
             checked={server.enabled}
             disabled={busy}
             onChange={(e) => save({ enabled: e.target.checked })}
-            className="accent-accent"
+            className="accent-blue"
             data-testid={`mcp-enable-${server.id}`}
           />
           Enabled
@@ -166,7 +166,7 @@ function McpServerRow({
                           return next;
                         })
                       }
-                      className="mt-1 accent-accent"
+                      className="mt-1 accent-blue"
                     />
                     <span>
                       <span className="font-mono text-xs">{t.name}</span>
@@ -639,7 +639,7 @@ export default function Settings() {
                       type="checkbox"
                       checked={qs[key]}
                       onChange={(e) => setQs({ [key]: e.target.checked })}
-                      className="accent-accent"
+                      className="accent-blue"
                       data-testid={`qs-${key}`}
                     />
                   }
@@ -661,7 +661,7 @@ export default function Settings() {
                             : qs.plugins.filter((x) => x !== p.manifest.id),
                         })
                       }
-                      className="accent-accent"
+                      className="accent-blue"
                       data-testid={`qs-plugin-${p.manifest.id}`}
                     />
                   }
@@ -695,7 +695,7 @@ export default function Settings() {
                           },
                       )
                     }
-                    className="accent-accent"
+                    className="accent-blue"
                     data-testid="voice-enabled"
                   />
                 }
@@ -718,7 +718,7 @@ export default function Settings() {
                           },
                       )
                     }
-                    className="accent-accent"
+                    className="accent-blue"
                     data-testid="voice-speak"
                   />
                 }
