@@ -19,6 +19,7 @@ import {
   Button,
   DeltaList,
   ErrorNote,
+  EvidenceTimeline,
   Panel,
   Pill,
   RichText,
@@ -43,6 +44,7 @@ const CODE_LANGUAGES = [
 ];
 
 type EvalTab = "feedback" | "rubric" | "answer" | "evidence";
+type EvalEvidence = Awaited<ReturnType<typeof api.skillDetail>>["evidence"][number];
 
 /** Live text streamed from the model while a long AI step runs (§8.3). */
 function StreamDraft({
@@ -147,6 +149,36 @@ function WhyThisQuestion({ q }: { q: SessionQuestion }) {
         </details>
       )}
     </details>
+  );
+}
+
+/**
+ * The interviewer's question. A soft brand-tinted, opaque surface with a brand
+ * left edge marks "the system speaking" while keeping the one string that must
+ * stay legible off any translucent glass (settled surfaces stay opaque).
+ */
+function InterviewerQuestion({ text }: { text: string }) {
+  return (
+    <div
+      data-testid="interviewer-question"
+      className="rounded-[var(--radius-sm)] border-s-[3px] border-s-[var(--color-blue)] bg-[var(--interview-selection)] px-3.5 py-3"
+    >
+      <p className="text-[15px] font-medium leading-relaxed">
+        <RichText text={text} />
+      </p>
+    </div>
+  );
+}
+
+/** A compact headline metric for the evaluation hero. */
+function HeroMetric({ label, children }: { label: string; children: ReactNode }) {
+  return (
+    <div className="bg-surface px-3 py-1.5">
+      <div className="text-[11px] font-medium uppercase tracking-wide text-muted">{label}</div>
+      <div className="text-[17px] font-semibold leading-tight tabular-nums text-navy">
+        {children}
+      </div>
+    </div>
   );
 }
 
@@ -266,6 +298,7 @@ export default function InterviewSession() {
   const [voiceOn, setVoiceOn] = useState(false);
   const [speakOn, setSpeakOn] = useState(false);
   const [evalTab, setEvalTab] = useState<EvalTab>("feedback");
+  const [evalEvidence, setEvalEvidence] = useState<EvalEvidence[]>([]);
   const [inspectorOpen, setInspectorOpen] = useState(true);
   const timer = useRef<ReturnType<typeof setInterval> | null>(null);
   const voice = useVoiceCapture(
@@ -304,6 +337,30 @@ export default function InterviewSession() {
   }, [load]);
 
   useSpeakQuestion(speakOn && voice.supported, current?.text ?? null);
+
+  // The answer result carries readiness deltas, not the evidence itself — load
+  // the newly recorded evidence for the affected skills when the tab opens.
+  useEffect(() => {
+    if (evalTab !== "evidence" || !result) return;
+    const skillIds = Array.from(new Set(result.skillImpact.map((s) => s.skillId)));
+    if (skillIds.length === 0) {
+      setEvalEvidence([]);
+      return;
+    }
+    let cancelled = false;
+    Promise.all(skillIds.map((sid) => api.skillDetail(sid).catch(() => null)))
+      .then((details) => {
+        if (cancelled) return;
+        const items = details
+          .flatMap((d) => d?.evidence ?? [])
+          .sort((a, b) => (a.createdAt < b.createdAt ? 1 : -1));
+        setEvalEvidence(items.slice(0, 8));
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, [evalTab, result]);
 
   const modeId = detail?.session.roundType ?? "";
   const hasInspector = useModeSlotHasContent("interview.sidebar", modeId);
@@ -545,9 +602,7 @@ export default function InterviewSession() {
         <Panel className="flex-1" footer={submitFooter} bodyClassName="space-y-3">
           {questionMeta}
           <WhyThisQuestion q={current} />
-          <p className="text-[15px] font-medium leading-relaxed">
-            <RichText text={current.text} />
-          </p>
+          <InterviewerQuestion text={current.text} />
           {modeQuestionPanel}
           <AnswerFieldsEditor
             fields={answerFields}
@@ -572,9 +627,7 @@ export default function InterviewSession() {
             <Panel className="h-full" bodyClassName="space-y-2">
               {questionMeta}
               <WhyThisQuestion q={current} />
-              <p className="text-[15px] font-medium leading-relaxed">
-            <RichText text={current.text} />
-          </p>
+              <InterviewerQuestion text={current.text} />
               {modeQuestionPanel}
             </Panel>
           }
@@ -592,9 +645,7 @@ export default function InterviewSession() {
           <div className="shrink-0 space-y-2">
             {questionMeta}
             <WhyThisQuestion q={current} />
-            <p className="text-[15px] font-medium leading-relaxed">
-            <RichText text={current.text} />
-          </p>
+            <InterviewerQuestion text={current.text} />
             {modeQuestionPanel}
           </div>
           <div className="shrink-0">{voiceControl}</div>
@@ -604,8 +655,62 @@ export default function InterviewSession() {
     }
   }
 
+  const evalScores = result?.evaluation.scores ?? [];
+  const answerScore = evalScores.length
+    ? evalScores.reduce((a, s) => a + s.score, 0) / evalScores.length
+    : null;
+  const answerConfidence = evalScores.length
+    ? evalScores.reduce((a, s) => a + s.confidence, 0) / evalScores.length
+    : null;
+  const rubricAvg =
+    result && result.evaluation.rubric.length > 0
+      ? result.evaluation.rubric.reduce((a, r) => a + r.score, 0) /
+        result.evaluation.rubric.length
+      : null;
+  const readinessMoved = result
+    ? result.skillImpact.filter(
+        (s) => s.before !== null && s.after !== null && s.after > s.before,
+      ).length
+    : 0;
+
   const evaluation = result && (
     <div className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-[var(--radius-card)] border border-line bg-surface">
+      <header className="shrink-0 border-b border-line bg-[var(--color-inset)] px-3 py-2.5">
+        <div className="flex flex-wrap items-center gap-2">
+          <span className="inline-flex h-5 items-center rounded-[var(--radius-xs)] bg-[var(--color-tint)] px-1.5 text-[11px] font-semibold uppercase tracking-wide text-[var(--color-blue-hover)]">
+            Evaluation
+          </span>
+          <h2
+            className="min-w-0 flex-1 truncate text-[15px] font-semibold text-navy"
+            title={current?.text ?? "Answer evaluation"}
+          >
+            {current?.text ?? "Answer evaluation"}
+          </h2>
+        </div>
+        <div className="mt-2 grid grid-cols-2 gap-px overflow-hidden rounded-[var(--radius-sm)] border border-line bg-divider sm:grid-cols-4">
+          <HeroMetric label="Answer score">
+            {answerScore === null ? "—" : `${Math.round(answerScore * 100)}%`}
+          </HeroMetric>
+          <HeroMetric label="Confidence">
+            {answerConfidence === null ? (
+              "—"
+            ) : (
+              <span className="inline-flex items-baseline gap-1">
+                {Math.round(answerConfidence * 100)}%
+                {answerConfidence < 0.4 && (
+                  <span className="text-[11px] font-normal text-[var(--color-accent)]">low</span>
+                )}
+              </span>
+            )}
+          </HeroMetric>
+          <HeroMetric label="Rubric">
+            {rubricAvg === null ? "—" : `${Math.round(rubricAvg * 100)}%`}
+          </HeroMetric>
+          <HeroMetric label="Readiness moved">
+            {readinessMoved}/{result.skillImpact.length}
+          </HeroMetric>
+        </div>
+      </header>
       <div className="flex shrink-0 items-center gap-1 border-b border-line px-2">
         {(
           [
@@ -763,16 +868,30 @@ export default function InterviewSession() {
         )}
 
         {evalTab === "evidence" && (
-          <div>
-            <h3 className="mb-1 text-[13px] font-semibold text-navy">Readiness change</h3>
-            <DeltaList
-              items={result.skillImpact.map((s) => ({
-                key: s.skillId,
-                label: skillLabel(s.skillId),
-                before: s.before,
-                after: s.after,
-              }))}
-            />
+          <div className="space-y-3">
+            <div>
+              <h3 className="mb-1 text-[13px] font-semibold text-navy">Readiness change</h3>
+              <DeltaList
+                items={result.skillImpact.map((s) => ({
+                  key: s.skillId,
+                  label: skillLabel(s.skillId),
+                  before: s.before,
+                  after: s.after,
+                }))}
+              />
+            </div>
+            {evalEvidence.length > 0 && (
+              <div>
+                <h3 className="mb-1 text-[13px] font-semibold text-navy">
+                  Evidence recorded
+                </h3>
+                <EvidenceTimeline
+                  items={evalEvidence}
+                  showSkill
+                  empty="No evidence recorded for this answer yet."
+                />
+              </div>
+            )}
           </div>
         )}
       </div>
