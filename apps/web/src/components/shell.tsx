@@ -228,8 +228,21 @@ function PluginIcon({ icon }: { icon: string }) {
   );
 }
 
-/** Group headings carry an icon so the rail scans as three short sections. */
-function groupLabel(text: string, icon: ReactNode) {
+/**
+ * Group headings carry an icon so the rail scans as three short sections. In the
+ * collapsed rail the heading is that icon alone, centred like the item icons —
+ * antd renders group titles at the rail's left edge, so the full label spills
+ * clipped text ("Proc", "Cust", "Plug") out of the 48px column.
+ */
+function groupLabel(text: string, icon: ReactNode, collapsed: boolean) {
+  if (collapsed) {
+    return (
+      <span className="flex w-full items-center justify-center">
+        <span className="sr-only">{text}</span>
+        <span aria-hidden className="inline-flex items-center">{icon}</span>
+      </span>
+    );
+  }
   return (
     <span className="inline-flex items-center gap-2">
       <span aria-hidden className="inline-flex items-center">{icon}</span>
@@ -247,7 +260,7 @@ function navLinks(entries: NavEntry[]) {
   }));
 }
 
-function useNavItems(): { primary: unknown[]; settings: unknown[] } {
+function useNavItems(collapsed: boolean): { primary: unknown[]; settings: unknown[] } {
   const contributions = useUIContributions();
 
   return useMemo(() => {
@@ -270,11 +283,11 @@ function useNavItems(): { primary: unknown[]; settings: unknown[] } {
     );
     const primary: unknown[] = [
       ...navLinks(NAV_JOURNEY),
-      { key: "group-progress", type: "group", label: groupLabel("Progress", <LineChartOutlined />), children: navLinks(NAV_PROGRESS) },
+      { key: "group-progress", type: "group", label: groupLabel("Progress", <LineChartOutlined />, collapsed), children: navLinks(NAV_PROGRESS) },
       {
         key: "group-customizations",
         type: "group",
-        label: groupLabel("Customizations", <ToolOutlined />),
+        label: groupLabel("Customizations", <ToolOutlined />, collapsed),
         children: navLinks(NAV_CUSTOMIZATIONS),
       },
     ];
@@ -282,12 +295,12 @@ function useNavItems(): { primary: unknown[]; settings: unknown[] } {
       primary.push({
         key: "plugins-group",
         type: "group",
-        label: groupLabel("Plugins", <BlockOutlined />),
+        label: groupLabel("Plugins", <BlockOutlined />, collapsed),
         children: pluginNav,
       });
     }
     return { primary, settings: navLinks(NAV_WORKSPACE) };
-  }, [contributions]);
+  }, [contributions, collapsed]);
 }
 
 function selectedKey(pathname: string): string {
@@ -569,7 +582,7 @@ export function Shell({ children }: { children: ReactNode }) {
     () => typeof localStorage !== "undefined" && localStorage.getItem(COLLAPSE_KEY) === "1",
   );
   const [refreshKey, setRefreshKey] = useState(0);
-  const { primary: navPrimary, settings: navSettings } = useNavItems();
+  const { primary: navPrimary, settings: navSettings } = useNavItems(collapsed);
 
   const refresh = useCallback(() => setRefreshKey((k) => k + 1), []);
 
