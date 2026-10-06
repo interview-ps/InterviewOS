@@ -8,8 +8,8 @@ export const theme = {
     page: "#f6f7f9",
     surface: "#ffffff",
     inset: "#f8fafc",
-    tint: "#eff6ff",
-    hover: "#f2f4f7",
+    tint: "rgba(37, 99, 235, 0.08)",
+    hover: "rgba(37, 99, 235, 0.05)",
     /* text */
     navy: "#172033",
     ink: "#344054",
@@ -22,7 +22,6 @@ export const theme = {
     blue: "#2563eb",
     blueHover: "#1d4ed8",
     blueActive: "#1e40af",
-    amber: "#d97706",
     /* semantic status pairs */
     green: "#166534",
     greenTint: "#f0fdf4",
@@ -32,7 +31,6 @@ export const theme = {
     dangerTint: "#fef3f2",
     neutral: "#475467",
     neutralTint: "#f2f4f7",
-    weak: "#92400e",
   },
   /** primary = brand blue used for primary buttons/accents */
   primary: "#2563eb",
@@ -40,10 +38,23 @@ export const theme = {
     display: "var(--font-jakarta), ui-sans-serif, system-ui, sans-serif",
     body: "var(--font-inter), ui-sans-serif, system-ui, sans-serif",
   },
+  /** Octop radius ramp. */
   radius: {
-    sm: "4px",
-    md: "6px",
-    card: "8px",
+    xs: "5px",
+    sm: "8px",
+    md: "10px",
+    card: "12px",
+    lg: "18px",
+    pill: "9999px",
+  },
+  /** Octop five-step elevation ramp; `brand` is the brand-tinted shadow. */
+  shadow: {
+    xs: "0 1px 2px rgba(16, 24, 40, 0.05)",
+    sm: "0 1px 3px rgba(16, 24, 40, 0.08), 0 1px 2px rgba(16, 24, 40, 0.04)",
+    md: "0 4px 12px -2px rgba(16, 24, 40, 0.1)",
+    lg: "0 12px 28px -8px rgba(16, 24, 40, 0.16)",
+    xl: "0 24px 48px -12px rgba(16, 24, 40, 0.2)",
+    brand: "0 8px 24px -10px rgba(var(--brand-rgb), 0.35)",
   },
   /** Compact spacing scale — desktop-density rhythm. */
   spacing: {

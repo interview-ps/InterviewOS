@@ -10,14 +10,19 @@
  *  - accent (amber) → caution, limited evidence, attention
  *  - danger (red)   → errors, serious negative feedback
  *  - neutral        → unassessed / inert status
+ *
+ * The radius and elevation ramps follow the Octop design language: radius
+ * 5/8/10/12/18/9999 and a five-step shadow ramp. Interaction tints (hover /
+ * active / selected) are brand-tinted alphas so the whole UI re-tints when the
+ * brand palette changes without any component knowing about it.
  */
 @theme {
   /* surfaces */
   --color-page: #f6f7f9;
   --color-surface: #ffffff;
   --color-inset: #f8fafc;
-  --color-tint: #eff6ff;
-  --color-hover: #f2f4f7;
+  --color-tint: rgba(37, 99, 235, 0.08);
+  --color-hover: rgba(37, 99, 235, 0.05);
 
   /* text */
   --color-navy: #172033;
@@ -34,7 +39,6 @@
   --color-blue: #2563eb;
   --color-blue-hover: #1d4ed8;
   --color-blue-active: #1e40af;
-  --color-amber: #d97706;
 
   /* semantic status pairs (text / background) */
   --color-green: #166534;
@@ -46,14 +50,25 @@
   --color-neutral: #475467;
   --color-neutral-tint: #f2f4f7;
 
-  --color-weak: #92400e;
-
   --font-display: var(--font-jakarta), ui-sans-serif, system-ui, sans-serif;
   --font-body: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
 
-  --radius-sm: 4px;
-  --radius-md: 6px;
-  --radius-card: 8px;
+  /* Octop radius ramp */
+  --radius-xs: 5px;
+  --radius-sm: 8px;
+  --radius-md: 10px;
+  --radius-card: 12px;
+  --radius-lg: 18px;
+  --radius-pill: 9999px;
+
+  /* Octop five-step elevation ramp — brand-tinted shadows are reserved for
+     elevated/brand surfaces (overlays, the primary call-to-action). */
+  --shadow-xs: 0 1px 2px rgba(16, 24, 40, 0.05);
+  --shadow-sm: 0 1px 3px rgba(16, 24, 40, 0.08), 0 1px 2px rgba(16, 24, 40, 0.04);
+  --shadow-md: 0 4px 12px -2px rgba(16, 24, 40, 0.1);
+  --shadow-lg: 0 12px 28px -8px rgba(16, 24, 40, 0.16);
+  --shadow-xl: 0 24px 48px -12px rgba(16, 24, 40, 0.2);
+  --shadow-brand: 0 8px 24px -10px rgba(var(--brand-rgb), 0.35);
 
   /* compact spacing scale */
   --spacing-xs: 0.25rem;
@@ -75,4 +90,16 @@
 
   /* sidebar collapses to a top menu button below 900px */
   --breakpoint-menu: 900px;
+}
+
+/*
+ * The active brand as an `r, g, b` triple. Curated/custom palettes override it
+ * at runtime, which re-tints every `rgba(var(--brand-rgb), …)` consumer
+ * (hover/active/selected alphas, brand shadow, focus glow) at once.
+ */
+:root {
+  --brand-rgb: 37, 99, 235;
+  --tint-hover: rgba(var(--brand-rgb), 0.05);
+  --tint-active: rgba(var(--brand-rgb), 0.08);
+  --tint-selected: rgba(var(--brand-rgb), 0.06);
 }

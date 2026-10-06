@@ -28,6 +28,7 @@ import {
 } from "@/components/ui";
 import { ExtensionSlot } from "@/components/plugin-ui";
 import { PluginSettingsForm } from "@/components/plugin-settings-form";
+import { AppearanceSettings } from "@/components/appearance-settings";
 import { useDesktop } from "@/lib/responsive";
 
 const EFFORTS = ["low", "medium", "high"] as const;
@@ -349,6 +350,10 @@ export default function Settings() {
       }
     >
       <ErrorNote error={error} />
+
+      <div className="mt-3 w-full max-w-3xl shrink-0">
+        <AppearanceSettings />
+      </div>
 
       <div className="mt-3 flex min-h-0 flex-1 flex-col gap-3 lg:flex-row lg:gap-4">
         {desktop ? (

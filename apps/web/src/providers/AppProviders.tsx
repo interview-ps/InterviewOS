@@ -6,9 +6,9 @@ import { antTheme } from "@/theme/antTheme";
 import { ThemeProvider, useTheme } from "@/theme/ThemeProvider";
 
 function ThemedConfig({ children }: { children: ReactNode }) {
-  const { mode } = useTheme();
+  const { mode, brandTokens } = useTheme();
   return (
-    <ConfigProvider prefixCls="interview" theme={antTheme(mode)}>
+    <ConfigProvider prefixCls="interview" theme={antTheme(mode, brandTokens)}>
       <AntdAppProvider>{children}</AntdAppProvider>
     </ConfigProvider>
   );

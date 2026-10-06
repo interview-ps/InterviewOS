@@ -15,6 +15,7 @@ import {
   AimOutlined,
   ApiOutlined,
   AppstoreOutlined,
+  BgColorsOutlined,
   BulbOutlined,
   DesktopOutlined,
   FileTextOutlined,
@@ -39,6 +40,7 @@ import { runtimeLabel } from "@/lib/runtime";
 import { AppRefreshContext } from "@/lib/app-refresh";
 import { message } from "@/utils/antdMessage";
 import { useTheme } from "@/theme/ThemeProvider";
+import { CURATED_PALETTES } from "@/theme/palettes";
 import type { ThemePreference } from "@/theme/tokens";
 import { StatusDot } from "@/ui";
 import { displayLabel } from "@/components/ui";
@@ -289,7 +291,7 @@ function selectedKey(pathname: string): string {
 
 /** One compact appearance control (Light/Dark/System) instead of three icons. */
 function AppearanceMenu() {
-  const { preference, setPreference } = useTheme();
+  const { preference, setPreference, palette, setPalette } = useTheme();
   const current =
     preference === "light" ? (
       <SunOutlined />
@@ -309,12 +311,25 @@ function AppearanceMenu() {
       menu={{
         selectable: true,
         selectedKeys: [preference],
-        items: options.map((o) => ({
-          key: o.key,
-          icon: o.icon,
-          label: o.label,
-          onClick: () => setPreference(o.key),
-        })),
+        items: [
+          ...options.map((o) => ({
+            key: o.key,
+            icon: o.icon,
+            label: o.label,
+            onClick: () => setPreference(o.key),
+          })),
+          { type: "divider" as const, key: "divider-palette" },
+          {
+            key: "palette",
+            icon: <BgColorsOutlined />,
+            label: "Brand palette",
+            children: CURATED_PALETTES.map((p) => ({
+              key: `palette:${p.id}`,
+              label: p.label,
+              onClick: () => setPalette(p.id),
+            })),
+          },
+        ],
       }}
     >
       <Button

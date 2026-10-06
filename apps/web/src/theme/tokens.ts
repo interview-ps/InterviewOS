@@ -4,6 +4,9 @@ export type ThemeMode = "light" | "dark";
 export type ThemePreference = "light" | "dark" | "system";
 
 export const THEME_STORAGE_KEY = "interview-os:theme";
+/** Palette axis storage (curated palette id, or "custom"). */
+export const PALETTE_STORAGE_KEY = "interview-os:palette";
+export const CUSTOM_COLOR_STORAGE_KEY = "interview-os:custom-color";
 
 /** Interview OS brand anchors (single source: @interview-os/ui tokens). */
 export const brand = {
@@ -42,6 +45,7 @@ export interface SemanticTokens {
   dangerBg: string;
   neutral: string;
   neutralBg: string;
+  radiusXs: number;
   radiusSm: number;
   radiusMd: number;
   radiusLg: number;
@@ -85,11 +89,12 @@ export const semanticTokens: Record<ThemeMode, SemanticTokens> = {
     dangerBg: uiTheme.colors.dangerTint,
     neutral: uiTheme.colors.neutral,
     neutralBg: uiTheme.colors.neutralTint,
-    radiusSm: 4,
-    radiusMd: 6,
-    radiusLg: 8,
-    shadowSm: "0 1px 2px rgba(16, 24, 40, 0.05)",
-    shadowMd: "0 12px 28px -12px rgba(16, 24, 40, 0.18)",
+    radiusXs: 5,
+    radiusSm: 8,
+    radiusMd: 10,
+    radiusLg: 12,
+    shadowSm: "0 1px 3px rgba(16, 24, 40, 0.08), 0 1px 2px rgba(16, 24, 40, 0.04)",
+    shadowMd: "0 12px 28px -8px rgba(16, 24, 40, 0.16)",
     controlHeight: 32,
     fontBody: uiTheme.fonts.body,
     fontDisplay: uiTheme.fonts.display,
@@ -121,11 +126,12 @@ export const semanticTokens: Record<ThemeMode, SemanticTokens> = {
     dangerBg: "#2c1518",
     neutral: "#9aa7bd",
     neutralBg: "#1b2334",
-    radiusSm: 4,
-    radiusMd: 6,
-    radiusLg: 8,
-    shadowSm: "0 1px 2px rgba(0, 0, 0, 0.4)",
-    shadowMd: "0 16px 36px -16px rgba(0, 0, 0, 0.65)",
+    radiusXs: 5,
+    radiusSm: 8,
+    radiusMd: 10,
+    radiusLg: 12,
+    shadowSm: "0 1px 3px rgba(0, 0, 0, 0.45), 0 1px 2px rgba(0, 0, 0, 0.3)",
+    shadowMd: "0 16px 36px -16px rgba(0, 0, 0, 0.7)",
     controlHeight: 32,
     fontBody: uiTheme.fonts.body,
     fontDisplay: uiTheme.fonts.display,

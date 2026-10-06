@@ -1,21 +1,24 @@
 import { theme as antdTheme, type ThemeConfig } from "antd";
 
+import type { BrandTokens } from "./palettes";
 import { semanticTokens, type ThemeMode } from "./tokens";
 
 /**
  * Build the Ant Design theme from Interview OS semantic tokens.
  *
- * The compact algorithm is composed with the light/dark base so control
- * heights, paddings and margins shrink for a desktop-density feel. Compact
- * alone also drops the base font to `fontSizeSM` (12px), so the font and
- * spacing scales are raised back explicitly to keep 13–14px UI text readable.
+ * Two orthogonal axes:
+ *  - `mode` (light/dark) owns the neutral surfaces, text, lines and the
+ *    semantic status colours, via the shared `semanticTokens`.
+ *  - `brand` (the active palette, resolved in ThemeProvider) owns primary,
+ *    links, selection, focus glow and the brand-tinted interaction tints.
  *
- * Colour is applied by meaning: neutral text for headings/body, cobalt for
- * links/primary/focus/selection, green for positive, amber for caution, red
- * for errors, neutral for unassessed. Surfaces are opaque so overlays
- * (drawer/modal/dropdown) never show content behind them.
+ * The compact algorithm is composed with the light/dark base so control
+ * heights and paddings shrink for a desktop-density feel; the font and spacing
+ * scales are raised back explicitly to keep 13–14px UI text readable.
+ *
+ * Overlays stay opaque (`colorBgElevated`); only `colorBgMask` is translucent.
  */
-export function antTheme(mode: ThemeMode): ThemeConfig {
+export function antTheme(mode: ThemeMode, brand: BrandTokens): ThemeConfig {
   const isDark = mode === "dark";
   const t = semanticTokens[mode];
   return {
@@ -24,19 +27,19 @@ export function antTheme(mode: ThemeMode): ThemeConfig {
       antdTheme.compactAlgorithm,
     ],
     token: {
-      /* brand + links */
-      colorPrimary: t.brand,
-      colorPrimaryHover: t.brandHover,
-      colorPrimaryActive: t.brandActive,
-      colorPrimaryBg: t.selection,
-      colorLink: t.link,
-      colorLinkHover: t.brandHover,
-      colorLinkActive: t.brandActive,
-      /* semantic status (fill bases) */
+      /* brand + links (from the active palette) */
+      colorPrimary: brand.base,
+      colorPrimaryHover: brand.hover,
+      colorPrimaryActive: brand.active,
+      colorPrimaryBg: brand.softBg,
+      colorLink: brand.accent,
+      colorLinkHover: brand.hover,
+      colorLinkActive: brand.active,
+      /* semantic status (fill bases) — never recast by a palette */
       colorSuccess: t.success,
       colorWarning: t.warning,
       colorError: t.danger,
-      colorInfo: t.brand,
+      colorInfo: brand.accent,
       /* surfaces — opaque, no translucency on content */
       colorBgBase: t.bgContainer,
       colorBgContainer: t.bgContainer,
@@ -53,7 +56,7 @@ export function antTheme(mode: ThemeMode): ThemeConfig {
       colorBorder: t.border,
       colorBorderSecondary: t.borderSecondary,
       colorSplit: t.divider,
-      /* shape + density */
+      /* shape + density (Octop ramp) */
       borderRadius: t.radiusMd,
       borderRadiusSM: t.radiusSm,
       borderRadiusLG: t.radiusLg,
@@ -79,7 +82,7 @@ export function antTheme(mode: ThemeMode): ThemeConfig {
       marginMD: 16,
       marginLG: 20,
       marginXL: 28,
-      /* elevation — reserve real shadows for elevated content */
+      /* elevation — brand-tinted shadows for elevated/brand surfaces */
       boxShadow: t.shadowSm,
       boxShadowSecondary: t.shadowMd,
       motionDurationMid: "0.15s",
@@ -97,10 +100,10 @@ export function antTheme(mode: ThemeMode): ThemeConfig {
         itemBg: "transparent",
         itemColor: t.textSecondary,
         itemHoverColor: t.textPrimary,
-        itemHoverBg: t.surfaceHover,
-        itemSelectedBg: t.selection,
-        itemSelectedColor: t.brand,
-        itemBorderRadius: t.radiusMd,
+        itemHoverBg: brand.hoverBg,
+        itemSelectedBg: brand.selectedBg,
+        itemSelectedColor: brand.accent,
+        itemBorderRadius: t.radiusSm,
         itemHeight: 30,
         itemMarginInline: 6,
         itemMarginBlock: 2,
@@ -128,30 +131,26 @@ export function antTheme(mode: ThemeMode): ThemeConfig {
         defaultBg: t.bgContainer,
         defaultColor: t.textBody,
         defaultBorderColor: t.border,
-        defaultHoverBg: t.inset,
-        defaultHoverColor: t.textPrimary,
-        defaultHoverBorderColor: isDark ? "#3b4a63" : "#98a2b3",
-        defaultActiveBg: t.surfaceHover,
-        defaultActiveBorderColor: t.brand,
+        defaultHoverBg: brand.hoverBg,
+        defaultHoverColor: brand.accent,
+        defaultHoverBorderColor: brand.base,
+        defaultActiveBg: brand.activeBg,
+        defaultActiveBorderColor: brand.base,
         textTextColor: t.textSecondary,
-        textTextHoverColor: t.textPrimary,
-        textHoverBg: t.surfaceHover,
+        textTextHoverColor: brand.accent,
+        textHoverBg: brand.hoverBg,
         primaryColor: "#ffffff",
       },
       Input: {
-        activeBorderColor: t.brand,
-        hoverBorderColor: isDark ? "#4d7fd8" : "#93b4f4",
-        activeShadow: isDark
-          ? "0 0 0 2px rgba(91, 141, 239, 0.25)"
-          : "0 0 0 2px rgba(37, 99, 235, 0.15)",
+        activeShadow: `0 0 0 2px rgba(${brand.rgb}, ${isDark ? 0.32 : 0.18})`,
         paddingInline: 10,
         paddingBlock: 5,
       },
       Select: {
-        optionSelectedBg: t.selection,
-        optionSelectedColor: t.textPrimary,
+        optionSelectedBg: brand.selectedBg,
+        optionSelectedColor: brand.accent,
         optionSelectedFontWeight: 600,
-        optionActiveBg: t.surfaceHover,
+        optionActiveBg: brand.hoverBg,
         optionPadding: "5px 12px",
         selectorBg: t.bgContainer,
         multipleItemBg: t.inset,
@@ -176,12 +175,14 @@ export function antTheme(mode: ThemeMode): ThemeConfig {
       Tag: {
         defaultBg: t.neutralBg,
         defaultColor: t.neutral,
-        borderRadiusSM: t.radiusSm,
+        borderRadiusSM: t.radiusXs,
       },
       Table: {
         headerBg: t.inset,
         headerColor: t.textSecondary,
-        rowHoverBg: t.inset,
+        rowHoverBg: brand.hoverBg,
+        rowSelectedBg: brand.selectedBg,
+        rowSelectedHoverBg: brand.activeBg,
         borderColor: t.divider,
         headerSplitColor: t.divider,
         cellPaddingBlock: 8,
@@ -192,9 +193,9 @@ export function antTheme(mode: ThemeMode): ThemeConfig {
       },
       Tabs: {
         itemColor: t.textMuted,
-        itemHoverColor: t.textPrimary,
-        itemSelectedColor: t.textPrimary,
-        inkBarColor: t.brand,
+        itemHoverColor: brand.accent,
+        itemSelectedColor: brand.accent,
+        inkBarColor: brand.base,
         titleFontSize: 13,
         horizontalItemGutter: 16,
         horizontalItemPadding: "7px 0",
@@ -221,7 +222,7 @@ export function antTheme(mode: ThemeMode): ThemeConfig {
       },
       Progress: {
         remainingColor: t.divider,
-        lineBorderRadius: 4,
+        lineBorderRadius: t.radiusXs,
       },
       Radio: {
         radioSize: 16,
@@ -229,8 +230,8 @@ export function antTheme(mode: ThemeMode): ThemeConfig {
       },
       Breadcrumb: {
         itemColor: t.textMuted,
-        linkColor: t.brand,
-        linkHoverColor: t.brandHover,
+        linkColor: brand.accent,
+        linkHoverColor: brand.hover,
         lastItemColor: t.textSecondary,
         separatorColor: t.textMuted,
       },
