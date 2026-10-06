@@ -423,3 +423,14 @@ export function EvidenceList({
 
 /* Reusable product patterns (SectionHeading, NextActionCard, DeltaList, …). */
 export * from "./patterns";
+
+/* Shared compact desktop primitives (single implementation in @interview-os/ui). */
+export {
+  ScreenToolbar,
+  Workspace,
+  Panel,
+  SplitPane,
+  SettingRow,
+  DataRow,
+  StatStrip,
+} from "@interview-os/ui";

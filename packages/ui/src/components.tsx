@@ -84,7 +84,7 @@ export function Card({
     <section
       id={id}
       data-testid={testId}
-      className={`rounded-[1rem] border border-line bg-surface p-5 shadow-sm ${className}`}
+      className={`rounded-[var(--radius-card)] border border-line bg-surface p-4 shadow-sm ${className}`}
     >
       {children}
     </section>
@@ -337,6 +337,252 @@ export function Tabs({
         ))}
       </div>
       <div role="tabpanel">{tabs[current]?.children}</div>
+    </div>
+  );
+}
+
+/* -- compact desktop layout primitives ------------------------------------ */
+
+/**
+ * Screen chrome: a short toolbar with the title (and optional inline subtitle)
+ * on the left, actions on the right, and tabs integrated directly beneath.
+ * Replaces the stacked breadcrumb + title + subtitle + section-heading pattern.
+ */
+export function ScreenToolbar({
+  title,
+  subtitle,
+  tabs,
+  actions,
+  className = "",
+}: {
+  title: ReactNode;
+  subtitle?: ReactNode;
+  tabs?: ReactNode;
+  actions?: ReactNode;
+  className?: string;
+}) {
+  return (
+    <div className={`shrink-0 border-b border-line ${className}`}>
+      <div className="flex min-h-10 flex-wrap items-center gap-x-3 gap-y-1 py-1.5">
+        <div className="flex min-w-0 items-baseline gap-2">
+          <h1 className="truncate text-xl font-bold text-navy">{title}</h1>
+          {subtitle && (
+            <span className="truncate text-[13px] text-muted">{subtitle}</span>
+          )}
+        </div>
+        {actions && (
+          <div className="ml-auto flex shrink-0 items-center gap-2">{actions}</div>
+        )}
+      </div>
+      {tabs && <div className="flex items-center gap-1">{tabs}</div>}
+    </div>
+  );
+}
+
+/**
+ * Screen workspace: a flex column that keeps the toolbar fixed and lets the
+ * remaining region own the scroll (`min-height: 0`).
+ */
+export function Workspace({
+  toolbar,
+  children,
+  className = "",
+  bodyClassName = "",
+}: {
+  toolbar?: ReactNode;
+  children: ReactNode;
+  className?: string;
+  bodyClassName?: string;
+}) {
+  return (
+    <div className={`flex min-h-0 flex-1 flex-col ${className}`}>
+      {toolbar}
+      <div className={`min-h-0 flex-1 overflow-auto pt-3 ${bodyClassName}`}>
+        {children}
+      </div>
+    </div>
+  );
+}
+
+/**
+ * Bordered surface with an optional fixed header/footer and an internally
+ * scrolling body. Pairs with `SplitPane` and `Workspace`.
+ */
+export function Panel({
+  title,
+  actions,
+  footer,
+  scroll = true,
+  className = "",
+  bodyClassName = "",
+  "data-testid": testId,
+  children,
+}: {
+  title?: ReactNode;
+  actions?: ReactNode;
+  footer?: ReactNode;
+  scroll?: boolean;
+  className?: string;
+  bodyClassName?: string;
+  "data-testid"?: string;
+  children: ReactNode;
+}) {
+  return (
+    <section
+      data-testid={testId}
+      className={`flex min-h-0 flex-col rounded-[var(--radius-card)] border border-line bg-surface ${className}`}
+    >
+      {(title || actions) && (
+        <header className="flex min-h-9 shrink-0 items-center gap-2 border-b border-line px-3 py-1.5">
+          {title && (
+            <h2 className="min-w-0 truncate text-sm font-semibold text-navy">{title}</h2>
+          )}
+          {actions && (
+            <div className="ml-auto flex shrink-0 items-center gap-2">{actions}</div>
+          )}
+        </header>
+      )}
+      <div
+        className={`min-h-0 flex-1 p-3 ${scroll ? "overflow-auto" : ""} ${bodyClassName}`}
+      >
+        {children}
+      </div>
+      {footer && (
+        <footer className="shrink-0 border-t border-line px-3 py-2">{footer}</footer>
+      )}
+    </section>
+  );
+}
+
+/**
+ * Two-pane layout. Panes scroll independently and may shrink (`min-width: 0`).
+ * Stacks to one column below the `lg` breakpoint via `.interview-split`.
+ */
+export function SplitPane({
+  left,
+  right,
+  leftWidth = 280,
+  className = "",
+}: {
+  left: ReactNode;
+  right: ReactNode;
+  leftWidth?: number;
+  className?: string;
+}) {
+  return (
+    <div
+      className={`interview-split min-h-0 ${className}`}
+      style={{ ["--split-left" as string]: `${leftWidth}px` }}
+    >
+      <div className="flex min-h-0 min-w-0 flex-col">{left}</div>
+      <div className="flex min-h-0 min-w-0 flex-col">{right}</div>
+    </div>
+  );
+}
+
+/** Horizontal settings row: label + short description left, control right. */
+export function SettingRow({
+  label,
+  description,
+  control,
+  className = "",
+}: {
+  label: ReactNode;
+  description?: ReactNode;
+  control: ReactNode;
+  className?: string;
+}) {
+  return (
+    <div
+      className={`flex flex-wrap items-start justify-between gap-x-4 gap-y-2 border-b border-line py-2.5 last:border-b-0 ${className}`}
+    >
+      <div className="min-w-0 flex-1">
+        <div className="text-[13px] font-medium text-ink">{label}</div>
+        {description && (
+          <div className="mt-0.5 max-w-prose text-xs text-muted">{description}</div>
+        )}
+      </div>
+      <div className="flex shrink-0 items-center gap-2">{control}</div>
+    </div>
+  );
+}
+
+/** A contiguous list row (compact, divider-separated). */
+export function DataRow({
+  leading,
+  title,
+  meta,
+  trailing,
+  selected = false,
+  onClick,
+  className = "",
+  "data-testid": testId,
+}: {
+  leading?: ReactNode;
+  title: ReactNode;
+  meta?: ReactNode;
+  trailing?: ReactNode;
+  selected?: boolean;
+  onClick?: () => void;
+  className?: string;
+  "data-testid"?: string;
+}) {
+  const cls = `flex w-full items-center gap-2.5 border-b border-line px-2.5 py-1.5 text-left last:border-b-0 ${
+    selected ? "bg-tint" : "hover:bg-tint"
+  } ${className}`;
+  const inner = (
+    <>
+      {leading}
+      <span className="min-w-0 flex-1">
+        <span className="block truncate text-[13px] font-medium text-ink">{title}</span>
+        {meta && <span className="mt-0.5 block truncate text-xs text-muted">{meta}</span>}
+      </span>
+      {trailing}
+    </>
+  );
+  if (onClick) {
+    return (
+      <button
+        type="button"
+        onClick={onClick}
+        aria-current={selected ? "true" : undefined}
+        data-testid={testId}
+        className={cls}
+      >
+        {inner}
+      </button>
+    );
+  }
+  return (
+    <div aria-current={selected ? "true" : undefined} data-testid={testId} className={cls}>
+      {inner}
+    </div>
+  );
+}
+
+/** Compact 72–96px summary strip of headline metrics. */
+export function StatStrip({
+  items,
+  className = "",
+}: {
+  items: { label: ReactNode; value: ReactNode; suffix?: ReactNode }[];
+  className?: string;
+}) {
+  return (
+    <div
+      className={`flex flex-wrap items-stretch divide-x divide-line overflow-hidden rounded-[var(--radius-card)] border border-line bg-surface ${className}`}
+    >
+      {items.map((item, i) => (
+        <div key={i} className="min-w-0 flex-1 px-3 py-2">
+          <div className="text-[11px] font-medium uppercase tracking-wide text-muted">
+            {item.label}
+          </div>
+          <div className="mt-0.5 flex flex-wrap items-baseline gap-x-1.5 text-lg font-semibold text-navy">
+            {item.value}
+            {item.suffix && <span className="text-xs text-muted">{item.suffix}</span>}
+          </div>
+        </div>
+      ))}
     </div>
   );
 }

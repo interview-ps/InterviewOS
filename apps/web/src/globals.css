@@ -8,7 +8,15 @@
 /* dark mode keyed off the ThemeProvider's <html data-theme="…"> */
 @custom-variant dark (&:where([data-theme="dark"], [data-theme="dark"] *));
 
+/* Full-height app frame: the shell owns the viewport, panels own their scroll. */
+html,
+body,
+#root {
+  height: 100%;
+}
+
 body {
+  margin: 0;
   background: var(--color-page);
   color: var(--color-ink);
   font-family: var(--font-body);
@@ -29,15 +37,25 @@ h1, h2, h3, h4, .font-display {
   outline-offset: 2px;
 }
 
-/* antd shell chrome (interview- prefix set via ConfigProvider) */
+/* -- shell ---------------------------------------------------------------- */
+
+.interview-shell {
+  height: 100dvh;
+  overflow: hidden;
+}
+
 .interview-header {
-  position: sticky;
-  top: 0;
-  z-index: 20;
+  flex: 0 0 auto;
   display: flex;
   align-items: center;
   border-bottom: 1px solid var(--interview-border);
   background: var(--interview-surface);
+}
+
+.interview-body {
+  flex: 1 1 auto;
+  min-height: 0;
+  display: flex;
 }
 
 .interview-sider {
@@ -45,36 +63,48 @@ h1, h2, h3, h4, .font-display {
 }
 
 .interview-content {
+  flex: 1 1 auto;
   min-width: 0;
-  padding: 24px;
+  min-height: 0;
+  overflow: auto;
+  padding: 0 16px 16px;
 }
 
-/* Focused/anchored targets must clear the sticky header (D4). The value tracks
-   the antd Layout headerHeight token (56). */
+/* A screen fills the content box so a fixed toolbar + scrolling workspace work;
+   legacy screens simply grow and the content region scrolls them. */
+.interview-screen {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  height: 100%;
+}
+
+/* Two-pane workspace. Panes scroll independently; stacks below the lg breakpoint. */
+.interview-split {
+  display: grid;
+  grid-template-columns: minmax(0, var(--split-left, 280px)) minmax(0, 1fr);
+  gap: 12px;
+  min-height: 0;
+}
+
+@media (max-width: 991px) {
+  .interview-split {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+/* Focused/anchored targets must clear the app bar. Tracks Layout.headerHeight (42). */
 :root {
-  --interview-header-height: 56px;
+  --interview-header-height: 42px;
 }
 
 .interview-content [id] {
   scroll-margin-top: calc(var(--interview-header-height) + 16px);
 }
 
-/* Page rhythm: headers own their bottom space so cards stop double-spacing. */
-.interview-page-header {
-  margin-bottom: 20px;
-}
-
 /* The command-centre hero surfaces: a single strong accent, not another box. */
 .interview-next-action .interview-card {
   border-inline-start: 3px solid var(--interview-brand);
-}
-
-.interview-readiness-hero .interview-card {
-  background: linear-gradient(
-    180deg,
-    var(--interview-surface-hover) 0%,
-    var(--interview-surface) 100%
-  );
 }
 
 /* Small-screen primary navigation — rendered below the lg breakpoint. */
@@ -110,6 +140,6 @@ h1, h2, h3, h4, .font-display {
 
 @media (max-width: 640px) {
   .interview-content {
-    padding: 16px;
+    padding: 0 12px 12px;
   }
 }

@@ -8,7 +8,6 @@ import {
   Grid,
   Layout,
   Menu,
-  Segmented,
   Select,
   Tooltip,
   Typography,
@@ -19,7 +18,9 @@ import {
   DesktopOutlined,
   FileTextOutlined,
   HomeOutlined,
+  MenuFoldOutlined,
   MenuOutlined,
+  MenuUnfoldOutlined,
   MoonOutlined,
   MoreOutlined,
   SettingOutlined,
@@ -63,14 +64,14 @@ const NAV_CUSTOMIZATIONS: NavEntry[] = [
 const NAV_WORKSPACE: NavEntry[] = [{ href: "/settings", label: "Settings" }];
 
 /* Full list — used for breadcrumb labels and menu selection. */
-const NAV: NavEntry[] = [
+const ALL_NAV: NavEntry[] = [
   ...NAV_JOURNEY,
   ...NAV_PROGRESS,
   ...NAV_CUSTOMIZATIONS,
   ...NAV_WORKSPACE,
 ];
 
-const ALL_NAV = NAV;
+const COLLAPSE_KEY = "interview-os:nav-collapsed";
 
 function RuntimeIndicator({ status }: { status: RuntimeStatus | null }) {
   let tone: Tone = "muted";
@@ -96,7 +97,7 @@ function RuntimeIndicator({ status }: { status: RuntimeStatus | null }) {
       role="status"
       aria-live="polite"
       aria-label={label}
-      className="inline-flex items-center gap-2"
+      className="inline-flex items-center gap-1.5 whitespace-nowrap"
     >
       <StatusDot tone={tone} />
       {attention && (
@@ -156,7 +157,7 @@ function TargetSwitcher({ onSwitched }: { onSwitched: () => void }) {
             : "Active target role"
         }
         size="small"
-        style={{ maxWidth: 300, minWidth: 160 }}
+        style={{ maxWidth: 260, minWidth: 140 }}
         popupMatchSelectWidth={false}
         value={active?.id}
         loading={switching}
@@ -213,6 +214,7 @@ function navLinks(entries: NavEntry[]) {
   return entries.map((item) => ({
     key: item.href,
     label: <Link to={item.href}>{item.label}</Link>,
+    title: item.label,
     ...(item.icon ? { icon: item.icon } : {}),
   }));
 }
@@ -222,17 +224,21 @@ function useNavItems() {
 
   return useMemo(() => {
     const pluginNav = contributions.flatMap((p) =>
-      p.navigation.map((n) => ({
-        key: `/plugins/${p.pluginId}${n.page === "/" ? "" : n.page}`,
-        label: (
-          <Link to={`/plugins/${p.pluginId}${n.page === "/" ? "" : n.page}`}>
-            <span className="inline-flex items-center gap-2">
-              <PluginIcon icon={n.icon} />
-              {n.label}
-            </span>
-          </Link>
-        ),
-      })),
+      p.navigation.map((n) => {
+        const href = `/plugins/${p.pluginId}${n.page === "/" ? "" : n.page}`;
+        return {
+          key: href,
+          label: (
+            <Link to={href}>
+              <span className="inline-flex items-center gap-2">
+                <PluginIcon icon={n.icon} />
+                {n.label}
+              </span>
+            </Link>
+          ),
+          title: n.label,
+        };
+      }),
     );
     const items: unknown[] = [
       ...navLinks(NAV_JOURNEY),
@@ -268,22 +274,44 @@ function selectedKey(pathname: string): string {
   return pathname;
 }
 
-function ThemeControl() {
+/** One compact appearance control (Light/Dark/System) instead of three icons. */
+function AppearanceMenu() {
   const { preference, setPreference } = useTheme();
+  const current =
+    preference === "light" ? (
+      <SunOutlined />
+    ) : preference === "dark" ? (
+      <MoonOutlined />
+    ) : (
+      <DesktopOutlined />
+    );
+  const options: { key: ThemePreference; icon: ReactNode; label: string }[] = [
+    { key: "light", icon: <SunOutlined />, label: "Light" },
+    { key: "dark", icon: <MoonOutlined />, label: "Dark" },
+    { key: "system", icon: <DesktopOutlined />, label: "System" },
+  ];
   return (
-    <Tooltip title="Appearance">
-      <Segmented
+    <Dropdown
+      trigger={["click"]}
+      menu={{
+        selectable: true,
+        selectedKeys: [preference],
+        items: options.map((o) => ({
+          key: o.key,
+          icon: o.icon,
+          label: o.label,
+          onClick: () => setPreference(o.key),
+        })),
+      }}
+    >
+      <Button
         size="small"
+        type="text"
         aria-label="Appearance"
-        value={preference}
-        onChange={(value) => setPreference(value as ThemePreference)}
-        options={[
-          { value: "light", icon: <SunOutlined />, title: "Light" },
-          { value: "dark", icon: <MoonOutlined />, title: "Dark" },
-          { value: "system", icon: <DesktopOutlined />, title: "System" },
-        ]}
+        icon={current}
+        data-testid="appearance-button"
       />
-    </Tooltip>
+    </Dropdown>
   );
 }
 
@@ -306,11 +334,16 @@ function crumbLabel(
   return displayLabel(segment);
 }
 
+/**
+ * Breadcrumbs are kept only where they add navigation — nested/dynamic routes
+ * (a session, a loop, a plugin page). Top-level screens state their context in
+ * the screen toolbar instead, so no "Settings / Settings" repetition.
+ */
 function Breadcrumbs() {
   const pathname = useLocation().pathname;
   const pageTitle = usePageTitle();
-  if (pathname === "/") return null;
   const segments = pathname.split("/").filter(Boolean);
+  if (segments.length < 2) return null;
   const items = segments.map((_segment, index) => {
     const href = "/" + segments.slice(0, index + 1).join("/");
     const label = crumbLabel(segments, index, pageTitle);
@@ -318,7 +351,7 @@ function Breadcrumbs() {
       title: index === segments.length - 1 ? label : <Link to={href}>{label}</Link>,
     };
   });
-  return <Breadcrumb items={items} style={{ marginBottom: 12 }} />;
+  return <Breadcrumb items={items} style={{ margin: "8px 0 4px" }} />;
 }
 
 /** Small-screen primary navigation — the four journey goals, plus More. */
@@ -358,10 +391,25 @@ export function Shell({ children }: { children: ReactNode }) {
   const [status, setStatus] = useState<RuntimeStatus | null>(null);
   const [paletteOpen, setPaletteOpen] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
+  const [collapsed, setCollapsed] = useState<boolean>(
+    () => typeof localStorage !== "undefined" && localStorage.getItem(COLLAPSE_KEY) === "1",
+  );
   const [refreshKey, setRefreshKey] = useState(0);
   const items = useNavItems();
 
   const refresh = useCallback(() => setRefreshKey((k) => k + 1), []);
+
+  const toggleCollapsed = useCallback(() => {
+    setCollapsed((v) => {
+      const next = !v;
+      try {
+        localStorage.setItem(COLLAPSE_KEY, next ? "1" : "0");
+      } catch {
+        /* storage unavailable — keep in-memory */
+      }
+      return next;
+    });
+  }, []);
 
   // §9.7: Ctrl/Cmd+K opens the command palette.
   useEffect(() => {
@@ -392,10 +440,7 @@ export function Shell({ children }: { children: ReactNode }) {
 
   // Scroll restoration for hash targets (e.g. /target#add-target).
   useEffect(() => {
-    if (!location.hash) {
-      window.scrollTo(0, 0);
-      return;
-    }
+    if (!location.hash) return;
     const id = decodeURIComponent(location.hash.slice(1));
     let tries = 0;
     let timer: ReturnType<typeof setTimeout> | undefined;
@@ -414,8 +459,8 @@ export function Shell({ children }: { children: ReactNode }) {
 
   return (
     <AppRefreshContext.Provider value={refresh}>
-      <Layout style={{ minHeight: "100vh" }}>
-        <Layout.Header className="interview-header flex items-center gap-3">
+      <Layout className="interview-shell">
+        <Layout.Header className="interview-header">
           <Button
             type="text"
             aria-label="Open navigation menu"
@@ -425,14 +470,25 @@ export function Shell({ children }: { children: ReactNode }) {
             onClick={() => setMenuOpen(true)}
             style={{ display: desktop ? "none" : "inline-flex" }}
           />
-          <img src="/interview-ps-logo.png" alt="interview.ps logo" width={28} height={28} />
-          <Typography.Text strong style={{ fontSize: 16 }}>
-            Interview OS{" "}
-            <Typography.Text type="secondary" style={{ fontWeight: 400 }}>
-              · by interview.ps
+          <Button
+            type="text"
+            aria-label={collapsed ? "Expand navigation" : "Collapse navigation"}
+            aria-pressed={collapsed}
+            data-testid="nav-toggle"
+            icon={collapsed ? <MenuUnfoldOutlined /> : <MenuFoldOutlined />}
+            onClick={toggleCollapsed}
+            style={{ display: desktop ? "inline-flex" : "none" }}
+          />
+          <Link to="/" className="flex items-center gap-2 no-underline">
+            <img src="/interview-ps-logo.png" alt="interview.ps logo" width={22} height={22} />
+            <Typography.Text strong style={{ fontSize: 14 }} className="whitespace-nowrap">
+              Interview OS{" "}
+              <Typography.Text type="secondary" style={{ fontWeight: 400, fontSize: 12 }}>
+                · by interview.ps
+              </Typography.Text>
             </Typography.Text>
-          </Typography.Text>
-          <div className="ml-auto flex items-center gap-3">
+          </Link>
+          <div className="ml-auto flex min-w-0 items-center gap-2">
             <TargetSwitcher onSwitched={refresh} />
             <Button
               size="small"
@@ -443,25 +499,33 @@ export function Shell({ children }: { children: ReactNode }) {
             >
               {commandKeyLabel()}
             </Button>
-            <ThemeControl />
+            <AppearanceMenu />
             <RuntimeIndicator status={status} />
           </div>
         </Layout.Header>
-        <Layout>
+        <Layout className="interview-body">
           {desktop && (
-            <Layout.Sider theme="light" width={208} className="interview-sider">
+            <Layout.Sider
+              theme="light"
+              width={184}
+              collapsedWidth={48}
+              collapsed={collapsed}
+              trigger={null}
+              className="interview-sider"
+            >
               <Menu
                 mode="inline"
+                inlineCollapsed={collapsed}
                 selectedKeys={[selectedKey(location.pathname)]}
                 items={items}
-                style={{ borderInlineEnd: "none", paddingTop: 8 }}
+                style={{ borderInlineEnd: "none", paddingTop: 4 }}
               />
             </Layout.Sider>
           )}
           <Layout.Content className="interview-content" key={refreshKey}>
             <PageTitleProvider>
               <Breadcrumbs />
-              {children}
+              <div className="interview-screen">{children}</div>
             </PageTitleProvider>
           </Layout.Content>
         </Layout>
