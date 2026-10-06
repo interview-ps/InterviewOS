@@ -1,5 +1,7 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, type ReactNode } from "react";
+import { useLocation } from "react-router";
 import { VOICE_DISCLAIMER } from "@interview-os/frontend-types";
+import { Menu } from "antd";
 import {
   api,
   type AppSettings,
@@ -14,15 +16,16 @@ import { runtimeLabel } from "@/lib/runtime";
 import { CheckCircleFilled } from "@ant-design/icons";
 import {
   Button,
-  Card,
-  CardTitle,
   CollapseList,
+  DataRow,
   ErrorNote,
-  PageHeader,
   Pill,
+  ScreenToolbar,
+  SettingRow,
   SkeletonCard,
   Spinner,
   toast,
+  Workspace,
 } from "@/components/ui";
 import { PluginSlot } from "@/components/plugin-ui";
 import { PluginSettingsForm } from "@/components/plugin-settings-form";
@@ -37,6 +40,18 @@ const EXPORT_PARTS = [
   "interviews",
   "preparation",
 ] as const;
+
+const CATEGORIES = [
+  { key: "ai", label: "AI and model" },
+  { key: "interview", label: "Interview preferences" },
+  { key: "sources", label: "Question sources" },
+  { key: "voice", label: "Voice" },
+  { key: "integrations", label: "Integrations" },
+  { key: "data", label: "Data" },
+  { key: "extensions", label: "Extension settings" },
+] as const;
+
+type CategoryKey = (typeof CATEGORIES)[number]["key"];
 
 /** rough per-table preview counts from an export bundle. */
 function bundleCounts(bundle: unknown): [string, number][] {
@@ -97,13 +112,13 @@ function McpServerRow({
   };
 
   return (
-    <li className="rounded-[0.6rem] border border-line p-3" data-testid={`mcp-server-${server.id}`}>
+    <li className="border-b border-line py-2 last:border-b-0" data-testid={`mcp-server-${server.id}`}>
       <div className="flex flex-wrap items-center gap-2">
-        <span className="font-medium text-navy">{server.name}</span>
+        <span className="text-[13px] font-medium text-navy">{server.name}</span>
         <Pill tone={server.enabled ? "green" : "muted"}>
           {server.enabled ? "enabled" : "disabled"}
         </Pill>
-        <label className="ml-auto flex items-center gap-2 text-sm">
+        <label className="ml-auto flex items-center gap-2 text-[13px]">
           <input
             type="checkbox"
             checked={server.enabled}
@@ -115,10 +130,8 @@ function McpServerRow({
           Enabled
         </label>
       </div>
-      {server.description && (
-        <p className="mt-1 text-sm text-muted">{server.description}</p>
-      )}
-      <dl className="mt-2 grid grid-cols-[8rem_1fr] gap-y-1 text-xs">
+      {server.description && <p className="mt-1 text-xs text-muted">{server.description}</p>}
+      <dl className="mt-1 grid grid-cols-[8rem_1fr] gap-y-0.5 text-xs">
         <dt className="text-muted">Command</dt>
         <dd className="font-mono break-all">
           {server.command} {server.args.join(" ")}
@@ -131,19 +144,17 @@ function McpServerRow({
         )}
       </dl>
       {server.enabled && (
-        <div className="mt-2 border-t border-line pt-2">
+        <div className="mt-1.5 border-t border-line pt-1.5">
           <p className="text-xs font-medium text-navy">Allowed tools</p>
           {tools === null ? (
             <Spinner label="Listing tools…" />
           ) : tools.length === 0 ? (
-            <p className="mt-1 text-xs text-muted">
-              No tools reported (server unreachable?).
-            </p>
+            <p className="mt-1 text-xs text-muted">No tools reported (server unreachable?).</p>
           ) : (
-            <ul className="mt-1 space-y-1">
+            <ul className="mt-1 space-y-0.5">
               {tools.map((t) => (
                 <li key={t.name}>
-                  <label className="flex items-start gap-2 text-sm">
+                  <label className="flex items-start gap-2 text-[13px]">
                     <input
                       type="checkbox"
                       checked={allowed.has(t.name)}
@@ -168,9 +179,10 @@ function McpServerRow({
               ))}
             </ul>
           )}
-          <div className="mt-2">
+          <div className="mt-1.5">
             <Button
               variant="secondary"
+              size="small"
               disabled={busy}
               onClick={() => save({ allowedTools: [...allowed] })}
               data-testid={`mcp-save-${server.id}`}
@@ -184,7 +196,15 @@ function McpServerRow({
   );
 }
 
+/** Small section heading used inside the settings content area. */
+function GroupHeading({ children }: { children: ReactNode }) {
+  return (
+    <h2 className="mb-1 text-sm font-semibold text-navy">{children}</h2>
+  );
+}
+
 export default function Settings() {
+  const location = useLocation();
   const [status, setStatus] = useState<RuntimeStatus | null>(null);
   const [models, setModels] = useState<RuntimeModel[]>([]);
   const [settings, setSettings] = useState<AppSettings | null>(null);
@@ -202,6 +222,9 @@ export default function Settings() {
   const [confirmText, setConfirmText] = useState("");
   const [importResult, setImportResult] = useState<Record<string, number> | null>(null);
   const [importing, setImporting] = useState(false);
+  const [section, setSection] = useState<CategoryKey>(
+    location.hash === "#data" ? "data" : "ai",
+  );
 
   const load = () => api.runtimeStatus().then(setStatus).catch((e) => setError(e));
   useEffect(() => {
@@ -219,6 +242,14 @@ export default function Settings() {
     api.plugins().then((r) => setPlugins(r.plugins)).catch(() => {});
     api.mcpServers().then(setMcp).catch(() => setMcp({ servers: [], loadError: null }));
   }, []);
+
+  // Deep links (#diagnostics, #data, #mcp) select the matching category.
+  useEffect(() => {
+    const hash = location.hash.replace(/^#/, "");
+    if (hash === "data") setSection("data");
+    else if (hash === "mcp") setSection("integrations");
+    else if (hash === "diagnostics") setSection("ai");
+  }, [location.hash]);
 
   const check = () => {
     setChecking(true);
@@ -271,522 +302,621 @@ export default function Settings() {
       .finally(() => setSaving(false));
   };
 
-  const dirty = draft && saved && JSON.stringify(draft) !== JSON.stringify(saved);
+  const dirty = Boolean(draft && saved && JSON.stringify(draft) !== JSON.stringify(saved));
 
   if (!status && !error) {
     return (
-      <div className="space-y-5">
-        <PageHeader title="Settings" />
-        <SkeletonCard lines={5} />
-      </div>
+      <Workspace toolbar={<ScreenToolbar title="Settings" />} bodyClassName="space-y-3">
+        <SkeletonCard lines={6} />
+      </Workspace>
     );
   }
 
+  const qs = draft?.questionSources ?? {
+    companyPacks: true,
+    rolePacks: true,
+    userBank: true,
+    plugins: [],
+  };
+  const setQs = (patch: Partial<typeof qs>) =>
+    setDraft((d) => d && { ...d, questionSources: { ...qs, ...patch } });
+  const sourcePlugins = plugins.filter(
+    (p) => p.enabled && (p.manifest.capabilities ?? []).includes("question_source"),
+  );
+
   return (
-    <div className="max-w-3xl space-y-5">
-      <PageHeader
-        title="Settings"
-        subtitle="AI runtime, preferences, integrations and your data."
-      />
-      <ErrorNote error={error} />
-
-      <Card>
-        <CardTitle>AI Runtime — {status ? runtimeLabel(status.mode) : "…"}</CardTitle>
-        {avail && avail.providers.length > 0 && (
-          <div className="mt-3 space-y-1.5">
-            {avail.providers.map((p) => {
-              const active = p.runtime === avail.active;
-              return (
-                <button
-                  key={p.runtime}
-                  type="button"
-                  disabled={switching !== null || active}
-                  onClick={() => switchRuntime(p.runtime)}
-                  className={`flex w-full items-center justify-between rounded-[0.6rem] border px-3 py-2 text-left text-sm transition disabled:cursor-default ${
-                    active
-                      ? "border-blue bg-tint"
-                      : "border-line bg-surface hover:border-blue disabled:opacity-60"
-                  }`}
-                >
-                  <span className="font-medium">
-                    {active && (
-                      <CheckCircleFilled className="mr-1.5 text-green" aria-hidden />
-                    )}
-                    {runtimeLabel(p.runtime)}
-                    {p.trustedLocal && (
-                      <span className="ml-2 text-xs text-muted">
-                        trusted local provider
-                      </span>
-                    )}
-                  </span>
-                  <span className="flex items-center gap-2">
-                    {switching === p.runtime && (
-                      <span className="text-xs text-muted">switching…</span>
-                    )}
-                    {p.version && (
-                      <span className="text-xs text-muted">{p.version}</span>
-                    )}
-                    <Pill
-                      tone={active ? (p.available ? "green" : "amber") : p.available ? "green" : "muted"}
-                    >
-                      {active
-                        ? p.available
-                          ? "connected"
-                          : "not available"
-                        : p.available
-                          ? "ready"
-                          : p.status}
-                    </Pill>
-                  </span>
-                </button>
-              );
-            })}
-            <p className="pt-1 text-xs text-muted">
-              Applies immediately and persists across restarts. The
-              INTERVIEW_OS_RUNTIME env var overrides the saved choice.
-            </p>
-          </div>
-        )}
-        {status && (
-          <div id="diagnostics" className="mt-3">
-            <CollapseList
-              items={[
-                {
-                  key: "diagnostics",
-                  label: "Advanced diagnostics",
-                  children: (
-                    <dl className="grid grid-cols-[8rem_1fr] gap-y-2 text-sm">
-            <dt className="text-muted">Status</dt>
-            <dd>
-              <Pill tone={status.available ? "green" : "amber"}>{status.status}</Pill>
-            </dd>
-            {status.version && (<><dt className="text-muted">Version</dt><dd>{status.version}</dd></>)}
-            {status.executable && (<><dt className="text-muted">Executable</dt><dd className="break-all font-mono text-xs">{status.executable}</dd></>)}
-            {status.workspace && (<><dt className="text-muted">Workspace</dt><dd className="break-all font-mono text-xs">{status.workspace}</dd></>)}
-            <dt className="text-muted">Mode</dt>
-            <dd>{status.mode}</dd>
-            {status.message && (<><dt className="text-muted">Message</dt><dd>{status.message}</dd></>)}
-            <dt className="text-muted">Sandbox</dt>
-            <dd>read-only workspace</dd>
-            <dt className="text-muted">Approvals</dt>
-            <dd className="text-muted">
-              Runs with an allowlisted environment; approval requests are declined
-              automatically.
-            </dd>
-                    </dl>
-                  ),
-                },
-              ]}
-            />
-          </div>
-        )}
-        <div className="mt-4">
-          <Button variant="secondary" onClick={check} disabled={checking}>
-            {checking ? "Checking…" : "Check Connection"}
-          </Button>
-        </div>
-      </Card>
-
-      <Card>
-        <CardTitle>Model &amp; execution</CardTitle>
-        <p className="mt-1 text-xs text-muted">
-          Applied on the next AI call — no restart needed.
-        </p>
-        {draft ? (
-          <div className="mt-3 space-y-3 text-sm">
-            <label className="block">
-              <span className="mb-1 block font-medium">Model</span>
-              <select
-                value={draft.model ?? ""}
-                onChange={(e) =>
-                  setDraft((d) => d && { ...d, model: e.target.value || null })
-                }
-                className="w-full rounded-[0.6rem] border border-line bg-surface px-3 py-2"
-              >
-                <option value="">Provider default</option>
-                {models.map((m) => (
-                  <option key={m.id} value={m.id}>
-                    {m.displayName} ({m.id}){m.isDefault ? " — default" : ""}
-                  </option>
-                ))}
-              </select>
-            </label>
-            <label className="block">
-              <span className="mb-1 block font-medium">Reasoning effort</span>
-              <select
-                value={draft.reasoningEffort ?? ""}
-                disabled={effortOptions.length === 0}
-                onChange={(e) =>
-                  setDraft(
-                    (d) =>
-                      d && {
-                        ...d,
-                        reasoningEffort: (e.target.value ||
-                          null) as AppSettings["reasoningEffort"],
-                      },
-                  )
-                }
-                className="w-full rounded-[0.6rem] border border-line bg-surface px-3 py-2"
-              >
-                <option value="">Model default</option>
-                {effortOptions.map((ef) => (
-                  <option key={ef} value={ef}>
-                    {ef}
-                    {selectedModel?.defaultReasoningEffort === ef ? " (model default)" : ""}
-                  </option>
-                ))}
-              </select>
-              {effortOptions.length === 0 && (
-                <span className="mt-1 block text-xs text-muted">
-                  This provider does not expose reasoning-effort levels.
-                </span>
-              )}
-            </label>
-            {status?.mode === "codex" && (
-              <label className="block">
-                <span className="mb-1 block font-medium">Task mode</span>
-                <select
-                  value={draft.taskMode}
-                  onChange={(e) =>
-                    setDraft(
-                      (d) => d && { ...d, taskMode: e.target.value as AppSettings["taskMode"] },
-                    )
-                  }
-                  className="w-full rounded-[0.6rem] border border-line bg-surface px-3 py-2"
-                >
-                  <option value="app-server">app-server (recommended — warm process, streams text)</option>
-                  <option value="exec">exec (spawns `codex exec` per task)</option>
-                </select>
-              </label>
-            )}
-            <div className="flex items-center gap-3">
-              <Button onClick={save} disabled={saving || !dirty}>
+    <Workspace
+      scroll={false}
+      toolbar={
+        <ScreenToolbar
+          title="Settings"
+          subtitle="AI runtime, preferences, integrations and your data."
+          actions={
+            <>
+              {dirty && <span className="text-xs text-accent">Unsaved changes</span>}
+              <Button size="small" onClick={save} disabled={saving || !dirty}>
                 {saving ? "Saving…" : "Save"}
               </Button>
               {!dirty && saved && (
-                <span className="text-xs text-muted" aria-live="polite">Saved.</span>
+                <span className="text-xs text-muted" aria-live="polite">
+                  Saved.
+                </span>
+              )}
+            </>
+          }
+        />
+      }
+    >
+      <ErrorNote error={error} />
+
+      <div className="mt-3 flex min-h-0 flex-1 gap-4">
+        <nav className="w-44 shrink-0 overflow-auto" aria-label="Settings categories">
+          <Menu
+            mode="inline"
+            selectedKeys={[section]}
+            onClick={(e) => setSection(e.key as CategoryKey)}
+            items={CATEGORIES.map((c) => ({ key: c.key, label: c.label }))}
+            style={{ borderInlineEnd: "none" }}
+          />
+        </nav>
+
+        <div className="min-w-0 flex-1 overflow-auto pb-2">
+          {section === "ai" && (
+            <div className="space-y-5">
+              <section>
+                <GroupHeading>AI runtime</GroupHeading>
+                <SettingRow
+                  label={`Runtime — ${status ? runtimeLabel(status.mode) : "…"}`}
+                  description="Switching applies immediately and persists across restarts. The INTERVIEW_OS_RUNTIME env var overrides the saved choice."
+                  control={
+                    <>
+                      <Pill tone={status?.available ? "green" : "amber"}>
+                        {status?.available ? "connected" : "not available"}
+                      </Pill>
+                      <Button variant="secondary" size="small" onClick={check} disabled={checking}>
+                        {checking ? "Checking…" : "Check connection"}
+                      </Button>
+                    </>
+                  }
+                />
+                {avail && avail.providers.length > 0 && (
+                  <ul className="mt-1 rounded-[var(--radius-card)] border border-line bg-surface">
+                    {avail.providers.map((p) => {
+                      const active = p.runtime === avail.active;
+                      return (
+                        <li key={p.runtime}>
+                          <DataRow
+                            selected={active}
+                            onClick={active || switching !== null ? undefined : () => switchRuntime(p.runtime)}
+                            leading={
+                              active ? (
+                                <CheckCircleFilled className="text-green" aria-hidden />
+                              ) : (
+                                <span className="inline-block h-3.5 w-3.5" aria-hidden />
+                              )
+                            }
+                            title={
+                              <>
+                                {runtimeLabel(p.runtime)}
+                                {p.trustedLocal && (
+                                  <span className="ml-2 text-xs text-muted">trusted local</span>
+                                )}
+                              </>
+                            }
+                            meta={
+                              <>
+                                {p.version}
+                                {switching === p.runtime ? " · switching…" : ""}
+                              </>
+                            }
+                            trailing={
+                              <Pill
+                                tone={active ? (p.available ? "green" : "amber") : p.available ? "green" : "muted"}
+                              >
+                                {active
+                                  ? p.available
+                                    ? "connected"
+                                    : "not available"
+                                  : p.available
+                                    ? "ready"
+                                    : p.status}
+                              </Pill>
+                            }
+                          />
+                        </li>
+                      );
+                    })}
+                  </ul>
+                )}
+              </section>
+
+              <section>
+                <GroupHeading>Model &amp; execution</GroupHeading>
+                <p className="mb-1 text-xs text-muted">
+                  Applied on the next AI call — no restart needed.
+                </p>
+                {draft ? (
+                  <>
+                    <SettingRow
+                      label="Model"
+                      description="Provider default unless overridden."
+                      control={
+                        <select
+                          aria-label="Model"
+                          value={draft.model ?? ""}
+                          onChange={(e) => setDraft((d) => d && { ...d, model: e.target.value || null })}
+                          className="min-w-56 rounded-[var(--radius-sm)] border border-line bg-surface px-2 py-1 text-[13px]"
+                        >
+                          <option value="">Provider default</option>
+                          {models.map((m) => (
+                            <option key={m.id} value={m.id}>
+                              {m.displayName} ({m.id}){m.isDefault ? " — default" : ""}
+                            </option>
+                          ))}
+                        </select>
+                      }
+                    />
+                    <SettingRow
+                      label="Reasoning effort"
+                      description={
+                        effortOptions.length === 0
+                          ? "This provider does not expose reasoning-effort levels."
+                          : undefined
+                      }
+                      control={
+                        <select
+                          aria-label="Reasoning effort"
+                          value={draft.reasoningEffort ?? ""}
+                          disabled={effortOptions.length === 0}
+                          onChange={(e) =>
+                            setDraft(
+                              (d) =>
+                                d && {
+                                  ...d,
+                                  reasoningEffort: (e.target.value ||
+                                    null) as AppSettings["reasoningEffort"],
+                                },
+                            )
+                          }
+                          className="min-w-40 rounded-[var(--radius-sm)] border border-line bg-surface px-2 py-1 text-[13px]"
+                        >
+                          <option value="">Model default</option>
+                          {effortOptions.map((ef) => (
+                            <option key={ef} value={ef}>
+                              {ef}
+                              {selectedModel?.defaultReasoningEffort === ef ? " (model default)" : ""}
+                            </option>
+                          ))}
+                        </select>
+                      }
+                    />
+                  </>
+                ) : (
+                  <Spinner label="Loading settings…" />
+                )}
+              </section>
+
+              {status && (
+                <section id="diagnostics">
+                  <CollapseList
+                    items={[
+                      {
+                        key: "diagnostics",
+                        label: "Advanced diagnostics",
+                        children: (
+                          <dl className="grid grid-cols-[8rem_1fr] gap-y-1.5 text-[13px]">
+                            <dt className="text-muted">Status</dt>
+                            <dd>
+                              <Pill tone={status.available ? "green" : "amber"}>{status.status}</Pill>
+                            </dd>
+                            {status.version && (
+                              <>
+                                <dt className="text-muted">Version</dt>
+                                <dd>{status.version}</dd>
+                              </>
+                            )}
+                            {status.executable && (
+                              <>
+                                <dt className="text-muted">Executable</dt>
+                                <dd className="break-all font-mono text-xs">{status.executable}</dd>
+                              </>
+                            )}
+                            {status.workspace && (
+                              <>
+                                <dt className="text-muted">Workspace</dt>
+                                <dd className="break-all font-mono text-xs">{status.workspace}</dd>
+                              </>
+                            )}
+                            <dt className="text-muted">Mode</dt>
+                            <dd>{status.mode}</dd>
+                            {status.message && (
+                              <>
+                                <dt className="text-muted">Message</dt>
+                                <dd>{status.message}</dd>
+                              </>
+                            )}
+                            <dt className="text-muted">Sandbox</dt>
+                            <dd>read-only workspace</dd>
+                            <dt className="text-muted">Approvals</dt>
+                            <dd className="text-muted">
+                              Runs with an allowlisted environment; approval requests are declined
+                              automatically.
+                            </dd>
+                          </dl>
+                        ),
+                      },
+                    ]}
+                  />
+                </section>
               )}
             </div>
-          </div>
-        ) : (
-          <Spinner label="Loading settings…" />
-        )}
-      </Card>
+          )}
 
-      {draft && (
-        <Card>
-          <CardTitle>Question sources</CardTitle>
-          <p className="mt-1 text-xs text-muted">
-            Where interviewers may draw questions from, in addition to generated ones.
-          </p>
-          {(() => {
-            const qs = draft.questionSources ?? {
-              companyPacks: true,
-              rolePacks: true,
-              userBank: true,
-              plugins: [],
-            };
-            const set = (patch: Partial<typeof qs>) =>
-              setDraft((d) => d && { ...d, questionSources: { ...qs, ...patch } });
-            const sourcePlugins = plugins.filter(
-              (p) => p.enabled && (p.manifest.capabilities ?? []).includes("question_source"),
-            );
-            return (
-              <div className="mt-3 space-y-2 text-sm">
-                {(
-                  [
-                    ["companyPacks", "Company packs"],
-                    ["rolePacks", "Role packs"],
-                    ["userBank", "My question bank"],
-                  ] as const
-                ).map(([key, label]) => (
-                  <label key={key} className="flex items-center gap-2">
+          {section === "interview" && (
+            <section>
+              <GroupHeading>Interview preferences</GroupHeading>
+              {draft && status?.mode === "codex" ? (
+                <SettingRow
+                  label="Task execution mode"
+                  description="Codex only — how one-shot AI tasks run."
+                  control={
+                    <select
+                      aria-label="Task mode"
+                      value={draft.taskMode}
+                      onChange={(e) =>
+                        setDraft((d) => d && { ...d, taskMode: e.target.value as AppSettings["taskMode"] })
+                      }
+                      className="min-w-64 rounded-[var(--radius-sm)] border border-line bg-surface px-2 py-1 text-[13px]"
+                    >
+                      <option value="app-server">app-server (warm process, streams text)</option>
+                      <option value="exec">exec (spawns `codex exec` per task)</option>
+                    </select>
+                  }
+                />
+              ) : (
+                <SettingRow
+                  label="Task execution mode"
+                  description="Applies to the Codex runtime only; the active runtime does not use it."
+                  control={<Pill tone="muted">{status ? runtimeLabel(status.mode) : "…"}</Pill>}
+                />
+              )}
+              <SettingRow
+                label="Question sources"
+                description="Which sources interviewers may draw questions from."
+                control={
+                  <span className="text-xs text-muted">
+                    {[qs.companyPacks && "company packs", qs.rolePacks && "role packs", qs.userBank && "question bank"]
+                      .filter(Boolean)
+                      .join(", ") || "generated only"}
+                  </span>
+                }
+              />
+            </section>
+          )}
+
+          {section === "sources" && draft && (
+            <section>
+              <GroupHeading>Question sources</GroupHeading>
+              <p className="mb-1 text-xs text-muted">
+                Where interviewers may draw questions from, in addition to generated ones.
+              </p>
+              {(
+                [
+                  ["companyPacks", "Company packs"],
+                  ["rolePacks", "Role packs"],
+                  ["userBank", "My question bank"],
+                ] as const
+              ).map(([key, label]) => (
+                <SettingRow
+                  key={key}
+                  label={label}
+                  control={
                     <input
                       type="checkbox"
                       checked={qs[key]}
-                      onChange={(e) => set({ [key]: e.target.checked })}
+                      onChange={(e) => setQs({ [key]: e.target.checked })}
                       className="accent-accent"
                       data-testid={`qs-${key}`}
                     />
-                    {label}
-                  </label>
-                ))}
-                {sourcePlugins.length > 0 && (
-                  <div className="pt-1">
-                    <p className="text-xs font-medium text-muted">Question-source plugins</p>
-                    {sourcePlugins.map((p) => (
-                      <label key={p.manifest.id} className="mt-1 flex items-center gap-2">
-                        <input
-                          type="checkbox"
-                          checked={qs.plugins.includes(p.manifest.id)}
-                          onChange={(e) =>
-                            set({
-                              plugins: e.target.checked
-                                ? [...qs.plugins, p.manifest.id]
-                                : qs.plugins.filter((x) => x !== p.manifest.id),
-                            })
+                  }
+                />
+              ))}
+              {sourcePlugins.map((p) => (
+                <SettingRow
+                  key={p.manifest.id}
+                  label={p.manifest.name ?? p.manifest.id}
+                  description="Question-source plugin"
+                  control={
+                    <input
+                      type="checkbox"
+                      checked={qs.plugins.includes(p.manifest.id)}
+                      onChange={(e) =>
+                        setQs({
+                          plugins: e.target.checked
+                            ? [...qs.plugins, p.manifest.id]
+                            : qs.plugins.filter((x) => x !== p.manifest.id),
+                        })
+                      }
+                      className="accent-accent"
+                      data-testid={`qs-plugin-${p.manifest.id}`}
+                    />
+                  }
+                />
+              ))}
+            </section>
+          )}
+
+          {section === "voice" && draft && (
+            <section>
+              <GroupHeading>Voice</GroupHeading>
+              <p className="mb-1 max-w-prose text-xs text-muted">
+                Voice capture uses the browser's Web Speech API (Chrome / Edge). Delivery hints never
+                change evaluation or readiness. {VOICE_DISCLAIMER}
+              </p>
+              <SettingRow
+                label="Enable voice mode on session pages"
+                control={
+                  <input
+                    type="checkbox"
+                    checked={draft.voice?.enabled ?? false}
+                    onChange={(e) =>
+                      setDraft(
+                        (d) =>
+                          d && {
+                            ...d,
+                            voice: {
+                              enabled: e.target.checked,
+                              speakQuestions: d.voice?.speakQuestions ?? true,
+                            },
+                          },
+                      )
+                    }
+                    className="accent-accent"
+                    data-testid="voice-enabled"
+                  />
+                }
+              />
+              <SettingRow
+                label="Read questions aloud"
+                control={
+                  <input
+                    type="checkbox"
+                    checked={draft.voice?.speakQuestions ?? true}
+                    onChange={(e) =>
+                      setDraft(
+                        (d) =>
+                          d && {
+                            ...d,
+                            voice: {
+                              enabled: d.voice?.enabled ?? false,
+                              speakQuestions: e.target.checked,
+                            },
+                          },
+                      )
+                    }
+                    className="accent-accent"
+                    data-testid="voice-speak"
+                  />
+                }
+              />
+            </section>
+          )}
+
+          {section === "integrations" && (
+            <section id="mcp">
+              <GroupHeading>MCP servers</GroupHeading>
+              <p className="mb-1 max-w-prose text-xs text-muted">
+                Servers are defined in interview-os.mcp.json on this machine — the browser can only
+                enable them and choose which tools are allowed.
+              </p>
+              {mcp === null ? (
+                <Spinner label="Loading MCP servers…" />
+              ) : (
+                <>
+                  {mcp.loadError && (
+                    <p role="alert" className="mt-1 text-xs text-danger">
+                      Config load error: {mcp.loadError}
+                    </p>
+                  )}
+                  {mcp.servers.length === 0 && !mcp.loadError ? (
+                    <SettingRow
+                      label="No MCP servers configured"
+                      description="Add them to interview-os.mcp.json to enable external context."
+                      control={<span className="text-xs text-muted">disabled by default</span>}
+                    />
+                  ) : (
+                    <ul className="rounded-[var(--radius-card)] border border-line bg-surface px-3">
+                      {mcp.servers.map((s) => (
+                        <McpServerRow
+                          key={s.id}
+                          server={s}
+                          onChanged={(updated) =>
+                            setMcp(
+                              (m) =>
+                                m && {
+                                  ...m,
+                                  servers: m.servers.map((x) => (x.id === updated.id ? updated : x)),
+                                },
+                            )
                           }
-                          className="accent-accent"
-                          data-testid={`qs-plugin-${p.manifest.id}`}
+                          onError={setError}
                         />
-                        {p.manifest.name ?? p.manifest.id}
-                      </label>
-                    ))}
+                      ))}
+                    </ul>
+                  )}
+                </>
+              )}
+            </section>
+          )}
+
+          {section === "data" && (
+            <section id="data" className="space-y-4">
+              <div>
+                <GroupHeading>Export</GroupHeading>
+                <SettingRow
+                  label="Export workspace"
+                  description="A dated bundle of all your data, or a single part."
+                  control={
+                    <>
+                      <a
+                        href={api.exportUrl()}
+                        data-testid="export-all"
+                        className="inline-flex items-center rounded-[var(--radius-sm)] border border-line px-2.5 py-1 text-[13px] text-blue"
+                      >
+                        Export everything
+                      </a>
+                      <details className="relative">
+                        <summary className="cursor-pointer list-none rounded-[var(--radius-sm)] border border-line px-2.5 py-1 text-[13px] text-blue">
+                          Parts
+                        </summary>
+                        <div className="mt-1 flex flex-wrap gap-1">
+                          {EXPORT_PARTS.map((part) => (
+                            <a
+                              key={part}
+                              href={api.exportPartUrl(part)}
+                              data-testid={`export-${part}`}
+                              className="inline-flex items-center rounded-[var(--radius-sm)] border border-line px-2 py-0.5 text-xs text-blue"
+                            >
+                              {part}
+                            </a>
+                          ))}
+                        </div>
+                      </details>
+                    </>
+                  }
+                />
+              </div>
+
+              <div>
+                <GroupHeading>Import</GroupHeading>
+                <p className="mb-1 text-xs text-muted">
+                  Import replaces ALL current data with the bundle's contents.
+                </p>
+                <input
+                  type="file"
+                  accept=".json,application/json"
+                  aria-label="Import bundle file"
+                  data-testid="import-file"
+                  onChange={(e) => {
+                    const f = e.target.files?.[0];
+                    if (!f) return;
+                    f.text()
+                      .then((t) => {
+                        const parsed: unknown = JSON.parse(t);
+                        setImportBundle(parsed);
+                        setImportCounts(bundleCounts(parsed));
+                        setImportResult(null);
+                        setConfirmText("");
+                      })
+                      .catch((err) => setError(err));
+                    e.target.value = "";
+                  }}
+                  className="text-xs text-muted"
+                />
+                {importBundle != null && (
+                  <div className="mt-2 rounded-[var(--radius-card)] border border-line bg-page p-3 text-[13px]" data-testid="import-preview">
+                    <p className="font-medium text-ink">Bundle preview</p>
+                    {importCounts.length === 0 ? (
+                      <p className="mt-1 text-xs text-danger">
+                        This doesn't look like an Interview OS export bundle.
+                      </p>
+                    ) : (
+                      <ul className="mt-1 grid grid-cols-2 gap-x-4 text-xs text-muted sm:grid-cols-3">
+                        {importCounts.map(([k, n]) => (
+                          <li key={k}>
+                            {k}: {n}
+                          </li>
+                        ))}
+                      </ul>
+                    )}
+                    <p className="mt-2 text-xs text-danger">
+                      Import replaces ALL current data. Type <code>replace</code> to confirm.
+                    </p>
+                    <div className="mt-2 flex items-center gap-2">
+                      <input
+                        value={confirmText}
+                        onChange={(e) => setConfirmText(e.target.value)}
+                        placeholder="replace"
+                        aria-label="Type replace to confirm"
+                        data-testid="import-confirm"
+                        className="rounded-[var(--radius-sm)] border border-line px-2 py-1 text-[13px]"
+                      />
+                      <Button
+                        variant="danger"
+                        size="small"
+                        disabled={importing || confirmText !== "replace" || importCounts.length === 0}
+                        onClick={() => {
+                          setImporting(true);
+                          setError(null);
+                          api
+                            .importState(importBundle)
+                            .then((r) => {
+                              setImportResult(r.counts);
+                              setImportBundle(null);
+                              setConfirmText("");
+                              toast("Import complete");
+                              return api.settings();
+                            })
+                            .then((s) => {
+                              setSettings(s);
+                              setDraft(s);
+                              setSaved(s);
+                            })
+                            .catch(setError)
+                            .finally(() => setImporting(false));
+                        }}
+                        data-testid="import-run"
+                      >
+                        {importing ? "Importing…" : "Import (replaces everything)"}
+                      </Button>
+                    </div>
+                  </div>
+                )}
+                {importResult && (
+                  <div className="mt-2 rounded-[var(--radius-card)] border border-line bg-page p-3 text-[13px]" data-testid="import-result">
+                    <p className="font-medium text-green">Import complete</p>
+                    <ul className="mt-1 grid grid-cols-2 gap-x-4 text-xs text-muted sm:grid-cols-3">
+                      {Object.entries(importResult).map(([k, n]) => (
+                        <li key={k}>
+                          {k}: {n}
+                        </li>
+                      ))}
+                    </ul>
                   </div>
                 )}
               </div>
-            );
-          })()}
-          <div className="mt-3">
-            <Button onClick={save} disabled={saving || !dirty}>
-              {saving ? "Saving…" : "Update sources"}
-            </Button>
-          </div>
-        </Card>
-      )}
+            </section>
+          )}
 
-      {draft && (
-        <Card>
-          <CardTitle>Voice</CardTitle>
-          <p className="mt-1 text-xs text-muted">
-            Voice capture uses the browser's Web Speech API (Chrome / Edge).
-            Delivery hints never change evaluation or readiness.
-          </p>
-          <div className="mt-3 space-y-2 text-sm">
-            <label className="flex items-center gap-2">
-              <input
-                type="checkbox"
-                checked={draft.voice?.enabled ?? false}
-                onChange={(e) =>
-                  setDraft(
-                    (d) =>
-                      d && {
-                        ...d,
-                        voice: {
-                          enabled: e.target.checked,
-                          speakQuestions: d.voice?.speakQuestions ?? true,
-                        },
-                      },
-                  )
-                }
-                className="accent-accent"
-                data-testid="voice-enabled"
-              />
-              Enable voice mode on session pages
-            </label>
-            <label className="flex items-center gap-2">
-              <input
-                type="checkbox"
-                checked={draft.voice?.speakQuestions ?? true}
-                onChange={(e) =>
-                  setDraft(
-                    (d) =>
-                      d && {
-                        ...d,
-                        voice: {
-                          enabled: d.voice?.enabled ?? false,
-                          speakQuestions: e.target.checked,
-                        },
-                      },
-                  )
-                }
-                className="accent-accent"
-                data-testid="voice-speak"
-              />
-              Read questions aloud
-            </label>
-            <p className="text-xs text-muted">{VOICE_DISCLAIMER}</p>
-          </div>
-          <div className="mt-3">
-            <Button onClick={save} disabled={saving || !dirty}>
-              {saving ? "Saving…" : "Update voice"}
-            </Button>
-          </div>
-        </Card>
-      )}
-
-      <Card>
-        <span id="mcp" />
-        <CardTitle>MCP servers</CardTitle>
-        <p className="mt-1 text-xs text-muted">
-          Servers are defined in interview-os.mcp.json on this machine — the
-          browser can only enable them and choose which tools are allowed.
-        </p>
-        {mcp === null ? (
-          <Spinner label="Loading MCP servers…" />
-        ) : (
-          <>
-            {mcp.loadError && (
-              <p role="alert" className="mt-2 text-xs text-danger">
-                Config load error: {mcp.loadError}
-              </p>
-            )}
-            {mcp.servers.length === 0 && !mcp.loadError && (
-              <p className="mt-2 text-sm text-muted">
-                No MCP servers configured.
-              </p>
-            )}
-            <ul className="mt-3 space-y-2">
-              {mcp.servers.map((s) => (
-                <McpServerRow
-                  key={s.id}
-                  server={s}
-                  onChanged={(updated) =>
-                    setMcp(
-                      (m) =>
-                        m && {
-                          ...m,
-                          servers: m.servers.map((x) =>
-                            x.id === updated.id ? updated : x,
-                          ),
-                        },
-                    )
-                  }
-                  onError={setError}
-                />
-              ))}
-            </ul>
-          </>
-        )}
-      </Card>
-
-      <Card>
-        <span id="data" />
-        <CardTitle>Data</CardTitle>
-        <p className="mt-1 text-xs text-muted">
-          Export your workspace, or replace it with a previously exported bundle.
-        </p>
-        <div className="mt-3 flex flex-wrap gap-2" data-testid="export-links">
-          <a
-            href={api.exportUrl()}
-            className="inline-flex items-center rounded-[0.6rem] border border-line px-3 py-1.5 text-sm text-blue"
-            data-testid="export-all"
-          >
-            Export everything
-          </a>
-          {EXPORT_PARTS.map((part) => (
-            <a
-              key={part}
-              href={api.exportPartUrl(part)}
-              className="inline-flex items-center rounded-[0.6rem] border border-line px-3 py-1.5 text-sm text-blue"
-              data-testid={`export-${part}`}
-            >
-              {part}
-            </a>
-          ))}
-        </div>
-        <div className="mt-4 border-t border-line pt-3">
-          <p className="text-sm font-medium text-navy">Import</p>
-          <input
-            type="file"
-            accept=".json,application/json"
-            aria-label="Import bundle file"
-            data-testid="import-file"
-            onChange={(e) => {
-              const f = e.target.files?.[0];
-              if (!f) return;
-              f.text()
-                .then((t) => {
-                  const parsed: unknown = JSON.parse(t);
-                  setImportBundle(parsed);
-                  setImportCounts(bundleCounts(parsed));
-                  setImportResult(null);
-                  setConfirmText("");
-                })
-                .catch((err) => setError(err));
-              e.target.value = "";
-            }}
-            className="mt-1 text-xs text-muted"
-          />
-          {importBundle != null && (
-            <div className="mt-2 rounded-[0.6rem] bg-page p-3 text-sm" data-testid="import-preview">
-              <p className="font-medium text-ink">Bundle preview</p>
-              {importCounts.length === 0 ? (
-                <p className="mt-1 text-xs text-danger">
-                  This doesn't look like an Interview OS export bundle.
-                </p>
+          {section === "extensions" && (
+            <section>
+              <GroupHeading>Extension settings</GroupHeading>
+              {plugins.some((p) => p.enabled) ? (
+                <div className="space-y-4">
+                  {plugins
+                    .filter((p) => p.enabled)
+                    .map((p) => (
+                      <PluginSettingsForm
+                        key={p.manifest.id}
+                        pluginId={p.manifest.id}
+                        pluginName={p.manifest.name ?? p.manifest.id}
+                      />
+                    ))}
+                </div>
               ) : (
-                <ul className="mt-1 grid grid-cols-2 gap-x-4 text-xs text-muted sm:grid-cols-3">
-                  {importCounts.map(([k, n]) => (
-                    <li key={k}>
-                      {k}: {n}
-                    </li>
-                  ))}
-                </ul>
-              )}
-              <p className="mt-2 text-xs text-danger">
-                Import replaces ALL current data. Type <code>replace</code> to confirm.
-              </p>
-              <div className="mt-2 flex items-center gap-2">
-                <input
-                  value={confirmText}
-                  onChange={(e) => setConfirmText(e.target.value)}
-                  placeholder="replace"
-                  aria-label="Type replace to confirm"
-                  data-testid="import-confirm"
-                  className="rounded-[0.6rem] border border-line px-3 py-1.5 text-sm"
+                <SettingRow
+                  label="No extensions enabled"
+                  description="Enable extensions under Extensions to configure them here."
+                  control={<span className="text-xs text-muted">—</span>}
                 />
-                <Button
-                  variant="danger"
-                  disabled={importing || confirmText !== "replace" || importCounts.length === 0}
-                  onClick={() => {
-                    setImporting(true);
-                    setError(null);
-                    api
-                      .importState(importBundle)
-                      .then((r) => {
-                        setImportResult(r.counts);
-                        setImportBundle(null);
-                        setConfirmText("");
-                        toast("Import complete");
-                        return api.settings();
-                      })
-                      .then((s) => {
-                        setSettings(s);
-                        setDraft(s);
-                        setSaved(s);
-                      })
-                      .catch(setError)
-                      .finally(() => setImporting(false));
-                  }}
-                  data-testid="import-run"
-                >
-                  {importing ? "Importing…" : "Import (replaces everything)"}
-                </Button>
+              )}
+              <div className="mt-3">
+                <PluginSlot slot="settings.sections" />
               </div>
-            </div>
-          )}
-          {importResult && (
-            <div className="mt-2 rounded-[0.6rem] bg-page p-3 text-sm" data-testid="import-result">
-              <p className="font-medium text-green">Import complete</p>
-              <ul className="mt-1 grid grid-cols-2 gap-x-4 text-xs text-muted sm:grid-cols-3">
-                {Object.entries(importResult).map(([k, n]) => (
-                  <li key={k}>
-                    {k}: {n}
-                  </li>
-                ))}
-              </ul>
-            </div>
+            </section>
           )}
         </div>
-      </Card>
-      <PluginSlot slot="settings.sections" />
-      {plugins.some((p) => p.enabled) && (
-        <Card>
-          <CardTitle>Plugin settings</CardTitle>
-          <div className="mt-2 space-y-4">
-            {plugins
-              .filter((p) => p.enabled)
-              .map((p) => (
-                <PluginSettingsForm
-                  key={p.manifest.id}
-                  pluginId={p.manifest.id}
-                  pluginName={p.manifest.name ?? p.manifest.id}
-                />
-              ))}
-          </div>
-        </Card>
-      )}
-    </div>
+      </div>
+    </Workspace>
   );
 }
