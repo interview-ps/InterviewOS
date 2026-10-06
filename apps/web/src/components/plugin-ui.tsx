@@ -270,6 +270,21 @@ export function PluginSlot({
 }
 
 /**
+ * True when the plugin that owns `modeId` contributes to `slot` — lets a host
+ * decide synchronously whether to reserve an inspector column.
+ */
+export function useModeSlotHasContent(slot: string, modeId: string): boolean {
+  const contributions = useUIContributions();
+  return useMemo(
+    () =>
+      contributions.some(
+        (p) => p.modes?.includes(modeId) && (p.slots[slot] ?? []).length > 0,
+      ),
+    [contributions, slot, modeId],
+  );
+}
+
+/**
  * v1: like PluginSlot, but only renders contributions from the plugin that
  * owns the given interview mode (used by the `interview.question` slot so a
  * plugin mode can render a question panel such as the coding problem). The

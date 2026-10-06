@@ -472,13 +472,14 @@ export function SplitPane({
 }: {
   left: ReactNode;
   right: ReactNode;
-  leftWidth?: number;
+  leftWidth?: number | string;
   className?: string;
 }) {
+  const width = typeof leftWidth === "number" ? `${leftWidth}px` : leftWidth;
   return (
     <div
       className={`interview-split min-h-0 ${className}`}
-      style={{ ["--split-left" as string]: `${leftWidth}px` }}
+      style={{ ["--split-left" as string]: width }}
     >
       <div className="flex min-h-0 min-w-0 flex-col">{left}</div>
       <div className="flex min-h-0 min-w-0 flex-col">{right}</div>

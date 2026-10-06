@@ -1,4 +1,4 @@
-import { test } from "@playwright/test";
+import { expect, test } from "@playwright/test";
 import { freshWorkspace } from "./helpers";
 
 /**
@@ -47,5 +47,19 @@ test.describe("design evidence", () => {
     await page.getByRole("button", { name: "Requirements" }).click();
     await page.waitForTimeout(150);
     await page.screenshot({ path: `${SHOTS}/target-requirements-1366x768.png` });
+  });
+
+  test("coding session + evaluation (1366x768)", async ({ page }) => {
+    await page.setViewportSize({ width: 1366, height: 768 });
+    await page.goto("/interview", { waitUntil: "networkidle" });
+    await page.locator("label", { hasText: "Coding" }).first().click();
+    await page.getByRole("button", { name: "Start Interview" }).click();
+    await expect(page.getByTestId("coding-problem")).toBeVisible({ timeout: 30_000 });
+    await page.screenshot({ path: `${SHOTS}/session-coding-1366x768.png` });
+    await page.getByPlaceholder(/Explain your approach/i).fill("Iterate once with an ordered map.");
+    await page.getByLabel("Code answer").fill("def solve(a):\n    return a");
+    await page.getByRole("button", { name: "Submit Answer" }).click();
+    await expect(page.getByText("What was missing")).toBeVisible({ timeout: 30_000 });
+    await page.screenshot({ path: `${SHOTS}/session-coding-eval-1366x768.png` });
   });
 });
