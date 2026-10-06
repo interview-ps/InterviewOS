@@ -5,7 +5,8 @@ import {
   type StarStory,
   type StoryCoachResult,
 } from "@/lib/api";
-import { Button, Callout, Card, CardTitle, EmptyState, ErrorNote, PageHeader, Pill, SkeletonCard, Spinner, skillLabel } from "@/components/ui";
+import { Button, Callout, Card, EmptyState, ErrorNote, Pill, ScreenToolbar, SkeletonCard, Spinner, skillLabel, Workspace } from "@/components/ui";
+import { PrepareTabs } from "./tabs";
 
 const STAR_FIELDS = ["situation", "task", "action", "result"] as const;
 type StarField = (typeof STAR_FIELDS)[number];
@@ -88,16 +89,21 @@ export default function Stories() {
   };
 
   return (
-    <div className="max-w-4xl space-y-5">
-      <PageHeader
-        title="STAR Stories"
-        subtitle="Your story bank for behavioral and HR interviews. Stories are grounded in your resume — fill in [add …] placeholders with real details."
-        actions={
-          <Button onClick={generate} disabled={generating}>
-            {generating ? "Generating…" : "Generate from resume"}
-          </Button>
-        }
-      />
+    <Workspace
+      toolbar={
+        <ScreenToolbar
+          title="Prepare"
+          subtitle="STAR stories"
+          tabs={<PrepareTabs />}
+          actions={
+            <Button size="small" onClick={generate} disabled={generating}>
+              {generating ? "Generating…" : "Generate from resume"}
+            </Button>
+          }
+        />
+      }
+    >
+      <div className="max-w-4xl space-y-3">
       {generating && (
         <p role="status" aria-live="polite" className="text-sm text-muted">
           <span className="mr-2 inline-block h-3.5 w-3.5 animate-spin rounded-full border-2 border-line border-t-blue align-middle" aria-hidden />
@@ -206,6 +212,7 @@ export default function Stories() {
           </Card>
         );
       })}
-    </div>
+      </div>
+    </Workspace>
   );
 }

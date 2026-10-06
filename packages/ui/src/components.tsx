@@ -388,16 +388,20 @@ export function Workspace({
   children,
   className = "",
   bodyClassName = "",
+  scroll = true,
 }: {
   toolbar?: ReactNode;
   children: ReactNode;
   className?: string;
   bodyClassName?: string;
+  scroll?: boolean;
 }) {
   return (
     <div className={`flex min-h-0 flex-1 flex-col ${className}`}>
       {toolbar}
-      <div className={`min-h-0 flex-1 overflow-auto pt-3 ${bodyClassName}`}>
+      <div
+        className={`min-h-0 flex-1 pt-3 ${scroll ? "overflow-auto" : "flex flex-col"} ${bodyClassName}`}
+      >
         {children}
       </div>
     </div>

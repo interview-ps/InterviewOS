@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useState, type ReactNode } from "react";
 import { Link, useNavigate } from "react-router";
 import {
   api,
@@ -8,18 +8,20 @@ import {
 } from "@/lib/api";
 import {
   Button,
-  Card,
-  CardTitle,
+  DataRow,
   displayLabel,
   EmptyState,
   ErrorNote,
-  PageHeader,
+  Panel,
   Pill,
-  SectionHeading,
+  ScreenToolbar,
   SkeletonCard,
+  SplitPane,
   toast,
+  Workspace,
 } from "@/components/ui";
 import { PluginSlot } from "@/components/plugin-ui";
+import { PrepareTabs } from "./tabs";
 
 const ACTION_STATUS: Record<string, string> = {
   open: "open",
@@ -47,10 +49,14 @@ function Resources({
   run: (id: string, fn: () => Promise<unknown>) => void;
 }) {
   const resources = (action as PrepAction & { resources?: PrepResource[] }).resources ?? [];
+  if (resources.length === 0 && !canFetch) return null;
   return (
-    <div className="mt-2" data-testid={`resources-${action.id}`}>
+    <details className="mt-3" data-testid={`resources-${action.id}`}>
+      <summary className="cursor-pointer text-xs font-semibold uppercase tracking-wide text-muted">
+        Resources {resources.length > 0 ? `(${resources.length})` : ""}
+      </summary>
       {resources.length > 0 && (
-        <ul className="space-y-1">
+        <ul className="mt-1 space-y-1">
           {resources.map((r, i) => (
             <li key={i} className="flex flex-wrap items-baseline gap-2 text-xs">
               <Pill tone="muted">{r.kind}</Pill>
@@ -94,25 +100,61 @@ function Resources({
           Find more resources
         </button>
       )}
-    </div>
+    </details>
   );
 }
 
-function ActionCard({
+/** Compact Learn → Practice → Verify indicator. */
+function StageIndicator({ status }: { status: string }) {
+  const steps = ["Learn", "Practice", "Verify"];
+  const active = status === "open" ? 0 : status === "done" ? 3 : 1;
+  return (
+    <ol className="flex flex-wrap items-center gap-1.5 text-xs text-muted">
+      {steps.map((s, i) => (
+        <li key={s} className="flex items-center gap-1.5">
+          <span
+            className={`flex h-5 w-5 items-center justify-center rounded-full border text-[0.65rem] ${
+              i < active
+                ? "border-green bg-green-tint text-green"
+                : i === active
+                  ? "border-blue text-blue"
+                  : "border-line"
+            }`}
+          >
+            {i + 1}
+          </span>
+          <span className={i === active ? "text-ink" : ""}>{s}</span>
+          {i < steps.length - 1 && (
+            <span aria-hidden className="mx-0.5">
+              →
+            </span>
+          )}
+        </li>
+      ))}
+    </ol>
+  );
+}
+
+function ActionDetail({
   action,
+  history,
   busy,
   canFetchResources,
   onChanged,
+  suggestions,
   run,
 }: {
   action: PrepAction;
+  history: PrepAction[];
   busy: boolean;
   canFetchResources: boolean;
   onChanged: () => void;
+  suggestions?: ReactNode;
   run: (id: string, fn: () => Promise<unknown>) => void;
 }) {
   const navigate = useNavigate();
   const [checked, setChecked] = useState<Set<string>>(new Set());
+  const [showHistory, setShowHistory] = useState(false);
   const a = action;
 
   const toggle = (c: string) =>
@@ -141,56 +183,53 @@ function ActionCard({
   const startPrep = () =>
     run(a.id, () => api.updateAction(a.id, "in_progress").then(onChanged));
 
-  const steps = ["Learn", "Practice", "Verify"];
-  const activeStep = a.status === "open" ? 0 : a.status === "done" ? 3 : 1;
   const [summary, ...restParts] = a.action.split(/(?<=\.)\s+/);
   const rest = restParts.join(" ").trim();
 
   return (
-    <Card className={a.priority === 1 ? "border-accent" : ""}>
+    <Panel
+      className="flex-1"
+      bodyClassName="space-y-3"
+      footer={
+        <div className="flex flex-wrap items-center gap-2">
+          {a.status === "open" && (
+            <Button size="small" disabled={busy} onClick={startPrep}>
+              Start preparation
+            </Button>
+          )}
+          {a.status === "in_progress" && (
+            <Button size="small" disabled={busy} onClick={practice}>
+              Practice this skill
+            </Button>
+          )}
+          <Button variant="secondary" size="small" disabled={busy} onClick={markDone}>
+            {busy
+              ? "Working…"
+              : `Mark done${checked.size ? ` (${checked.size}/${a.successCriteria.length})` : ""}`}
+          </Button>
+        </div>
+      }
+    >
       <div className="flex flex-wrap items-center gap-2">
         <Pill tone={a.priority === 1 ? "amber" : "muted"}>#{a.priority}</Pill>
-        <span className="text-base font-medium">{displayLabel(a.skillId)}</span>
+        <span className="text-sm font-semibold text-navy">{displayLabel(a.skillId)}</span>
         <Pill tone={a.status === "in_progress" ? "blue" : "muted"}>
           {ACTION_STATUS[a.status]}
         </Pill>
       </div>
 
-      <p className="mt-2 text-sm">{summary}</p>
-      {a.reason && <p className="mt-1 text-sm text-muted">{a.reason}</p>}
-
-      <ol className="mt-3 flex flex-wrap items-center gap-1 text-xs text-muted">
-        {steps.map((s, i) => (
-          <li key={s} className="flex items-center gap-1">
-            <span
-              className={`flex h-5 w-5 items-center justify-center rounded-full border text-[0.65rem] ${
-                i < activeStep
-                  ? "border-green bg-green-tint text-green"
-                  : i === activeStep
-                    ? "border-blue text-blue"
-                    : "border-line"
-              }`}
-            >
-              {i + 1}
-            </span>
-            <span className={i === activeStep ? "text-ink" : ""}>{s}</span>
-            {i < steps.length - 1 && (
-              <span aria-hidden className="mx-1">
-                →
-              </span>
-            )}
-          </li>
-        ))}
-      </ol>
-
+      <p className="text-sm">{summary}</p>
+      {a.reason && <p className="text-xs text-muted">{a.reason}</p>}
       {rest && (
-        <details className="mt-2 text-xs text-muted">
+        <details className="text-xs text-muted">
           <summary className="cursor-pointer">Show full task</summary>
           <p className="mt-1">{rest}</p>
         </details>
       )}
 
-      <fieldset className="mt-3 space-y-1">
+      <StageIndicator status={a.status} />
+
+      <fieldset className="space-y-1">
         <legend className="sr-only">Success criteria for {a.action}</legend>
         <p className="text-xs font-semibold uppercase tracking-wide text-muted">
           You'll know it's done when
@@ -207,6 +246,7 @@ function ActionCard({
           </label>
         ))}
       </fieldset>
+
       <Resources
         action={a}
         busy={busy}
@@ -215,24 +255,41 @@ function ActionCard({
         onPractice={practice}
         run={run}
       />
-      <div className="mt-3 flex flex-wrap items-center gap-2">
-        {a.status === "open" && (
-          <Button disabled={busy} onClick={startPrep}>
-            Start preparation
-          </Button>
-        )}
-        {a.status === "in_progress" && (
-          <Button disabled={busy} onClick={practice}>
-            Practice this skill
-          </Button>
-        )}
-        <Button variant="secondary" disabled={busy} onClick={markDone}>
-          {busy
-            ? "Working…"
-            : `Mark done${checked.size ? ` (${checked.size}/${a.successCriteria.length})` : ""}`}
-        </Button>
-      </div>
-    </Card>
+
+      {history.length > 0 && (
+        <div className="border-t border-line pt-2">
+          <button
+            type="button"
+            onClick={() => setShowHistory((v) => !v)}
+            aria-expanded={showHistory}
+            className="flex items-center gap-1 text-sm font-semibold text-navy"
+          >
+            History ({history.length})
+            <span aria-hidden className="text-muted">
+              {showHistory ? "▾" : "▸"}
+            </span>
+          </button>
+          {showHistory && (
+            <ul className="mt-1 space-y-1 text-sm">
+              {history.map((h) => (
+                <li
+                  key={h.id}
+                  className="flex items-center justify-between gap-2 border-t border-line pt-1"
+                >
+                  <span className="min-w-0 flex-1 truncate text-muted">{h.action}</span>
+                  <Pill tone={h.status === "done" ? "green" : "muted"}>
+                    {ACTION_STATUS[h.status]}
+                  </Pill>
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+      )}
+
+      {suggestions}
+      <PluginSlot slot="prepare.activities" />
+    </Panel>
   );
 }
 
@@ -240,7 +297,6 @@ export default function PrepPlan() {
   const [actions, setActions] = useState<PrepAction[] | null>(null);
   const [error, setError] = useState<unknown>(null);
   const [busy, setBusy] = useState<string | null>(null);
-  const [showHistory, setShowHistory] = useState(false);
   const [canFetchResources, setCanFetchResources] = useState(false);
   const [selectedId, setSelectedId] = useState<string | null>(null);
 
@@ -258,6 +314,34 @@ export default function PrepPlan() {
       .catch(() => {});
   }, []);
   useEffect(load, [load]);
+
+  // Plugin suggestions live above the keyed detail pane so an accepted
+  // suggestion ("Added") survives switching the selected task.
+  const [suggestGroups, setSuggestGroups] = useState<PluginSuggestionGroup[]>([]);
+  const [suggestAdded, setSuggestAdded] = useState<Set<string>>(new Set());
+  const [suggestBusy, setSuggestBusy] = useState<string | null>(null);
+  useEffect(() => {
+    api
+      .pluginPrepSuggestions()
+      .then((r) => setSuggestGroups(r.suggestions))
+      .catch(() => {});
+  }, []);
+  const acceptSuggestion = (
+    pluginId: string,
+    activity: PluginSuggestionGroup["activities"][number],
+    key: string,
+  ) => {
+    setSuggestBusy(key);
+    api
+      .acceptPluginSuggestion(pluginId, activity)
+      .then(() => {
+        setSuggestAdded((p) => new Set(p).add(key));
+        toast("Added to plan");
+        load();
+      })
+      .catch((e) => setError(e))
+      .finally(() => setSuggestBusy(null));
+  };
 
   const recalc = () => {
     setBusy("recalc");
@@ -277,11 +361,13 @@ export default function PrepPlan() {
 
   if (!actions && !error) {
     return (
-      <div className="space-y-5">
-        <PageHeader title="Preparation plan" />
+      <Workspace
+        toolbar={<ScreenToolbar title="Prepare" tabs={<PrepareTabs />} />}
+        bodyClassName="space-y-3"
+      >
         <SkeletonCard />
         <SkeletonCard />
-      </div>
+      </Workspace>
     );
   }
 
@@ -296,194 +382,155 @@ export default function PrepPlan() {
     .sort((a, b) => b.createdAt.localeCompare(a.createdAt));
 
   return (
-    <div className="space-y-5">
-      <PageHeader
-        title="Preparation plan"
-        subtitle="Learn, practise, verify — one action at a time, chosen from your biggest gaps."
-        actions={
-          <Button variant="secondary" onClick={recalc} disabled={busy === "recalc"}>
-            {busy === "recalc" ? "Refreshing…" : "Refresh plan"}
-          </Button>
-        }
-      />
+    <Workspace
+      scroll={false}
+      toolbar={
+        <ScreenToolbar
+          title="Prepare"
+          tabs={<PrepareTabs />}
+          actions={
+            <>
+              <Pill tone="muted">{open.length} open</Pill>
+              <Link to="/resume" className="text-[13px] text-blue hover:underline">
+                Resume coach
+              </Link>
+              <Button
+                variant="secondary"
+                size="small"
+                onClick={recalc}
+                disabled={busy === "recalc"}
+              >
+                {busy === "recalc" ? "Refreshing…" : "Refresh"}
+              </Button>
+            </>
+          }
+        />
+      }
+    >
       <ErrorNote error={error} />
 
-      {open.length === 0 && !error && (
-        <Card>
+      {open.length === 0 && !error ? (
+        <Panel className="mt-3 flex-1">
           <EmptyState
             title="No open actions"
             description="Set a target role or recalculate the plan."
             action={
               <Link to="/target">
-                <Button variant="secondary">Open target</Button>
+                <Button variant="secondary" size="small">
+                  Open target
+                </Button>
               </Link>
             }
           />
-        </Card>
-      )}
-
-      {open.length > 0 && (
-        <div className="grid gap-5 lg:grid-cols-[18rem_minmax(0,1fr)]">
-          {/* The queue is deliberately plain markup, not a Card: the selected
-              task must stay the first "#N" section in the DOM. */}
-          <div>
-            <SectionHeading
-              title="Task queue"
-              description={`${open.length} open — highest priority first.`}
-            />
-            <ul className="space-y-1.5">
-              {open.map((a) => {
-                const active = a.id === selectedAction?.id;
-                return (
-                  <li key={a.id}>
-                    <button
-                      type="button"
+        </Panel>
+      ) : (
+        open.length > 0 && (
+          <SplitPane
+            leftWidth={280}
+            className="mt-3 flex-1"
+            left={
+              <>
+                <div className="flex shrink-0 items-center justify-between px-1 pb-1.5">
+                  <span className="text-xs font-semibold uppercase tracking-wide text-muted">
+                    Task queue
+                  </span>
+                  <span className="text-xs text-muted">{open.length}</span>
+                </div>
+                <div className="min-h-0 flex-1 overflow-auto rounded-[var(--radius-card)] border border-line bg-surface">
+                  {open.map((a) => (
+                    <DataRow
+                      key={a.id}
+                      selected={a.id === selectedAction?.id}
                       onClick={() => setSelectedId(a.id)}
-                      aria-current={active ? "true" : undefined}
-                      className={`w-full rounded-[0.6rem] border px-3 py-2 text-left transition ${
-                        active
-                          ? "border-blue bg-tint"
-                          : "border-line bg-surface hover:border-blue"
-                      }`}
-                    >
-                      <span className="flex items-center gap-2">
+                      leading={
                         <Pill tone={a.priority === 1 ? "amber" : "muted"}>
                           #{a.priority}
                         </Pill>
-                        <span className="min-w-0 flex-1 truncate text-sm font-medium text-ink">
-                          {displayLabel(a.skillId)}
-                        </span>
-                      </span>
-                      <span className="mt-0.5 block truncate text-xs text-muted">
-                        {ACTION_STATUS[a.status]}
-                        {a.reason ? ` · ${a.reason}` : ""}
-                      </span>
-                    </button>
-                  </li>
-                );
-              })}
-            </ul>
-          </div>
-
-          <div className="min-w-0">
-            <SectionHeading
-              title="Selected task"
-              description="Learn, practise, then verify — one action at a time."
-            />
-            {selectedAction && (
-              <ActionCard
-                key={selectedAction.id}
-                action={selectedAction}
-                busy={busy === selectedAction.id}
-                canFetchResources={canFetchResources}
-                onChanged={load}
-                run={run}
-              />
-            )}
-          </div>
-        </div>
+                      }
+                      title={displayLabel(a.skillId)}
+                      meta={
+                        <>
+                          {ACTION_STATUS[a.status]}
+                          {a.reason ? ` · ${a.reason}` : ""}
+                        </>
+                      }
+                    />
+                  ))}
+                </div>
+              </>
+            }
+            right={
+              selectedAction && (
+                <ActionDetail
+                  key={selectedAction.id}
+                  action={selectedAction}
+                  history={history}
+                  busy={busy === selectedAction.id}
+                  canFetchResources={canFetchResources}
+                  onChanged={load}
+                  suggestions={
+                    <PluginSuggestions
+                      groups={suggestGroups}
+                      added={suggestAdded}
+                      busy={suggestBusy}
+                      onAccept={acceptSuggestion}
+                    />
+                  }
+                  run={run}
+                />
+              )
+            }
+          />
+        )
       )}
-
-      {history.length > 0 && (
-        <Card>
-          <button
-            onClick={() => setShowHistory((v) => !v)}
-            aria-expanded={showHistory}
-            className="flex w-full items-center justify-between text-left"
-          >
-            <CardTitle>History ({history.length})</CardTitle>
-            <span aria-hidden className="text-muted">
-              {showHistory ? "▾" : "▸"}
-            </span>
-          </button>
-          {showHistory && (
-            <ul className="space-y-2 text-sm">
-              {history.map((a) => (
-                <li
-                  key={a.id}
-                  className="flex items-center justify-between gap-2 border-t border-line pt-2"
-                >
-                  <span className="text-muted">{a.action}</span>
-                  <Pill tone={a.status === "done" ? "green" : "muted"}>
-                    {ACTION_STATUS[a.status]}
-                  </Pill>
-                </li>
-              ))}
-            </ul>
-          )}
-        </Card>
-      )}
-
-      <Card>
-        <SectionHeading
-          title="Improve your application materials"
-          description="ATS review, bullet rewrites, and role tailoring — grounded only in your resume."
-          action={
-            <Link to="/resume">
-              <Button variant="secondary" size="small">
-                Open resume coach
-              </Button>
-            </Link>
-          }
-        />
-      </Card>
-
-      <PluginSuggestions onAccepted={load} onError={(e) => setError(e)} />
-      <PluginSlot slot="prepare.activities" />
-    </div>
+    </Workspace>
   );
 }
 
 /** v1: activities suggested by `preparation` plugins — "Add to plan" accepts. */
 function PluginSuggestions({
-  onAccepted,
-  onError,
+  groups,
+  added,
+  busy,
+  onAccept,
 }: {
-  onAccepted: () => void;
-  onError: (e: unknown) => void;
+  groups: PluginSuggestionGroup[];
+  added: Set<string>;
+  busy: string | null;
+  onAccept: (
+    pluginId: string,
+    activity: PluginSuggestionGroup["activities"][number],
+    key: string,
+  ) => void;
 }) {
-  const [groups, setGroups] = useState<PluginSuggestionGroup[]>([]);
-  const [added, setAdded] = useState<Set<string>>(new Set());
-  const [busy, setBusy] = useState<string | null>(null);
-  useEffect(() => {
-    api.pluginPrepSuggestions().then((r) => setGroups(r.suggestions)).catch(() => {});
-  }, []);
   const visible = groups.filter((g) => g.activities.length > 0);
   if (visible.length === 0) return null;
   return (
-    <Card>
-      <CardTitle>Suggestions from plugins</CardTitle>
-      <div className="mt-2 space-y-3">
+    <div className="border-t border-line pt-2">
+      <p className="text-xs font-semibold uppercase tracking-wide text-muted">
+        Suggestions from plugins
+      </p>
+      <div className="mt-1.5 space-y-2">
         {visible.map((g) => (
           <div key={g.pluginId}>
-            <p className="text-xs font-medium text-muted">from plugin {g.pluginName}</p>
-            <ul className="mt-1 space-y-2">
+            <p className="text-xs text-muted">from plugin {g.pluginName}</p>
+            <ul className="mt-1 space-y-1.5">
               {g.activities.map((a, i) => {
                 const key = `${g.pluginId}:${i}`;
                 return (
                   <li
                     key={key}
-                    className="flex items-center justify-between gap-3 rounded-[0.6rem] bg-page p-3"
+                    className="flex items-center justify-between gap-3 rounded-[var(--radius-sm)] bg-page px-2.5 py-1.5"
                   >
                     <div className="min-w-0">
-                      <p className="text-sm font-medium text-navy">{a.title}</p>
+                      <p className="truncate text-[13px] font-medium text-navy">{a.title}</p>
                       <p className="truncate text-xs text-muted">{a.action}</p>
                     </div>
                     <Button
                       variant="secondary"
+                      size="small"
                       disabled={busy === key || added.has(key)}
-                      onClick={() => {
-                        setBusy(key);
-                        api
-                          .acceptPluginSuggestion(g.pluginId, a)
-                          .then(() => {
-                            setAdded((prev) => new Set(prev).add(key));
-                            toast("Added to plan");
-                            onAccepted();
-                          })
-                          .catch(onError)
-                          .finally(() => setBusy(null));
-                      }}
+                      onClick={() => onAccept(g.pluginId, a, key)}
                     >
                       {added.has(key) ? "Added" : "Add to plan"}
                     </Button>
@@ -494,6 +541,6 @@ function PluginSuggestions({
           </div>
         ))}
       </div>
-    </Card>
+    </div>
   );
 }

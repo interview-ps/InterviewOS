@@ -83,6 +83,7 @@ h1, h2, h3, h4, .font-display {
 .interview-split {
   display: grid;
   grid-template-columns: minmax(0, var(--split-left, 280px)) minmax(0, 1fr);
+  grid-template-rows: minmax(0, 1fr);
   gap: 12px;
   min-height: 0;
 }

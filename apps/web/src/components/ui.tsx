@@ -11,6 +11,7 @@ export {
   Button,
   Card,
   CardTitle,
+  DataRow,
   EmptyState,
   ErrorNote,
   EvidenceList,
@@ -18,14 +19,20 @@ export {
   InterviewQuestion,
   InterviewSpinner,
   PageHeader,
+  Panel,
   Pill,
   QuestionCard,
+  ScreenToolbar,
+  SettingRow,
   SkillGapBadge,
   SkillScoreCard,
   Skeleton,
   SkeletonCard,
   Spinner,
+  SplitPane,
   Stat,
+  StatStrip,
+  Workspace,
 } from "@/ui";
 
 /** Product alias — the component is `SkillScoreCard`. */
