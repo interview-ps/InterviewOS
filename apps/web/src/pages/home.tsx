@@ -3,9 +3,9 @@ import { useCallback, useEffect, useState } from "react";
 import { api, type AppState, type InterviewListItem, type Metrics } from "@/lib/api";
 import {
   Button,
-  DataRow,
   DeltaList,
   ErrorNote,
+  GapSeverityBars,
   Panel,
   Pill,
   ScreenToolbar,
@@ -16,7 +16,6 @@ import {
   gapReason,
   pct,
   readinessVerdict,
-  severityTone,
   trendOf,
 } from "@/components/ui";
 import { ExtensionSlot } from "@/components/plugin-ui";
@@ -334,29 +333,22 @@ export default function Dashboard() {
                 </Link>
               }
             >
-              {gaps.length === 0 ? (
-                <p className="p-3 text-sm text-muted">No gaps detected — nice.</p>
-              ) : (
-                <ul>
-                  {gaps.slice(0, 6).map((g) => (
-                    <DataRow
-                      key={g.skillId}
-                      title={displayLabel(g.skillId, g.label)}
-                      meta={g.currentScore === null ? "No evidence yet — target expects this skill" : gapReason(g)}
-                      trailing={
-                        <span className="flex shrink-0 items-center gap-2">
-                          <span className="text-xs text-muted">
-                            {g.currentScore === null ? "not assessed" : pct(g.currentScore)}
-                          </span>
-                          {g.currentScore !== null && (
-                            <Pill tone={severityTone(g.severity)}>{g.severity}</Pill>
-                          )}
-                        </span>
-                      }
-                    />
-                  ))}
-                </ul>
-              )}
+              <GapSeverityBars
+                gaps={gaps.slice(0, 6).map((g) => ({
+                  skillId: g.skillId,
+                  label: displayLabel(g.skillId, g.label),
+                  severity: g.severity,
+                  importance: g.importance,
+                  gap: g.gap,
+                  currentScore: g.currentScore,
+                  targetScore: g.targetScore,
+                }))}
+                meta={(g) =>
+                  g.currentScore === null
+                    ? "No evidence yet — your target expects this skill."
+                    : gapReason(g)
+                }
+              />
             </Panel>
 
             <Panel title="Interview readiness">

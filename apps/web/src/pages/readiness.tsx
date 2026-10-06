@@ -8,18 +8,19 @@ import {
   type SkillReadiness,
 } from "@/lib/api";
 import {
-  Bar,
   DeltaList,
   EmptyState,
   ErrorNote,
+  EvidenceTimeline,
   Panel,
   Pill,
+  ReadinessHistoryChart,
   ScreenToolbar,
   Skeleton,
-  Sparkline,
   SplitPane,
   StatStrip,
   StatusPill,
+  TargetBar,
   Workspace,
   displayLabel,
   pct,
@@ -44,15 +45,12 @@ function scoreTone(s: SkillReadiness): "green" | "blue" | "amber" | "muted" {
         : "muted";
 }
 
-/** Evidence sources carry distinct meaning — never render them all the same. */
-const EVIDENCE_SOURCE: Record<
-  string,
-  { label: string; tone: "blue" | "green" | "amber" | "muted" }
-> = {
-  interview_answer: { label: "Interview answer", tone: "blue" },
-  self_report: { label: "Self report", tone: "muted" },
-  resume: { label: "Resume", tone: "green" },
-  plugin: { label: "Extension", tone: "amber" },
+/** Tone key → token, for the target-marked dimension bars. */
+const SCORE_COLOR: Record<string, string> = {
+  green: "var(--color-green)",
+  blue: "var(--color-blue)",
+  amber: "var(--color-accent)",
+  muted: "var(--color-divider)",
 };
 
 function TreeNode({
@@ -62,6 +60,7 @@ function TreeNode({
   selected,
   onSelect,
   visible,
+  targets,
 }: {
   node: SkillReadiness;
   all: Record<string, SkillReadiness>;
@@ -69,6 +68,7 @@ function TreeNode({
   selected: string | null;
   onSelect: (id: string) => void;
   visible: Set<string>;
+  targets: Record<string, number>;
 }) {
   const [open, setOpen] = useState(true);
   if (!visible.has(node.skillId)) return null;
@@ -119,7 +119,12 @@ function TreeNode({
             </span>
           ) : (
             <>
-              <Bar value={node.score} tone={scoreTone(node)} />
+              <TargetBar
+                value={node.score}
+                tone={SCORE_COLOR[scoreTone(node)] ?? "var(--color-blue)"}
+                target={targets[node.skillId]}
+                confidence={node.confidence}
+              />
               <span className="text-right text-xs tabular-nums text-muted">
                 {pct(node.score)}
               </span>
@@ -139,6 +144,7 @@ function TreeNode({
               selected={selected}
               onSelect={onSelect}
               visible={visible}
+              targets={targets}
             />
           ))}
         </ul>
@@ -153,6 +159,7 @@ export default function Readiness() {
   const [metrics, setMetrics] = useState<Metrics | null>(null);
   const [selected, setSelected] = useState<string | null>(null);
   const [detail, setDetail] = useState<SkillDetail | null>(null);
+  const [targets, setTargets] = useState<Record<string, number>>({});
   const [filter, setFilter] = useState<FilterMode>("all");
   const [tab, setTab] = useState<DetailTab>("evidence");
   const [error, setError] = useState<unknown>(null);
@@ -163,6 +170,14 @@ export default function Readiness() {
   useEffect(() => {
     api.readiness().then(setGraph).catch((e) => setError(e));
     api.metrics().then(setMetrics).catch(() => {});
+    api
+      .state()
+      .then((s) =>
+        setTargets(
+          Object.fromEntries(s.assessment.gaps.map((g) => [g.skillId, g.targetScore])),
+        ),
+      )
+      .catch(() => {});
   }, []);
 
   const dimensions = graph?.dimensions ?? null;
@@ -323,6 +338,7 @@ export default function Readiness() {
             selected={selected}
             onSelect={onSelectSkill}
             visible={visibleIds}
+            targets={targets}
           />
         ))}
       </ul>
@@ -400,54 +416,21 @@ export default function Readiness() {
                 <h3 className="text-[13px] font-semibold text-navy">
                   Evidence behind this score
                 </h3>
-                {detail.evidence.length === 0 ? (
-                  <p className="mt-1 text-sm text-muted">
-                    No evidence recorded for this skill yet.
-                  </p>
-                ) : (
-                  <ul className="mt-1.5 space-y-1.5">
-                    {detail.evidence.map((ev) => {
-                      const src = EVIDENCE_SOURCE[ev.type] ?? {
-                        label: displayLabel(ev.type),
-                        tone: "muted" as const,
-                      };
-                      return (
-                        <li
-                          key={ev.id}
-                          className="rounded-[var(--radius-sm)] border border-divider p-2.5 text-[13px]"
-                        >
-                          <div className="flex flex-wrap items-center gap-2">
-                            <Pill tone={src.tone}>{src.label}</Pill>
-                            <span className="text-muted">
-                              score {Math.round(ev.score * 100)}%
-                            </span>
-                            {ev.sessionId && (
-                              <a
-                                href={`/interview/${ev.sessionId}`}
-                                className="text-xs text-blue underline"
-                              >
-                                view session
-                              </a>
-                            )}
-                            <span className="ml-auto text-xs text-muted">
-                              {new Date(ev.createdAt).toLocaleDateString()}
-                            </span>
-                          </div>
-                          {ev.observation && (
-                            <p className="mt-1 text-xs text-muted">“{ev.observation}”</p>
-                          )}
-                        </li>
-                      );
-                    })}
-                  </ul>
-                )}
+                <div className="mt-1.5">
+                  <EvidenceTimeline items={detail.evidence} />
+                </div>
               </div>
             )}
 
             {tab === "history" && (
               <div>
                 <h3 className="text-[13px] font-semibold text-navy">Score history</h3>
-                <Sparkline points={historyPoints} />
+                <div className="mt-1">
+                  <ReadinessHistoryChart
+                    points={detail?.history ?? []}
+                    target={selected ? targets[selected] : undefined}
+                  />
+                </div>
                 {historyPoints.length >= 2 ? (
                   <div className="mt-2">
                     <DeltaList

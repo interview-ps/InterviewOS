@@ -63,7 +63,16 @@ export {
 export type { Delta, PriorityItem } from "@/ui";
 
 /** Product charts (antd-free, shared with plugin frames). */
-export { ReadinessChart, Sparkline } from "@interview-os/ui";
+export {
+  ReadinessChart,
+  Sparkline,
+  ReadinessHistoryChart,
+  SkillDimensionBars,
+  GapSeverityBars,
+  TargetBar,
+  EvidenceTimeline,
+  EvidenceTypeChip,
+} from "@interview-os/ui";
 
 export type { Tone };
 

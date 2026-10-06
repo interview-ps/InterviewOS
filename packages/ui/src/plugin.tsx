@@ -28,6 +28,25 @@ export type { Tone };
 export { DeclarativeRenderer } from "./renderer.js";
 export type { DeclarativeRendererProps } from "./renderer.js";
 
+/* -- chart kit + evidence surface (antd-free, additive to the contract) ---- */
+export {
+  ReadinessHistoryChart,
+  SkillDimensionBars,
+  GapSeverityBars,
+  TargetBar,
+  confidenceBand,
+  severityTone,
+  statusTone,
+} from "./charts.js";
+export type { HistoryPoint, DimensionBar, GapBar } from "./charts.js";
+export {
+  EvidenceTimeline,
+  EvidenceTypeChip,
+  evidenceTypeLabel,
+  evidenceTypeTone,
+} from "./evidence.js";
+export type { EvidenceItem } from "./evidence.js";
+
 /* -- vocabulary + declarative schema -------------------------------------- */
 export {
   UIToneSchema,
@@ -159,7 +178,7 @@ export function Alert({
   return (
     <div
       role="alert"
-      className={`rounded-[0.6rem] border border-line p-3 text-sm ${TEXT_TONE[tone] ?? "text-ink"}`}
+      className={`rounded-[var(--radius-card)] border border-line p-3 text-sm ${TEXT_TONE[tone] ?? "text-ink"}`}
     >
       {title && <p className="font-medium">{title}</p>}
       {children && <div className="mt-1 text-muted">{children}</div>}
