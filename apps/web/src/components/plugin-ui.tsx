@@ -12,6 +12,39 @@ import { Skeleton } from "@/components/ui";
 
 /* -- contributions cache ---------------------------------------------------- */
 
+/** A declarative tree with no meaningful content — used to drop empty panels. */
+function isEmptyUITree(node: UINode): boolean {
+  const n = node as {
+    type: string;
+    children?: UINode[];
+    items?: unknown[];
+    tabs?: { children: UINode[] }[];
+    text?: string;
+  };
+  switch (n.type) {
+    case "text":
+      return !(n.text ?? "").trim();
+    case "divider":
+      return true;
+    case "list":
+    case "evidenceList":
+    case "progressList":
+      return (n.items ?? []).length === 0;
+    case "tabs":
+      return (n.tabs ?? []).every(
+        (t) => (t.children ?? []).length === 0 || (t.children ?? []).every(isEmptyUITree),
+      );
+    case "card":
+    case "stack":
+    case "row":
+      return (
+        (n.children ?? []).length === 0 || (n.children ?? []).every(isEmptyUITree)
+      );
+    default:
+      return false;
+  }
+}
+
 let contributionsCache: PluginUIContributionView[] | null = null;
 let contributionsPromise: Promise<PluginUIContributionView[]> | null = null;
 
@@ -126,7 +159,7 @@ function DeclarativeContribution({
       </div>
     );
   }
-  if (!tree) return null;
+  if (!tree || isEmptyUITree(tree)) return null;
   return (
     <ContributionBoundary pluginId={plugin.pluginId}>
       <div>
