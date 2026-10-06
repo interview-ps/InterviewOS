@@ -407,7 +407,7 @@ function Brand({ version, compact = false }: { version: string | null; compact?:
   return (
     <Link to="/" className="flex min-w-0 shrink items-center gap-2 no-underline">
       <img
-        src="/interview-ps-logo.png"
+        src="/interview-ps-logo.svg"
         alt="interview.ps logo"
         width={22}
         height={22}
