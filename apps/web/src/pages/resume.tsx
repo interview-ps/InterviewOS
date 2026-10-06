@@ -36,7 +36,7 @@ function CheckRow({ check }: { check: AtsCheck }) {
     <li className="flex items-start gap-2.5 border-b border-line py-1.5 text-[13px] last:border-b-0">
       <span
         aria-label={check.status}
-        className={`mt-0.5 flex h-4.5 w-4.5 shrink-0 items-center justify-center rounded-full text-[0.6rem] font-bold ${STATUS_CLS[check.status]}`}
+        className={`mt-0.5 flex shrink-0 items-center justify-center rounded-full text-[0.6rem] font-bold ${STATUS_CLS[check.status]}`}
         style={{ width: 18, height: 18 }}
       >
         {STATUS_ICON[check.status]}

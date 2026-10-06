@@ -85,4 +85,13 @@ test.describe("design evidence", () => {
     await expect(page.getByTestId("command-palette")).toBeHidden();
     await page.screenshot({ path: `${SHOTS}/palette-closed-1366x768.png` });
   });
+
+  test("narrow mobile (390x844)", async ({ page }) => {
+    await page.setViewportSize({ width: 390, height: 844 });
+    for (const screen of SCREENS) {
+      await page.goto(screen.path, { waitUntil: "networkidle" });
+      await page.waitForTimeout(150);
+      await page.screenshot({ path: `${SHOTS}/narrow-${screen.slug}-390x844.png` });
+    }
+  });
 });
