@@ -9,63 +9,63 @@
               "id": "contact",
               "label": "Contact information",
               "status": "fail",
-              "weight": 2
+              "weight": 2.0
             },
             {
               "detail": "Found 3 standard sections (experience, education, projects…).",
               "id": "headings",
               "label": "Section headings",
               "status": "pass",
-              "weight": 2
+              "weight": 2.0
             },
             {
               "detail": "73 words — aim for 300–900 words.",
               "id": "length",
               "label": "Length",
               "status": "fail",
-              "weight": 1
+              "weight": 1.0
             },
             {
               "detail": "6 bullets — easy to scan.",
               "id": "bullets",
               "label": "Bullet points",
               "status": "pass",
-              "weight": 1
+              "weight": 1.0
             },
             {
               "detail": "0 of 6 bullets include a number (0%) — aim for ≥30%.",
               "id": "quantified",
               "label": "Quantified impact",
               "status": "fail",
-              "weight": 2
+              "weight": 2.0
             },
             {
               "detail": "0 of 6 bullets start with an action verb (0%) — aim for ≥50%.",
               "id": "action_verbs",
               "label": "Action-verb starts",
               "status": "fail",
-              "weight": 1
+              "weight": 1.0
             },
             {
               "detail": "No (or almost no) first-person pronouns — correct resume style.",
               "id": "first_person",
               "label": "First-person pronouns",
               "status": "pass",
-              "weight": 1
+              "weight": 1.0
             },
             {
               "detail": "No dates found — every role needs a date range like 2021–Present.",
               "id": "dates",
               "label": "Dates",
               "status": "fail",
-              "weight": 1
+              "weight": 1.0
             },
             {
               "detail": "4 of 9 required skills appear in the resume (44%) — aim for ≥70%.",
               "id": "keywords",
               "label": "Required-skill keywords",
               "status": "warn",
-              "weight": 3
+              "weight": 3.0
             }
           ],
           "keywordCoverage": {
@@ -258,63 +258,63 @@
               "id": "contact",
               "label": "Contact information",
               "status": "fail",
-              "weight": 2
+              "weight": 2.0
             },
             {
               "detail": "Found 3 standard sections (experience, education, projects…).",
               "id": "headings",
               "label": "Section headings",
               "status": "pass",
-              "weight": 2
+              "weight": 2.0
             },
             {
               "detail": "73 words — aim for 300–900 words.",
               "id": "length",
               "label": "Length",
               "status": "fail",
-              "weight": 1
+              "weight": 1.0
             },
             {
               "detail": "6 bullets — easy to scan.",
               "id": "bullets",
               "label": "Bullet points",
               "status": "pass",
-              "weight": 1
+              "weight": 1.0
             },
             {
               "detail": "0 of 6 bullets include a number (0%) — aim for ≥30%.",
               "id": "quantified",
               "label": "Quantified impact",
               "status": "fail",
-              "weight": 2
+              "weight": 2.0
             },
             {
               "detail": "0 of 6 bullets start with an action verb (0%) — aim for ≥50%.",
               "id": "action_verbs",
               "label": "Action-verb starts",
               "status": "fail",
-              "weight": 1
+              "weight": 1.0
             },
             {
               "detail": "No (or almost no) first-person pronouns — correct resume style.",
               "id": "first_person",
               "label": "First-person pronouns",
               "status": "pass",
-              "weight": 1
+              "weight": 1.0
             },
             {
               "detail": "No dates found — every role needs a date range like 2021–Present.",
               "id": "dates",
               "label": "Dates",
               "status": "fail",
-              "weight": 1
+              "weight": 1.0
             },
             {
               "detail": "4 of 9 required skills appear in the resume (44%) — aim for ≥70%.",
               "id": "keywords",
               "label": "Required-skill keywords",
               "status": "warn",
-              "weight": 3
+              "weight": 3.0
             }
           ],
           "keywordCoverage": {

@@ -94,6 +94,11 @@ jobs:
       - name: Install node deps
         run: pnpm install
 
+      # The contract suite reads the plugin UI runtime bundle (and asserts its
+      # content type), so the bundle has to exist before the server starts.
+      - name: Build the plugin UI runtime
+        run: pnpm --filter @interview-os/ui build:runtime
+
       - name: Run the contract suite (spawns FastAPI on the mock runtime)
         working-directory: tests/contract
         run: uv run pytest -q

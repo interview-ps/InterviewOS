@@ -5,7 +5,7 @@
         "action": "Design the caching layer for a read-heavy product catalog on a whiteboard, then explain it aloud",
         "createdAt": "<ts>",
         "id": "<action#1>",
-        "priority": 1,
+        "priority": 1.0,
         "reason": "no evidence for required skill; senior target is 0.8",
         "resources": [
           {

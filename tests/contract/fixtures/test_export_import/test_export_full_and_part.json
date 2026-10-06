@@ -84,7 +84,7 @@
               "headline": null,
               "id": "<cand#1>",
               "name": "Jordan Reyes",
-              "resumeText": "# Jordan Reyes\r\n\r\nBackend engineer who builds REST APIs and Python services.\r\n\r\n## Experience\r\n- Senior Backend Engineer — Acme Payments — designed Python REST APIs for payment processing\r\n- Backend Engineer — Blue Harbor Apps — owned Python services and a SQL datastore\r\n- Software Engineer — Copperline Labs — shipped Python tooling and internal REST APIs\r\n\r\n## Projects\r\n- LedgerSync — a Python reconciliation service exposing a REST API\r\n- DocPipe — a Python document intake service with a REST API\r\n\r\n## Education\r\n- BSc Computer Science — Ridgeview University\r\n"
+              "resumeText": "# Jordan Reyes\n\nBackend engineer who builds REST APIs and Python services.\n\n## Experience\n- Senior Backend Engineer — Acme Payments — designed Python REST APIs for payment processing\n- Backend Engineer — Blue Harbor Apps — owned Python services and a SQL datastore\n- Software Engineer — Copperline Labs — shipped Python tooling and internal REST APIs\n\n## Projects\n- LedgerSync — a Python reconciliation service exposing a REST API\n- DocPipe — a Python document intake service with a REST API\n\n## Education\n- BSc Computer Science — Ridgeview University\n"
             }
           ]
         },
@@ -160,7 +160,7 @@
               "action": "Design the caching layer for a read-heavy product catalog on a whiteboard, then explain it aloud",
               "createdAt": "<ts>",
               "id": "<action#1>",
-              "priority": 1,
+              "priority": 1.0,
               "reason": "no evidence for required skill; senior target is 0.8",
               "resources": [
                 {
@@ -194,7 +194,7 @@
               "action": "Sketch a producer/consumer design with a queue and explain delivery semantics",
               "createdAt": "<ts>",
               "id": "<action#2>",
-              "priority": 2,
+              "priority": 2.0,
               "reason": "no evidence for required skill; senior target is 0.8",
               "resources": [
                 {
@@ -228,7 +228,7 @@
               "action": "Practice one full system-design question end-to-end with explicit clarifying questions",
               "createdAt": "<ts>",
               "id": "<action#3>",
-              "priority": 3,
+              "priority": 3.0,
               "reason": "no evidence for required skill; senior target is 0.8",
               "resources": [
                 {
@@ -262,7 +262,7 @@
               "action": "Practice Async Processing: prepare a 2-minute explanation covering async processing, asynchronous, background job, then answer one mock question on it.",
               "createdAt": "<ts>",
               "id": "<action#4>",
-              "priority": 4,
+              "priority": 4.0,
               "reason": "no evidence for required skill; senior target is 0.8",
               "resources": [
                 {
@@ -297,7 +297,7 @@
               "action": "Outline a microservice architecture you know and list its failure modes",
               "createdAt": "<ts>",
               "id": "<action#5>",
-              "priority": 5,
+              "priority": 5.0,
               "reason": "no evidence for required skill; senior target is 0.8",
               "resources": [
                 {
@@ -337,7 +337,7 @@
             },
             {
               "computedAt": "<ts>",
-              "confidence": 0,
+              "confidence": 0.0,
               "evidenceIds": [],
               "id": "<rowid>",
               "reason": "setup",
@@ -346,7 +346,7 @@
             },
             {
               "computedAt": "<ts>",
-              "confidence": 0,
+              "confidence": 0.0,
               "evidenceIds": [],
               "id": "<rowid>",
               "reason": "setup",
@@ -355,7 +355,7 @@
             },
             {
               "computedAt": "<ts>",
-              "confidence": 0,
+              "confidence": 0.0,
               "evidenceIds": [],
               "id": "<rowid>",
               "reason": "setup",
@@ -364,7 +364,7 @@
             },
             {
               "computedAt": "<ts>",
-              "confidence": 0,
+              "confidence": 0.0,
               "evidenceIds": [],
               "id": "<rowid>",
               "reason": "setup",
@@ -373,7 +373,7 @@
             },
             {
               "computedAt": "<ts>",
-              "confidence": 0,
+              "confidence": 0.0,
               "evidenceIds": [],
               "id": "<rowid>",
               "reason": "setup",
@@ -393,7 +393,7 @@
             },
             {
               "computedAt": "<ts>",
-              "confidence": 0,
+              "confidence": 0.0,
               "evidenceIds": [],
               "id": "<rowid>",
               "reason": "setup",
@@ -402,7 +402,7 @@
             },
             {
               "computedAt": "<ts>",
-              "confidence": 0,
+              "confidence": 0.0,
               "evidenceIds": [],
               "id": "<rowid>",
               "reason": "setup",
@@ -433,7 +433,7 @@
             },
             {
               "computedAt": "<ts>",
-              "confidence": 0,
+              "confidence": 0.0,
               "evidenceIds": [],
               "id": "<rowid>",
               "reason": "setup",
@@ -463,7 +463,7 @@
               "company": "Northwind Cloud",
               "companyProfileId": "generic",
               "id": "<target#1>",
-              "jobDescription": "# Senior Backend Engineer — Northwind Cloud\r\n\r\nNorthwind Cloud runs managed cloud backends for mid-size SaaS companies. You will own\r\nbackend services end to end.\r\n\r\n## Requirements\r\n- Strong Python: you write production Python services daily\r\n- Designing REST APIs and HTTP endpoints that other teams consume\r\n- SQL and relational modeling on production workloads\r\n- Distributed systems: you reason about services that fail independently\r\n- Caching: you have designed caching layers, tuned caches for hot paths, and reasoned about\r\n  cache hit rates and cache-friendly data layouts\r\n- Message queues: experience with Kafka or SQS for asynchronous work\r\n- System design: comfortable reasoning about architecture and trade-offs in a design review\r\n\r\n## Nice to have\r\n- Kubernetes or container orchestration\r\n- Observability tooling (metrics, tracing)\r\n",
+              "jobDescription": "# Senior Backend Engineer — Northwind Cloud\n\nNorthwind Cloud runs managed cloud backends for mid-size SaaS companies. You will own\nbackend services end to end.\n\n## Requirements\n- Strong Python: you write production Python services daily\n- Designing REST APIs and HTTP endpoints that other teams consume\n- SQL and relational modeling on production workloads\n- Distributed systems: you reason about services that fail independently\n- Caching: you have designed caching layers, tuned caches for hot paths, and reasoned about\n  cache hit rates and cache-friendly data layouts\n- Message queues: experience with Kafka or SQS for asynchronous work\n- System design: comfortable reasoning about architecture and trade-offs in a design review\n\n## Nice to have\n- Kubernetes or container orchestration\n- Observability tooling (metrics, tracing)\n",
               "level": "senior",
               "preferredSkills": [
                 {
@@ -560,7 +560,7 @@
               "role": "Senior Backend Engineer"
             },
             "id": "<target#1>",
-            "jobDescription": "# Senior Backend Engineer — Northwind Cloud\r\n\r\nNorthwind Cloud runs managed cloud backends for mid-size SaaS companies. You will own\r\nbackend services end to end.\r\n\r\n## Requirements\r\n- Strong Python: you write production Python services daily\r\n- Designing REST APIs and HTTP endpoints that other teams consume\r\n- SQL and relational modeling on production workloads\r\n- Distributed systems: you reason about services that fail independently\r\n- Caching: you have designed caching layers, tuned caches for hot paths, and reasoned about\r\n  cache hit rates and cache-friendly data layouts\r\n- Message queues: experience with Kafka or SQS for asynchronous work\r\n- System design: comfortable reasoning about architecture and trade-offs in a design review\r\n\r\n## Nice to have\r\n- Kubernetes or container orchestration\r\n- Observability tooling (metrics, tracing)\r\n",
+            "jobDescription": "# Senior Backend Engineer — Northwind Cloud\n\nNorthwind Cloud runs managed cloud backends for mid-size SaaS companies. You will own\nbackend services end to end.\n\n## Requirements\n- Strong Python: you write production Python services daily\n- Designing REST APIs and HTTP endpoints that other teams consume\n- SQL and relational modeling on production workloads\n- Distributed systems: you reason about services that fail independently\n- Caching: you have designed caching layers, tuned caches for hot paths, and reasoned about\n  cache hit rates and cache-friendly data layouts\n- Message queues: experience with Kafka or SQS for asynchronous work\n- System design: comfortable reasoning about architecture and trade-offs in a design review\n\n## Nice to have\n- Kubernetes or container orchestration\n- Observability tooling (metrics, tracing)\n",
             "level": "senior",
             "role": "Senior Backend Engineer"
           }
@@ -588,7 +588,7 @@
             "company": "Northwind Cloud",
             "companyProfileId": "generic",
             "id": "<target#1>",
-            "jobDescription": "# Senior Backend Engineer — Northwind Cloud\r\n\r\nNorthwind Cloud runs managed cloud backends for mid-size SaaS companies. You will own\r\nbackend services end to end.\r\n\r\n## Requirements\r\n- Strong Python: you write production Python services daily\r\n- Designing REST APIs and HTTP endpoints that other teams consume\r\n- SQL and relational modeling on production workloads\r\n- Distributed systems: you reason about services that fail independently\r\n- Caching: you have designed caching layers, tuned caches for hot paths, and reasoned about\r\n  cache hit rates and cache-friendly data layouts\r\n- Message queues: experience with Kafka or SQS for asynchronous work\r\n- System design: comfortable reasoning about architecture and trade-offs in a design review\r\n\r\n## Nice to have\r\n- Kubernetes or container orchestration\r\n- Observability tooling (metrics, tracing)\r\n",
+            "jobDescription": "# Senior Backend Engineer — Northwind Cloud\n\nNorthwind Cloud runs managed cloud backends for mid-size SaaS companies. You will own\nbackend services end to end.\n\n## Requirements\n- Strong Python: you write production Python services daily\n- Designing REST APIs and HTTP endpoints that other teams consume\n- SQL and relational modeling on production workloads\n- Distributed systems: you reason about services that fail independently\n- Caching: you have designed caching layers, tuned caches for hot paths, and reasoned about\n  cache hit rates and cache-friendly data layouts\n- Message queues: experience with Kafka or SQS for asynchronous work\n- System design: comfortable reasoning about architecture and trade-offs in a design review\n\n## Nice to have\n- Kubernetes or container orchestration\n- Observability tooling (metrics, tracing)\n",
             "level": "senior",
             "preferredSkills": [
               {
@@ -685,7 +685,7 @@
             "role": "Senior Backend Engineer"
           },
           "id": "<target#1>",
-          "jobDescription": "# Senior Backend Engineer — Northwind Cloud\r\n\r\nNorthwind Cloud runs managed cloud backends for mid-size SaaS companies. You will own\r\nbackend services end to end.\r\n\r\n## Requirements\r\n- Strong Python: you write production Python services daily\r\n- Designing REST APIs and HTTP endpoints that other teams consume\r\n- SQL and relational modeling on production workloads\r\n- Distributed systems: you reason about services that fail independently\r\n- Caching: you have designed caching layers, tuned caches for hot paths, and reasoned about\r\n  cache hit rates and cache-friendly data layouts\r\n- Message queues: experience with Kafka or SQS for asynchronous work\r\n- System design: comfortable reasoning about architecture and trade-offs in a design review\r\n\r\n## Nice to have\r\n- Kubernetes or container orchestration\r\n- Observability tooling (metrics, tracing)\r\n",
+          "jobDescription": "# Senior Backend Engineer — Northwind Cloud\n\nNorthwind Cloud runs managed cloud backends for mid-size SaaS companies. You will own\nbackend services end to end.\n\n## Requirements\n- Strong Python: you write production Python services daily\n- Designing REST APIs and HTTP endpoints that other teams consume\n- SQL and relational modeling on production workloads\n- Distributed systems: you reason about services that fail independently\n- Caching: you have designed caching layers, tuned caches for hot paths, and reasoned about\n  cache hit rates and cache-friendly data layouts\n- Message queues: experience with Kafka or SQS for asynchronous work\n- System design: comfortable reasoning about architecture and trade-offs in a design review\n\n## Nice to have\n- Kubernetes or container orchestration\n- Observability tooling (metrics, tracing)\n",
           "level": "senior",
           "role": "Senior Backend Engineer"
         }

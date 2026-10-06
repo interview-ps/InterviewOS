@@ -97,7 +97,7 @@
             "action": "Practice explaining three cache invalidation strategies, then complete one mock question on them",
             "createdAt": "<ts>",
             "id": "<action#1>",
-            "priority": 0,
+            "priority": 0.0,
             "reason": "weak answer: Did not address: TTL / expiration, explicit invalidation on write, write-through / write-behind trade-offs",
             "resources": [
               {
@@ -132,7 +132,7 @@
             "action": "Practice Consistency: prepare a 2-minute explanation covering stale reads / race conditions, then answer one mock question on it.",
             "createdAt": "<ts>",
             "id": "<action#2>",
-            "priority": 0,
+            "priority": 0.0,
             "reason": "weak answer: Did not address: stale reads / race conditions",
             "resources": [
               {
@@ -275,13 +275,13 @@
             "followUpOf": null,
             "id": "<q#1>",
             "selectionFactors": {
-              "noveltyFactor": 1,
-              "packFocus": 0,
-              "readinessGap": 1,
-              "recencyFactor": 1,
+              "noveltyFactor": 1.0,
+              "packFocus": 0.0,
+              "readinessGap": 1.0,
+              "recencyFactor": 1.0,
               "roleImportance": 0.9,
-              "uncertainty": 1,
-              "weaknessBoost": 1
+              "uncertainty": 1.0,
+              "weaknessBoost": 1.0
             },
             "selectionPriority": 1.35,
             "selectionReason": "no evidence yet; not previously asked",
@@ -416,10 +416,10 @@
           "followUpOf": null,
           "id": "<q#2>",
           "selectionFactors": {
-            "noveltyFactor": 1,
-            "packFocus": 0,
+            "noveltyFactor": 1.0,
+            "packFocus": 0.0,
             "readinessGap": 0.85,
-            "recencyFactor": 1,
+            "recencyFactor": 1.0,
             "roleImportance": 0.9,
             "uncertainty": 0.67032,
             "weaknessBoost": 1.6
@@ -514,13 +514,13 @@
           "followUpOf": null,
           "id": "<q#1>",
           "selectionFactors": {
-            "noveltyFactor": 1,
-            "packFocus": 0,
-            "readinessGap": 1,
-            "recencyFactor": 1,
+            "noveltyFactor": 1.0,
+            "packFocus": 0.0,
+            "readinessGap": 1.0,
+            "recencyFactor": 1.0,
             "roleImportance": 0.9,
-            "uncertainty": 1,
-            "weaknessBoost": 1
+            "uncertainty": 1.0,
+            "weaknessBoost": 1.0
           },
           "selectionPriority": 1.35,
           "selectionReason": "no evidence yet; not previously asked",

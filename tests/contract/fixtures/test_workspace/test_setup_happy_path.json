@@ -13,7 +13,7 @@
               "severity": "high",
               "skillId": "distributed-systems.caching",
               "targetScore": 0.8,
-              "uncertainty": 1
+              "uncertainty": 1.0
             },
             {
               "currentScore": null,
@@ -24,7 +24,7 @@
               "severity": "high",
               "skillId": "distributed-systems.message-queues",
               "targetScore": 0.8,
-              "uncertainty": 1
+              "uncertainty": 1.0
             },
             {
               "currentScore": null,
@@ -35,7 +35,7 @@
               "severity": "high",
               "skillId": "system-design",
               "targetScore": 0.8,
-              "uncertainty": 1
+              "uncertainty": 1.0
             },
             {
               "currentScore": null,
@@ -46,7 +46,7 @@
               "severity": "high",
               "skillId": "distributed-systems",
               "targetScore": 0.8,
-              "uncertainty": 1
+              "uncertainty": 1.0
             },
             {
               "currentScore": null,
@@ -57,7 +57,7 @@
               "severity": "high",
               "skillId": "system-design.async-processing",
               "targetScore": 0.8,
-              "uncertainty": 1
+              "uncertainty": 1.0
             },
             {
               "currentScore": null,
@@ -68,7 +68,7 @@
               "severity": "medium",
               "skillId": "infrastructure.kubernetes",
               "targetScore": 0.8,
-              "uncertainty": 1
+              "uncertainty": 1.0
             },
             {
               "currentScore": null,
@@ -79,7 +79,7 @@
               "severity": "medium",
               "skillId": "infrastructure.observability",
               "targetScore": 0.8,
-              "uncertainty": 1
+              "uncertainty": 1.0
             },
             {
               "currentScore": 0.6,
@@ -94,7 +94,7 @@
             },
             {
               "currentScore": 0.9,
-              "gap": 0,
+              "gap": 0.0,
               "importance": 0.85,
               "label": "APIs",
               "reason": "current 0.90 vs senior target 0.8 (importance 0.85)",
@@ -105,7 +105,7 @@
             },
             {
               "currentScore": 0.9,
-              "gap": 0,
+              "gap": 0.0,
               "importance": 0.75,
               "label": "REST APIs",
               "reason": "current 0.90 vs senior target 0.8 (importance 0.75)",
@@ -116,7 +116,7 @@
             },
             {
               "currentScore": 0.9,
-              "gap": 0,
+              "gap": 0.0,
               "importance": 0.8,
               "label": "Python",
               "reason": "current 0.90 vs senior target 0.8 (importance 0.8)",
@@ -157,7 +157,7 @@
                 "distributed-systems.caching",
                 "distributed-systems.message-queues"
               ],
-              "confidence": 0,
+              "confidence": 0.0,
               "evidenceIds": [],
               "label": "Distributed Systems",
               "score": null,
@@ -166,7 +166,7 @@
             },
             "distributed-systems.caching": {
               "children": [],
-              "confidence": 0,
+              "confidence": 0.0,
               "evidenceIds": [],
               "label": "Caching",
               "score": null,
@@ -175,7 +175,7 @@
             },
             "distributed-systems.message-queues": {
               "children": [],
-              "confidence": 0,
+              "confidence": 0.0,
               "evidenceIds": [],
               "label": "Message Queues",
               "score": null,
@@ -187,7 +187,7 @@
                 "infrastructure.kubernetes",
                 "infrastructure.observability"
               ],
-              "confidence": 0,
+              "confidence": 0.0,
               "evidenceIds": [],
               "label": "Infrastructure",
               "score": null,
@@ -196,7 +196,7 @@
             },
             "infrastructure.kubernetes": {
               "children": [],
-              "confidence": 0,
+              "confidence": 0.0,
               "evidenceIds": [],
               "label": "Kubernetes",
               "score": null,
@@ -205,7 +205,7 @@
             },
             "infrastructure.observability": {
               "children": [],
-              "confidence": 0,
+              "confidence": 0.0,
               "evidenceIds": [],
               "label": "Observability",
               "score": null,
@@ -238,7 +238,7 @@
               "children": [
                 "system-design.async-processing"
               ],
-              "confidence": 0,
+              "confidence": 0.0,
               "evidenceIds": [],
               "label": "System Design",
               "score": null,
@@ -247,7 +247,7 @@
             },
             "system-design.async-processing": {
               "children": [],
-              "confidence": 0,
+              "confidence": 0.0,
               "evidenceIds": [],
               "label": "Async Processing",
               "score": null,
@@ -345,7 +345,7 @@
               "action": "Design the caching layer for a read-heavy product catalog on a whiteboard, then explain it aloud",
               "createdAt": "<ts>",
               "id": "<action#1>",
-              "priority": 1,
+              "priority": 1.0,
               "reason": "no evidence for required skill; senior target is 0.8",
               "skillId": "distributed-systems.caching",
               "sourceEvidenceIds": [],
@@ -360,7 +360,7 @@
               "action": "Sketch a producer/consumer design with a queue and explain delivery semantics",
               "createdAt": "<ts>",
               "id": "<action#2>",
-              "priority": 2,
+              "priority": 2.0,
               "reason": "no evidence for required skill; senior target is 0.8",
               "skillId": "distributed-systems.message-queues",
               "sourceEvidenceIds": [],
@@ -375,7 +375,7 @@
               "action": "Practice one full system-design question end-to-end with explicit clarifying questions",
               "createdAt": "<ts>",
               "id": "<action#3>",
-              "priority": 3,
+              "priority": 3.0,
               "reason": "no evidence for required skill; senior target is 0.8",
               "skillId": "system-design",
               "sourceEvidenceIds": [],
@@ -390,7 +390,7 @@
               "action": "Practice Async Processing: prepare a 2-minute explanation covering async processing, asynchronous, background job, then answer one mock question on it.",
               "createdAt": "<ts>",
               "id": "<action#4>",
-              "priority": 4,
+              "priority": 4.0,
               "reason": "no evidence for required skill; senior target is 0.8",
               "skillId": "system-design.async-processing",
               "sourceEvidenceIds": [],
@@ -406,7 +406,7 @@
               "action": "Outline a microservice architecture you know and list its failure modes",
               "createdAt": "<ts>",
               "id": "<action#5>",
-              "priority": 5,
+              "priority": 5.0,
               "reason": "no evidence for required skill; senior target is 0.8",
               "skillId": "distributed-systems",
               "sourceEvidenceIds": [],
@@ -457,7 +457,7 @@
                 "distributed-systems.caching",
                 "distributed-systems.message-queues"
               ],
-              "confidence": 0,
+              "confidence": 0.0,
               "evidenceIds": [],
               "label": "Distributed Systems",
               "score": null,
@@ -466,7 +466,7 @@
             },
             "distributed-systems.caching": {
               "children": [],
-              "confidence": 0,
+              "confidence": 0.0,
               "evidenceIds": [],
               "label": "Caching",
               "score": null,
@@ -475,7 +475,7 @@
             },
             "distributed-systems.message-queues": {
               "children": [],
-              "confidence": 0,
+              "confidence": 0.0,
               "evidenceIds": [],
               "label": "Message Queues",
               "score": null,
@@ -487,7 +487,7 @@
                 "infrastructure.kubernetes",
                 "infrastructure.observability"
               ],
-              "confidence": 0,
+              "confidence": 0.0,
               "evidenceIds": [],
               "label": "Infrastructure",
               "score": null,
@@ -496,7 +496,7 @@
             },
             "infrastructure.kubernetes": {
               "children": [],
-              "confidence": 0,
+              "confidence": 0.0,
               "evidenceIds": [],
               "label": "Kubernetes",
               "score": null,
@@ -505,7 +505,7 @@
             },
             "infrastructure.observability": {
               "children": [],
-              "confidence": 0,
+              "confidence": 0.0,
               "evidenceIds": [],
               "label": "Observability",
               "score": null,
@@ -538,7 +538,7 @@
               "children": [
                 "system-design.async-processing"
               ],
-              "confidence": 0,
+              "confidence": 0.0,
               "evidenceIds": [],
               "label": "System Design",
               "score": null,
@@ -547,7 +547,7 @@
             },
             "system-design.async-processing": {
               "children": [],
-              "confidence": 0,
+              "confidence": 0.0,
               "evidenceIds": [],
               "label": "Async Processing",
               "score": null,
@@ -563,7 +563,7 @@
           "company": "Northwind Cloud",
           "companyProfileId": "generic",
           "id": "<target#1>",
-          "jobDescription": "# Senior Backend Engineer — Northwind Cloud\r\n\r\nNorthwind Cloud runs managed cloud backends for mid-size SaaS companies. You will own\r\nbackend services end to end.\r\n\r\n## Requirements\r\n- Strong Python: you write production Python services daily\r\n- Designing REST APIs and HTTP endpoints that other teams consume\r\n- SQL and relational modeling on production workloads\r\n- Distributed systems: you reason about services that fail independently\r\n- Caching: you have designed caching layers, tuned caches for hot paths, and reasoned about\r\n  cache hit rates and cache-friendly data layouts\r\n- Message queues: experience with Kafka or SQS for asynchronous work\r\n- System design: comfortable reasoning about architecture and trade-offs in a design review\r\n\r\n## Nice to have\r\n- Kubernetes or container orchestration\r\n- Observability tooling (metrics, tracing)\r\n",
+          "jobDescription": "# Senior Backend Engineer — Northwind Cloud\n\nNorthwind Cloud runs managed cloud backends for mid-size SaaS companies. You will own\nbackend services end to end.\n\n## Requirements\n- Strong Python: you write production Python services daily\n- Designing REST APIs and HTTP endpoints that other teams consume\n- SQL and relational modeling on production workloads\n- Distributed systems: you reason about services that fail independently\n- Caching: you have designed caching layers, tuned caches for hot paths, and reasoned about\n  cache hit rates and cache-friendly data layouts\n- Message queues: experience with Kafka or SQS for asynchronous work\n- System design: comfortable reasoning about architecture and trade-offs in a design review\n\n## Nice to have\n- Kubernetes or container orchestration\n- Observability tooling (metrics, tracing)\n",
           "level": "senior",
           "preferredSkills": [
             {

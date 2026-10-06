@@ -275,13 +275,13 @@
           "followUpOf": null,
           "id": "<q#1>",
           "selectionFactors": {
-            "noveltyFactor": 1,
-            "packFocus": 0,
-            "readinessGap": 1,
-            "recencyFactor": 1,
+            "noveltyFactor": 1.0,
+            "packFocus": 0.0,
+            "readinessGap": 1.0,
+            "recencyFactor": 1.0,
             "roleImportance": 0.9,
-            "uncertainty": 1,
-            "weaknessBoost": 1
+            "uncertainty": 1.0,
+            "weaknessBoost": 1.0
           },
           "selectionPriority": 1.35,
           "selectionReason": "no evidence yet; not previously asked",
