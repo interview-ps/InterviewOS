@@ -1,4 +1,5 @@
-import { useCallback, useEffect, useState } from "react";
+import { Fragment, useCallback, useEffect, useState } from "react";
+import { Drawer } from "antd";
 import {
   api,
   ApiError,
@@ -8,32 +9,37 @@ import {
 import {
   Bar,
   Button,
-  Card,
-  CardTitle,
   EmptyState,
   ErrorNote,
-  PageHeader,
+  Panel,
   Pill,
-  SkeletonCard,
+  ScreenToolbar,
+  Skeleton,
   Spinner,
+  SplitPane,
+  Workspace,
   skillLabel,
   toast,
 } from "@/components/ui";
-import { PluginSlot } from "@/components/plugin-ui";
+import { ExtensionSlot } from "@/components/plugin-ui";
+import { useDesktop } from "@/lib/responsive";
 
 const STATUS_ICON = { pass: "✓", warn: "!", fail: "✗" } as const;
 const STATUS_CLS = {
-  pass: "bg-green-tint text-green",
-  warn: "bg-[#fdf3e7] text-accent",
-  fail: "bg-[#fdeef2] text-danger",
+  pass: "bg-[var(--color-green-tint)] text-[var(--color-green)]",
+  warn: "bg-[var(--color-accent-tint)] text-[var(--color-accent)]",
+  fail: "bg-[var(--color-danger-tint)] text-[var(--color-danger)]",
 } as const;
+
+type TabKey = "overview" | "bullets" | "role";
 
 function CheckRow({ check }: { check: AtsCheck }) {
   return (
-    <li className="flex items-start gap-3 text-sm">
+    <li className="flex items-start gap-2.5 border-b border-divider py-2 text-[13px] last:border-b-0">
       <span
         aria-label={check.status}
-        className={`mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full text-xs font-bold ${STATUS_CLS[check.status]}`}
+        className={`mt-0.5 flex shrink-0 items-center justify-center rounded-full text-[0.6rem] font-bold ${STATUS_CLS[check.status]}`}
+        style={{ width: 18, height: 18 }}
       >
         {STATUS_ICON[check.status]}
       </span>
@@ -52,13 +58,57 @@ function Highlighted({ text }: { text: string }) {
     <>
       {parts.map((p, i) =>
         p.startsWith("[") && p.endsWith("]") ? (
-          <mark key={i} className="rounded bg-[#fdf3e7] px-0.5 text-accent">
+          <mark key={i} className="rounded bg-[var(--color-accent-tint)] px-0.5 text-[var(--color-accent)]">
             {p}
           </mark>
         ) : (
           <span key={i}>{p}</span>
         ),
       )}
+    </>
+  );
+}
+
+/**
+ * Word-level diff of a rewrite: words in the improved bullet that don't appear
+ * in the original are highlighted; `[placeholders]` stay amber.
+ */
+function DiffText({ original, improved }: { original: string; improved: string }) {
+  const originalWords = new Set(
+    original
+      .toLowerCase()
+      .replace(/[^a-z0-9\s]/g, " ")
+      .split(/\s+/)
+      .filter(Boolean),
+  );
+  const parts = improved.split(/(\[[^\]]+\])/g);
+  return (
+    <>
+      {parts.map((part, pi) => {
+        if (part.startsWith("[") && part.endsWith("]")) {
+          return (
+            <mark key={pi} className="rounded bg-[var(--color-accent-tint)] px-0.5 text-[var(--color-accent)]">
+              {part}
+            </mark>
+          );
+        }
+        return (
+          <Fragment key={pi}>
+            {part.split(/(\s+)/).map((word, wi) => {
+              if (/^\s+$/.test(word) || word === "") return <span key={wi}>{word}</span>;
+              const key = word.toLowerCase().replace(/[^a-z0-9]/g, "");
+              const isNew = key.length > 0 && !originalWords.has(key);
+              return isNew ? (
+                <mark key={wi} className="rounded bg-[var(--color-green-tint)] px-0.5 text-[var(--color-green)]">
+                  {word}
+                </mark>
+              ) : (
+                <span key={wi}>{word}</span>
+              );
+            })}
+          </Fragment>
+        );
+      })}
     </>
   );
 }
@@ -70,6 +120,10 @@ export default function Resume() {
   const [stage, setStage] = useState<string | null>(null);
   const [error, setError] = useState<unknown>(null);
   const [copied, setCopied] = useState<number | null>(null);
+  const [tab, setTab] = useState<TabKey>("overview");
+  const [selected, setSelected] = useState(0);
+  const [listOpen, setListOpen] = useState(false);
+  const desktop = useDesktop();
 
   useEffect(() => {
     api
@@ -93,7 +147,11 @@ export default function Resume() {
       .reviewResume({
         onStage: (name) => setStage(name),
       })
-      .then((r) => setReview(r))
+      .then((r) => {
+        setReview(r);
+        setSelected(0);
+        setTab("overview");
+      })
       .catch((e) => setError(e))
       .finally(() => {
         setBusy(false);
@@ -111,268 +169,410 @@ export default function Resume() {
 
   if (hasResume === null && !error) {
     return (
-      <div className="space-y-5">
-        <PageHeader title="Resume coach" />
-        <SkeletonCard />
-      </div>
+      <Workspace toolbar={<ScreenToolbar title="Resume coach" />} bodyClassName="space-y-3">
+        <Skeleton className="h-40 w-full" />
+      </Workspace>
     );
   }
 
+  const ats = review?.ats;
+  const atsVerdict = (s: number) => (s >= 70 ? "Good" : s >= 45 ? "Fair" : "Needs work");
+  const fixes = ats
+    ? [
+        ...ats.checks
+          .filter((c) => c.status === "fail")
+          .map((c) => ({
+            key: c.id,
+            title: c.label,
+            why: c.detail,
+            cta: "See this check ↓",
+            href: "#ats-check",
+          })),
+        ...(ats.keywordCoverage.missing.length > 0
+          ? [
+              {
+                key: "keywords",
+                title: "Add role-relevant experience",
+                why: `${ats.keywordCoverage.missing
+                  .map((k) => k.label)
+                  .slice(0, 3)
+                  .join(", ")} aren't represented in your resume.`,
+                cta: "See missing skills ↓",
+                href: "#keywords",
+              },
+            ]
+          : []),
+        ...ats.checks
+          .filter((c) => c.status === "warn")
+          .map((c) => ({
+            key: c.id,
+            title: c.label,
+            why: c.detail,
+            cta: "See this check ↓",
+            href: "#ats-check",
+          })),
+      ].slice(0, 3)
+    : [];
+
+  const suggestion = review?.suggestions[selected];
+  const suggestions = review?.suggestions ?? [];
+
+  const bulletList = (
+    <div className="min-h-0 flex-1 overflow-auto rounded-[var(--radius-card)] border border-divider bg-surface">
+      {suggestions.length === 0 ? (
+        <p className="p-3 text-sm text-muted">No weak bullets found — nice.</p>
+      ) : (
+        <ul>
+          {suggestions.map((s, i) => (
+            <li key={i}>
+              <button
+                type="button"
+                onClick={() => {
+                  setSelected(i);
+                  setListOpen(false);
+                }}
+                aria-current={selected === i ? "true" : undefined}
+                className={`w-full border-b border-divider px-3 py-2 text-left text-[13px] last:border-b-0 ${
+                  selected === i
+                    ? "bg-[var(--color-tint)] shadow-[inset_2px_0_0_0_var(--color-blue)]"
+                    : "hover:bg-[var(--color-hover)]"
+                }`}
+              >
+                <span className="block">{s.original}</span>
+              </button>
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
+  );
+
+  const comparisonPanel = (
+    <Panel
+      className={desktop ? "flex-1" : "min-h-0 flex-1"}
+      title={suggestion ? "Comparison" : "Select a bullet"}
+    >
+      {/* `suggestions-card` content lives in the list; the comparison
+          keeps the full text of the selected bullet only. */}
+      {suggestion && (
+        <div
+          data-testid="suggestions-card-detail"
+          className="max-w-prose space-y-3"
+        >
+          <div>
+            <div className="mb-1 text-xs font-semibold text-muted">Original</div>
+            <p className="text-sm text-muted">{suggestion.original}</p>
+          </div>
+          <div>
+            <div className="mb-1 flex flex-wrap items-center gap-2">
+              <span className="text-xs font-semibold text-green">Suggested</span>
+              <Button
+                variant="secondary"
+                size="small"
+                onClick={() => copy(selected, suggestion.improved)}
+                data-testid="copy-suggestion"
+              >
+                {copied === selected ? "Copied to clipboard" : "Copy suggestion"}
+              </Button>
+            </div>
+            <p className="text-sm text-ink">
+              <DiffText original={suggestion.original} improved={suggestion.improved} />
+            </p>
+          </div>
+          {suggestion.dropped && (
+            <p className="rounded-[var(--radius-sm)] bg-[var(--color-danger-tint)] px-2 py-1 text-xs text-[var(--color-danger)]">
+              Dropped to avoid inventing a fact: {suggestion.dropped}
+            </p>
+          )}
+          <div className="flex flex-wrap items-center gap-2">
+            {suggestion.skillIds.map((id) => (
+              <Pill key={id} tone="blue">
+                {skillLabel(id)}
+              </Pill>
+            ))}
+            {suggestion.rationale && (
+              <span className="text-xs text-muted">{suggestion.rationale}</span>
+            )}
+          </div>
+        </div>
+      )}
+    </Panel>
+  );
+
   return (
-    <div className="space-y-5">
-      <PageHeader
-        title="Resume coach"
-        subtitle="ATS check, bullet rewrites and tailoring — grounded only in your resume."
-      />
-      <p
-        data-testid="resume-banner"
-        className="rounded-[0.6rem] border border-line bg-tint p-3 text-sm text-muted"
-      >
-        Interview OS never invents facts — placeholders like{" "}
-        <code className="text-accent">[add metric]</code> are for you to fill in
-        truthfully.
-      </p>
+    <Workspace
+      scroll={false}
+      toolbar={
+        <ScreenToolbar
+          title="Resume coach"
+          subtitle="ATS check, bullet rewrites and tailoring — grounded only in your resume."
+          tabs={
+            review ? (
+              <div className="flex items-center gap-1">
+                {(
+                  [
+                    ["overview", "Overview"],
+                    ["bullets", "Bullet suggestions"],
+                    ["role", "Role match"],
+                  ] as const
+                ).map(([key, label]) => (
+                  <button
+                    key={key}
+                    type="button"
+                    aria-current={tab === key ? "page" : undefined}
+                    onClick={() => setTab(key)}
+                    className={`-mb-px border-b-2 px-2.5 py-1.5 text-[13px] ${
+                      tab === key
+                        ? "border-blue font-semibold text-navy"
+                        : "border-transparent text-muted hover:text-ink"
+                    }`}
+                  >
+                    {label}
+                  </button>
+                ))}
+              </div>
+            ) : undefined
+          }
+          actions={
+            hasResume !== false ? (
+              <>
+                <Button size="small" onClick={runReview} disabled={busy} data-testid="run-review">
+                  {review ? "Run review again" : "Run review"}
+                </Button>
+                {busy && <Spinner label={`${stage ?? "starting"}…`} />}
+                {review && (
+                  <time
+                    className="text-xs text-muted"
+                    dateTime={review.createdAt}
+                    title={new Date(review.createdAt).toLocaleString()}
+                  >
+                    Reviewed {new Date(review.createdAt).toLocaleDateString()}
+                  </time>
+                )}
+              </>
+            ) : undefined
+          }
+        />
+      }
+    >
       <ErrorNote error={error} />
 
-      {hasResume === false && (
-        <Card>
-          <EmptyState
-            title="No resume on file"
-            description="Set up your workspace on the Target page first — the coach reviews the resume you upload there."
-            action={
-              <a href="/target">
-                <Button variant="secondary">Open target</Button>
-              </a>
-            }
-          />
-        </Card>
-      )}
+      <p
+        data-testid="resume-banner"
+        className="mt-3 shrink-0 rounded-[var(--radius-sm)] border border-divider bg-[var(--color-inset)] px-3 py-1.5 text-xs text-muted"
+      >
+        Interview OS never invents facts — placeholders like{" "}
+        <code className="text-[var(--color-accent)]">[add metric]</code> are for you to fill in truthfully.
+      </p>
 
-      {hasResume !== false && (
-        <div className="flex items-center gap-3">
-          <Button onClick={runReview} disabled={busy} data-testid="run-review">
-            {review ? "Run review again" : "Run review"}
-          </Button>
-          {busy && <Spinner label={`${stage ?? "starting"}…`} />}
-          {review && (
-            <span className="text-xs text-muted">
-              Last reviewed {new Date(review.createdAt).toLocaleString()}
-            </span>
-          )}
+      {hasResume === false && (
+        <div className="mt-3">
+          <Panel>
+            <EmptyState
+              title="No resume on file"
+              description="Set up your workspace on the Target page first — the coach reviews the resume you upload there."
+              action={
+                <a href="/target">
+                  <Button variant="secondary" size="small">Open target</Button>
+                </a>
+              }
+            />
+          </Panel>
         </div>
       )}
 
-      {review && (
-        <div className="grid gap-5 xl:grid-cols-2">
-          <Card data-testid="ats-card">
-            <CardTitle>ATS check</CardTitle>
-            <div className="mb-4 flex items-center gap-4">
+      {hasResume !== false && !review && !busy && (
+        <div className="mt-3 max-w-4xl">
+          <Panel title="What the review does">
+            <p className="text-[13px] text-muted">
+              It scores your resume against ATS basics, suggests stronger bullets using only facts
+              already in it, and shows how well it is tailored to your target role. It takes a few
+              seconds.
+            </p>
+          </Panel>
+        </div>
+      )}
+
+      {review && tab === "overview" && (
+        <div className="mt-3 grid gap-3 lg:grid-cols-2">
+          <Panel title="ATS check" data-testid="ats-card" className="lg:col-span-1">
+            <div className="flex items-center gap-3">
               <div
                 data-testid="ats-score"
-                className="flex h-16 w-16 shrink-0 items-center justify-center rounded-full border-4 border-blue text-xl font-bold text-navy"
+                className="flex h-14 w-14 shrink-0 items-center justify-center rounded-full border-4 border-[color:var(--color-blue)] text-lg font-bold text-navy"
               >
                 {review.ats.score}
               </div>
-              <div className="flex-1">
-                <Bar
-                  value={review.ats.score / 100}
-                  tone={
-                    review.ats.score >= 70
-                      ? "green"
-                      : review.ats.score >= 45
-                        ? "blue"
-                        : "amber"
-                  }
-                />
+              <div className="min-w-0 flex-1">
+                <p className="text-[13px] text-muted">
+                  ATS readiness {review.ats.score}/100 — {atsVerdict(review.ats.score)}.
+                </p>
+                <div className="mt-1">
+                  <Bar
+                    value={review.ats.score / 100}
+                    tone={review.ats.score >= 70 ? "green" : review.ats.score >= 45 ? "blue" : "amber"}
+                  />
+                </div>
                 <p className="mt-1 text-xs text-muted">
-                  Weighted pass ratio — deterministic, no AI involved.
+                  ATS-style checks only — they improve screening odds but do not guarantee hiring
+                  outcomes.
                 </p>
               </div>
             </div>
-            <ul className="space-y-3">
-              {review.ats.checks.map((c) => (
-                <CheckRow key={c.id} check={c} />
-              ))}
-            </ul>
-          </Card>
-
-          <Card>
-            <CardTitle>Required-skill keywords</CardTitle>
-            {review.ats.keywordCoverage.present.length === 0 &&
-            review.ats.keywordCoverage.missing.length === 0 ? (
-              <p className="text-sm text-muted">
-                The target role lists no required skills.
-              </p>
-            ) : (
-              <ul className="space-y-2 text-sm">
-                {review.ats.keywordCoverage.present.map((k) => (
-                  <li key={k.skillId} className="flex items-start gap-2">
-                    <span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-green-tint text-xs font-bold text-green">
-                      ✓
-                    </span>
-                    <div>
-                      <span className="font-medium text-ink">{k.label}</span>
-                      <span className="ml-2 text-xs text-muted">
-                        found: “{k.snippet.slice(0, 90)}”
-                      </span>
-                    </div>
-                  </li>
-                ))}
-                {review.ats.keywordCoverage.missing.map((k) => (
-                  <li
-                    key={k.skillId}
-                    data-missing-skill={k.skillId}
-                    className="flex items-start gap-2"
-                  >
-                    <span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-[#fdf3e7] text-xs font-bold text-accent">
-                      !
-                    </span>
-                    <div className="text-sm">
-                      <span className="font-medium text-ink">{k.label}</span>
-                      <span className="ml-2 text-xs text-muted">
-                        Not in your resume — if you have this experience, add
-                        it; otherwise see{" "}
-                        <a className="text-blue underline" href="/prepare">
-                          Prepare
-                        </a>
-                        .
-                      </span>
-                    </div>
-                  </li>
+            <div id="ats-check" className="mt-3">
+              <ul>
+                {review.ats.checks.map((c) => (
+                  <CheckRow key={c.id} check={c} />
                 ))}
               </ul>
-            )}
-          </Card>
+            </div>
+          </Panel>
 
-          <Card className="xl:col-span-2" data-testid="suggestions-card">
-            <CardTitle>
-              Bullet suggestions{" "}
-              {review.guard.substitutions + review.guard.dropped > 0 && (
-                <span className="ml-2 text-xs font-normal text-muted">
-                  guard: {review.guard.substitutions} metric
-                  {review.guard.substitutions === 1 ? "" : "s"} substituted
-                  {review.guard.dropped > 0 &&
-                    ` · ${review.guard.dropped} suggestion${review.guard.dropped === 1 ? "" : "s"} dropped (invented entity)`}
-                </span>
+          <Panel title="Highest-impact fixes">
+            {fixes.length === 0 ? (
+              <p className="text-sm text-muted">No blocking issues — nice.</p>
+            ) : (
+              <ol className="space-y-2">
+                {fixes.map((f, i) => (
+                  <li key={f.key} className="flex items-start gap-2.5">
+                    <span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full border border-line text-xs text-muted">
+                      {i + 1}
+                    </span>
+                    <div className="min-w-0">
+                      <p className="text-[13px] font-medium text-ink">{f.title}</p>
+                      <p className="text-xs text-muted">{f.why}</p>
+                      <a href={f.href} className="mt-0.5 inline-block text-xs text-blue underline">
+                        {f.cta}
+                      </a>
+                    </div>
+                  </li>
+                ))}
+              </ol>
+            )}
+          </Panel>
+
+          <Panel title="Required-skill keywords" className="lg:col-span-2">
+            <div id="keywords">
+              {review.ats.keywordCoverage.present.length === 0 &&
+              review.ats.keywordCoverage.missing.length === 0 ? (
+                <p className="text-sm text-muted">The target role lists no required skills.</p>
+              ) : (
+                <ul className="flex flex-wrap gap-1.5">
+                  {review.ats.keywordCoverage.present.map((k) => (
+                    <li key={k.skillId} title={`found: “${k.snippet.slice(0, 90)}”`}>
+                      <Pill tone="green">✓ {k.label}</Pill>
+                    </li>
+                  ))}
+                  {review.ats.keywordCoverage.missing.map((k) => (
+                    <li key={k.skillId} data-missing-skill={k.skillId}>
+                      <Pill tone="amber">! {k.label}</Pill>
+                    </li>
+                  ))}
+                </ul>
               )}
-            </CardTitle>
-            {review.suggestions.length === 0 ? (
-              <p className="text-sm text-muted">
-                No weak bullets found — nice.
-              </p>
-            ) : (
-              <ul className="space-y-4">
-                {review.suggestions.map((s, i) => (
-                  <li
-                    key={i}
-                    className="rounded-[0.6rem] border border-line p-4"
-                    data-testid="suggestion"
-                  >
-                    <div className="grid gap-3 md:grid-cols-2">
-                      <div>
-                        <div className="mb-1 text-xs font-semibold uppercase tracking-wide text-muted">
-                          Original
-                        </div>
-                        <p className="text-sm text-muted line-through decoration-muted/50">
-                          {s.original}
-                        </p>
-                      </div>
-                      <div>
-                        <div className="mb-1 flex items-center gap-2">
-                          <span className="text-xs font-semibold uppercase tracking-wide text-green">
-                            Suggested
-                          </span>
-                          <Button
-                            variant="ghost"
-                            onClick={() => copy(i, s.improved)}
-                          >
-                            {copied === i ? "Copied!" : "Copy"}
-                          </Button>
-                        </div>
-                        <p className="text-sm text-ink">
-                          <Highlighted text={s.improved} />
-                        </p>
-                      </div>
-                    </div>
-                    {s.dropped && (
-                      <p className="mt-2 rounded-[0.4rem] bg-[#fdeef2] px-2 py-1 text-xs text-danger">
-                        Guard dropped an invented fact: {s.dropped}
-                      </p>
-                    )}
-                    <div className="mt-2 flex flex-wrap items-center gap-2">
-                      {s.skillIds.map((id) => (
-                        <Pill key={id} tone="blue">
-                          {skillLabel(id)}
-                        </Pill>
-                      ))}
-                      {s.rationale && (
-                        <span className="text-xs text-muted">
-                          {s.rationale}
-                        </span>
-                      )}
-                    </div>
-                  </li>
-                ))}
-              </ul>
-            )}
-          </Card>
+              {review.ats.keywordCoverage.missing.length > 0 && (
+                <p className="mt-2 text-xs text-muted">
+                  “!” skills are not in your resume — if you have the experience, add it; otherwise
+                  see <a className="text-blue underline" href="/prepare">Prepare</a>.
+                </p>
+              )}
+            </div>
+          </Panel>
+        </div>
+      )}
 
-          {review.tailoring && (
-            <Card className="xl:col-span-2" data-testid="tailoring-card">
-              <CardTitle>Tailored to this role</CardTitle>
-              <p className="mb-4 text-sm text-ink">
-                {review.tailoring.summary}
-              </p>
-              <div className="mb-4 grid gap-4 md:grid-cols-2">
+      {review && tab === "bullets" && (
+        <div data-testid="suggestions-card" className="mt-3 flex min-h-0 flex-1 flex-col">
+          {desktop ? (
+            <SplitPane
+              leftWidth={340}
+              className="flex-1"
+              left={
+                <>
+                  <div className="shrink-0 px-1 pb-1.5 text-xs font-semibold text-muted">
+                    {suggestions.length} bullets
+                  </div>
+                  {bulletList}
+                </>
+              }
+              right={comparisonPanel}
+            />
+          ) : (
+            <>
+              <div className="mb-2 flex shrink-0 items-center gap-2">
+                <Button
+                  variant="secondary"
+                  size="small"
+                  data-testid="open-bullets"
+                  onClick={() => setListOpen(true)}
+                >
+                  Bullets · {suggestions.length}
+                </Button>
+                {suggestion && (
+                  <span className="min-w-0 truncate text-xs text-muted">
+                    {suggestion.original}
+                  </span>
+                )}
+              </div>
+              {comparisonPanel}
+            </>
+          )}
+          <Drawer
+            open={!desktop && listOpen}
+            onClose={() => setListOpen(false)}
+            placement="bottom"
+            size="70%"
+            title={`Bullets · ${suggestions.length}`}
+            styles={{
+              body: { padding: 0, display: "flex", flexDirection: "column" },
+            }}
+          >
+            <div className="min-h-0 flex-1 overflow-auto">{bulletList}</div>
+          </Drawer>
+        </div>
+      )}
+
+      {review && tab === "role" && (
+        <div className="mt-3 max-w-5xl space-y-3">
+          {review.tailoring ? (
+            <Panel data-testid="tailoring-card">
+              <p className="text-[13px] text-ink">{review.tailoring.summary}</p>
+              <div className="mt-3 grid gap-3 md:grid-cols-2">
                 {review.tailoring.emphasize.length > 0 && (
                   <div>
-                    <h3 className="mb-1 text-sm font-semibold text-navy">
-                      Emphasize
-                    </h3>
-                    <ul className="list-inside list-disc space-y-1 text-sm text-muted">
-                      {review.tailoring.emphasize.map((e, i) => (
-                        <li key={i}>{e}</li>
-                      ))}
+                    <h3 className="mb-1 text-[13px] font-semibold text-navy">Emphasize</h3>
+                    <ul className="list-inside list-disc space-y-0.5 text-[13px] text-muted">
+                      {review.tailoring.emphasize.map((e, i) => <li key={i}>{e}</li>)}
                     </ul>
                   </div>
                 )}
                 {review.tailoring.deEmphasize.length > 0 && (
                   <div>
-                    <h3 className="mb-1 text-sm font-semibold text-navy">
-                      De-emphasize
-                    </h3>
-                    <ul className="list-inside list-disc space-y-1 text-sm text-muted">
-                      {review.tailoring.deEmphasize.map((e, i) => (
-                        <li key={i}>{e}</li>
-                      ))}
+                    <h3 className="mb-1 text-[13px] font-semibold text-navy">De-emphasize</h3>
+                    <ul className="list-inside list-disc space-y-0.5 text-[13px] text-muted">
+                      {review.tailoring.deEmphasize.map((e, i) => <li key={i}>{e}</li>)}
                     </ul>
                   </div>
                 )}
               </div>
               {review.tailoring.alignment.length > 0 && (
-                <div className="overflow-x-auto">
-                  <table className="w-full text-left text-sm">
+                <div className="mt-3 overflow-x-auto">
+                  <table className="w-full text-left text-[13px]">
                     <thead>
-                      <tr className="border-b border-line text-xs uppercase tracking-wide text-muted">
-                        <th className="py-2 pr-4">Requirement</th>
-                        <th className="py-2 pr-4">In your resume?</th>
-                        <th className="py-2">Suggestion</th>
+                      <tr className="border-b border-divider text-xs font-medium text-muted">
+                        <th className="py-1.5 pr-4">Requirement</th>
+                        <th className="py-1.5 pr-4">In your resume?</th>
+                        <th className="py-1.5">Suggestion</th>
                       </tr>
                     </thead>
                     <tbody>
                       {review.tailoring.alignment.map((a, i) => (
-                        <tr key={i} className="border-b border-line/60">
-                          <td className="py-2 pr-4 align-top font-medium text-ink">
-                            {a.requirement}
+                        <tr key={i} className="border-b border-divider/70">
+                          <td className="py-1.5 pr-4 align-top font-medium text-ink">{a.requirement}</td>
+                          <td className="py-1.5 pr-4 align-top text-muted">
+                            {a.resumeEvidence ? <span title={a.resumeEvidence}>✓ yes</span> : "— not yet"}
                           </td>
-                          <td className="py-2 pr-4 align-top text-muted">
-                            {a.resumeEvidence ? (
-                              <span title={a.resumeEvidence}>✓ yes</span>
-                            ) : (
-                              "— not yet"
-                            )}
-                          </td>
-                          <td className="py-2 align-top text-muted">
+                          <td className="py-1.5 align-top text-muted">
                             <Highlighted text={a.suggestion} />
                           </td>
                         </tr>
@@ -382,25 +582,27 @@ export default function Resume() {
                 </div>
               )}
               {review.tailoring.prepGaps.length > 0 && (
-                <p className="mt-3 text-sm text-muted">
+                <p className="mt-2 text-xs text-muted">
                   Gaps for preparation, not the resume:{" "}
                   {review.linkedGapSkillIds.length > 0
-                    ? review.linkedGapSkillIds
-                        .map((id) => skillLabel(id))
-                        .join(", ")
+                    ? review.linkedGapSkillIds.map((id) => skillLabel(id)).join(", ")
                     : review.tailoring.prepGaps.join(", ")}
                   {" — see "}
-                  <a className="text-blue underline" href="/prepare">
-                    Prepare
-                  </a>
-                  .
+                  <a className="text-blue underline" href="/prepare">Prepare</a>.
                 </p>
               )}
-            </Card>
+            </Panel>
+          ) : (
+            <Panel>
+              <EmptyState title="No tailoring yet" description="Run a review to compare your resume with the role." />
+            </Panel>
           )}
         </div>
       )}
-      <PluginSlot slot="resume.tabs" />
-    </div>
+
+      <div className="mt-3 shrink-0">
+        <ExtensionSlot slot="resume.tabs" />
+      </div>
+    </Workspace>
   );
 }

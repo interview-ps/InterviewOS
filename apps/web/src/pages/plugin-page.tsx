@@ -1,11 +1,11 @@
 import { useCallback, useEffect, useState } from "react";
-import { useNavigate, useParams } from "react-router";
+import { Link, useNavigate, useParams } from "react-router";
 import { DeclarativeRenderer } from "@interview-os/ui";
 import type { UINode } from "@interview-os/frontend-types";
 import { api } from "@/lib/api";
 import { runUIAction } from "@/lib/plugin-actions";
 import { PluginFrame, useUIContributions } from "@/components/plugin-ui";
-import { EmptyState, PageHeader, Skeleton } from "@/components/ui";
+import { Button, EmptyState, PageHeader, Skeleton } from "@/components/ui";
 
 /** v0.4: full plugin pages at /plugins/<id>/<path> (manifest-declared). */
 export default function PluginPage() {
@@ -47,12 +47,22 @@ export default function PluginPage() {
       <EmptyState
         title="Plugin page not found"
         description="This plugin doesn't declare a page at this path — or the plugin is disabled."
+        action={
+          <Link to="/skills">
+            <Button variant="secondary">Back to Extensions</Button>
+          </Link>
+        }
       />
     );
   }
 
   return (
     <div>
+      <p className="mb-2 text-sm">
+        <Link to="/skills" className="text-blue underline">
+          ← Back to Extensions
+        </Link>
+      </p>
       <PageHeader
         title={page.title}
         subtitle={`from plugin ${plugin.pluginName}`}
@@ -70,7 +80,7 @@ export default function PluginPage() {
         <div
           role="alert"
           data-testid="plugin-ui-error"
-          className="rounded-[0.6rem] border border-accent/40 bg-[#fdf3e7] p-3 text-sm text-accent"
+          className="rounded-[var(--radius-card)] border border-[color:var(--color-accent-tint)] bg-[var(--color-accent-tint)] p-3 text-sm text-[var(--color-accent)]"
         >
           Plugin page unavailable — {error}
         </div>

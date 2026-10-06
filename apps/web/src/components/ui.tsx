@@ -11,28 +11,68 @@ export {
   Button,
   Card,
   CardTitle,
+  DataRow,
   EmptyState,
   ErrorNote,
   EvidenceList,
+  ExtensionRegion,
   InterviewEmptyState,
   InterviewQuestion,
   InterviewSpinner,
   PageHeader,
+  Panel,
   Pill,
   QuestionCard,
+  ScreenToolbar,
+  SettingRow,
   SkillGapBadge,
   SkillScoreCard,
   Skeleton,
   SkeletonCard,
   Spinner,
+  SplitPane,
   Stat,
+  StatStrip,
+  Workspace,
 } from "@/ui";
 
 /** Product alias — the component is `SkillScoreCard`. */
 export { SkillScoreCard as SkillScore } from "@/ui";
 
+/* Reusable product patterns. */
+export {
+  Callout,
+  CollapseList,
+  CopyText,
+  DeltaList,
+  DeltaText,
+  KeyValue,
+  PriorityList,
+  RichText,
+  Section,
+  SectionHeading,
+  StatusDot,
+  displayLabel,
+  gapReason,
+  humanize,
+  pct,
+  readinessBarTone,
+  readinessVerdict,
+  trendOf,
+} from "@/ui";
+export type { Delta, PriorityItem } from "@/ui";
+
 /** Product charts (antd-free, shared with plugin frames). */
-export { ReadinessChart, Sparkline } from "@interview-os/ui";
+export {
+  ReadinessChart,
+  Sparkline,
+  ReadinessHistoryChart,
+  SkillDimensionBars,
+  GapSeverityBars,
+  TargetBar,
+  EvidenceTimeline,
+  EvidenceTypeChip,
+} from "@interview-os/ui";
 
 export type { Tone };
 

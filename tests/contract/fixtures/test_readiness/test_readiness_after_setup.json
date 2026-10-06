@@ -32,7 +32,7 @@
               "distributed-systems.caching",
               "distributed-systems.message-queues"
             ],
-            "confidence": 0,
+            "confidence": 0.0,
             "evidenceIds": [],
             "label": "Distributed Systems",
             "score": null,
@@ -41,7 +41,7 @@
           },
           "distributed-systems.caching": {
             "children": [],
-            "confidence": 0,
+            "confidence": 0.0,
             "evidenceIds": [],
             "label": "Caching",
             "score": null,
@@ -50,7 +50,7 @@
           },
           "distributed-systems.message-queues": {
             "children": [],
-            "confidence": 0,
+            "confidence": 0.0,
             "evidenceIds": [],
             "label": "Message Queues",
             "score": null,
@@ -62,7 +62,7 @@
               "infrastructure.kubernetes",
               "infrastructure.observability"
             ],
-            "confidence": 0,
+            "confidence": 0.0,
             "evidenceIds": [],
             "label": "Infrastructure",
             "score": null,
@@ -71,7 +71,7 @@
           },
           "infrastructure.kubernetes": {
             "children": [],
-            "confidence": 0,
+            "confidence": 0.0,
             "evidenceIds": [],
             "label": "Kubernetes",
             "score": null,
@@ -80,7 +80,7 @@
           },
           "infrastructure.observability": {
             "children": [],
-            "confidence": 0,
+            "confidence": 0.0,
             "evidenceIds": [],
             "label": "Observability",
             "score": null,
@@ -113,7 +113,7 @@
             "children": [
               "system-design.async-processing"
             ],
-            "confidence": 0,
+            "confidence": 0.0,
             "evidenceIds": [],
             "label": "System Design",
             "score": null,
@@ -122,7 +122,7 @@
           },
           "system-design.async-processing": {
             "children": [],
-            "confidence": 0,
+            "confidence": 0.0,
             "evidenceIds": [],
             "label": "Async Processing",
             "score": null,

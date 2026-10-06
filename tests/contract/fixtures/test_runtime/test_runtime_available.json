@@ -5,47 +5,39 @@
         "active": "mock",
         "providers": [
           {
-            "available": true,
-            "executable": "<env>",
+            "available": "<env>",
             "message": "<env>",
             "runtime": "codex",
-            "status": "ready",
-            "version": "<env>",
-            "workspace": "<repo>\\data\\codex-workspace"
+            "status": "<env>",
+            "workspace": "<repo>/data/codex-workspace"
           },
           {
-            "available": true,
+            "available": "<env>",
             "message": "<env>",
             "runtime": "mock",
-            "status": "ready",
-            "workspace": "<repo>\\data\\codex-workspace"
+            "status": "<env>",
+            "workspace": "<repo>/data/codex-workspace"
           },
           {
-            "available": true,
-            "executable": "<env>",
+            "available": "<env>",
             "message": "<env>",
             "runtime": "claude",
-            "status": "ready",
-            "version": "<env>",
-            "workspace": "<repo>\\data\\claude-workspace"
+            "status": "<env>",
+            "workspace": "<repo>/data/claude-workspace"
           },
           {
-            "available": true,
-            "executable": "<env>",
+            "available": "<env>",
             "message": "<env>",
             "runtime": "opencode",
-            "status": "ready",
-            "version": "<env>",
-            "workspace": "<repo>\\data\\opencode-workspace"
+            "status": "<env>",
+            "workspace": "<repo>/data/opencode-workspace"
           },
           {
-            "available": true,
-            "executable": "<env>",
+            "available": "<env>",
             "message": "<env>",
             "runtime": "devin",
-            "status": "ready",
-            "version": "<env>",
-            "workspace": "<repo>\\data\\devin-workspace"
+            "status": "<env>",
+            "workspace": "<repo>/data/devin-workspace"
           }
         ]
       },

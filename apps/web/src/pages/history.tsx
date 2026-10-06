@@ -1,11 +1,42 @@
 import { Link } from "react-router";
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { Table } from "antd";
 import { api, type HistoryEntry, type HistoryQuestion, type TargetListItem, type InterviewLoop } from "@/lib/api";
 import { useAvailableModes } from "@/lib/modes";
-import { Bar, Button, Card, CardTitle, EmptyState, ErrorNote, PageHeader, Pill, SkeletonCard, Spinner, skillLabel } from "@/components/ui";
+import {
+  Bar,
+  Button,
+  EmptyState,
+  ErrorNote,
+  Panel,
+  Pill,
+  ScreenToolbar,
+  Skeleton,
+  SplitPane,
+  Workspace,
+  displayLabel,
+  humanize,
+} from "@/components/ui";
 
 const fmtScore = (n: number | null | undefined) =>
   n === null || n === undefined ? "—" : `${Math.round(n * 100)}%`;
+
+/** Readiness moves for a session row — the outcome, not the metadata. */
+function rowDeltas(
+  e: HistoryEntry,
+): { skillId: string; label: string; before: number | null; after: number | null }[] {
+  const map = new Map<string, { before: number | null; after: number | null }>();
+  for (const q of e.questions ?? []) {
+    for (const d of q.readinessDelta ?? []) {
+      const cur = map.get(d.skillId);
+      if (!cur) map.set(d.skillId, { before: d.before, after: d.after });
+      else cur.after = d.after;
+    }
+  }
+  return [...map]
+    .slice(0, 3)
+    .map(([skillId, v]) => ({ skillId, label: displayLabel(skillId), ...v }));
+}
 
 function QuestionNode({ node, depth = 0 }: { node: HistoryQuestion; depth?: number }) {
   const ev = node.evaluation;
@@ -14,11 +45,17 @@ function QuestionNode({ node, depth = 0 }: { node: HistoryQuestion; depth?: numb
   const readinessDelta = node.readinessDelta ?? [];
   return (
     <div
-      className={`rounded-[0.6rem] p-3 text-sm ${node.weak ? "bg-red-50/60 border border-red-200" : "bg-page"} ${depth > 0 ? "ml-5 border-l-2 border-l-line" : ""}`}
+      className={`rounded-[var(--radius-sm)] border p-2.5 text-[13px] ${
+        node.weak ? "border-red-200 bg-red-50/60" : "border-line bg-page"
+      } ${depth > 0 ? "ml-4" : ""}`}
     >
       <div className="flex flex-wrap items-center gap-2">
-        {node.question.followUpOf && <Pill tone="amber">follow-up{node.question.followUpFocus ? `: ${node.question.followUpFocus}` : ""}</Pill>}
-        <Pill tone="muted">{skillLabel(node.question.skillId)}</Pill>
+        {node.question.followUpOf && (
+          <Pill tone="amber">
+            follow-up{node.question.followUpFocus ? `: ${node.question.followUpFocus}` : ""}
+          </Pill>
+        )}
+        <Pill tone="muted">{displayLabel(node.question.skillId)}</Pill>
         {node.weak && <Pill tone="red">weak</Pill>}
       </div>
       <p className="mt-1 font-medium">{node.question.text}</p>
@@ -29,41 +66,33 @@ function QuestionNode({ node, depth = 0 }: { node: HistoryQuestion; depth?: numb
         <p className="mt-1 text-xs text-muted">Design: {node.question.extra.problem}</p>
       )}
       {node.answer && (
-        <div className="mt-2">
+        <div className="mt-1.5">
           <p className="text-muted">“{node.answer.text}”</p>
           {node.answer.code && (
             <pre className="mt-1 overflow-x-auto rounded bg-navy/90 p-2 text-xs text-white">
               <code>{node.answer.code}</code>
             </pre>
           )}
-          {node.answer.language && (
-            <p className="mt-0.5 text-xs text-muted">language: {node.answer.language}</p>
-          )}
           {node.answer.voice && (
             <div className="mt-1 flex flex-wrap items-center gap-1.5 text-xs text-muted" data-testid="voice-hints">
               <span>delivery:</span>
               {node.answer.voice.feedback.signals.map((s) => (
                 <Pill key={s.id} tone={s.status === "ok" ? "green" : "amber"}>
-                  {s.id}
+                  {humanize(s.id)}
                 </Pill>
               ))}
-              <span>
-                {node.answer.voice.feedback.wordCount} words
-                {node.answer.voice.feedback.wordsPerMinute != null &&
-                  ` · ${Math.round(node.answer.voice.feedback.wordsPerMinute)} wpm`}
-              </span>
             </div>
           )}
         </div>
       )}
       {ev && (
-        <div className="mt-2">
+        <div className="mt-1.5">
           <p className="text-xs text-muted">{ev.summary}</p>
           {rubric.length > 0 && (
-            <dl className="mt-2 space-y-1">
+            <dl className="mt-1.5 space-y-1">
               {rubric.map((d) => (
                 <div key={d.id} className="flex items-center gap-2">
-                  <dt className="w-36 shrink-0 truncate text-xs text-muted">{d.label}</dt>
+                  <dt className="w-32 shrink-0 truncate text-xs text-muted">{d.label}</dt>
                   <dd className="w-24 shrink-0">
                     <Bar value={d.score} tone={d.score < 0.5 ? "amber" : d.score >= 0.75 ? "green" : "blue"} />
                   </dd>
@@ -73,10 +102,10 @@ function QuestionNode({ node, depth = 0 }: { node: HistoryQuestion; depth?: numb
             </dl>
           )}
           {readinessDelta.length > 0 && (
-            <p className="mt-2 text-xs text-muted">
+            <p className="mt-1.5 text-xs text-muted">
               Readiness:{" "}
               {readinessDelta
-                .map((d) => `${skillLabel(d.skillId)} ${fmtScore(d.before)}→${fmtScore(d.after)}`)
+                .map((d) => `${displayLabel(d.skillId)} ${fmtScore(d.before)}→${fmtScore(d.after)}`)
                 .join(" · ")}
             </p>
           )}
@@ -88,7 +117,7 @@ function QuestionNode({ node, depth = 0 }: { node: HistoryQuestion; depth?: numb
 
 export default function History() {
   const [entries, setEntries] = useState<HistoryEntry[] | null>(null);
-  const [expanded, setExpanded] = useState<string | null>(null);
+  const [selectedId, setSelectedId] = useState<string | null>(null);
   const [detail, setDetail] = useState<HistoryEntry | null>(null);
   const [targets, setTargets] = useState<TargetListItem[]>([]);
   const [loops, setLoops] = useState<InterviewLoop[]>([]);
@@ -99,8 +128,6 @@ export default function History() {
   const [weakOnly, setWeakOnly] = useState(false);
   const available = useAvailableModes();
 
-  // filter list = available modes + any mode present in stored sessions
-  // (keeps disabled-plugin modes filterable in history)
   const modeOptions = useMemo(() => {
     const labels = new Map<string, string>();
     for (const m of available) labels.set(m.id, m.label);
@@ -122,7 +149,10 @@ export default function History() {
         loopId: loopId || undefined,
         weakOnly,
       })
-      .then(setEntries)
+      .then((rows) => {
+        setEntries(rows);
+        setSelectedId(rows[0]?.session.id ?? null);
+      })
       .catch((e) => setError(e));
   }, [mode, targetId, loopId, weakOnly]);
 
@@ -134,149 +164,227 @@ export default function History() {
     api.loops().then(setLoops).catch(() => {});
   }, []);
 
-  const toggle = (id: string) => {
-    if (expanded === id) {
-      setExpanded(null);
-      setDetail(null);
-      return;
-    }
-    setExpanded(id);
+  const select = (id: string) => {
+    setSelectedId(id);
     setDetail(null);
     api.sessionHistory(id).then(setDetail).catch((e) => setError(e));
   };
 
+  const clearFilters = () => {
+    setMode("");
+    setTargetId("");
+    setLoopId("");
+    setWeakOnly(false);
+  };
+  const filtered = mode || targetId || loopId || weakOnly;
+
   if (!entries && !error) {
     return (
-      <div className="space-y-4">
-        <PageHeader title="History" />
-        <SkeletonCard lines={2} />
-        <SkeletonCard lines={2} />
-      </div>
+      <Workspace toolbar={<ScreenToolbar title="History" />} bodyClassName="space-y-3">
+        <Skeleton className="h-40 w-full" />
+      </Workspace>
     );
   }
 
+  const selected = (entries ?? []).find((e) => e.session.id === selectedId) ?? null;
+  const columns = [
+    {
+      title: "Session",
+      key: "session",
+      render: (_: unknown, e: HistoryEntry) => (
+        <span className="text-[13px] font-medium text-ink">
+          {e.session.mode === "practice"
+            ? "Practice session"
+            : `${e.session.modeLabel ?? displayLabel(e.session.roundType)} interview`}
+        </span>
+      ),
+    },
+    {
+      title: "Target",
+      key: "target",
+      width: 150,
+      render: (_: unknown, e: HistoryEntry) => (
+        <span className="text-xs text-muted">{e.target ? `${e.target.role} · ${e.target.company}` : "—"}</span>
+      ),
+    },
+    {
+      title: "Date",
+      key: "date",
+      width: 110,
+      render: (_: unknown, e: HistoryEntry) => (
+        <span className="text-xs text-muted">{new Date(e.session.createdAt).toLocaleDateString()}</span>
+      ),
+    },
+    {
+      title: "Outcome",
+      key: "outcome",
+      width: 130,
+      render: (_: unknown, e: HistoryEntry) => (
+        <Pill tone={e.hasWeakAnswer ? "amber" : "green"}>
+          {e.hasWeakAnswer ? "Needs improvement" : "Completed"}
+        </Pill>
+      ),
+    },
+    {
+      title: "Questions",
+      key: "questions",
+      width: 100,
+      render: (_: unknown, e: HistoryEntry) => (
+        <span className="text-xs text-muted">{(e.questions ?? []).length}</span>
+      ),
+    },
+  ];
+
   return (
-    <div className="space-y-4">
-      <PageHeader
-        title="History"
-        subtitle="Every session, question, answer and debrief — filter to review weak answers."
-      />
-      <Card>
-        <div className="flex flex-wrap items-center gap-3 text-sm">
-          <select
-            aria-label="Filter by mode"
-            value={mode}
-            onChange={(e) => setMode(e.target.value)}
-            className="rounded border border-line bg-white px-2 py-1"
-          >
-            {modeOptions.map(([v, l]) => (
-              <option key={v} value={v}>{l}</option>
-            ))}
-          </select>
-          <select
-            aria-label="Filter by target"
-            value={targetId}
-            onChange={(e) => setTargetId(e.target.value)}
-            className="rounded border border-line bg-white px-2 py-1"
-          >
-            <option value="">All targets</option>
-            {targets.map((t) => (
-              <option key={t.id} value={t.id}>{t.role} — {t.company}</option>
-            ))}
-          </select>
-          <select
-            aria-label="Filter by loop"
-            value={loopId}
-            onChange={(e) => setLoopId(e.target.value)}
-            className="rounded border border-line bg-white px-2 py-1"
-          >
-            <option value="">All loops</option>
-            {loops.map((l) => (
-              <option key={l.id} value={l.id}>
-                Loop {new Date(l.createdAt).toLocaleDateString()}
-              </option>
-            ))}
-          </select>
-          <label className="flex items-center gap-1.5 text-muted">
-            <input
-              type="checkbox"
-              checked={weakOnly}
-              onChange={(e) => setWeakOnly(e.target.checked)}
-              data-testid="weak-only"
-            />
-            Weak answers only
-          </label>
-        </div>
-      </Card>
+    <Workspace
+      scroll={false}
+      toolbar={
+        <ScreenToolbar
+          title="History"
+          subtitle="Every session, question, answer and debrief — filter to review weak answers."
+          actions={
+            filtered ? (
+              <Button variant="ghost" size="small" onClick={clearFilters}>
+                Clear filters
+              </Button>
+            ) : undefined
+          }
+        />
+      }
+    >
       <ErrorNote error={error} />
-      {entries?.length === 0 && (
-        <Card>
-          <EmptyState
-            title="No past interviews match these filters"
-            description="Run an interview or loosen the filters above."
-            action={
-              <Link to="/interview">
-                <Button variant="secondary">Start an interview</Button>
-              </Link>
-            }
+
+      <div className="mt-2 flex shrink-0 flex-wrap items-center gap-2 text-[13px]">
+        <select aria-label="Filter by mode" value={mode} onChange={(e) => setMode(e.target.value)} className="rounded-[var(--radius-sm)] border border-line bg-surface px-2 py-1">
+          {modeOptions.map(([v, l]) => (
+            <option key={v} value={v}>{l}</option>
+          ))}
+        </select>
+        <select aria-label="Filter by target" value={targetId} onChange={(e) => setTargetId(e.target.value)} className="rounded-[var(--radius-sm)] border border-line bg-surface px-2 py-1">
+          <option value="">All targets</option>
+          {targets.map((t) => (
+            <option key={t.id} value={t.id}>{t.role} — {t.company}</option>
+          ))}
+        </select>
+        <select aria-label="Filter by loop" value={loopId} onChange={(e) => setLoopId(e.target.value)} className="rounded-[var(--radius-sm)] border border-line bg-surface px-2 py-1">
+          <option value="">All loops</option>
+          {loops.map((l) => (
+            <option key={l.id} value={l.id}>
+              Loop {new Date(l.createdAt).toLocaleDateString()}
+            </option>
+          ))}
+        </select>
+        <label className="flex items-center gap-1.5 text-muted">
+          <input
+            type="checkbox"
+            checked={weakOnly}
+            onChange={(e) => setWeakOnly(e.target.checked)}
+            data-testid="weak-only"
           />
-        </Card>
-      )}
-      {entries?.map((e) => (
-        <Card key={e.session.id}>
-          <button onClick={() => toggle(e.session.id)} aria-expanded={expanded === e.session.id} className="w-full text-left">
-            <div className="flex flex-wrap items-center gap-2">
-              <span className="font-medium">{new Date(e.session.createdAt).toLocaleString()}</span>
-              <Pill tone="blue">{e.session.modeLabel ?? e.session.roundType}</Pill>
-              {e.session.mode === "practice" && <Pill tone="amber">Practice</Pill>}
-              {e.target && (
-                <span className="text-sm text-muted">{e.target.role} — {e.target.company}</span>
+          Weak answers only
+        </label>
+      </div>
+
+      {entries?.length === 0 ? (
+        <div className="mt-3 max-w-3xl">
+          <Panel>
+            <EmptyState
+              title="No past interviews match these filters"
+              description="Run an interview or loosen the filters above."
+              action={
+                <Link to="/interview">
+                  <Button variant="secondary" size="small">Start an interview</Button>
+                </Link>
+              }
+            />
+          </Panel>
+        </div>
+      ) : (
+        <SplitPane
+          leftWidth="58%"
+          className="mt-3 flex-1"
+          left={
+            <Panel className="flex-1" padded={false}>
+              <Table
+                size="small"
+                rowKey={(e) => e.session.id}
+                columns={columns}
+                dataSource={entries ?? []}
+                pagination={false}
+                onRow={(e) => ({
+                  onClick: () => select(e.session.id),
+                  style: { cursor: "pointer" },
+                })}
+                rowClassName={(e) => (e.session.id === selectedId ? "ant-table-row-selected" : "")}
+              />
+            </Panel>
+          }
+          right={
+            <Panel
+              className="flex-1"
+              title={selected ? "Session detail" : "Select a session"}
+            >
+              {!selected && (
+                <EmptyState title="Select a session" description="Pick a row to review its questions and feedback." />
               )}
-              {e.target && <Pill tone="muted">{e.target.companyProfileId} profile</Pill>}
-              {e.loop && (
-                <Pill tone="blue">loop round {e.loop.round}/{e.loop.totalRounds}</Pill>
-              )}
-              {e.hasWeakAnswer && <Pill tone="red">weak answer</Pill>}
-              <Pill tone={e.session.status === "debrief" ? "green" : "muted"}>{e.session.status}</Pill>
-              <span className="text-sm text-muted">{(e.questions ?? []).length} questions</span>
-              <span className="ml-auto text-muted" aria-hidden>{expanded === e.session.id ? "▾" : "▸"}</span>
-            </div>
-          </button>
-          {expanded === e.session.id && (
-            <div className="mt-3 space-y-3 border-t border-line pt-3">
-              {expanded === e.session.id && !detail && <Spinner />}
-              {(detail?.questions ?? []).map((m) => (
-                <div key={m.question.id}>
-                  <QuestionNode node={m} />
-                  {(m.followUps ?? []).map((f) => (
-                    <div key={f.question.id} className="mt-1.5">
-                      <QuestionNode node={f} depth={1} />
+              {selected && (
+                <div className="space-y-2">
+                  <div className="flex flex-wrap items-center gap-2 text-xs text-muted">
+                    {selected.session.mode === "practice" && <Pill tone="amber">Practice</Pill>}
+                    <Pill tone={selected.session.status === "debrief" ? "green" : "muted"}>
+                      {displayLabel(selected.session.status)}
+                    </Pill>
+                    {selected.target && (
+                      <Pill tone="muted">{humanize(selected.target.companyProfileId)} profile</Pill>
+                    )}
+                    {selected.loop && (
+                      <Pill tone="blue">loop round {selected.loop.round}/{selected.loop.totalRounds}</Pill>
+                    )}
+                    {selected.hasWeakAnswer && <Pill tone="red">weak answer</Pill>}
+                    {rowDeltas(selected).map((d) => (
+                      <span key={d.skillId}>
+                        {d.label}{" "}
+                        {d.before !== null && d.after !== null ? (d.after >= d.before ? "↑" : "↓") : ""}
+                      </span>
+                    ))}
+                    <Link to={`/interview/${selected.session.id}`} className="ml-auto text-blue underline">
+                      Open session
+                    </Link>
+                  </div>
+
+                  {!detail && <Skeleton className="h-24 w-full" />}
+                  {(detail?.questions ?? []).map((m) => (
+                    <div key={m.question.id} className="space-y-1.5">
+                      <QuestionNode node={m} />
+                      {(m.followUps ?? []).map((f) => (
+                        <QuestionNode key={f.question.id} node={f} depth={1} />
+                      ))}
                     </div>
                   ))}
-                </div>
-              ))}
-              {detail && (detail.actionsCreated ?? []).length > 0 && (
-                <div className="rounded-[0.6rem] bg-page p-3 text-sm">
-                  <p className="font-medium text-ink">Prep actions created</p>
-                  <ul className="mt-1 list-disc pl-5 text-xs text-muted">
-                    {(detail.actionsCreated ?? []).map((a) => (
-                      <li key={a.id}>
-                        {a.action} <span className="text-blue">({skillLabel(a.skillId)})</span>
-                      </li>
-                    ))}
-                  </ul>
+                  {detail && (detail.actionsCreated ?? []).length > 0 && (
+                    <div className="rounded-[var(--radius-sm)] bg-page p-2.5 text-[13px]">
+                      <p className="font-medium text-ink">Prep actions created</p>
+                      <ul className="mt-1 list-disc pl-5 text-xs text-muted">
+                        {(detail.actionsCreated ?? []).map((a) => (
+                          <li key={a.id}>
+                            {a.action} <span className="text-blue">({displayLabel(a.skillId)})</span>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+                  {detail?.debrief && (
+                    <div className="rounded-[var(--radius-sm)] bg-green-tint p-2.5 text-[13px]">
+                      <p className="font-medium text-green">Debrief</p>
+                      <p className="mt-1">{detail.debrief.summary}</p>
+                    </div>
+                  )}
                 </div>
               )}
-              {detail?.debrief && (
-                <div className="rounded-[0.6rem] bg-green-tint p-3 text-sm">
-                  <p className="font-medium text-green">Debrief</p>
-                  <p className="mt-1">{detail.debrief.summary}</p>
-                </div>
-              )}
-            </div>
-          )}
-        </Card>
-      ))}
-    </div>
+            </Panel>
+          }
+        />
+      )}
+    </Workspace>
   );
 }

@@ -9,6 +9,7 @@ MASKS below with the reason it is needed.
 from __future__ import annotations
 
 import re
+import shutil
 from pathlib import Path
 from typing import Any
 
@@ -52,6 +53,17 @@ _ROWID_KEYS = frozenset({"id", "rowid", "seq"})
 _FLOAT_DECIMALS = 6
 
 
+def canonical_newlines(value: str) -> str:
+    """Collapse CRLF to LF.
+
+    Line endings are a *checkout* artifact, not part of the contract: the same
+    `examples/*.md` file is CRLF on a Windows checkout and LF on Linux/CI, and
+    the API stores and returns the text verbatim. Comparing on LF only means a
+    fixture recorded on either platform validates on both.
+    """
+    return value.replace("\r\n", "\n")
+
+
 class Normalizer:
     """Per-test normalizer: id numbering restarts for each test."""
 
@@ -73,9 +85,18 @@ class Normalizer:
             return self._map_id(value, m.group(1))
         if _TS_RE.match(value):
             return "<ts>"
+        value = canonical_newlines(value)
+        masked_path = False
         for needle, repl in self._substrings:
             if needle and needle in value:
                 value = value.replace(needle, repl)
+                masked_path = True
+        if masked_path:
+            # Whatever follows a masked repo/tmp/node path is a path too, and the
+            # separator is the recording platform's, not the API's: `E:\...` →
+            # `<repo>` leaves `\tests\fixtures\...` on Windows but
+            # `/tests/fixtures/...` on Linux/CI.
+            value = value.replace("\\", "/")
         value = _MOCK_THREAD_RE.sub("<mock-thread>", value)
         value = _PORT_RE.sub(r"\1:<port>", value)
         value = _NONCE_RE.sub('nonce="<nonce>"', value)
@@ -112,14 +133,24 @@ def default_normalizer(
     - each tmpdir → `<tmp>`: per-run temp dirs (db path, installed plugin/pack
       dirs) can appear in views and error messages. Several servers may be
       spawned per session (module-scoped isolation), so all are masked.
-    Both are masked with `/` and `\\` separator variants.
+    - the Node executable → `<node>`: the harness puts `shutil.which("node")`
+      into the MCP server config, and MCP views echo the config back — the path
+      is the runner image's (`/opt/hostedtoolcache/...` on CI,
+      `C:\\Program Files\\nodejs\\node.EXE` on a Windows dev box).
+    Both paths are masked with `/` and `\\` separator variants.
     """
     subs: list[tuple[str, str]] = []
-    for path, tag in [(repo_root, "<repo>"), *((t, "<tmp>") for t in tmpdirs)]:
-        p = str(path)
-        subs.append((p, tag))
-        posix = p.replace("\\", "/")
-        if posix != p:
+    paths: list[tuple[str | None, str]] = [
+        (str(repo_root), "<repo>"),
+        *((str(t), "<tmp>") for t in tmpdirs),
+        (shutil.which("node"), "<node>"),
+    ]
+    for path, tag in paths:
+        if path is None:
+            continue
+        subs.append((path, tag))
+        posix = path.replace("\\", "/")
+        if posix != path:
             subs.append((posix, tag))
     return Normalizer(subs)
 

@@ -74,6 +74,7 @@ from ...core.plugin_api import (
     PluginPrepActivity,
     is_plugin_hook_name,
 )
+from ...core.serialize import dump_json
 from ...skills.framework import PluginKvStorage
 from ...skills.host import (
     PluginError,
@@ -924,7 +925,15 @@ class PluginService:
                 f'component "{req.component}" is kind "{kind}" — only declarative contributions '
                 "render via this endpoint",
             )
-        params_dump = json.dumps(req.params, default=str)
+        params = req.params
+        if params is None:
+            # Declarative contributions get the slices they declared (and the user
+            # granted) from the host — unlike frames they have no bridge to ask.
+            params = await self._declared_slices(
+                id,
+                {"kind": "ui", "slot": req.slot, "component": req.component, "page": req.page},
+            )
+        params_dump = json.dumps(params, default=str)
         key = "|".join([id, req.slot or "", req.page or "", req.component, params_dump])
         hit = self._ui_render_cache.get(key)
         if hit is not None and hit.epoch == self._ctx.ui_epoch and (
@@ -938,7 +947,7 @@ class PluginService:
                 "slot": req.slot,
                 "component": req.component,
                 "page": req.page,
-                "params": req.params,
+                "params": params,
             },
         )
         raw_tree = output.get("ui") if isinstance(output, Mapping) else None
@@ -1047,14 +1056,23 @@ class PluginService:
 
     async def plugin_ui_data(self, id: str, sel: UIFrameSelector) -> dict[str, object]:
         await self.resolve_ui_frame(id, sel)
-        slices, granted, _candidate, entry = await self._assemble_slices(
+        return await self._declared_slices(
             id, {"kind": "ui-frame", "component": sel.component, "page": sel.page}
         )
+
+    async def _declared_slices(self, id: str, request: object) -> dict[str, object]:
+        """The manifest's declared inputs ∩ the user's grants, as plain JSON data.
+
+        Frames pull these through their own `getData()` bridge; declarative
+        contributions have no bridge, so the host hands them over directly.
+        """
+
+        slices, granted, _candidate, entry = await self._assemble_slices(id, request)
         granted_set = set(granted)
         out: dict[str, object] = {}
         for declared in entry.manifest.inputs:
             if declared.permission in granted_set:
-                out[declared.key] = slices.get(declared.key)
+                out[declared.key] = dump_json(slices.get(declared.key))
         out["settings"] = await self.get_plugin_settings(id)
         return out
 

@@ -8,10 +8,22 @@
 /* dark mode keyed off the ThemeProvider's <html data-theme="…"> */
 @custom-variant dark (&:where([data-theme="dark"], [data-theme="dark"] *));
 
+/* Full-height app frame: the shell owns the viewport, panels own their scroll. */
+html,
+body,
+#root {
+  height: 100%;
+}
+
 body {
+  margin: 0;
   background: var(--color-page);
   color: var(--color-ink);
   font-family: var(--font-body);
+  font-size: 14px;
+  line-height: 1.5;
+  overflow-wrap: break-word;
+  -webkit-font-smoothing: antialiased;
 }
 
 h1, h2, h3, h4 {
@@ -24,33 +36,268 @@ h1, h2, h3, h4, .font-display {
   word-spacing: 0.12em;
 }
 
+/* One accessible focus treatment aligned with the accent (never amber here). */
 :focus-visible {
-  outline: 2px solid var(--color-accent);
+  outline: 2px solid var(--color-blue);
   outline-offset: 2px;
+  border-radius: 2px;
 }
 
-/* antd shell chrome (interview- prefix set via ConfigProvider) */
+/* -- overlays -------------------------------------------------------------- */
+
+/* Settled overlay surfaces are opaque; only the backdrop mask is translucent.
+   Keeps page content from showing through drawers, modals and dropdowns. */
+.interview-drawer-content,
+.interview-modal-content,
+.interview-modal-header,
+.interview-modal-footer,
+.interview-select-dropdown,
+.interview-dropdown-menu {
+  background-color: var(--color-surface);
+}
+
+.interview-drawer-content,
+.interview-modal-content {
+  box-shadow: var(--interview-shadow-md);
+}
+
+/* Bottom sheets get a softer top edge; side drawers stay square. */
+.interview-drawer-bottom .interview-drawer-content {
+  border-start-start-radius: 12px;
+  border-start-end-radius: 12px;
+}
+
+.interview-drawer-mask,
+.interview-modal-mask {
+  background-color: rgba(16, 24, 40, 0.45);
+}
+
+[data-theme="dark"] .interview-drawer-mask,
+[data-theme="dark"] .interview-modal-mask {
+  background-color: rgba(3, 7, 18, 0.6);
+}
+
+/* -- form controls --------------------------------------------------------- */
+
+/* Native controls use the stronger control border, a white surface and a
+   cobalt focus border; panels keep the subtler divider. Ant Design controls
+   already follow the same tokens via ConfigProvider, so they are excluded by
+   their `interview-` class (an opaque search input would otherwise cover the
+   Select's selected label). */
+input:not([class*="interview-"]):not([type="checkbox"]):not([type="radio"]):not([type="file"]),
+select,
+textarea {
+  border-color: var(--interview-control);
+  background-color: var(--color-surface);
+}
+
+input:not([class*="interview-"]):not([type="checkbox"]):not([type="radio"]):not([type="file"]):focus,
+select:focus,
+textarea:focus {
+  border-color: var(--color-blue);
+}
+
+@media (max-width: 991px) {
+  /* Comfortable mobile hit areas for the controls the user actually taps. */
+  .interview-content input:not([class*="interview-"]):not([type="checkbox"]):not([type="radio"]):not([type="file"]),
+  .interview-content select,
+  .interview-content .interview-btn {
+    min-height: 40px;
+  }
+}
+
+/* -- shell ---------------------------------------------------------------- */
+
+.interview-shell {
+  height: 100dvh;
+  overflow: hidden;
+}
+
 .interview-header {
-  position: sticky;
-  top: 0;
-  z-index: 20;
+  flex: 0 0 auto;
   display: flex;
   align-items: center;
+  min-width: 0;
   border-bottom: 1px solid var(--interview-border);
   background: var(--interview-surface);
 }
 
+/* Two explicit rows on narrow screens: identity + overflow, then the target. */
+header.interview-header--mobile {
+  height: auto;
+  flex-direction: column;
+  align-items: stretch;
+  padding-top: env(safe-area-inset-top);
+}
+
+.interview-header__main {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: 6px;
+  min-height: 40px;
+  padding: 0 8px;
+}
+
+.interview-header__target {
+  min-width: 0;
+  padding: 0 8px 6px;
+}
+
+.interview-body {
+  flex: 1 1 auto;
+  min-height: 0;
+  display: flex;
+}
+
 .interview-sider {
   border-right: 1px solid var(--interview-border);
+  display: flex;
+  flex-direction: column;
+}
+
+/* The sider's children container fills it as a column (kept free of antd class
+   names, like the rest of this file). */
+.interview-sider > * {
+  flex: 1 1 auto;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+/* The rail: sections scroll, Settings stays pinned at the bottom. */
+.interview-nav {
+  flex: 1 1 auto;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.interview-nav__menu {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+}
+
+.interview-nav__footer {
+  flex: 0 0 auto;
+  border-top: 1px solid var(--interview-border);
+  padding-top: 4px;
 }
 
 .interview-content {
+  flex: 1 1 auto;
   min-width: 0;
-  padding: 24px;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: auto;
+  padding: 0 16px 16px;
+}
+
+/* A screen fills the content box so a fixed toolbar + scrolling workspace work;
+   legacy screens simply grow and the content region scrolls them. */
+.interview-screen {
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 auto;
+  min-height: 0;
+}
+
+/* Two-pane workspace. Panes scroll independently; stacks below the lg breakpoint. */
+.interview-split {
+  display: grid;
+  grid-template-columns: minmax(0, var(--split-left, 280px)) minmax(0, 1fr);
+  grid-template-rows: minmax(0, 1fr);
+  gap: 12px;
+  min-height: 0;
+}
+
+@media (max-width: 991px) {
+  .interview-split {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: auto;
+  }
+  /* Pages that disable their own scroll still need to scroll once stacked. */
+  .interview-workspace-body {
+    overflow-y: auto;
+  }
+  .interview-content {
+    padding-bottom: calc(
+      var(--interview-bottom-nav-height) + env(safe-area-inset-bottom) + 12px
+    );
+  }
+  :root {
+    /* identity row + target row + safe area */
+    --interview-header-height: 92px;
+  }
+}
+
+/* Focused/anchored targets must clear the app bar. Tracks Layout.headerHeight (42). */
+:root {
+  --interview-header-height: 42px;
+  --interview-bottom-nav-height: 56px;
+}
+
+.interview-content [id] {
+  scroll-margin-top: calc(var(--interview-header-height) + 16px);
+}
+
+/* The command-centre hero surfaces: a single strong accent, not another box. */
+.interview-next-action .interview-card {
+  border-inline-start: 3px solid var(--interview-brand);
+}
+
+/* Small-screen primary navigation — rendered below the lg breakpoint. */
+.interview-bottom-nav {
+  position: fixed;
+  inset-inline: 0;
+  bottom: 0;
+  z-index: 20;
+  display: flex;
+  min-height: var(--interview-bottom-nav-height);
+  padding-bottom: env(safe-area-inset-bottom);
+  border-top: 1px solid var(--interview-border);
+  background: var(--interview-surface);
+}
+
+.interview-bottom-nav__item {
+  flex: 1 1 0;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  min-height: 44px;
+  padding: 6px 4px;
+  text-align: center;
+  font-size: 11px;
+  line-height: 1.2;
+  text-decoration: none;
+  color: var(--interview-text-secondary);
+}
+
+.interview-bottom-nav__item.is-active {
+  color: var(--interview-brand);
+  font-weight: 600;
 }
 
 @media (max-width: 640px) {
   .interview-content {
-    padding: 16px;
+    padding: 0 12px;
+    padding-bottom: calc(
+      var(--interview-bottom-nav-height) + env(safe-area-inset-bottom) + 12px
+    );
   }
+}
+
+/* One disclosure affordance for extension regions. */
+.extension-caret {
+  display: inline-block;
+  transition: transform 0.15s ease;
+}
+
+.extension-caret.is-open {
+  transform: rotate(90deg);
 }

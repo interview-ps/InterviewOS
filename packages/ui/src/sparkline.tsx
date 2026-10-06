@@ -31,9 +31,9 @@ export function Sparkline({
       viewBox={`0 0 ${width} ${height}`}
       className="h-12 w-full max-w-60"
     >
-      <path d={path} fill="none" stroke="#1647a5" strokeWidth="2" />
+      <path d={path} fill="none" style={{ stroke: "var(--color-blue)" }} strokeWidth="2" />
       {coords.map(([x, y], i) => (
-        <circle key={i} cx={x} cy={y} r="2.5" fill="#012970" />
+        <circle key={i} cx={x} cy={y} r="2.5" style={{ fill: "var(--color-blue-hover)" }} />
       ))}
     </svg>
   );

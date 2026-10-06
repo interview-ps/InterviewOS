@@ -5,7 +5,8 @@ import {
   type StarStory,
   type StoryCoachResult,
 } from "@/lib/api";
-import { Button, Card, CardTitle, EmptyState, ErrorNote, PageHeader, Pill, Spinner, skillLabel } from "@/components/ui";
+import { Button, Callout, Card, EmptyState, ErrorNote, Pill, ScreenToolbar, SkeletonCard, Spinner, skillLabel, Workspace } from "@/components/ui";
+import { PrepareTabs } from "./tabs";
 
 const STAR_FIELDS = ["situation", "task", "action", "result"] as const;
 type StarField = (typeof STAR_FIELDS)[number];
@@ -88,16 +89,21 @@ export default function Stories() {
   };
 
   return (
-    <div className="max-w-4xl space-y-5">
-      <PageHeader
-        title="STAR Stories"
-        subtitle="Your story bank for behavioral and HR interviews. Stories are grounded in your resume — fill in [add …] placeholders with real details."
-        actions={
-          <Button onClick={generate} disabled={generating}>
-            {generating ? "Generating…" : "Generate from resume"}
-          </Button>
-        }
-      />
+    <Workspace
+      toolbar={
+        <ScreenToolbar
+          title="Prepare"
+          subtitle="STAR stories"
+          tabs={<PrepareTabs />}
+          actions={
+            <Button size="small" onClick={generate} disabled={generating}>
+              {generating ? "Generating…" : "Generate from resume"}
+            </Button>
+          }
+        />
+      }
+    >
+      <div className="max-w-4xl space-y-3">
       {generating && (
         <p role="status" aria-live="polite" className="text-sm text-muted">
           <span className="mr-2 inline-block h-3.5 w-3.5 animate-spin rounded-full border-2 border-line border-t-blue align-middle" aria-hidden />
@@ -105,17 +111,16 @@ export default function Stories() {
         </p>
       )}
       <ErrorNote error={error} />
-      {!stories && !error && <Spinner label="Loading stories…" />}
+      <Callout title="How to write a strong STAR story">
+        Situation, Task, Action, Result. Replace every <code>[add …]</code> placeholder
+        with a real detail — Interview OS never invents facts.
+      </Callout>
+      {!stories && !error && <SkeletonCard lines={4} />}
       {stories?.length === 0 && (
         <Card>
           <EmptyState
             title="No stories yet"
-            description="Generate from your resume or set up your workspace first — stories extracted during resume analysis appear here."
-            action={
-              <Button variant="secondary" onClick={generate} disabled={generating}>
-                Generate from resume
-              </Button>
-            }
+            description="Generate from your resume, or set up your workspace first — stories extracted during resume analysis appear here."
           />
         </Card>
       )}
@@ -133,7 +138,7 @@ export default function Stories() {
                 onChange={(e) =>
                   setDrafts((p) => ({ ...p, [s.id]: { ...p[s.id]!, title: e.target.value } }))
                 }
-                className="w-full rounded-[0.5rem] border border-transparent px-2 py-1 text-base font-semibold text-navy hover:border-line focus:border-line focus:outline-none"
+                className="w-full rounded-[var(--radius-sm)] border border-transparent px-2 py-1 text-base font-semibold text-navy hover:border-line focus:border-line focus:outline-none"
               />
               <Pill tone={s.source === "user" ? "green" : s.source === "generated" ? "blue" : "muted"}>
                 {s.source}
@@ -158,7 +163,7 @@ export default function Stories() {
                       setDrafts((p) => ({ ...p, [s.id]: { ...p[s.id]!, [f]: e.target.value } }))
                     }
                     rows={3}
-                    className="w-full rounded-[0.6rem] border border-line bg-surface p-2 text-sm"
+                    className="w-full rounded-[var(--radius-md)] border border-line bg-surface p-2 text-sm"
                   />
                 </label>
               ))}
@@ -171,7 +176,7 @@ export default function Stories() {
               {saved[s.id] && <span className="text-xs text-green">Saved</span>}
             </div>
             {c && (c.busy || c.feedback) && (
-              <div className="mt-3 rounded-[0.6rem] bg-page p-3 text-sm" data-testid={`coach-${s.id}`} aria-live="polite">
+              <div className="mt-3 rounded-[var(--radius-card)] bg-page p-3 text-sm" data-testid={`coach-${s.id}`} aria-live="polite">
                 {c.busy && !c.feedback && <Spinner label="Coaching…" />}
                 {c.feedback && (
                   <p className="text-muted">
@@ -207,6 +212,7 @@ export default function Stories() {
           </Card>
         );
       })}
-    </div>
+      </div>
+    </Workspace>
   );
 }

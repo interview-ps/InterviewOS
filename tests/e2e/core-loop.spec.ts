@@ -63,7 +63,7 @@ test.describe("core loop", () => {
     await page
       .locator('[data-skill="distributed-systems.caching.cache-invalidation"]')
       .click();
-    await expect(page.getByText("Why the system believes this")).toBeVisible();
+    await expect(page.getByText("Evidence behind this score")).toBeVisible();
     await expect(page.getByText(/did not address|invalidat/i).first()).toBeVisible();
     await page.screenshot({ path: "test-results/core-5-readiness.png", fullPage: true });
 
@@ -91,7 +91,7 @@ test.describe("core loop", () => {
     await page
       .locator('[data-skill="distributed-systems.caching.cache-invalidation"]')
       .click();
-    await expect(page.getByText("self_report").first()).toBeVisible();
+    await expect(page.getByText("Self report").first()).toBeVisible();
     await expect(page.getByText(/Self-check: met/i).first()).toBeVisible();
     await page.screenshot({ path: "test-results/core-8-self-report.png", fullPage: true });
 

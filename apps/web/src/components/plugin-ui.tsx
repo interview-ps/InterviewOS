@@ -1,6 +1,6 @@
 import { Component, useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { useNavigate } from "react-router";
-import { DeclarativeRenderer, FRAME_MIN_HEIGHT } from "@interview-os/ui";
+import { DeclarativeRenderer, ExtensionRegion, FRAME_MIN_HEIGHT } from "@interview-os/ui";
 import type { UINode } from "@interview-os/frontend-types";
 import {
   api,
@@ -11,6 +11,39 @@ import { attachFrameBridge, frameSrc } from "@/lib/plugin-frame-bridge";
 import { Skeleton } from "@/components/ui";
 
 /* -- contributions cache ---------------------------------------------------- */
+
+/** A declarative tree with no meaningful content — used to drop empty panels. */
+function isEmptyUITree(node: UINode): boolean {
+  const n = node as {
+    type: string;
+    children?: UINode[];
+    items?: unknown[];
+    tabs?: { children: UINode[] }[];
+    text?: string;
+  };
+  switch (n.type) {
+    case "text":
+      return !(n.text ?? "").trim();
+    case "divider":
+      return true;
+    case "list":
+    case "evidenceList":
+    case "progressList":
+      return (n.items ?? []).length === 0;
+    case "tabs":
+      return (n.tabs ?? []).every(
+        (t) => (t.children ?? []).length === 0 || (t.children ?? []).every(isEmptyUITree),
+      );
+    case "card":
+    case "stack":
+    case "row":
+      return (
+        (n.children ?? []).length === 0 || (n.children ?? []).every(isEmptyUITree)
+      );
+    default:
+      return false;
+  }
+}
 
 let contributionsCache: PluginUIContributionView[] | null = null;
 let contributionsPromise: Promise<PluginUIContributionView[]> | null = null;
@@ -57,7 +90,7 @@ class ContributionBoundary extends Component<
         <div
           role="alert"
           data-testid="plugin-ui-error"
-          className="rounded-[0.6rem] border border-line bg-page p-3 text-xs text-muted"
+          className="rounded-[var(--radius-card)] border border-line bg-page p-3 text-xs text-muted"
         >
           The “{this.props.pluginId}” plugin view failed to render.
         </div>
@@ -120,19 +153,19 @@ function DeclarativeContribution({
       <div
         role="alert"
         data-testid="plugin-ui-error"
-        className="rounded-[0.6rem] border border-accent/40 bg-[#fdf3e7] p-3 text-xs text-accent"
+        className="rounded-[var(--radius-card)] border border-[color:var(--color-accent-tint)] bg-[var(--color-accent-tint)] p-3 text-xs text-[var(--color-accent)]"
       >
         Plugin view unavailable — {error}
       </div>
     );
   }
-  if (!tree) return null;
+  if (!tree || isEmptyUITree(tree)) return null;
   return (
     <ContributionBoundary pluginId={plugin.pluginId}>
       <div>
         <DeclarativeRenderer node={tree} onAction={onAction} />
         {attribution && (
-          <p className="mt-2 text-[0.7rem] text-muted">from plugin {plugin.pluginName}</p>
+          <p className="mt-2 text-xs text-muted">from plugin {plugin.pluginName}</p>
         )}
       </div>
     </ContributionBoundary>
@@ -192,10 +225,10 @@ export function PluginFrame({
           referrerPolicy="no-referrer"
           loading="lazy"
           style={{ height }}
-          className="w-full rounded-[0.6rem] border border-line bg-page"
+          className="w-full rounded-[var(--radius-card)] border border-line bg-surface"
         />
         {attribution && (
-          <p className="mt-2 text-[0.7rem] text-muted">from plugin {plugin.pluginName}</p>
+          <p className="mt-2 text-xs text-muted">from plugin {plugin.pluginName}</p>
         )}
       </div>
     </ContributionBoundary>
@@ -266,6 +299,57 @@ export function PluginSlot({
         />
       ))}
     </>
+  );
+}
+
+/**
+ * A plugin slot wrapped in the shared compact, collapsed extension region.
+ * Renders nothing when no enabled plugin contributes to the slot, so an empty
+ * "Extensions" box never appears.
+ */
+export function ExtensionSlot({
+  slot,
+  title = "Extensions",
+  hint = "plugins",
+  params,
+  defaultOpen = false,
+  description,
+}: {
+  slot: string;
+  title?: string;
+  hint?: string;
+  params?: Record<string, unknown>;
+  defaultOpen?: boolean;
+  description?: string;
+}) {
+  const contributions = useUIContributions();
+  const has = contributions.some((p) => (p.slots[slot] ?? []).length > 0);
+  if (!has) return null;
+  return (
+    <ExtensionRegion
+      title={title}
+      hint={hint}
+      defaultOpen={defaultOpen}
+      description={description}
+      data-testid={`extension-${slot}`}
+    >
+      <PluginSlot slot={slot} params={params} />
+    </ExtensionRegion>
+  );
+}
+
+/**
+ * True when the plugin that owns `modeId` contributes to `slot` — lets a host
+ * decide synchronously whether to reserve an inspector column.
+ */
+export function useModeSlotHasContent(slot: string, modeId: string): boolean {
+  const contributions = useUIContributions();
+  return useMemo(
+    () =>
+      contributions.some(
+        (p) => p.modes?.includes(modeId) && (p.slots[slot] ?? []).length > 0,
+      ),
+    [contributions, slot, modeId],
   );
 }
 

@@ -7,9 +7,9 @@
           {
             "allowedTools": [],
             "args": [
-              "<repo>\\tests\\fixtures\\fake-mcp-server.mjs"
+              "<repo>/tests/fixtures/fake-mcp-server.mjs"
             ],
-            "command": "C:\\Program Files\\nodejs\\node.EXE",
+            "command": "<node>",
             "enabled": false,
             "envPassthrough": [],
             "id": "fake",

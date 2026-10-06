@@ -25,10 +25,16 @@ def test_runtime_models(client: ContractClient, snapshot: Snapshot) -> None:
 def test_runtime_available(client: ContractClient, snapshot: Snapshot) -> None:
     resp = client.get("/api/runtime/available")
     body = snapshot.normalizer.normalize(resp.json())
-    # probe results embed the local machine's CLI versions/paths — mask them
-    # so the fixture is stable across environments and version bumps.
+    # Whether a provider CLI is installed is a property of the runner, not of
+    # the API: a dev box with all four installed reports `available: true` with
+    # an `executable`/`version`, a bare CI runner reports the opposite and omits
+    # both keys. Mask the values, drop the keys that only exist when a CLI was
+    # found, and pin what is contractual — the provider list and the shape of
+    # each entry.
     for p in body["providers"]:
-        for env_key in ("executable", "version", "message"):
+        p.pop("executable", None)
+        p.pop("version", None)
+        for env_key in ("available", "status", "message"):
             if env_key in p:
                 p[env_key] = "<env>"
     snapshot.check("available", {"status": resp.status_code, "body": body})

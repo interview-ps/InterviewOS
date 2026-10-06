@@ -4,35 +4,77 @@
  */
 export const theme = {
   colors: {
-    navy: "#012970",
-    blue: "#1647a5",
-    blueHover: "#092e75",
-    accent: "#b45309",
-    green: "#236342",
-    greenTint: "#e8f5ec",
-    ink: "#172033",
-    muted: "#4b556b",
-    line: "#d9e0ed",
-    page: "#f5f7fb",
+    /* surfaces */
+    page: "#f6f7f9",
     surface: "#ffffff",
-    tint: "#eef3fc",
-    weak: "#b45309",
-    danger: "#9f1239",
+    inset: "#f8fafc",
+    tint: "rgba(37, 99, 235, 0.08)",
+    hover: "rgba(37, 99, 235, 0.05)",
+    /* text */
+    navy: "#172033",
+    ink: "#344054",
+    muted: "#667085",
+    /* lines */
+    line: "#e4e7ec",
+    divider: "#e4e7ec",
+    control: "#d0d5dd",
+    /* brand */
+    blue: "#2563eb",
+    blueHover: "#1d4ed8",
+    blueActive: "#1e40af",
+    /* semantic status pairs */
+    green: "#166534",
+    greenTint: "#f0fdf4",
+    accent: "#92400e",
+    accentTint: "#fffbeb",
+    danger: "#b42318",
+    dangerTint: "#fef3f2",
+    neutral: "#475467",
+    neutralTint: "#f2f4f7",
   },
   /** primary = brand blue used for primary buttons/accents */
-  primary: "#1647a5",
+  primary: "#2563eb",
   fonts: {
     display: "var(--font-jakarta), ui-sans-serif, system-ui, sans-serif",
     body: "var(--font-inter), ui-sans-serif, system-ui, sans-serif",
   },
+  /** Octop radius ramp. */
   radius: {
-    card: "1rem",
-    sm: "0.6rem",
+    xs: "5px",
+    sm: "8px",
+    md: "10px",
+    card: "12px",
+    lg: "18px",
+    pill: "9999px",
   },
-  spacing: {
-    sm: "0.6rem",
-    md: "1rem",
-    lg: "1.25rem",
+  /** Octop five-step elevation ramp; `brand` is the brand-tinted shadow. */
+  shadow: {
+    xs: "0 1px 2px rgba(16, 24, 40, 0.05)",
+    sm: "0 1px 3px rgba(16, 24, 40, 0.08), 0 1px 2px rgba(16, 24, 40, 0.04)",
+    md: "0 4px 12px -2px rgba(16, 24, 40, 0.1)",
+    lg: "0 12px 28px -8px rgba(16, 24, 40, 0.16)",
+    xl: "0 24px 48px -12px rgba(16, 24, 40, 0.2)",
+    brand: "0 8px 24px -10px rgba(var(--brand-rgb), 0.35)",
+  },
+  /** Compact spacing scale — desktop-density rhythm. */
+  space: {
+    xs: "0.25rem",
+    sm: "0.375rem",
+    md: "0.5rem",
+    lg: "0.75rem",
+    xl: "1rem",
+  },
+  /** Fixed component sizes for the desktop shell and panes. */
+  size: {
+    header: "42px",
+    siderExpanded: "184px",
+    siderCollapsed: "48px",
+    navItem: "32px",
+    toolbar: "40px",
+    row: "32px",
+    rowTwoLine: "48px",
+    control: "32px",
+    inspector: "240px",
   },
   breakpoint: {
     menu: "900px",

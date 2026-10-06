@@ -10,11 +10,23 @@ import {
   type InterviewLoop,
   type InterviewPackInfo,
   type McpServerInfo,
+  type PrepAction,
   type RoundType,
   type StartInterviewResult,
   type StartLoopResult,
 } from "@/lib/api";
-import { Button, Card, CardTitle, EmptyState, ErrorNote, PageHeader, Pill, SkeletonCard } from "@/components/ui";
+import {
+  Button,
+  Card,
+  CardTitle,
+  displayLabel,
+  EmptyState,
+  ErrorNote,
+  PageHeader,
+  Pill,
+  SectionHeading,
+  SkeletonCard,
+} from "@/components/ui";
 import { useUIContributions } from "@/components/plugin-ui";
 import { defaultModeId, defaultRoundModes } from "@/lib/modes";
 
@@ -30,6 +42,7 @@ export default function Interview() {
   const [sessions, setSessions] = useState<InterviewListItem[] | null>(null);
   const [loops, setLoops] = useState<InterviewLoop[] | null>(null);
   const [profiles, setProfiles] = useState<CompanyProfileInfo[] | null>(null);
+  const [quickAction, setQuickAction] = useState<PrepAction | null>(null);
   const [error, setError] = useState<unknown>(null);
   const [starting, setStarting] = useState(false);
   const [stage, setStage] = useState<string | null>(null);
@@ -47,7 +60,11 @@ export default function Interview() {
   const [packs, setPacks] = useState<InterviewPackInfo[]>([]);
   const [packId, setPackId] = useState("");
   const pluginModes = useUIContributions().flatMap((p) =>
-    p.interviewModes.map((m) => ({ plugin: p.pluginName, pluginModeId: `${p.pluginId}:${m.id}`, ...m })),
+    p.interviewModes.map((m) => ({
+      plugin: p.pluginName,
+      pluginModeId: `${p.pluginId}:${m.id}`,
+      ...m,
+    })),
   );
 
   const modeLabel = (id: string) =>
@@ -61,9 +78,7 @@ export default function Interview() {
   useEffect(() => {
     if (modes.length === 0) return;
     setRoundType((cur) =>
-      cur === "mixed" || modes.some((m) => m.id === cur)
-        ? cur
-        : defaultModeId(modes),
+      cur === "mixed" || modes.some((m) => m.id === cur) ? cur : defaultModeId(modes),
     );
   }, [modes]);
 
@@ -72,6 +87,16 @@ export default function Interview() {
     api.listInterviews().then(setSessions).catch((e) => setError(e));
     api.loops().then(setLoops).catch(() => setLoops([]));
     api.companies().then(setProfiles).catch(() => {});
+    api
+      .preparation()
+      .then((p) =>
+        setQuickAction(
+          p.nextActions
+            .filter((a) => a.status === "open" || a.status === "in_progress")
+            .sort((a, b) => a.priority - b.priority)[0] ?? null,
+        ),
+      )
+      .catch(() => {});
     loadContexts();
     api
       .mcpServers()
@@ -90,8 +115,9 @@ export default function Interview() {
     try {
       const targets = await api.listTargets();
       const active = targets.find((t) => t.active);
-      const profile = profiles?.find((p) => p.id === (active?.companyProfileId ?? "generic"))
-        ?? profiles?.find((p) => p.id === "generic");
+      const profile =
+        profiles?.find((p) => p.id === (active?.companyProfileId ?? "generic")) ??
+        profiles?.find((p) => p.id === "generic");
       // hide rounds whose mode isn't available (plugin disabled/absent)
       const available = new Set(modes.map((m) => m.id));
       const fallback = defaultRoundModes(modes).map((m) => ({
@@ -106,10 +132,9 @@ export default function Interview() {
           label: s.label ?? modeLabel(s.mode),
           plannedQuestions: 3,
         }));
-      setLoopRounds(rounds.length >= 2 ? rounds : fallback.map((r) => ({
-        ...r,
-        plannedQuestions: 3,
-      })));
+      setLoopRounds(
+        rounds.length >= 2 ? rounds : fallback.map((r) => ({ ...r, plannedQuestions: 3 })),
+      );
     } catch (e) {
       setError(e);
     }
@@ -121,9 +146,23 @@ export default function Interview() {
     streamPost<StartInterviewResult>(
       "/api/interviews",
       { plannedQuestions: 4, roundType, ...(contextId ? { contextId } : {}) },
-      {
-      onStage: setStage,
-    })
+      { onStage: setStage },
+    )
+      .then((r) => r.session && navigate(`/interview/${r.session.id}`))
+      .catch((e) => setError(e))
+      .finally(() => setStarting(false));
+  };
+
+  const startQuick = () => {
+    if (!quickAction) return;
+    setStarting(true);
+    setStage(null);
+    api
+      .startInterview({
+        mode: "practice",
+        focusSkillId: quickAction.skillId,
+        actionId: quickAction.id,
+      })
       .then((r) => r.session && navigate(`/interview/${r.session.id}`))
       .catch((e) => setError(e))
       .finally(() => setStarting(false));
@@ -132,9 +171,7 @@ export default function Interview() {
   const startLoop = () => {
     setStarting(true);
     setStage(null);
-    streamPost<StartLoopResult>("/api/loops", { rounds: loopRounds }, {
-      onStage: setStage,
-    })
+    streamPost<StartLoopResult>("/api/loops", { rounds: loopRounds }, { onStage: setStage })
       .then((r) => r.session && navigate(`/interview/${r.session.id}`))
       .catch((e) => setError(e))
       .finally(() => setStarting(false));
@@ -205,25 +242,84 @@ export default function Interview() {
 
   const live = sessions?.filter((s) => s.status !== "debrief" && s.status !== "complete") ?? [];
   const past = sessions?.filter((s) => s.status === "debrief" || s.status === "complete") ?? [];
+  const hasAdvanced =
+    pluginModes.length > 0 || contexts.length > 0 || mcpServers.length > 0 || packs.length > 0;
 
   return (
     <div className="space-y-5">
       <PageHeader
         title="Interview"
-        subtitle="Run a single round or a full loop — every answer feeds the readiness model."
-        actions={
-          <Button onClick={start} disabled={starting}>
-            {starting ? "Preparing…" : "Start Interview"}
-          </Button>
-        }
+        subtitle="Focused practice, a single mock round, or a full multi-round loop — every answer feeds your readiness."
       />
+
+      {live.length > 0 && (
+        <Card>
+          <SectionHeading
+            title={live.length > 1 ? "Interviews in progress" : "Continue your interview"}
+            description="Pick up where you left off — finish this before starting another."
+          />
+          <ul className="space-y-3">
+            {live.map((s) => (
+              <li
+                key={s.id}
+                className="flex flex-wrap items-center justify-between gap-3"
+              >
+                <div className="text-sm">
+                  <div className="font-medium text-ink">
+                    {s.mode === "practice"
+                      ? "Practice session"
+                      : `${s.modeLabel ?? displayLabel(s.roundType)} interview`}
+                  </div>
+                  <div className="text-muted">
+                    round {s.currentRound}/{s.plannedQuestions} · started{" "}
+                    {new Date(s.createdAt).toLocaleString()}
+                    {s.loopId ? ` · loop round ${s.loopRound}` : ""}
+                  </div>
+                </div>
+                <Link to={`/interview/${s.id}`}>
+                  <Button>Resume interview</Button>
+                </Link>
+              </li>
+            ))}
+          </ul>
+        </Card>
+      )}
+
+      {live.length > 0 && <SectionHeading title="Or start another interview" />}
+
       <Card>
-        <CardTitle>Single round — pick a mode</CardTitle>
+        <SectionHeading
+          title="Focused practice"
+          description="A short session on your highest-priority skill."
+          action={
+            <Button
+              variant="secondary"
+              onClick={startQuick}
+              disabled={starting || !quickAction}
+            >
+              Start quick practice
+            </Button>
+          }
+        />
+        {quickAction ? (
+          <p className="text-sm text-muted">{quickAction.action}</p>
+        ) : (
+          <p className="text-sm text-muted">
+            No open preparation actions — pick a mode below instead.
+          </p>
+        )}
+      </Card>
+
+      <Card>
+        <SectionHeading
+          title="Mock interview"
+          description="One round on a focus area. Pick a mode, then Start Interview."
+        />
         <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
           {modes.map((m) => (
             <label
               key={m.id}
-              className={`cursor-pointer rounded-[0.6rem] border p-3 text-sm ${
+              className={`cursor-pointer rounded-[var(--radius-card)] border p-3 text-sm ${
                 roundType === m.id ? "border-blue bg-page" : "border-line"
               }`}
             >
@@ -247,7 +343,7 @@ export default function Interview() {
           <summary className="cursor-pointer text-muted">More</summary>
           <div className="mt-2 grid gap-2 sm:grid-cols-2">
             <label
-              className={`cursor-pointer rounded-[0.6rem] border p-3 text-sm ${
+              className={`cursor-pointer rounded-[var(--radius-card)] border p-3 text-sm ${
                 roundType === "mixed" ? "border-blue bg-page" : "border-line"
               }`}
             >
@@ -266,47 +362,34 @@ export default function Interview() {
             </label>
           </div>
         </details>
+        <div className="mt-4 flex flex-wrap items-center gap-3">
+          <Button onClick={start} disabled={starting}>
+            {starting ? "Preparing…" : "Start Interview"}
+          </Button>
+          <span className="text-sm text-muted">Uses the mode you selected above.</span>
+        </div>
       </Card>
 
-      {pluginModes.length > 0 && (
-        <Card data-testid="plugin-modes">
-          <CardTitle>Plugin modes</CardTitle>
-          <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
-            {pluginModes.map((m) => (
-              <button
-                key={m.pluginModeId}
-                type="button"
-                onClick={() => startPluginMode(m.pluginModeId)}
-                disabled={starting}
-                className="rounded-[0.6rem] border border-line p-3 text-left text-sm hover:bg-tint disabled:opacity-60"
-              >
-                <span className="block font-medium text-ink">{m.label}</span>
-                <span className="mt-0.5 block text-xs text-muted">
-                  {m.plugin} · {m.roundType.replace("_", " ")} · {m.plannedQuestions} questions
-                </span>
-              </button>
-            ))}
-          </div>
-        </Card>
-      )}
-
       <Card data-testid="loop-builder">
-        <CardTitle>Full loop — a multi-round interview</CardTitle>
-        {!loopOpen ? (
-          <div className="flex items-center justify-between gap-3">
-            <p className="text-sm text-muted">
-              Runs several rounds in sequence; weak skills carry forward so later
-              rounds retest them, and the loop ends with a combined debrief.
-            </p>
-            <Button variant="ghost" onClick={openLoopBuilder} data-testid="open-loop-builder">
-              Build a loop
-            </Button>
-          </div>
-        ) : (
+        <SectionHeading
+          title="Full interview loop"
+          description="Several rounds in sequence — weak skills carry forward and later rounds retest them, ending in a combined debrief."
+          action={
+            !loopOpen ? (
+              <Button variant="secondary" onClick={openLoopBuilder} data-testid="open-loop-builder">
+                Build a loop
+              </Button>
+            ) : undefined
+          }
+        />
+        {loopOpen && (
           <div className="space-y-3">
             <ol className="space-y-2">
               {loopRounds.map((r, i) => (
-                <li key={i} className="flex flex-wrap items-center gap-2 rounded-[0.5rem] border border-line p-2">
+                <li
+                  key={i}
+                  className="flex flex-wrap items-center gap-2 rounded-[var(--radius-sm)] border border-line p-2"
+                >
                   <span className="w-5 text-center text-xs text-muted">{i + 1}</span>
                   <select
                     aria-label={`Round ${i + 1} mode`}
@@ -321,7 +404,9 @@ export default function Interview() {
                     className="rounded border border-line bg-white px-2 py-1 text-sm"
                   >
                     {modes.map((m) => (
-                      <option key={m.id} value={m.id}>{m.label}</option>
+                      <option key={m.id} value={m.id}>
+                        {m.label}
+                      </option>
                     ))}
                   </select>
                   <input
@@ -347,7 +432,13 @@ export default function Interview() {
                         setLoopRounds((rs) =>
                           rs.map((x, j) =>
                             j === i
-                              ? { ...x, plannedQuestions: Math.max(1, Math.min(6, Number(e.target.value) || 1)) }
+                              ? {
+                                  ...x,
+                                  plannedQuestions: Math.max(
+                                    1,
+                                    Math.min(6, Number(e.target.value) || 1),
+                                  ),
+                                }
                               : x,
                           ),
                         )
@@ -355,8 +446,22 @@ export default function Interview() {
                       className="w-14 rounded border border-line px-1 py-1 text-sm"
                     />
                   </label>
-                  <button type="button" aria-label={`Move round ${i + 1} up`} onClick={() => moveRound(i, -1)} className="text-muted hover:text-ink">↑</button>
-                  <button type="button" aria-label={`Move round ${i + 1} down`} onClick={() => moveRound(i, 1)} className="text-muted hover:text-ink">↓</button>
+                  <button
+                    type="button"
+                    aria-label={`Move round ${i + 1} up`}
+                    onClick={() => moveRound(i, -1)}
+                    className="text-muted hover:text-ink"
+                  >
+                    ↑
+                  </button>
+                  <button
+                    type="button"
+                    aria-label={`Move round ${i + 1} down`}
+                    onClick={() => moveRound(i, 1)}
+                    className="text-muted hover:text-ink"
+                  >
+                    ↓
+                  </button>
                   <button
                     type="button"
                     aria-label={`Remove round ${i + 1}`}
@@ -394,152 +499,191 @@ export default function Interview() {
         )}
       </Card>
 
-      {(contexts.length > 0 || mcpServers.length > 0) && (
-        <Card data-testid="external-context">
-          <CardTitle>External context</CardTitle>
-          <p className="mt-1 text-xs text-muted">
-            Attach one saved context — it is shown to the interviewer as
-            untrusted reference material.
-          </p>
-          {contexts.length > 0 && (
-            <ul className="mt-3 space-y-1.5 text-sm">
-              <li>
-                <label className="flex items-center gap-2">
-                  <input
-                    type="radio"
-                    name="context"
-                    checked={contextId === ""}
-                    onChange={() => setContextId("")}
-                    className="accent-accent"
-                  />
-                  <span className="text-muted">No context</span>
-                </label>
-              </li>
-              {contexts.map((c) => (
-                <li key={c.id} className="flex items-center gap-2">
-                  <label className="flex min-w-0 flex-1 items-center gap-2">
-                    <input
-                      type="radio"
-                      name="context"
-                      checked={contextId === c.id}
-                      onChange={() => setContextId(c.id)}
-                      className="accent-accent"
-                    />
-                    <span className="truncate">
-                      {c.title}{" "}
-                      <span className="text-xs text-muted">
-                        ({c.text.length} chars · {c.serverId}/{c.tool})
-                      </span>
-                    </span>
-                  </label>
-                  <button
-                    type="button"
-                    aria-label={`Delete context ${c.title}`}
-                    className="text-muted hover:text-danger"
-                    onClick={() =>
-                      api.deleteMcpContext(c.id).then(loadContexts).catch(setError)
-                    }
-                  >
-                    ✕
-                  </button>
-                </li>
-              ))}
-            </ul>
-          )}
-          {mcpServers.length > 0 && (
-            <div className="mt-3 border-t border-line pt-3">
-              <p className="text-sm font-medium text-navy">Fetch context</p>
-              <div className="mt-2 flex flex-wrap gap-2">
-                <select
-                  aria-label="MCP server"
-                  value={fetchServer}
-                  onChange={(e) => {
-                    setFetchServer(e.target.value);
-                    setFetchTool("");
-                  }}
-                  data-testid="mcp-server-select"
-                  className="rounded border border-line bg-white px-2 py-1.5 text-sm"
-                >
-                  {mcpServers.map((s) => (
-                    <option key={s.id} value={s.id}>{s.name}</option>
-                  ))}
-                </select>
-                <select
-                  aria-label="Tool"
-                  value={fetchTool}
-                  onChange={(e) => setFetchTool(e.target.value)}
-                  data-testid="mcp-tool-select"
-                  className="rounded border border-line bg-white px-2 py-1.5 text-sm"
-                >
-                  <option value="">tool…</option>
-                  {(activeServer?.allowedTools ?? []).map((t) => (
-                    <option key={t} value={t}>{t}</option>
-                  ))}
-                </select>
-                <input
-                  value={fetchTitle}
-                  onChange={(e) => setFetchTitle(e.target.value)}
-                  placeholder="Title (optional)"
-                  aria-label="Context title"
-                  className="min-w-0 flex-1 rounded border border-line px-2 py-1.5 text-sm"
-                />
-              </div>
-              <textarea
-                value={fetchArgs}
-                onChange={(e) => setFetchArgs(e.target.value)}
-                rows={2}
-                aria-label="Tool arguments (JSON)"
-                className="mt-2 w-full rounded-[0.6rem] border border-line px-3 py-2 font-mono text-xs"
-              />
-              {argsError && (
-                <p className="mt-1 text-xs text-danger">{argsError}</p>
-              )}
-              <Button
-                variant="secondary"
-                disabled={fetching || !fetchServer || !fetchTool || !!argsError}
-                onClick={fetchContext}
-                data-testid="fetch-context"
-              >
-                {fetching ? "Fetching…" : "Fetch context"}
-              </Button>
-            </div>
-          )}
-        </Card>
-      )}
-
-      {packs.length > 0 && (
+      {hasAdvanced && (
         <Card>
-          <CardTitle>Start from interview pack</CardTitle>
-          <div className="mt-2 flex items-center gap-2">
-            <select
-              aria-label="Interview pack"
-              value={packId}
-              onChange={(e) => setPackId(e.target.value)}
-              data-testid="pack-select"
-              className="min-w-0 flex-1 rounded border border-line bg-white px-2 py-1.5 text-sm"
-            >
-              <option value="">choose a pack…</option>
-              {packs.map(({ pack }) => (
-                <option key={pack.id} value={pack.id}>
-                  {pack.name} ({pack.rounds.length} rounds)
-                </option>
-              ))}
-            </select>
-            <Button
-              variant="secondary"
-              disabled={starting || !packId}
-              onClick={startPack}
-              data-testid="start-pack"
-            >
-              Start pack
-            </Button>
-          </div>
+          <details>
+            <summary className="cursor-pointer text-sm font-medium text-navy">
+              Advanced options — plugin modes, external context, interview packs
+            </summary>
+            <div className="mt-4 space-y-5">
+              {pluginModes.length > 0 && (
+                <div data-testid="plugin-modes">
+                  <CardTitle>Plugin modes</CardTitle>
+                  <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+                    {pluginModes.map((m) => (
+                      <button
+                        key={m.pluginModeId}
+                        type="button"
+                        onClick={() => startPluginMode(m.pluginModeId)}
+                        disabled={starting}
+                        className="rounded-[var(--radius-card)] border border-divider p-3 text-left text-sm hover:bg-[var(--color-hover)] disabled:opacity-60"
+                      >
+                        <span className="block font-medium text-ink">{m.label}</span>
+                        <span className="mt-0.5 block text-xs text-muted">
+                          {m.plugin} · {m.roundType.replace("_", " ")} · {m.plannedQuestions}{" "}
+                          questions
+                        </span>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {(contexts.length > 0 || mcpServers.length > 0) && (
+                <div data-testid="external-context">
+                  <CardTitle>External context</CardTitle>
+                  <p className="mt-1 text-xs text-muted">
+                    Attach one saved context — it is shown to the interviewer as untrusted
+                    reference material.
+                  </p>
+                  {contexts.length > 0 && (
+                    <ul className="mt-3 space-y-1.5 text-sm">
+                      <li>
+                        <label className="flex items-center gap-2">
+                          <input
+                            type="radio"
+                            name="context"
+                            checked={contextId === ""}
+                            onChange={() => setContextId("")}
+                            className="accent-blue"
+                          />
+                          <span className="text-muted">No context</span>
+                        </label>
+                      </li>
+                      {contexts.map((c) => (
+                        <li key={c.id} className="flex items-center gap-2">
+                          <label className="flex min-w-0 flex-1 items-center gap-2">
+                            <input
+                              type="radio"
+                              name="context"
+                              checked={contextId === c.id}
+                              onChange={() => setContextId(c.id)}
+                              className="accent-blue"
+                            />
+                            <span className="truncate">
+                              {c.title}{" "}
+                              <span className="text-xs text-muted">
+                                ({c.text.length} chars · {c.serverId}/{c.tool})
+                              </span>
+                            </span>
+                          </label>
+                          <button
+                            type="button"
+                            aria-label={`Delete context ${c.title}`}
+                            className="text-muted hover:text-danger"
+                            onClick={() =>
+                              api.deleteMcpContext(c.id).then(loadContexts).catch(setError)
+                            }
+                          >
+                            ✕
+                          </button>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                  {mcpServers.length > 0 && (
+                    <div className="mt-3 border-t border-line pt-3">
+                      <p className="text-sm font-medium text-navy">Fetch context</p>
+                      <div className="mt-2 flex flex-wrap gap-2">
+                        <select
+                          aria-label="MCP server"
+                          value={fetchServer}
+                          onChange={(e) => {
+                            setFetchServer(e.target.value);
+                            setFetchTool("");
+                          }}
+                          data-testid="mcp-server-select"
+                          className="rounded border border-line bg-white px-2 py-1.5 text-sm"
+                        >
+                          {mcpServers.map((s) => (
+                            <option key={s.id} value={s.id}>
+                              {s.name}
+                            </option>
+                          ))}
+                        </select>
+                        <select
+                          aria-label="Tool"
+                          value={fetchTool}
+                          onChange={(e) => setFetchTool(e.target.value)}
+                          data-testid="mcp-tool-select"
+                          className="rounded border border-line bg-white px-2 py-1.5 text-sm"
+                        >
+                          <option value="">tool…</option>
+                          {(activeServer?.allowedTools ?? []).map((t) => (
+                            <option key={t} value={t}>
+                              {t}
+                            </option>
+                          ))}
+                        </select>
+                        <input
+                          value={fetchTitle}
+                          onChange={(e) => setFetchTitle(e.target.value)}
+                          placeholder="Title (optional)"
+                          aria-label="Context title"
+                          className="min-w-0 flex-1 rounded border border-line px-2 py-1.5 text-sm"
+                        />
+                      </div>
+                      <textarea
+                        value={fetchArgs}
+                        onChange={(e) => setFetchArgs(e.target.value)}
+                        rows={2}
+                        aria-label="Tool arguments (JSON)"
+                        className="mt-2 w-full rounded-[var(--radius-md)] border border-line px-3 py-2 font-mono text-xs"
+                      />
+                      {argsError && <p className="mt-1 text-xs text-danger">{argsError}</p>}
+                      <Button
+                        variant="secondary"
+                        disabled={fetching || !fetchServer || !fetchTool || !!argsError}
+                        onClick={fetchContext}
+                        data-testid="fetch-context"
+                      >
+                        {fetching ? "Fetching…" : "Fetch context"}
+                      </Button>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {packs.length > 0 && (
+                <div>
+                  <CardTitle>Start from interview pack</CardTitle>
+                  <div className="mt-2 flex items-center gap-2">
+                    <select
+                      aria-label="Interview pack"
+                      value={packId}
+                      onChange={(e) => setPackId(e.target.value)}
+                      data-testid="pack-select"
+                      className="min-w-0 flex-1 rounded border border-line bg-white px-2 py-1.5 text-sm"
+                    >
+                      <option value="">choose a pack…</option>
+                      {packs.map(({ pack }) => (
+                        <option key={pack.id} value={pack.id}>
+                          {pack.name} ({pack.rounds.length} rounds)
+                        </option>
+                      ))}
+                    </select>
+                    <Button
+                      variant="secondary"
+                      disabled={starting || !packId}
+                      onClick={startPack}
+                      data-testid="start-pack"
+                    >
+                      Start pack
+                    </Button>
+                  </div>
+                </div>
+              )}
+            </div>
+          </details>
         </Card>
       )}
 
       {starting && (
         <p role="status" aria-live="polite" className="text-sm text-muted">
-          <span className="mr-2 inline-block h-3.5 w-3.5 animate-spin rounded-full border-2 border-line border-t-blue align-middle" aria-hidden />
+          <span
+            className="mr-2 inline-block h-3.5 w-3.5 animate-spin rounded-full border-2 border-line border-t-blue align-middle"
+            aria-hidden
+          />
           {stage ? `${stage}…` : "Preparing…"}
         </p>
       )}
@@ -548,7 +692,7 @@ export default function Interview() {
 
       {(loops ?? []).filter((l) => l.status !== "complete" || !l.abandoned).length > 0 && (
         <Card>
-          <CardTitle>Loops</CardTitle>
+          <SectionHeading title="Loops" description="Multi-round interviews in progress." />
           <ul className="space-y-2 text-sm">
             {(loops ?? []).map((l) => (
               <li key={l.id} className="flex items-center justify-between gap-2">
@@ -566,25 +710,9 @@ export default function Interview() {
         </Card>
       )}
 
-      {live.map((s) => (
-        <Card key={s.id}>
-          <CardTitle>{s.mode === "practice" ? "Practice session in progress" : "Session in progress"}</CardTitle>
-          <p className="text-sm text-muted">
-            Started {new Date(s.createdAt).toLocaleString()} · round {s.currentRound}/{s.plannedQuestions} ·{" "}
-            {s.loopId && <Pill tone="blue">Loop round {s.loopRound}</Pill>}{" "}
-            {s.mode === "practice" && <Pill tone="amber">Practice</Pill>}{" "}
-            {s.mode !== "practice" && s.roundType !== "mixed" && (
-              <Pill tone="blue">{(s.modeLabel ?? s.roundType).replace("_", " ")}</Pill>
-            )}{" "}
-            <Pill tone="blue">{s.status}</Pill>
-          </p>
-          <div className="mt-3"><Link to={`/interview/${s.id}`}><Button>Resume</Button></Link></div>
-        </Card>
-      ))}
-
       {past.length > 0 && (
         <Card>
-          <CardTitle>Past interviews</CardTitle>
+          <SectionHeading title="Past interviews" description="Review what happened." />
           <ul className="space-y-2 text-sm">
             {past.map((s) => (
               <li key={s.id} className="flex items-center justify-between gap-2">
@@ -606,11 +734,6 @@ export default function Interview() {
           <EmptyState
             title="No interviews yet"
             description="Start one to begin practicing — every answer feeds the readiness model."
-            action={
-              <Button onClick={start} disabled={starting}>
-                Start your first interview
-              </Button>
-            }
           />
         </Card>
       )}

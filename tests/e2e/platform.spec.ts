@@ -143,6 +143,8 @@ test.describe("platform (v0.4)", () => {
   }) => {
     await freshWorkspace(request);
     await page.goto("/settings");
+    // Settings is category-based: open the Data category.
+    await page.getByRole("menuitem", { name: "Data" }).click();
 
     await expect(page.getByTestId("export-all")).toBeVisible();
     for (const part of [

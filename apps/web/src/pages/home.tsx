@@ -1,24 +1,41 @@
 import { Link, useNavigate } from "react-router";
 import { useCallback, useEffect, useState } from "react";
 import { api, type AppState, type InterviewListItem, type Metrics } from "@/lib/api";
-import { Bar, Button, Card, CardTitle, EmptyState, ErrorNote, PageHeader, Pill, SkeletonCard, StatusPill, skillLabel } from "@/components/ui";
-import { PluginSlot } from "@/components/plugin-ui";
+import {
+  Button,
+  DeltaList,
+  ErrorNote,
+  GapSeverityBars,
+  Panel,
+  Pill,
+  ScreenToolbar,
+  Skeleton,
+  StatStrip,
+  Workspace,
+  displayLabel,
+  gapReason,
+  pct,
+  readinessVerdict,
+  trendOf,
+} from "@/components/ui";
+import { ExtensionSlot } from "@/components/plugin-ui";
+import { SetupForm } from "@/components/setup-form";
+import { useAppRefresh } from "@/lib/app-refresh";
 
-/** One metric in the Progress card; `title` carries the explanation. */
-function Metric({ label, value, title }: { label: string; value: string; title: string }) {
-  return (
-    <div title={title} className="rounded-[0.5rem] border border-line p-2.5">
-      <dt className="text-xs text-muted">{label}</dt>
-      <dd className="mt-0.5 text-lg font-semibold text-navy">{value}</dd>
-    </div>
-  );
-}
+type SkillDelta = {
+  skillId: string;
+  label: string;
+  before: number | null;
+  after: number | null;
+};
 
 export default function Dashboard() {
   const navigate = useNavigate();
+  const refresh = useAppRefresh();
   const [state, setState] = useState<AppState | null>(null);
   const [sessions, setSessions] = useState<InterviewListItem[]>([]);
   const [metrics, setMetrics] = useState<Metrics | null>(null);
+  const [deltas, setDeltas] = useState<SkillDelta[]>([]);
   const [error, setError] = useState<unknown>(null);
   const [starting, setStarting] = useState(false);
 
@@ -29,43 +46,118 @@ export default function Dashboard() {
   }, []);
   useEffect(load, [load]);
 
+  // Readiness change since the last finished interview — the "what changed" answer.
+  useEffect(() => {
+    const lastDone = sessions.find((s) => s.status !== "in_progress");
+    if (!lastDone) {
+      setDeltas([]);
+      return;
+    }
+    let cancelled = false;
+    api
+      .sessionHistory(lastDone.id)
+      .then((h) => {
+        if (cancelled) return;
+        const bySkill = new Map<string, { before: number | null; after: number | null }>();
+        const rows = h.questions.flatMap((q) => [q, ...q.followUps]);
+        for (const q of rows) {
+          for (const d of q.readinessDelta) {
+            const cur = bySkill.get(d.skillId);
+            if (!cur) bySkill.set(d.skillId, { before: d.before, after: d.after });
+            else cur.after = d.after;
+          }
+        }
+        setDeltas(
+          [...bySkill].map(([skillId, v]) => ({
+            skillId,
+            label: displayLabel(skillId),
+            ...v,
+          })),
+        );
+      })
+      .catch(() => !cancelled && setDeltas([]));
+    return () => {
+      cancelled = true;
+    };
+  }, [sessions]);
+
   if (error && !state) return <ErrorNote error={error} />;
   if (!state) {
     return (
-      <div className="space-y-5">
-        <SkeletonCard lines={1} />
-        <div className="grid gap-5 md:grid-cols-2">
-          <SkeletonCard />
-          <SkeletonCard />
-        </div>
-      </div>
+      <Workspace toolbar={<ScreenToolbar title="Home" />} bodyClassName="space-y-3">
+        <Skeleton className="h-16 w-full" />
+        <Skeleton className="h-48 w-full" />
+      </Workspace>
     );
   }
 
   if (state.candidate.id === "none" || state.target.id === "none") {
     return (
-      <Card className="mx-auto mt-16 max-w-xl">
-        <EmptyState
-          title="Welcome to Interview OS"
-          description="Set a target role — a job description plus your resume — to build an evidence-backed readiness model and start preparing."
-          action={<Link to="/target"><Button>Define Target Role</Button></Link>}
-        />
-      </Card>
+      <Workspace
+        toolbar={
+          <ScreenToolbar
+            title="Welcome to Interview OS"
+            subtitle="Four quick steps and you'll have a personalized preparation plan."
+          />
+        }
+      >
+        <div className="max-w-4xl">
+          <Panel>
+            <SetupForm
+              mode="workspace"
+              showSteps
+              onDone={(r) => {
+                if (r) navigate("/prepare");
+                else refresh();
+              }}
+            />
+          </Panel>
+        </div>
+      </Workspace>
     );
   }
 
   const target = state.target;
   const readiness = state.readiness;
-  const openActions = [...state.preparation.nextActions].sort((a, b) => a.priority - b.priority);
+  const openActions = state.preparation.nextActions
+    .filter((a) => a.status === "open" || a.status === "in_progress")
+    .sort((a, b) => a.priority - b.priority);
   const nextAction = openActions[0];
-  const topGaps = [...state.assessment.gaps]
-    .sort((a, b) => b.gap - a.gap)
-    .slice(0, 3);
-  const requirements = target.requirements
+
+  const ranked = target.requirements
     .map((r) => ({ req: r, rd: readiness.dimensions[r.skillId] }))
-    .filter((x) => x.rd)
-    .slice(0, 8);
-  const lastSession = sessions[0];
+    .filter((x) => x.rd);
+
+  const gaps = [...state.assessment.gaps].sort((a, b) => b.gap - a.gap);
+  const topGaps = gaps.slice(0, 5);
+  const resolvedTop = topGaps.filter(
+    (g) => (readiness.dimensions[g.skillId]?.score ?? 0) >= 0.6,
+  ).length;
+
+  const net = deltas.reduce((acc, d) => acc + ((d.after ?? 0) - (d.before ?? 0)), 0);
+  const overallTrend =
+    deltas.length > 0
+      ? net > 0.005
+        ? "up"
+        : net < -0.005
+          ? "down"
+          : "flat"
+      : trendOf(ranked.map((x) => x.rd!.score));
+
+  const nextGap = nextAction
+    ? state.assessment.gaps.find((g) => g.skillId === nextAction.skillId)
+    : undefined;
+  const nextReadiness = nextAction
+    ? (readiness.dimensions[nextAction.skillId]?.score ?? null)
+    : null;
+  const nextDelta = nextAction ? deltas.find((d) => d.skillId === nextAction.skillId) : undefined;
+  const impact = nextGap
+    ? nextGap.severity === "high"
+      ? "High impact"
+      : nextGap.severity === "medium"
+        ? "Medium impact"
+        : "Lower impact"
+    : "Prioritised";
 
   const startPractice = () => {
     if (!nextAction) return;
@@ -81,125 +173,273 @@ export default function Dashboard() {
       .finally(() => setStarting(false));
   };
 
+  const lastSession = sessions[0];
+  const improvedCount = deltas.filter(
+    (d) => d.before !== null && d.after !== null && d.after > d.before,
+  ).length;
+  const coverage = metrics?.readinessCoverage ?? null;
+
+  const why = !nextAction
+    ? "No open preparation actions — run a mock interview to add fresh evidence."
+    : nextDelta && nextDelta.before !== null && nextDelta.after !== null
+      ? `Your last interview moved this from ${pct(nextDelta.before)} to ${pct(nextDelta.after)}.`
+      : nextGap
+        ? gapReason(nextGap)
+        : "This is a priority for your target role.";
+
   return (
-    <div className="space-y-5">
-      <PageHeader
-        title={
-          <>
-            {target.role} <span className="font-normal text-muted">— {target.company}</span>
-          </>
-        }
-        subtitle="Evidence-backed readiness for your target role."
-        actions={<Pill tone="blue">{target.level}</Pill>}
-      />
+    <Workspace
+      scroll={true}
+      toolbar={
+        <ScreenToolbar
+          title={
+            <>
+              {target.role}{" "}
+              <span className="text-sm font-normal text-muted">· {target.company}</span>
+            </>
+          }
+          actions={
+            <>
+              <Pill tone="blue">{target.level}</Pill>
+              <Link to="/target">
+                <Button variant="secondary" size="small">
+                  Change target
+                </Button>
+              </Link>
+            </>
+          }
+        />
+      }
+    >
+      <ErrorNote error={error} />
 
-      <Card>
-        <CardTitle>Overall readiness</CardTitle>
-        <div className="flex items-center gap-4">
-          <div className="flex-1"><Bar value={readiness.overall} /></div>
-          <span className="w-12 text-right text-lg font-semibold text-navy">
-            {Math.round(readiness.overall * 100)}%
-          </span>
+      <div className="space-y-3">
+        <section>
+          <h2 className="mb-1 text-sm font-semibold text-navy">Overall readiness</h2>
+          <StatStrip
+            items={[
+              {
+                label: "Estimated readiness",
+                value: pct(readiness.overall),
+                suffix:
+                  overallTrend === "up"
+                    ? "↑"
+                    : overallTrend === "down"
+                      ? "↓"
+                      : overallTrend === "flat"
+                        ? "→"
+                        : undefined,
+              },
+              { label: "Confidence", value: pct(readiness.overallConfidence) },
+              {
+                label: "Coverage",
+                value: coverage ? `${coverage.covered}/${coverage.total}` : "Not assessed",
+                suffix: "required skills",
+              },
+              {
+                label: "Verdict",
+                value: (
+                  <span className="text-[15px] font-semibold leading-snug">
+                    {readinessVerdict(readiness.overall, coverage?.rate ?? null)}
+                  </span>
+                ),
+                action: (
+                  <Link to="/readiness" className="text-blue underline">
+                    See the evidence
+                  </Link>
+                ),
+              },
+            ]}
+          />
+        </section>
+
+        <div className="grid gap-3 lg:grid-cols-[minmax(0,1fr)_320px]">
+          <div className="space-y-3">
+            <Panel
+              title="Next best action"
+              className="border-s-[3px] border-s-[var(--color-blue)]"
+              footer={
+                nextAction ? (
+                  <Button size="small" onClick={startPractice} disabled={starting}>
+                    {starting ? "Starting…" : "Start practice"}
+                  </Button>
+                ) : (
+                  <Link to="/interview">
+                    <Button size="small">Start mock interview</Button>
+                  </Link>
+                )
+              }
+            >
+              <p className="text-sm font-semibold text-navy">
+                {nextAction ? `Practice ${displayLabel(nextAction.skillId)}` : "You're caught up"}
+              </p>
+              <p className="mt-1 text-[13px] text-muted">{why}</p>
+              {nextAction && (
+                <p className="mt-1.5 flex flex-wrap items-center gap-x-4 gap-y-1 text-[13px]">
+                  <span>
+                    Current readiness:{" "}
+                    <strong>{nextReadiness === null ? "Not assessed" : pct(nextReadiness)}</strong>
+                  </span>
+                  <span>
+                    Impact: <strong>{impact}</strong>
+                  </span>
+                </p>
+              )}
+              {nextAction && nextAction.successCriteria.length > 0 && (
+                <ul className="mt-2 space-y-0.5 text-[13px] text-muted">
+                  {nextAction.successCriteria.slice(0, 4).map((c, i) => (
+                    <li key={i}>· {c}</li>
+                  ))}
+                </ul>
+              )}
+            </Panel>
+
+            <Panel
+              title="Recent progress"
+              actions={
+                lastSession ? (
+                  <Link to={`/interview/${lastSession.id}`} className="text-xs text-blue underline">
+                    View session
+                  </Link>
+                ) : undefined
+              }
+            >
+              {topGaps.length > 0 && (
+                <p className="mb-2 text-[13px]">
+                  You've resolved <strong>{resolvedTop}</strong> of your top {topGaps.length} gaps.
+                </p>
+              )}
+              <DeltaList
+                empty="No interview evidence yet — run one to start tracking change."
+                items={deltas.map((d) => ({
+                  key: d.skillId,
+                  label: d.label,
+                  before: d.before,
+                  after: d.after,
+                }))}
+              />
+            </Panel>
+
+            <ExtensionSlot slot="dashboard.cards" />
+          </div>
+
+          <div className="space-y-3">
+            <Panel
+              title="Preparation priorities"
+              padded={false}
+              actions={
+                <Link to="/prepare" className="text-xs text-blue underline">
+                  Open plan
+                </Link>
+              }
+            >
+              <GapSeverityBars
+                gaps={gaps.slice(0, 6).map((g) => ({
+                  skillId: g.skillId,
+                  label: displayLabel(g.skillId, g.label),
+                  severity: g.severity,
+                  importance: g.importance,
+                  gap: g.gap,
+                  currentScore: g.currentScore,
+                  targetScore: g.targetScore,
+                }))}
+                meta={(g) =>
+                  g.currentScore === null
+                    ? "No evidence yet — your target expects this skill."
+                    : gapReason(g)
+                }
+              />
+            </Panel>
+
+            <Panel title="Interview readiness">
+              <div className="space-y-2 text-[13px]">
+                {openActions.length > 0 ? (
+                  <>
+                    <p>
+                      <strong>{openActions.length}</strong> open preparation{" "}
+                      {openActions.length === 1 ? "action" : "actions"} — start with the highest
+                      priority.
+                    </p>
+                    <Link to="/prepare">
+                      <Button variant="secondary" size="small">
+                        Open preparation plan
+                      </Button>
+                    </Link>
+                  </>
+                ) : improvedCount > 0 ? (
+                  <>
+                    <p>
+                      You improved <strong>{improvedCount}</strong>{" "}
+                      {improvedCount === 1 ? "skill" : "skills"} in your last interview.
+                    </p>
+                    <Link to="/interview">
+                      <Button variant="secondary" size="small">Start mock interview</Button>
+                    </Link>
+                  </>
+                ) : (
+                  <>
+                    <p className="text-muted">Run a mock interview to find out where you stand.</p>
+                    <Link to="/interview">
+                      <Button variant="secondary" size="small">Start mock interview</Button>
+                    </Link>
+                  </>
+                )}
+              </div>
+            </Panel>
+          </div>
         </div>
-        <p className="mt-1 text-xs text-muted">
-          confidence {Math.round(readiness.overallConfidence * 100)}% · updated{" "}
-          {new Date(readiness.lastUpdated).toLocaleString()}
-        </p>
-      </Card>
 
-      <div className="grid gap-5 md:grid-cols-2">
-        <Card>
-          <CardTitle>Focus areas</CardTitle>
-          {topGaps.length === 0 ? (
-            <p className="text-sm text-muted">No gaps detected.</p>
-          ) : (
-            <ul className="space-y-2">
-              {topGaps.map((g) => (
-                <li key={g.skillId} className="flex items-center justify-between gap-2 text-sm">
-                  <span>{g.label || skillLabel(g.skillId)}</span>
-                  <Pill tone={g.severity === "high" ? "amber" : "muted"}>{g.severity}</Pill>
-                </li>
-              ))}
-            </ul>
-          )}
-        </Card>
-
-        <Card>
-          <CardTitle>Next action</CardTitle>
-          {!nextAction ? (
-            <p className="text-sm text-muted">All preparation actions complete.</p>
-          ) : (
-            <div className="space-y-2">
-              <p className="text-sm font-medium">{nextAction.action}</p>
-              <ul className="list-disc space-y-0.5 pl-5 text-xs text-muted">
-                {nextAction.successCriteria.map((c, i) => <li key={i}>{c}</li>)}
-              </ul>
-              <Button onClick={startPractice} disabled={starting}>
-                {starting ? "Starting…" : "Start Practice"}
-              </Button>
-            </div>
-          )}
-          {error ? <div className="mt-3"><ErrorNote error={error} /></div> : null}
-        </Card>
-      </div>
-
-      <PluginSlot slot="dashboard.cards" />
-
-      <Card>
-        <CardTitle>Skill readiness</CardTitle>
-        {requirements.length === 0 ? (
-          <p className="text-sm text-muted">No skills assessed yet.</p>
-        ) : (
-          <ul className="space-y-2">
-            {requirements.map(({ req, rd }) => (
-              <li key={req.skillId} className="grid grid-cols-[1fr_auto] items-center gap-x-3">
-                <span className="truncate text-sm">{rd!.label || skillLabel(req.skillId)}</span>
-                <StatusPill status={rd!.status} />
-                <div className="col-span-2"><Bar value={rd!.score ?? 0} /></div>
-              </li>
-            ))}
-          </ul>
+        {metrics && (
+          <Panel title="Progress" data-testid="progress-card">
+            <StatStrip
+              items={[
+                {
+                  label: "Loops completed",
+                  value: `${metrics.loopsCompleted}/${metrics.loopsStarted}`,
+                },
+                {
+                  label: "Modes used",
+                  value: Object.keys(metrics.sessionsPerMode)
+                    .filter((m) => metrics.sessionsPerMode[m] > 0)
+                    .length.toString(),
+                },
+                {
+                  label: "Weakness retest",
+                  value:
+                    metrics.weaknessRetestRate.rate === null
+                      ? "No data"
+                      : `${Math.round(metrics.weaknessRetestRate.rate * 100)}%`,
+                },
+                {
+                  label: "Improvement after prep",
+                  value:
+                    metrics.improvementAfterPrep === null
+                      ? "No data"
+                      : `${metrics.improvementAfterPrep >= 0 ? "+" : ""}${Math.round(
+                          metrics.improvementAfterPrep * 100,
+                        )}%`,
+                },
+                {
+                  label: "Prep completion",
+                  value:
+                    metrics.prepCompletionRate.rate === null
+                      ? "No data"
+                      : `${Math.round(metrics.prepCompletionRate.rate * 100)}%`,
+                },
+                {
+                  label: "Readiness coverage",
+                  value:
+                    metrics.readinessCoverage.rate === null
+                      ? "No data"
+                      : `${Math.round(metrics.readinessCoverage.rate * 100)}%`,
+                },
+              ]}
+            />
+          </Panel>
         )}
-      </Card>
 
-      {metrics && (
-        <Card data-testid="progress-card">
-          <CardTitle>Progress</CardTitle>
-          <dl className="grid grid-cols-2 gap-3 sm:grid-cols-3">
-            <Metric label="Loops completed" value={`${metrics.loopsCompleted}/${metrics.loopsStarted}`}
-              title="Interview loops finished (abandoned loops don't count as completed)." />
-            <Metric label="Modes used"
-              value={Object.keys(metrics.sessionsPerMode).filter((m) => metrics.sessionsPerMode[m] > 0).length.toString()}
-              title={`Sessions per mode: ${Object.entries(metrics.sessionsPerMode).map(([m, n]) => `${m} ×${n}`).join(", ") || "none"}`} />
-            <Metric label="Weakness retest"
-              value={metrics.weaknessRetestRate.rate === null ? "—" : `${Math.round(metrics.weaknessRetestRate.rate * 100)}%`}
-              title={`Skills that scored weak in an interview and were asked again later (same or related skill): ${metrics.weaknessRetestRate.retested}/${metrics.weaknessRetestRate.weakSkills}.`} />
-            <Metric label="Improvement after prep"
-              value={metrics.improvementAfterPrep === null ? "—" : `${metrics.improvementAfterPrep >= 0 ? "+" : ""}${Math.round(metrics.improvementAfterPrep * 100)}%`}
-              title="Mean change in evidence scores for a skill after finishing its prep action." />
-            <Metric label="Prep completion"
-              value={metrics.prepCompletionRate.rate === null ? "—" : `${Math.round(metrics.prepCompletionRate.rate * 100)}%`}
-              title={`Prep actions marked done: ${metrics.prepCompletionRate.done}/${metrics.prepCompletionRate.total}.`} />
-            <Metric label="Readiness coverage"
-              value={metrics.readinessCoverage.rate === null ? "—" : `${Math.round(metrics.readinessCoverage.rate * 100)}%`}
-              title={`Required skills with an evidence-backed readiness score (confidence ≥ 40%): ${metrics.readinessCoverage.covered}/${metrics.readinessCoverage.total}.`} />
-          </dl>
-        </Card>
-      )}
-
-      {lastSession && (
-        <Card>
-          <CardTitle>Latest interview</CardTitle>
-          <p className="text-sm">
-            {new Date(lastSession.createdAt).toLocaleString()} · status{" "}
-            <Pill tone={lastSession.status === "debrief" ? "green" : "muted"}>{lastSession.status}</Pill>
-          </p>
-          <Link to={`/interview/${lastSession.id}`} className="mt-2 inline-block text-sm text-blue underline">
-            View session
-          </Link>
-        </Card>
-      )}
-      <PluginSlot slot="dashboard.sidebar" />
-    </div>
+        <ExtensionSlot slot="dashboard.sidebar" />
+      </div>
+    </Workspace>
   );
 }

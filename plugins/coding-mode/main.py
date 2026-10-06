@@ -100,8 +100,9 @@ CODING_PROBLEM_DATA: tuple[dict[str, Any], ...] = (
     {
         "title": "Top-K recent items",
         "statement": (
-            "Implement `recentK(items: number[], k: number)` returning the k most recently seen "
-            "distinct values, newest first. Items arrive as an array in order."
+            "Implement a function `recent_k(items, k)` returning the k most recently seen "
+            "distinct values, newest first. Items arrive as a list in order. The signature is "
+            "illustrative — use your language's idiom."
         ),
         "constraints": ["1 ≤ k ≤ items.length", "items may contain duplicates", "aim for O(n) time"],
         "examples": [
@@ -115,8 +116,9 @@ CODING_PROBLEM_DATA: tuple[dict[str, Any], ...] = (
     {
         "title": "Merge overlapping intervals",
         "statement": (
-            "Implement `merge(intervals: [number,number][])` returning the sorted list of merged "
-            "non-overlapping intervals."
+            "Implement a function `merge(intervals)` returning the sorted list of merged "
+            "non-overlapping intervals. Each interval is a `[start, end]` pair. The signature is "
+            "illustrative."
         ),
         "constraints": ["intervals.length up to 10^4", "intervals may be unsorted", "endpoints inclusive"],
         "examples": [
@@ -279,7 +281,9 @@ def _interviewer_output(input_: dict[str, Any]) -> dict[str, Any]:
     )
     problem = PROBLEM_BY_ID.get(id(template)) or CODING_PROBLEM_DATA[0]
     return {
-        "question": f"{problem['title']}: {rendered}",
+        # The problem title is carried by the panel card and the topic pill; the
+        # question itself is the prompt, so it must not repeat the title (D8).
+        "question": rendered,
         "topic": problem["title"],
         "skillId": skill_id,
         "subSkills": list(template.sub_skills),
@@ -427,15 +431,10 @@ def _evaluator_output(input_: dict[str, Any]) -> dict[str, Any]:
         *(["Edge cases"] if edge_score < 0.6 else []),
     ]
 
-    submitted = (
-        f"; submitted {code_len} chars of {language if language is not None else 'code'}"
-        if code
-        else ""
-    )
     return {
         "summary": (
             f"Covered {len(coverage.covered)} of {len(concepts)} expected concepts "
-            f"({js_round(ratio * 100)}%){submitted}."
+            f"({js_round(ratio * 100)}%)."
         ),
         "dimensions": {
             "correctness": {"score": by_id["correctness"]["score"], "rationale": "deterministic mock evaluation"},
@@ -460,7 +459,10 @@ def _evaluator_output(input_: dict[str, Any]) -> dict[str, Any]:
         "betterApproach": (
             "The answer covered the expected ground."
             if not coverage.missing
-            else f"A stronger answer would cover: {', '.join(item['concept'] for item in coverage.missing)}."
+            else (
+                "Lead with the goal and constraints, then state the approach and its time/space "
+                "cost, then walk one example and the edge cases you handle."
+            )
         ),
         "followUpTopics": [item["concept"] for item in coverage.missing],
     }
@@ -472,7 +474,11 @@ def _text_node(text: str) -> dict[str, Any]:
 
 def _problem_panel(problem: object) -> dict[str, Any]:
     if isinstance(problem, str):
-        return {"type": "card", "title": "Problem", "children": [_text_node(problem)]}
+        return {
+            "type": "stack",
+            "gap": "sm",
+            "children": [{"type": "heading", "level": 3, "text": "Problem"}, _text_node(problem)],
+        }
     data: dict[str, Any] = problem if isinstance(problem, dict) else {}
     title = data.get("title")
     statement = data.get("statement")
@@ -482,7 +488,12 @@ def _problem_panel(problem: object) -> dict[str, Any]:
             "title": "Problem",
             "description": "The problem will appear here.",
         }
+    # Flat hierarchy: the host panel already provides the bordered container, so
+    # the problem is a heading + statement + constraints + examples, never a
+    # nested card.
     children: list[dict[str, Any]] = []
+    if isinstance(title, str):
+        children.append({"type": "heading", "level": 3, "text": title[:200]})
     if isinstance(statement, str):
         children.append(_text_node(statement))
     raw_constraints = data.get("constraints")
@@ -492,9 +503,12 @@ def _problem_panel(problem: object) -> dict[str, Any]:
         else []
     )
     if constraints:
+        children.append({"type": "heading", "level": 3, "text": "Constraints"})
         children.append({"type": "list", "items": [{"text": item[:300]} for item in constraints]})
     raw_examples = data.get("examples")
     examples = raw_examples[:5] if isinstance(raw_examples, list) else []
+    if examples:
+        children.append({"type": "heading", "level": 3, "text": "Examples"})
     for example in examples:
         entry: dict[str, Any] = example if isinstance(example, dict) else {}
         rendered = (
@@ -504,12 +518,7 @@ def _problem_panel(problem: object) -> dict[str, Any]:
         if entry.get("explanation"):
             rendered += f" — {entry['explanation']}"
         children.append(_text_node(rendered))
-    return {
-        "type": "card",
-        "title": str(title if title is not None else "Problem")[:200],
-        "subtitle": "Coding problem",
-        "children": children,
-    }
+    return {"type": "stack", "gap": "sm", "children": children}
 
 
 class CodingMode:

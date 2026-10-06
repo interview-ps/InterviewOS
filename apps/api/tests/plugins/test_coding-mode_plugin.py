@@ -102,7 +102,7 @@ async def test_mode_mock_interviewer_attaches_a_coding_problem() -> None:
     )
     output = response.output
     assert output["question"] == (
-        "Top-K recent items: Solve this problem: first explain your approach, then write the code."
+        "Solve this problem: first explain your approach, then write the code."
     )
     assert output["topic"] == "Top-K recent items"
     assert output["subSkills"] == ["coding.data-structures"]
@@ -189,9 +189,7 @@ async def test_mode_mock_evaluator_scores_a_submitted_solution() -> None:
         )
     )
     output = response.output
-    assert output["summary"] == (
-        "Covered 3 of 3 expected concepts (100%); submitted 100 chars of python."
-    )
+    assert output["summary"] == "Covered 3 of 3 expected concepts (100%)."
     rubric = output["rubric"]
     # code_len > 40 nudges correctness; codeQuality = 0.45 + min(0.3, 100 / 400)
     assert [entry["score"] for entry in rubric] == [0.85, 0.7, 0.9, 0.2, 0.2, 0.7, 0.65]
@@ -232,15 +230,17 @@ async def test_ui_render_draws_the_problem_panel() -> None:
     )
     assert isinstance(response, UiRenderResponse)
     assert response.ui.model_dump(by_alias=True) == {
-        "type": "card",
-        "title": "Merge intervals",
-        "subtitle": "Coding problem",
+        "type": "stack",
+        "gap": "sm",
         "children": [
+            {"type": "heading", "text": "Merge intervals", "level": 3},
             {"type": "text", "text": "Merge them.", "tone": None},
+            {"type": "heading", "text": "Constraints", "level": 3},
             {
                 "type": "list",
                 "items": [{"text": "a", "tone": None}, {"text": "b", "tone": None}],
             },
+            {"type": "heading", "text": "Examples", "level": 3},
             {"type": "text", "text": "Input: [[1,3]] → Output: [[1,3]]", "tone": None},
         ],
     }
@@ -255,10 +255,12 @@ async def test_ui_render_accepts_a_plain_problem_string() -> None:
         )
     )
     assert response.ui.model_dump(by_alias=True) == {
-        "type": "card",
-        "title": "Problem",
-        "subtitle": None,
-        "children": [{"type": "text", "text": "Write fizzbuzz.", "tone": None}],
+        "type": "stack",
+        "gap": "sm",
+        "children": [
+            {"type": "heading", "text": "Problem", "level": 3},
+            {"type": "text", "text": "Write fizzbuzz.", "tone": None},
+        ],
     }
 
 

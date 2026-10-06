@@ -232,6 +232,18 @@ export interface TargetListItem {
   boostedSkillIds: string[];
 }
 
+/** Persisted resume + active target sources (prefill for the setup form). */
+export interface WorkspaceSources {
+  resumeText: string;
+  jobDescription: string;
+  company: string;
+  role: string;
+  level: string;
+  companyNotes: string | null;
+  hasCandidate: boolean;
+  hasTarget: boolean;
+}
+
 export interface ExtractResult {
   text: string;
   format: "pdf" | "docx" | "txt" | "md";
@@ -885,6 +897,7 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
 }
 
 export const api = {
+  health: () => request<{ status: string; version: string }>("/api/health"),
   state: () => request<AppState>("/api/state"),
   readiness: () => request<ReadinessGraph>("/api/readiness"),
   skillDetail: (skillId: string) =>
@@ -942,6 +955,7 @@ export const api = {
       },
     ),
   listTargets: () => request<TargetListItem[]>("/api/targets"),
+  workspaceSources: () => request<WorkspaceSources>("/api/workspace/sources"),
   addTarget: (body: {
     jobDescription: string;
     company: string;

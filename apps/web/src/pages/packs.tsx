@@ -31,7 +31,7 @@ const isHttps = (u: unknown): u is string =>
   typeof u === "string" && u.startsWith("https://");
 
 const inputCls =
-  "w-full rounded-[0.6rem] border border-line px-3 py-2 text-sm";
+  "w-full rounded-[var(--radius-md)] border border-line px-3 py-2 text-sm";
 
 function InstallFromGit({
   kind,
@@ -52,7 +52,7 @@ function InstallFromGit({
           onChange={(e) => setUrl(e.target.value)}
           placeholder="https://… or a local path"
           aria-label={`${kind} pack URL or path`}
-          className="min-w-0 flex-1 rounded-[0.6rem] border border-line px-3 py-2 text-sm"
+          className="min-w-0 flex-1 rounded-[var(--radius-md)] border border-line px-3 py-2 text-sm"
         />
         <Button
           variant="secondary"
@@ -114,7 +114,7 @@ function CompanyPackCard({
   };
 
   return (
-    <li className="rounded-[0.6rem] border border-line p-3" data-testid={`company-pack-${pack.id}`}>
+    <li className="rounded-[var(--radius-card)] border border-line p-3" data-testid={`company-pack-${pack.id}`}>
       <button
         type="button"
         onClick={() => setOpen((v) => !v)}
@@ -247,8 +247,8 @@ function RolePacks({
           {packs.map((p) => (
             <li
               key={p.id}
-              className={`rounded-[0.6rem] border p-3 ${
-                target?.rolePackId === p.id ? "border-accent bg-tint" : "border-line"
+              className={`rounded-[var(--radius-card)] border p-3 ${
+                target?.rolePackId === p.id ? "border-[color:var(--color-blue)] bg-[var(--color-tint)]" : "border-divider"
               }`}
               data-testid={`role-pack-${p.id}`}
             >
@@ -259,7 +259,7 @@ function RolePacks({
                   value={p.id}
                   checked={selected === p.id}
                   onChange={() => setSelected(p.id)}
-                  className="mt-1 accent-accent"
+                  className="mt-1 accent-blue"
                 />
                 <span className="min-w-0 flex-1">
                   <span className="flex flex-wrap items-center gap-2">
@@ -283,7 +283,7 @@ function RolePacks({
               </label>
             </li>
           ))}
-          <li className="rounded-[0.6rem] border border-line p-3">
+          <li className="rounded-[var(--radius-card)] border border-line p-3">
             <label className="flex cursor-pointer items-center gap-2">
               <input
                 type="radio"
@@ -291,7 +291,7 @@ function RolePacks({
                 value=""
                 checked={selected === ""}
                 onChange={() => setSelected("")}
-                className="accent-accent"
+                className="accent-blue"
               />
               <span className="text-sm text-muted">None — JD requirements only</span>
             </label>
@@ -397,7 +397,7 @@ function InterviewPackCreator({
     rounds.length <= 7;
 
   return (
-    <div className="mt-3 rounded-[0.6rem] border border-line bg-page p-3" data-testid="pack-creator">
+    <div className="mt-3 rounded-[var(--radius-card)] border border-line bg-page p-3" data-testid="pack-creator">
       <div className="grid gap-3 sm:grid-cols-2">
         <label className="block text-sm">
           <span className="mb-1 block font-medium">Name</span>
@@ -436,8 +436,8 @@ function InterviewPackCreator({
               key={r.skillId}
               className={`cursor-pointer rounded-full border px-3 py-1 text-xs ${
                 skills.includes(r.skillId)
-                  ? "border-accent bg-tint text-navy"
-                  : "border-line text-muted"
+                  ? "border-[color:var(--color-blue)] bg-[var(--color-tint)] text-navy"
+                  : "border-divider text-muted"
               }`}
             >
               <input
@@ -461,7 +461,7 @@ function InterviewPackCreator({
         {rounds.map((r, i) => (
           <li
             key={i}
-            className="flex flex-wrap items-center gap-2 rounded-[0.5rem] border border-line p-2"
+            className="flex flex-wrap items-center gap-2 rounded-[var(--radius-sm)] border border-line p-2"
           >
             <span className="w-5 text-center text-xs text-muted">{i + 1}</span>
             <select
@@ -623,7 +623,7 @@ function InterviewPacks({
           {packs.map(({ pack, source }) => (
             <li
               key={pack.id}
-              className="rounded-[0.6rem] border border-line p-3"
+              className="rounded-[var(--radius-card)] border border-line p-3"
               data-testid={`interview-pack-${pack.id}`}
             >
               <div className="flex flex-wrap items-center gap-2">
@@ -651,7 +651,7 @@ function InterviewPacks({
                 </Button>
                 <a
                   href={api.exportInterviewPackUrl(pack.id)}
-                  className="inline-flex items-center rounded-[0.6rem] border border-line px-3 py-1.5 text-sm text-blue"
+                  className="inline-flex items-center rounded-[var(--radius-md)] border border-line px-3 py-1.5 text-sm text-blue"
                   data-testid={`export-pack-${pack.id}`}
                 >
                   Export
@@ -799,7 +799,7 @@ function QuestionBank({
           {questions.map((q) => (
             <li
               key={q.source.id}
-              className="flex items-start justify-between gap-2 rounded-[0.6rem] border border-line p-2 text-sm"
+              className="flex items-start justify-between gap-2 rounded-[var(--radius-card)] border border-line p-2 text-sm"
               data-testid={`bank-question-${q.source.id}`}
             >
               <span>
@@ -964,7 +964,7 @@ export default function Packs() {
   if (!packs && !error) {
     return (
       <div className="space-y-5">
-        <PageHeader title="Packs" />
+        <PageHeader title="Content library" />
         <SkeletonCard lines={4} />
         <SkeletonCard lines={4} />
       </div>
@@ -974,8 +974,8 @@ export default function Packs() {
   return (
     <div className="space-y-5">
       <PageHeader
-        title="Packs"
-        subtitle="Installable content — company, role and interview packs, plus your own question bank."
+        title="Content library"
+        subtitle="Company, role and interview packs — install the ones that match your target, or add your own questions."
       />
       <ErrorNote error={error} />
       <div className="flex gap-1 border-b border-line" role="tablist">

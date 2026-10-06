@@ -27,6 +27,28 @@ const TEXT_TONE: Record<string, string> = {
   muted: "text-muted",
 };
 
+/** Safe inline markdown: `code` and **bold** only — never raw HTML. */
+function InlineText({ text }: { text: string }) {
+  const parts = text.split(/(`[^`]+`|\*\*[^*]+\*\*)/g);
+  return (
+    <>
+      {parts.map((part, i) => {
+        if (part.length > 1 && part.startsWith("`") && part.endsWith("`")) {
+          return (
+            <code key={i} className="rounded bg-page px-1 py-0.5 font-mono text-[0.85em]">
+              {part.slice(1, -1)}
+            </code>
+          );
+        }
+        if (part.length > 3 && part.startsWith("**") && part.endsWith("**")) {
+          return <strong key={i}>{part.slice(2, -2)}</strong>;
+        }
+        return <span key={i}>{part}</span>;
+      })}
+    </>
+  );
+}
+
 function Node({ node, onAction }: { node: UINode; onAction?: (a: UIAction) => void }) {
   switch (node.type) {
     case "stack":
@@ -48,9 +70,9 @@ function Node({ node, onAction }: { node: UINode; onAction?: (a: UIAction) => vo
     case "card":
       return (
         <Card>
-          {node.title && <h3 className="mb-1 text-base font-semibold text-navy">{node.title}</h3>}
-          {node.subtitle && <p className="mb-3 text-sm text-muted">{node.subtitle}</p>}
-          <div className="flex flex-col gap-4">
+          {node.title && <h3 className="mb-1 text-sm font-semibold text-navy">{node.title}</h3>}
+          {node.subtitle && <p className="mb-2 text-xs text-muted">{node.subtitle}</p>}
+          <div className="flex flex-col gap-3">
             {node.children.map((c, i) => (
               <Node key={i} node={c} onAction={onAction} />
             ))}
@@ -59,12 +81,16 @@ function Node({ node, onAction }: { node: UINode; onAction?: (a: UIAction) => vo
       );
     case "heading":
       return node.level === 3 ? (
-        <h3 className="text-base font-semibold text-navy">{node.text}</h3>
+        <h3 className="text-sm font-semibold text-navy">{node.text}</h3>
       ) : (
-        <h2 className="text-lg font-semibold text-navy">{node.text}</h2>
+        <h2 className="text-base font-semibold text-navy">{node.text}</h2>
       );
     case "text":
-      return <p className={`text-sm ${TEXT_TONE[node.tone ?? ""] ?? "text-ink"}`}>{node.text}</p>;
+      return (
+        <p className={`text-sm ${TEXT_TONE[node.tone ?? ""] ?? "text-ink"}`}>
+          <InlineText text={node.text} />
+        </p>
+      );
     case "stat":
       return <Stat label={node.label} value={node.value} trend={node.trend} tone={node.tone} />;
     case "badge":
@@ -90,7 +116,7 @@ function Node({ node, onAction }: { node: UINode; onAction?: (a: UIAction) => vo
         <ul className="list-disc space-y-1 pl-5 text-sm">
           {node.items.map((it, i) => (
             <li key={i} className={TEXT_TONE[it.tone ?? ""] ?? "text-ink"}>
-              {it.text}
+              <InlineText text={it.text} />
             </li>
           ))}
         </ul>
@@ -122,7 +148,7 @@ function Node({ node, onAction }: { node: UINode; onAction?: (a: UIAction) => vo
       return (
         <div>
           <Button
-            variant={node.variant ?? "primary"}
+            variant={node.variant ?? "secondary"}
             onClick={onAction ? () => onAction(node.action) : undefined}
           >
             {node.label}

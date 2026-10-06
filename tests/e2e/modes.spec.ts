@@ -25,7 +25,11 @@ test.describe("interview modes", () => {
       .getByLabel("Code answer")
       .fill("function solve(a) { for (const x of a) return x; }");
     await page.getByRole("button", { name: "Submit Answer" }).click();
-    await expect(page.getByTestId("rubric")).toBeVisible({ timeout: 30_000 });
+    // Evaluation is tabbed: the rubric lives on its own tab.
+    const rubricTab = page.getByRole("button", { name: "Rubric" });
+    await expect(rubricTab).toBeVisible({ timeout: 30_000 });
+    await rubricTab.click();
+    await expect(page.getByTestId("rubric")).toBeVisible();
     await page.screenshot({ path: "test-results/modes-2-coding-eval.png", fullPage: true });
   });
 
@@ -77,7 +81,11 @@ test.describe("interview modes", () => {
       .getByPlaceholder("Type your answer…")
       .fill("I align the team on outcomes first, then unblock the riskiest dependency.");
     await page.getByRole("button", { name: "Submit Answer" }).click();
-    await expect(page.getByTestId("rubric")).toBeVisible({ timeout: 30_000 });
+    // Evaluation is tabbed: the rubric lives on its own tab.
+    const rubricTab = page.getByRole("button", { name: "Rubric" });
+    await expect(rubricTab).toBeVisible({ timeout: 30_000 });
+    await rubricTab.click();
+    await expect(page.getByTestId("rubric")).toBeVisible();
     await page.screenshot({ path: "test-results/modes-5-hm.png", fullPage: true });
   });
 });

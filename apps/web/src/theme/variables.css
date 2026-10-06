@@ -1,66 +1,117 @@
 /*
  * Interview OS semantic theme variables.
  *
+ * Colour is applied by meaning: navy/graphite for headings, ink for body,
+ * muted for supporting text, blue for links/primary/focus/selection, green for
+ * positive, amber for caution, red for errors, neutral for unassessed.
+ *
  * `--interview-*` is the product vocabulary. The `--color-*` overrides below
  * flip the existing Tailwind design-system utilities (@interview-os/ui
  * theme.css) to dark mode without touching every page.
  */
 
 :root {
-  --interview-bg: #f5f7fb;
+  /* surfaces */
+  --interview-bg: #f6f7f9;
   --interview-surface: #ffffff;
-  --interview-surface-hover: #eef3fc;
   --interview-surface-elevated: #ffffff;
+  --interview-inset: #f8fafc;
+  --interview-surface-hover: #f2f4f7;
+  --interview-selection: #eff6ff;
+  /* text */
   --interview-text-primary: #172033;
-  --interview-text-secondary: #4b556b;
-  --interview-text-muted: #6b7488;
-  --interview-border: #d9e0ed;
-  --interview-border-secondary: #e8edf7;
-  --interview-brand: #1647a5;
-  --interview-brand-hover: #092e75;
-  --interview-brand-active: #012970;
-  --interview-success: #236342;
-  --interview-warning: #b45309;
-  --interview-danger: #9f1239;
-  --interview-radius-sm: 0.6rem;
-  --interview-radius-md: 0.75rem;
-  --interview-radius-lg: 1rem;
-  --interview-shadow-sm: 0 1px 3px rgba(1, 41, 112, 0.06), 0 1px 2px rgba(1, 41, 112, 0.04);
-  --interview-shadow-md: 0 8px 24px -12px rgba(1, 41, 112, 0.18);
+  --interview-text-body: #344054;
+  --interview-text-secondary: #475467;
+  --interview-text-muted: #667085;
+  /* lines */
+  --interview-border: #e4e7ec;
+  --interview-control: #d0d5dd;
+  --interview-border-secondary: #e4e7ec;
+  --interview-divider: #e4e7ec;
+  /* brand */
+  --interview-brand: #2563eb;
+  --interview-brand-hover: #1d4ed8;
+  --interview-brand-active: #1e40af;
+  /* semantic status pairs */
+  --interview-info: #1d4ed8;
+  --interview-info-bg: #eff6ff;
+  --interview-success: #166534;
+  --interview-success-bg: #f0fdf4;
+  --interview-warning: #92400e;
+  --interview-warning-bg: #fffbeb;
+  --interview-danger: #b42318;
+  --interview-danger-bg: #fef3f2;
+  --interview-neutral: #475467;
+  --interview-neutral-bg: #f2f4f7;
+  /* shape + elevation (Octop ramp) */
+  --interview-radius-xs: 5px;
+  --interview-radius-sm: 8px;
+  --interview-radius-md: 10px;
+  --interview-radius-lg: 12px;
+  --interview-brand-rgb: 37, 99, 235;
+  --interview-shadow-sm: 0 1px 3px rgba(16, 24, 40, 0.08), 0 1px 2px rgba(16, 24, 40, 0.04);
+  --interview-shadow-md: 0 12px 28px -8px rgba(16, 24, 40, 0.16);
 }
 
 [data-theme="dark"] {
-  --interview-bg: #080e18;
-  --interview-surface: #111a2e;
-  --interview-surface-hover: #17223a;
-  --interview-surface-elevated: #16223b;
-  --interview-text-primary: #e7ecf5;
-  --interview-text-secondary: #a6b0c3;
-  --interview-text-muted: #737f95;
-  --interview-border: #26324b;
-  --interview-border-secondary: #1c2740;
-  --interview-brand: #5b86e6;
-  --interview-brand-hover: #7ea1ee;
-  --interview-brand-active: #3f66c9;
-  --interview-success: #48b878;
-  --interview-warning: #e2a253;
-  --interview-danger: #e2607a;
-  --interview-shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.4);
-  --interview-shadow-md: 0 12px 32px -16px rgba(0, 0, 0, 0.6);
+  /* surfaces */
+  --interview-bg: #0b1220;
+  --interview-surface: #111827;
+  --interview-surface-elevated: #1a2233;
+  --interview-inset: #0f1726;
+  --interview-surface-hover: #1c2536;
+  --interview-selection: #16233d;
+  /* text */
+  --interview-text-primary: #e6ebf5;
+  --interview-text-body: #cbd3e1;
+  --interview-text-secondary: #9aa7bd;
+  --interview-text-muted: #7c8aa3;
+  /* lines */
+  --interview-border: #1e2739;
+  --interview-control: #2a3345;
+  --interview-border-secondary: #1e2739;
+  --interview-divider: #1e2739;
+  /* brand */
+  --interview-brand: #5b8def;
+  --interview-brand-hover: #78a2f2;
+  --interview-brand-active: #4a7be0;
+  /* semantic status pairs */
+  --interview-info: #7ea1ee;
+  --interview-info-bg: #16233d;
+  --interview-success: #4ade80;
+  --interview-success-bg: #122b1d;
+  --interview-warning: #fbbf24;
+  --interview-warning-bg: #2b230f;
+  --interview-danger: #f87171;
+  --interview-danger-bg: #2c1518;
+  --interview-neutral: #9aa7bd;
+  --interview-neutral-bg: #1b2334;
+  /* shape + elevation (Octop ramp) */
+  --interview-brand-rgb: 91, 141, 239;
+  --interview-shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.45), 0 1px 2px rgba(0, 0, 0, 0.3);
+  --interview-shadow-md: 0 16px 36px -16px rgba(0, 0, 0, 0.7);
 
   /* Flip the shared Tailwind design-system palette (unlayered → wins over @theme). */
-  --color-navy: #cdd9f5;
-  --color-blue: #5b86e6;
-  --color-blue-hover: #7ea1ee;
-  --color-accent: #e2a253;
-  --color-green: #48b878;
-  --color-green-tint: #16311f;
-  --color-ink: #e7ecf5;
-  --color-muted: #a6b0c3;
-  --color-line: #26324b;
-  --color-page: #080e18;
-  --color-surface: #111a2e;
-  --color-tint: #17223a;
-  --color-weak: #e2a253;
-  --color-danger: #e2607a;
+  --color-page: #0b1220;
+  --color-surface: #111827;
+  --color-inset: #0f1726;
+  --color-tint: rgba(91, 141, 239, 0.12);
+  --color-hover: rgba(91, 141, 239, 0.1);
+  --color-navy: #e6ebf5;
+  --color-ink: #cbd3e1;
+  --color-muted: #9aa7bd;
+  --color-line: #1e2739;
+  --color-divider: #1e2739;
+  --color-control: #2a3345;
+  --color-blue: #5b8def;
+  --color-blue-hover: #78a2f2;
+  --color-blue-active: #4a7be0;
+  --color-green: #4ade80;
+  --color-green-tint: #122b1d;
+  --color-accent: #fbbf24;
+  --color-accent-tint: #2b230f;
+  --color-danger: #f87171;
+  --color-danger-tint: #2c1518;
+  --color-neutral: #9aa7bd;
+  --color-neutral-tint: #1b2334;
 }

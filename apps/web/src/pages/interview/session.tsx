@@ -1,5 +1,5 @@
-import { Link, useParams } from "react-router";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { Link, useNavigate, useParams } from "react-router";
+import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
 import { VOICE_DISCLAIMER } from "@interview-os/frontend-types";
 import {
   api,
@@ -14,13 +14,37 @@ import {
   type VoiceFeedback,
 } from "@/lib/api";
 import { speechSupported, useSpeakQuestion, useVoiceCapture } from "@/lib/voice";
-import { Bar, Button, Card, CardTitle, ErrorNote, Pill, SkeletonCard, severityTone, skillLabel } from "@/components/ui";
-import { PluginModeSlot, PluginSlot } from "@/components/plugin-ui";
+import {
+  Bar,
+  Button,
+  DeltaList,
+  ErrorNote,
+  EvidenceTimeline,
+  Panel,
+  Pill,
+  RichText,
+  ScreenToolbar,
+  SkeletonCard,
+  SplitPane,
+  Workspace,
+  displayLabel,
+  severityTone,
+  skillLabel,
+} from "@/components/ui";
+import { useSetPageTitle } from "@/lib/page-title";
+import {
+  PluginModeSlot,
+  PluginSlot,
+  useModeSlotHasContent,
+} from "@/components/plugin-ui";
 
 const CODE_LANGUAGES = [
   "python", "javascript", "typescript", "java", "go", "cpp", "csharp",
   "ruby", "rust", "kotlin", "swift", "sql", "other",
 ];
+
+type EvalTab = "feedback" | "rubric" | "answer" | "evidence";
+type EvalEvidence = Awaited<ReturnType<typeof api.skillDetail>>["evidence"][number];
 
 /** Live text streamed from the model while a long AI step runs (§8.3). */
 function StreamDraft({
@@ -32,7 +56,7 @@ function StreamDraft({
 }) {
   if (!draft || draft.text.length === 0) return null;
   return (
-    <p className="mt-3 rounded-[0.6rem] bg-page p-3 text-sm text-muted" aria-live="polite">
+    <p className="mt-2 rounded-[var(--radius-sm)] bg-page p-2 text-[13px] text-muted" aria-live="polite">
       {stage && (
         <span className="mb-1 block text-xs font-medium uppercase tracking-wide text-blue">
           {stage}…
@@ -66,17 +90,17 @@ function SourceBadge({ source }: { source: SessionQuestion["source"] }) {
 /** v0.4: delivery hints from voice metrics — interaction layer only. */
 function DeliveryHints({ feedback }: { feedback: VoiceFeedback }) {
   return (
-    <div data-testid="delivery-hints" className="rounded-[0.6rem] border border-line bg-page p-3">
-      <h3 className="text-sm font-semibold text-navy">Delivery hints</h3>
-      <ul className="mt-2 space-y-1">
+    <div data-testid="delivery-hints" className="rounded-[var(--radius-sm)] border border-line bg-page p-2.5">
+      <h3 className="text-[13px] font-semibold text-navy">Delivery hints</h3>
+      <ul className="mt-1.5 space-y-1">
         {feedback.signals.map((s) => (
-          <li key={s.id} className="flex items-start gap-2 text-sm">
+          <li key={s.id} className="flex items-start gap-2 text-[13px]">
             <Pill tone={s.status === "ok" ? "green" : "amber"}>{s.status}</Pill>
             <span className="text-muted">{s.message}</span>
           </li>
         ))}
       </ul>
-      <p className="mt-2 text-xs text-muted">
+      <p className="mt-1.5 text-xs text-muted">
         {feedback.wordCount} words
         {feedback.wordsPerMinute != null && ` · ${Math.round(feedback.wordsPerMinute)} wpm`}
         {feedback.fillerCount > 0 && ` · ${feedback.fillerCount} fillers`}
@@ -86,63 +110,95 @@ function DeliveryHints({ feedback }: { feedback: VoiceFeedback }) {
   );
 }
 
-/** §9.2: expandable factor breakdown behind "Why this question". */
+/** §9.2: "Why this question" in plain language, with the scoring detail nested. */
 function WhyThisQuestion({ q }: { q: SessionQuestion }) {
   if (!q.selectionReason && !q.selectionFactors) return null;
   const f = q.selectionFactors;
   return (
-    <details className="mt-2 text-xs text-muted">
+    <details className="text-xs text-muted">
       <summary className="cursor-pointer">Why this question</summary>
       {q.selectionReason && <p className="mt-1">{q.selectionReason}</p>}
       {f && (
-        <dl className="mt-1 grid grid-cols-2 gap-x-4 gap-y-0.5 sm:grid-cols-3">
-          {(
-            [
-              ["role importance", f.roleImportance],
-              ["readiness gap", f.readinessGap],
-              ["uncertainty", f.uncertainty],
-              ["weakness boost", f.weaknessBoost],
-              ["recency", f.recencyFactor],
-              ["novelty", f.noveltyFactor],
-            ] as const
-          ).map(([name, v]) => (
-            <div key={name} className="flex justify-between gap-2">
-              <dt>{name}</dt>
-              <dd className="font-mono text-ink">{v.toFixed(2)}</dd>
+        <details className="mt-1">
+          <summary className="cursor-pointer text-[0.7rem]">Show scoring detail</summary>
+          <dl className="mt-1 grid grid-cols-2 gap-x-4 gap-y-0.5 sm:grid-cols-3">
+            {(
+              [
+                ["role importance", f.roleImportance],
+                ["readiness gap", f.readinessGap],
+                ["uncertainty", f.uncertainty],
+                ["weakness boost", f.weaknessBoost],
+                ["recency", f.recencyFactor],
+                ["novelty", f.noveltyFactor],
+              ] as const
+            ).map(([name, v]) => (
+              <div key={name} className="flex justify-between gap-2">
+                <dt>{name}</dt>
+                <dd className="font-mono text-ink">{v.toFixed(2)}</dd>
+              </div>
+            ))}
+            <div className="flex justify-between gap-2">
+              <dt>priority</dt>
+              <dd className="font-mono text-ink">{q.selectionPriority?.toFixed(2) ?? "—"}</dd>
             </div>
-          ))}
-          <div className="flex justify-between gap-2">
-            <dt>priority</dt>
-            <dd className="font-mono text-ink">{q.selectionPriority?.toFixed(2) ?? "—"}</dd>
-          </div>
-          <div className="flex justify-between gap-2">
-            <dt>difficulty</dt>
-            <dd className="font-mono text-ink">{q.difficulty}</dd>
-          </div>
-        </dl>
+            <div className="flex justify-between gap-2">
+              <dt>difficulty</dt>
+              <dd className="font-mono text-ink">{q.difficulty}</dd>
+            </div>
+          </dl>
+        </details>
       )}
     </details>
   );
 }
 
-/** Mode rubric as compact dimension bars; weakest three show their rationale. */
+/**
+ * The interviewer's question. A soft brand-tinted, opaque surface with a brand
+ * left edge marks "the system speaking" while keeping the one string that must
+ * stay legible off any translucent glass (settled surfaces stay opaque).
+ */
+function InterviewerQuestion({ text }: { text: string }) {
+  return (
+    <div
+      data-testid="interviewer-question"
+      className="rounded-[var(--radius-sm)] border-s-[3px] border-s-[var(--color-blue)] bg-[var(--interview-selection)] px-3.5 py-3"
+    >
+      <p className="text-[15px] font-medium leading-relaxed">
+        <RichText text={text} />
+      </p>
+    </div>
+  );
+}
+
+/** A compact headline metric for the evaluation hero. */
+function HeroMetric({ label, children }: { label: string; children: ReactNode }) {
+  return (
+    <div className="bg-surface px-3 py-1.5">
+      <div className="text-[11px] font-medium uppercase tracking-wide text-muted">{label}</div>
+      <div className="text-[17px] font-semibold leading-tight tabular-nums text-navy">
+        {children}
+      </div>
+    </div>
+  );
+}
+
+/** Mode rubric as compact aligned rows; weakest three show their rationale. */
 function RubricBars({ rubric }: { rubric: { id: string; label: string; score: number; rationale: string }[] }) {
   if (rubric.length === 0) return null;
   const sorted = [...rubric].sort((a, b) => a.score - b.score);
   const weakest = new Set(sorted.slice(0, 3).map((r) => r.id));
   return (
     <div data-testid="rubric">
-      <h3 className="text-sm font-semibold text-navy">Rubric</h3>
-      <ul className="mt-1 space-y-1.5">
+      <ul className="space-y-1.5">
         {sorted.map((r) => (
           <li key={r.id}>
-            <div className="flex items-center gap-3 text-sm">
-              <span className="w-48 truncate text-muted" title={r.id}>{r.label}</span>
-              <div className="w-40"><Bar value={r.score} /></div>
+            <div className="flex items-center gap-3 text-[13px]">
+              <span className="w-44 truncate text-muted" title={r.id}>{r.label}</span>
+              <div className="w-40 shrink-0"><Bar value={r.score} /></div>
               <span className="text-xs text-muted">{Math.round(r.score * 100)}%</span>
             </div>
             {weakest.has(r.id) && r.rationale && (
-              <p className="ml-1 mt-0.5 text-xs text-muted">{r.rationale}</p>
+              <p className="mt-0.5 text-xs text-muted">{r.rationale}</p>
             )}
           </li>
         ))}
@@ -174,7 +230,7 @@ function AnswerFieldsEditor({
               value={typeof values[f.key] === "string" ? String(values[f.key]) : ""}
               onChange={(e) => onChange(f.key, e.target.value || undefined)}
               aria-label={f.label}
-              className="w-full rounded-[0.6rem] border border-line bg-surface px-2 py-2 text-sm"
+              className="w-full rounded-[var(--radius-sm)] border border-line bg-surface px-2 py-1.5 text-sm"
             >
               <option value="">Choose…</option>
               {(f.options ?? []).map((o) => (
@@ -192,7 +248,7 @@ function AnswerFieldsEditor({
                 )
               }
               aria-label={f.label}
-              className="w-full rounded-[0.6rem] border border-line p-2 text-sm"
+              className="w-full rounded-[var(--radius-sm)] border border-line p-2 text-sm"
             />
           ) : (
             <textarea
@@ -204,8 +260,8 @@ function AnswerFieldsEditor({
               aria-label={f.label}
               className={
                 f.type === "code"
-                  ? "w-full rounded-[0.6rem] border border-line bg-surface p-3 font-mono text-xs"
-                  : "w-full rounded-[0.6rem] border border-line p-3"
+                  ? "w-full rounded-[var(--radius-sm)] border border-line bg-[var(--color-inset)] p-3 font-mono text-[13px] leading-relaxed"
+                  : "w-full rounded-[var(--radius-sm)] border border-line p-2.5 leading-relaxed"
               }
             />
           )}
@@ -217,7 +273,15 @@ function AnswerFieldsEditor({
 
 export default function InterviewSession() {
   const id = useParams().id ?? "";
+  const navigate = useNavigate();
   const [detail, setDetail] = useState<SessionDetail | null>(null);
+
+  // Descriptive breadcrumb name instead of the session id (D2).
+  useSetPageTitle(
+    detail
+      ? `${detail.session.modeLabel ?? displayLabel(detail.session.roundType)} interview · ${new Date(detail.session.createdAt).toLocaleDateString()}`
+      : null,
+  );
   const [current, setCurrent] = useState<SessionQuestion | null>(null);
   const [answer, setAnswer] = useState("");
   const [fieldValues, setFieldValues] = useState<Record<string, string | number>>({});
@@ -233,6 +297,9 @@ export default function InterviewSession() {
   const [draft, setDraft] = useState<{ field: string; text: string } | null>(null);
   const [voiceOn, setVoiceOn] = useState(false);
   const [speakOn, setSpeakOn] = useState(false);
+  const [evalTab, setEvalTab] = useState<EvalTab>("feedback");
+  const [evalEvidence, setEvalEvidence] = useState<EvalEvidence[]>([]);
+  const [inspectorOpen, setInspectorOpen] = useState(true);
   const timer = useRef<ReturnType<typeof setInterval> | null>(null);
   const voice = useVoiceCapture(
     useCallback(
@@ -271,6 +338,34 @@ export default function InterviewSession() {
 
   useSpeakQuestion(speakOn && voice.supported, current?.text ?? null);
 
+  // The answer result carries readiness deltas, not the evidence itself — load
+  // the newly recorded evidence for the affected skills when the tab opens.
+  useEffect(() => {
+    if (evalTab !== "evidence" || !result) return;
+    const skillIds = Array.from(new Set(result.skillImpact.map((s) => s.skillId)));
+    if (skillIds.length === 0) {
+      setEvalEvidence([]);
+      return;
+    }
+    let cancelled = false;
+    Promise.all(skillIds.map((sid) => api.skillDetail(sid).catch(() => null)))
+      .then((details) => {
+        if (cancelled) return;
+        const items = details
+          .flatMap((d) => d?.evidence ?? [])
+          .sort((a, b) => (a.createdAt < b.createdAt ? 1 : -1));
+        setEvalEvidence(items.slice(0, 8));
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, [evalTab, result]);
+
+  const modeId = detail?.session.roundType ?? "";
+  const hasInspector = useModeSlotHasContent("interview.sidebar", modeId);
+  const hasQuestionPanel = useModeSlotHasContent("interview.question", modeId);
+
   const tick = () => {
     setElapsed(0);
     timer.current = setInterval(() => setElapsed((s) => s + 1), 1000);
@@ -304,7 +399,7 @@ export default function InterviewSession() {
         ? { answer, ...(code.trim() ? { code, language } : {}), ...(voiceMetrics ? { voice: voiceMetrics } : {}) }
         : { answer, ...(voiceMetrics ? { voice: voiceMetrics } : {}) };
     streamPost<SubmitAnswerResult>(`/api/interviews/${id}/answer`, body, progress)
-      .then((r) => { setResult(r); setDraft(null); })
+      .then((r) => { setResult(r); setEvalTab("feedback"); setDraft(null); })
       .catch((e) => setError(e))
       .finally(() => { setBusy(false); untick(); });
   };
@@ -349,12 +444,22 @@ export default function InterviewSession() {
       .finally(() => setBusy(false));
   };
 
+  /** Turn a fresh prep action straight into practice — feedback becomes work. */
+  const practiceAction = (a: { id: string; skillId: string }) => {
+    setBusy(true);
+    api
+      .startInterview({ mode: "practice", focusSkillId: a.skillId, actionId: a.id })
+      .then((r) => r.session && navigate(`/interview/${r.session.id}`))
+      .catch((e) => setError(e))
+      .finally(() => setBusy(false));
+  };
+
   if (!detail && !error) {
     return (
-      <div className="max-w-3xl space-y-5">
+      <Workspace toolbar={<ScreenToolbar title="Interview" />} bodyClassName="space-y-3">
         <SkeletonCard lines={2} />
         <SkeletonCard lines={4} />
-      </div>
+      </Workspace>
     );
   }
 
@@ -363,354 +468,593 @@ export default function InterviewSession() {
   const modeLabel = detail?.session.modeLabel ?? detail?.session.roundType.replace("_", " ");
   const focusDimension =
     typeof current?.extra?.focusDimension === "string" ? current.extra.focusDimension : null;
+  const questionNo = detail
+    ? Math.min(detail.answers.length + 1, detail.session.plannedQuestions)
+    : 0;
 
-  const questionCard = !done && current && (
-    <Card>
-      <div className="flex flex-wrap items-center gap-2">
-        <Pill tone="blue">{current.topic}</Pill>
-        <Pill tone="muted">difficulty {current.difficulty}</Pill>
-        {current.followUpOf && (
-          <Pill tone="amber">
-            Follow-up{current.followUpFocus ? `: ${current.followUpFocus}` : ""}
-          </Pill>
+  const submitDisabled = busy || (fieldsMode ? missingRequired : !answer.trim());
+  const submitFooter = (
+    <>
+      <StreamDraft stage={stage} draft={draft} />
+      <div className="flex items-center gap-3">
+        <Button size="small" onClick={submit} loading={busy} disabled={submitDisabled}>
+          Submit Answer
+        </Button>
+        {busy && (
+          <span role="status" aria-live="polite" className="text-[13px] text-muted">
+            {stage ? `${stage}…` : "Evaluating…"} {elapsed}s
+          </span>
         )}
-        {focusDimension && <Pill tone="blue">focus: {focusDimension}</Pill>}
-        <SourceBadge source={current.source} />
       </div>
-      <WhyThisQuestion q={current} />
-      <p className="mt-3 text-base font-medium leading-relaxed">{current.text}</p>
-      {detail && (
-        <PluginModeSlot
-          slot="interview.question"
-          modeId={detail.session.roundType}
-          params={{ modeId: detail.session.roundType, extra: current.extra ?? {} }}
-        />
+      {submitDisabled && !busy && (
+        <p className="mt-1 text-xs text-muted">
+          {fieldsMode
+            ? "Complete the required fields to submit."
+            : "Add your approach to submit — code is optional and reviewed, not executed."}
+        </p>
       )}
+    </>
+  );
 
-      {!result ? (
-        <div className="mt-4 space-y-3">
-          {voiceOn && !fieldsMode && (
-            <div className="flex items-center gap-2">
-              {voice.supported ? (
-                <>
-                  <Button
-                    variant="secondary"
-                    onClick={voice.toggle}
-                    data-testid="voice-toggle"
-                  >
-                    {voice.recording ? "■ Stop speaking" : "● Speak answer"}
-                  </Button>
-                  {voice.recording && (
-                    <span className="text-xs text-muted" role="status">
-                      Recording — your words are appended to the answer; you can still type.
-                    </span>
-                  )}
-                </>
-              ) : (
-                <p className="text-xs text-muted" data-testid="voice-unsupported">
-                  Voice capture isn't supported in this browser (Web Speech API —
-                  Chrome/Edge). Type your answer instead.
-                </p>
-              )}
-            </div>
-          )}
-          {fieldsMode ? (
-            <AnswerFieldsEditor
-              fields={answerFields}
-              values={fieldValues}
-              onChange={(key, value) =>
-                setFieldValues((v) => {
-                  const next = { ...v };
-                  if (value === undefined || value === "") delete next[key];
-                  else next[key] = value;
-                  return next;
-                })
-              }
-            />
-          ) : (
-            <label className="block text-sm">
-              <span className="sr-only">Your answer</span>
-              <textarea
-                value={answer}
-                onChange={(e) => setAnswer(e.target.value)}
-                rows={acceptsCode ? 4 : 7}
-                placeholder={
-                  acceptsCode ? "Explain your approach…" : "Type your answer…"
-                }
-                className="w-full rounded-[0.6rem] border border-line p-3"
-              />
-            </label>
-          )}
-          {acceptsCode && (
-            <div>
-              <div className="mb-1 flex items-center justify-between">
-                <span className="text-sm font-medium">Code</span>
-                <label className="flex items-center gap-2 text-xs text-muted">
-                  Language
-                  <select
-                    value={language}
-                    onChange={(e) => setLanguage(e.target.value)}
-                    aria-label="Code language"
-                    className="rounded-[0.4rem] border border-line bg-surface px-2 py-1 text-xs"
-                  >
-                    {CODE_LANGUAGES.map((l) => <option key={l} value={l}>{l}</option>)}
-                  </select>
-                </label>
-              </div>
-              <textarea
-                value={code}
-                onChange={(e) => setCode(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === "Tab") {
-                    e.preventDefault();
-                    const el = e.currentTarget;
-                    const { selectionStart: s, selectionEnd: t } = el;
-                    setCode(code.slice(0, s) + "  " + code.slice(t));
-                    requestAnimationFrame(() => el.setSelectionRange(s + 2, s + 2));
-                  }
-                }}
-                rows={9}
-                spellCheck={false}
-                placeholder="Paste or write your solution — reviewed, not executed."
-                aria-label="Code answer"
-                className="w-full rounded-[0.6rem] border border-line bg-surface p-3 font-mono text-xs"
-              />
-              <p className="mt-1 text-xs text-muted">Code is reviewed, not executed.</p>
-            </div>
-          )}
-          <div className="flex items-center gap-3">
-            <Button
-              onClick={submit}
-              disabled={busy || (fieldsMode ? missingRequired : !answer.trim())}
-            >
-              {busy ? "Evaluating…" : "Submit Answer"}
-            </Button>
-            {busy && (
-              <span role="status" aria-live="polite" className="text-sm text-muted">
-                {stage ? `${stage}…` : "Evaluating…"} {elapsed}s
-              </span>
-            )}
-          </div>
-          {busy && <StreamDraft stage={stage} draft={draft} />}
-        </div>
-      ) : (
-        <div className="mt-4 space-y-4" aria-live="polite">
-          {result.voiceFeedback && <DeliveryHints feedback={result.voiceFeedback} />}
-          <p className="rounded-[0.6rem] bg-page p-3 text-sm">{result.evaluation.summary}</p>
-          <RubricBars rubric={result.evaluation.rubric} />
-          {result.evaluation.star && (
-            <div data-testid="star-checklist">
-              <h3 className="text-sm font-semibold text-navy">STAR checklist</h3>
-              <ul className="mt-1 space-y-1 text-sm">
-                {(
-                  [
-                    ["Situation", result.evaluation.star.situation],
-                    ["Task", result.evaluation.star.task],
-                    ["Action", result.evaluation.star.action],
-                    ["Result", result.evaluation.star.result],
-                  ] as const
-                ).map(([name, ok]) => (
-                  <li key={name} className="flex items-center gap-2">
-                    <span className={ok ? "text-green" : "text-accent"} aria-hidden>
-                      {ok ? "✓" : "✗"}
-                    </span>
-                    <span className={ok ? "text-muted" : "font-medium text-ink"}>{name}</span>
-                  </li>
-                ))}
-              </ul>
-              {result.evaluation.star.notes && (
-                <p className="mt-1 text-xs text-muted">{result.evaluation.star.notes}</p>
-              )}
-            </div>
-          )}
-          <div className="grid gap-4 sm:grid-cols-2">
-            <div>
-              <h3 className="text-sm font-semibold text-green">What went well</h3>
-              <ul className="mt-1 list-disc space-y-0.5 pl-5 text-sm text-muted">
-                {result.evaluation.strengths.length === 0 && <li>Nothing notable this time.</li>}
-                {result.evaluation.strengths.map((s, i) => <li key={i}>{s.evidence}</li>)}
-              </ul>
-            </div>
-            <div>
-              <h3 className="text-sm font-semibold text-accent">What was missing</h3>
-              <ul className="mt-1 space-y-1 text-sm text-muted">
-                {result.evaluation.weaknesses.length === 0 && result.evaluation.missingConcepts.length === 0 && (
-                  <li>Nothing significant missing.</li>
-                )}
-                {result.evaluation.weaknesses.map((w, i) => (
-                  <li key={i} className="flex items-start gap-2">
-                    <Pill tone={severityTone(w.severity)}>
-                      {w.severity}
-                    </Pill>
-                    <span>
-                      <span className="font-medium text-ink">{skillLabel(w.skill)}</span> — {w.evidence}
-                    </span>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          </div>
-          {result.evaluation.betterApproach && (
-            <div>
-              <h3 className="text-sm font-semibold text-navy">Better reasoning approach</h3>
-              <p className="mt-1 text-sm text-muted">{result.evaluation.betterApproach}</p>
-            </div>
-          )}
-          <div>
-            <h3 className="text-sm font-semibold text-navy">Skill impact</h3>
-            <ul className="mt-1 space-y-1.5">
-              {result.skillImpact.map((s) => (
-                <li key={s.skillId} className="flex items-center gap-3 text-sm">
-                  <span className="w-48 truncate text-muted" title={s.skillId}>
-                    {skillLabel(s.skillId)}
-                  </span>
-                  <div className="w-40"><Bar value={s.after ?? 0} /></div>
-                  <span className="text-xs text-muted">
-                    {s.before === null ? "new" : Math.round(s.before * 100) + "%"} →{" "}
-                    {s.after === null ? "—" : Math.round(s.after * 100) + "%"}
-                  </span>
-                </li>
-              ))}
-            </ul>
-          </div>
-          {result.newActions.length > 0 && (
-            <div>
-              <h3 className="text-sm font-semibold text-navy">New prep actions</h3>
-              <ul className="mt-1 list-disc space-y-0.5 pl-5 text-sm text-muted">
-                {result.newActions.map((a) => <li key={a.id}>{a.action}</li>)}
-              </ul>
-            </div>
-          )}
-          {result.pluginReviews && result.pluginReviews.length > 0 && (
-            <div>
-              <h3 className="text-sm font-semibold text-navy">Plugin reviews</h3>
-              <div className="mt-1 space-y-2">
-                {result.pluginReviews.map((r) => (
-                  <div key={r.pluginId} className="rounded-[0.6rem] bg-page p-3">
-                    <p className="text-xs font-medium text-muted">
-                      from plugin {r.pluginName}
-                    </p>
-                    <ul className="mt-1 list-disc space-y-0.5 pl-5 text-sm">
-                      {r.observations.map((o, i) => (
-                        <li key={i} className={o.tone === "amber" ? "text-amber" : o.tone === "red" ? "text-red" : ""}>
-                          {o.text}
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-          <div className="flex items-center gap-3">
-            {result.nextAvailable === "question" ? (
-              <Button onClick={next} disabled={busy}>Next Question</Button>
-            ) : (
-              <Button onClick={finish} disabled={busy}>Finish Interview</Button>
-            )}
-            {busy && stage && (
-              <span role="status" aria-live="polite" className="text-sm text-muted">
-                {stage}…
-              </span>
-            )}
-          </div>
-          {busy && <StreamDraft stage={stage} draft={draft} />}
-        </div>
+  const questionMeta = current && (
+    <div className="flex flex-wrap items-center gap-2">
+      {/* When a mode panel already names the problem, don't repeat it as a pill. */}
+      {!hasQuestionPanel && <Pill tone="muted">{current.topic}</Pill>}
+      <Pill tone="muted">difficulty {current.difficulty}</Pill>
+      {current.followUpOf && (
+        <Pill tone="amber">
+          Follow-up{current.followUpFocus ? `: ${current.followUpFocus}` : ""}
+        </Pill>
       )}
-    </Card>
+      {focusDimension && <Pill tone="blue">focus: {focusDimension}</Pill>}
+      <SourceBadge source={current.source} />
+    </div>
+  );
+
+  const modeQuestionPanel = detail && current && (
+    <PluginModeSlot
+      slot="interview.question"
+      modeId={detail.session.roundType}
+      params={{ modeId: detail.session.roundType, extra: current.extra ?? {} }}
+    />
+  );
+
+  const voiceControl = voiceOn && !fieldsMode && (
+    <div className="flex items-center gap-2">
+      {voice.supported ? (
+        <>
+          <Button variant="secondary" size="small" onClick={voice.toggle} data-testid="voice-toggle">
+            {voice.recording ? "■ Stop speaking" : "● Speak answer"}
+          </Button>
+          {voice.recording && (
+            <span className="text-xs text-muted" role="status">
+              Recording — your words are appended to the answer; you can still type.
+            </span>
+          )}
+        </>
+      ) : (
+        <p className="text-xs text-muted" data-testid="voice-unsupported">
+          Voice capture isn't supported in this browser (Web Speech API — Chrome/Edge). Type your
+          answer instead.
+        </p>
+      )}
+    </div>
+  );
+
+  const renderAnswerTextarea = (grow: boolean, label?: string) => (
+    <label className={`flex flex-col text-sm ${grow ? "min-h-0 flex-1" : ""}`}>
+      <span className={label ? "mb-1 text-[13px] font-medium" : "sr-only"}>
+        {label ?? "Your answer"}
+      </span>
+      <textarea
+        value={answer}
+        onChange={(e) => setAnswer(e.target.value)}
+        rows={grow ? 8 : 4}
+        placeholder={acceptsCode ? "Explain your approach…" : "Type your answer…"}
+        className={`w-full resize-none rounded-[var(--radius-sm)] border border-line p-2.5 leading-relaxed ${
+          grow ? "min-h-0 flex-1" : ""
+        }`}
+      />
+    </label>
+  );
+
+  const codeEditor = (
+    <div className="flex min-h-0 flex-1 flex-col">
+      <div className="mb-1 flex items-center justify-between">
+        <span className="text-[13px] font-medium">Code</span>
+        <label className="flex items-center gap-2 text-xs text-muted">
+          Language
+          <select
+            value={language}
+            onChange={(e) => setLanguage(e.target.value)}
+            aria-label="Code language"
+            className="rounded-[var(--radius-sm)] border border-line bg-surface px-2 py-0.5 text-xs"
+          >
+            {CODE_LANGUAGES.map((l) => <option key={l} value={l}>{l}</option>)}
+          </select>
+        </label>
+      </div>
+      <textarea
+        value={code}
+        onChange={(e) => setCode(e.target.value)}
+        onKeyDown={(e) => {
+          if (e.key === "Tab") {
+            e.preventDefault();
+            const el = e.currentTarget;
+            const { selectionStart: s, selectionEnd: t } = el;
+            setCode(code.slice(0, s) + "  " + code.slice(t));
+            requestAnimationFrame(() => el.setSelectionRange(s + 2, s + 2));
+          }
+        }}
+        spellCheck={false}
+        placeholder="Paste or write your solution — reviewed, not executed."
+        aria-label="Code answer"
+        className="min-h-0 w-full flex-1 resize-none rounded-[var(--radius-sm)] border border-line bg-[var(--color-inset)] p-3 font-mono text-[13px] leading-relaxed"
+      />
+      <p className="mt-1 text-xs text-muted">Code is reviewed, not executed.</p>
+    </div>
+  );
+
+  let running: ReactNode = null;
+  if (!done && detail && current && !result) {
+    if (fieldsMode) {
+      running = (
+        <Panel className="flex-1" footer={submitFooter} bodyClassName="space-y-3">
+          {questionMeta}
+          <WhyThisQuestion q={current} />
+          <InterviewerQuestion text={current.text} />
+          {modeQuestionPanel}
+          <AnswerFieldsEditor
+            fields={answerFields}
+            values={fieldValues}
+            onChange={(key, value) =>
+              setFieldValues((v) => {
+                const next = { ...v };
+                if (value === undefined || value === "") delete next[key];
+                else next[key] = value;
+                return next;
+              })
+            }
+          />
+        </Panel>
+      );
+    } else if (acceptsCode) {
+      running = (
+        <SplitPane
+          leftWidth="38%"
+          className="flex-1"
+          left={
+            <Panel className="h-full" bodyClassName="space-y-2">
+              {questionMeta}
+              <WhyThisQuestion q={current} />
+              <InterviewerQuestion text={current.text} />
+              {modeQuestionPanel}
+            </Panel>
+          }
+          right={
+            <Panel className="h-full" footer={submitFooter} bodyClassName="flex min-h-0 flex-col gap-2">
+              {renderAnswerTextarea(false, "Approach")}
+              {codeEditor}
+            </Panel>
+          }
+        />
+      );
+    } else {
+      running = (
+        <Panel className="flex-1" footer={submitFooter} bodyClassName="flex min-h-0 flex-col gap-3">
+          <div className="shrink-0 space-y-2">
+            {questionMeta}
+            <WhyThisQuestion q={current} />
+            <InterviewerQuestion text={current.text} />
+            {modeQuestionPanel}
+          </div>
+          <div className="shrink-0">{voiceControl}</div>
+          {renderAnswerTextarea(true)}
+        </Panel>
+      );
+    }
+  }
+
+  const evalScores = result?.evaluation.scores ?? [];
+  const answerScore = evalScores.length
+    ? evalScores.reduce((a, s) => a + s.score, 0) / evalScores.length
+    : null;
+  const answerConfidence = evalScores.length
+    ? evalScores.reduce((a, s) => a + s.confidence, 0) / evalScores.length
+    : null;
+  const rubricAvg =
+    result && result.evaluation.rubric.length > 0
+      ? result.evaluation.rubric.reduce((a, r) => a + r.score, 0) /
+        result.evaluation.rubric.length
+      : null;
+  const readinessMoved = result
+    ? result.skillImpact.filter(
+        (s) => s.before !== null && s.after !== null && s.after > s.before,
+      ).length
+    : 0;
+
+  const evaluation = result && (
+    <div className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-[var(--radius-card)] border border-line bg-surface">
+      <header className="shrink-0 border-b border-line bg-[var(--color-inset)] px-3 py-2.5">
+        <div className="flex flex-wrap items-center gap-2">
+          <span className="inline-flex h-5 items-center rounded-[var(--radius-xs)] bg-[var(--color-tint)] px-1.5 text-[11px] font-semibold uppercase tracking-wide text-[var(--color-blue-hover)]">
+            Evaluation
+          </span>
+          <h2
+            className="min-w-0 flex-1 truncate text-[15px] font-semibold text-navy"
+            title={current?.text ?? "Answer evaluation"}
+          >
+            {current?.text ?? "Answer evaluation"}
+          </h2>
+        </div>
+        <div className="mt-2 grid grid-cols-2 gap-px overflow-hidden rounded-[var(--radius-sm)] border border-line bg-divider sm:grid-cols-4">
+          <HeroMetric label="Answer score">
+            {answerScore === null ? "—" : `${Math.round(answerScore * 100)}%`}
+          </HeroMetric>
+          <HeroMetric label="Confidence">
+            {answerConfidence === null ? (
+              "—"
+            ) : (
+              <span className="inline-flex items-baseline gap-1">
+                {Math.round(answerConfidence * 100)}%
+                {answerConfidence < 0.4 && (
+                  <span className="text-[11px] font-normal text-[var(--color-accent)]">low</span>
+                )}
+              </span>
+            )}
+          </HeroMetric>
+          <HeroMetric label="Rubric">
+            {rubricAvg === null ? "—" : `${Math.round(rubricAvg * 100)}%`}
+          </HeroMetric>
+          <HeroMetric label="Readiness moved">
+            {readinessMoved}/{result.skillImpact.length}
+          </HeroMetric>
+        </div>
+      </header>
+      <div className="flex shrink-0 items-center gap-1 border-b border-line px-2">
+        {(
+          [
+            ["feedback", "Feedback"],
+            ["rubric", "Rubric"],
+            ["answer", "Your answer"],
+            ["evidence", "Evidence"],
+          ] as const
+        ).map(([key, label]) => (
+          <button
+            key={key}
+            type="button"
+            aria-current={evalTab === key ? "page" : undefined}
+            onClick={() => setEvalTab(key)}
+            className={`-mb-px border-b-2 px-2.5 py-1.5 text-[13px] ${
+              evalTab === key
+                ? "border-blue font-semibold text-navy"
+                : "border-transparent text-muted hover:text-ink"
+            }`}
+          >
+            {label}
+          </button>
+        ))}
+      </div>
+      <div className="min-h-0 flex-1 space-y-3 overflow-auto p-3" aria-live="polite">
+        {evalTab === "feedback" && (
+          <div className="max-w-prose space-y-3">
+            {result.voiceFeedback && <DeliveryHints feedback={result.voiceFeedback} />}
+            <p className="rounded-[var(--radius-sm)] bg-page p-2.5 text-sm">
+              <RichText text={result.evaluation.summary} />
+            </p>
+            {result.evaluation.weaknesses.length > 0 && (
+              <div>
+                <h3 className="text-[13px] font-semibold text-accent">What was missing</h3>
+                <ul className="mt-1 space-y-1 text-sm text-muted">
+                  {result.evaluation.weaknesses.map((w, i) => (
+                    <li key={i} className="flex items-start gap-2">
+                      <Pill tone={severityTone(w.severity)}>{w.severity}</Pill>
+                      <span>
+                        <span className="font-medium text-ink">{skillLabel(w.skill)}</span> —{" "}
+                        <RichText text={w.evidence} />
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+            {result.evaluation.strengths.length > 0 && (
+              <div>
+                <h3 className="text-[13px] font-semibold text-green">What went well</h3>
+                <ul className="mt-1 list-disc space-y-0.5 pl-5 text-sm text-muted">
+                  {result.evaluation.strengths.map((s, i) => (
+                    <li key={i}>
+                      <RichText text={s.evidence} />
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+            {result.evaluation.star && (
+              <div data-testid="star-checklist">
+                <h3 className="text-[13px] font-semibold text-navy">STAR checklist</h3>
+                <ul className="mt-1 flex flex-wrap gap-x-4 gap-y-1 text-sm">
+                  {(
+                    [
+                      ["Situation", result.evaluation.star.situation],
+                      ["Task", result.evaluation.star.task],
+                      ["Action", result.evaluation.star.action],
+                      ["Result", result.evaluation.star.result],
+                    ] as const
+                  ).map(([name, ok]) => (
+                    <li key={name} className="flex items-center gap-2">
+                      <span className={ok ? "text-green" : "text-accent"} aria-hidden>
+                        {ok ? "✓" : "✗"}
+                      </span>
+                      <span className={ok ? "text-muted" : "font-medium text-ink"}>{name}</span>
+                    </li>
+                  ))}
+                </ul>
+                {result.evaluation.star.notes && (
+                  <p className="mt-1 text-xs text-muted">{result.evaluation.star.notes}</p>
+                )}
+              </div>
+            )}
+            {result.evaluation.betterApproach && (
+              <div>
+                <h3 className="text-[13px] font-semibold text-navy">Better reasoning approach</h3>
+                <p className="mt-1 text-sm text-muted">
+                  <RichText text={result.evaluation.betterApproach} />
+                </p>
+              </div>
+            )}
+            {result.pluginReviews && result.pluginReviews.length > 0 && (
+              <div>
+                <h3 className="text-[13px] font-semibold text-navy">Plugin reviews</h3>
+                <div className="mt-1 space-y-2">
+                  {result.pluginReviews.map((r) => (
+                    <div key={r.pluginId} className="rounded-[var(--radius-sm)] bg-page p-2.5">
+                      <p className="text-xs font-medium text-muted">from plugin {r.pluginName}</p>
+                      <ul className="mt-1 list-disc space-y-0.5 pl-5 text-sm">
+                        {r.observations.map((o, i) => (
+                          <li key={i} className={o.tone === "amber" ? "text-[var(--color-accent)]" : o.tone === "red" ? "text-[var(--color-danger)]" : ""}>
+                            {o.text}
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+            {result.newActions.length > 0 && (
+              <div>
+                <h3 className="text-[13px] font-semibold text-navy">Next steps</h3>
+                <ul className="mt-1 space-y-1.5">
+                  {result.newActions.map((a) => (
+                    <li key={a.id} className="flex items-center justify-between gap-3">
+                      <span className="text-[13px] text-muted">{a.action}</span>
+                      <Button
+                        variant="secondary"
+                        size="small"
+                        disabled={busy}
+                        onClick={() => practiceAction(a)}
+                      >
+                        Practice
+                      </Button>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+          </div>
+        )}
+
+        {evalTab === "rubric" && (
+          <div>
+            <h3 className="mb-1 text-[13px] font-semibold text-navy">Rubric</h3>
+            <RubricBars rubric={result.evaluation.rubric} />
+          </div>
+        )}
+
+        {evalTab === "answer" && (
+          <div className="space-y-2">
+            <h3 className="text-[13px] font-semibold text-navy">Your answer</h3>
+            <p className="whitespace-pre-wrap text-sm">{answer || "—"}</p>
+            {code.trim() && (
+              <div>
+                <p className="text-xs text-muted">{language}</p>
+                <pre className="mt-1 overflow-auto rounded-[var(--radius-sm)] bg-page p-2.5 font-mono text-xs">
+                  {code}
+                </pre>
+              </div>
+            )}
+          </div>
+        )}
+
+        {evalTab === "evidence" && (
+          <div className="space-y-3">
+            <div>
+              <h3 className="mb-1 text-[13px] font-semibold text-navy">Readiness change</h3>
+              <DeltaList
+                items={result.skillImpact.map((s) => ({
+                  key: s.skillId,
+                  label: skillLabel(s.skillId),
+                  before: s.before,
+                  after: s.after,
+                }))}
+              />
+            </div>
+            {evalEvidence.length > 0 && (
+              <div>
+                <h3 className="mb-1 text-[13px] font-semibold text-navy">
+                  Evidence recorded
+                </h3>
+                <EvidenceTimeline
+                  items={evalEvidence}
+                  showSkill
+                  empty="No evidence recorded for this answer yet."
+                />
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+      <footer className="flex shrink-0 items-center gap-3 border-t border-line px-3 py-2">
+        <StreamDraft stage={stage} draft={draft} />
+        {result.newActions.length > 0 && (
+          <span className="text-xs text-muted">
+            {result.newActions.length}{" "}
+            {result.newActions.length === 1 ? "action" : "actions"} added to your plan ·{" "}
+            <Link to="/prepare" className="text-blue underline">
+              View plan
+            </Link>
+          </span>
+        )}
+        <div className="ml-auto flex items-center gap-3">
+          {result.nextAvailable === "question" ? (
+            <Button size="small" onClick={next} disabled={busy}>Next Question</Button>
+          ) : (
+            <Button size="small" onClick={finish} disabled={busy}>Finish Interview</Button>
+          )}
+          {busy && stage && (
+            <span role="status" aria-live="polite" className="text-[13px] text-muted">{stage}…</span>
+          )}
+        </div>
+      </footer>
+    </div>
+  );
+
+  const inspector = hasInspector && detail && (
+    <div className={`flex min-h-0 shrink-0 flex-col ${inspectorOpen ? "w-60" : "w-9"}`}>
+      {inspectorOpen ? (
+        <Panel
+          className="h-full"
+          bodyClassName="pt-1"
+          actions={
+            <Button size="small" variant="ghost" aria-label="Collapse inspector" onClick={() => setInspectorOpen(false)}>
+              »
+            </Button>
+          }
+        >
+          <PluginModeSlot
+            slot="interview.sidebar"
+            modeId={detail.session.roundType}
+            params={{
+              modeId: detail.session.roundType,
+              state: detail.session.modeState ?? {},
+              focus:
+                focusDimension ??
+                (detail.session.modeState?.focusDimension as string | null) ??
+                null,
+            }}
+          />
+        </Panel>
+      ) : (
+        <Panel className="h-full" bodyClassName="flex justify-center">
+          <Button
+            size="small"
+            variant="ghost"
+            aria-label="Expand inspector"
+            data-testid="inspector-toggle"
+            onClick={() => setInspectorOpen(true)}
+          >
+            «
+          </Button>
+        </Panel>
+      )}
+    </div>
   );
 
   return (
-    <div className="max-w-3xl space-y-5">
-      <h1 className="flex items-center gap-2 text-xl font-bold text-navy">
-        {detail?.session.mode === "practice" ? "Practice" : modeLabel}
-        {detail?.session.mode === "practice" && <Pill tone="amber">Practice</Pill>}
-        {detail?.companyProfile && (
-          <span className="text-sm font-normal text-muted">
-            · {detail.companyProfile.name} profile
-          </span>
-        )}
-        <span className="text-sm font-normal text-muted">
-          {loop && detail?.session.loopRound ? (
-            <>· Loop round {detail.session.loopRound} / {loop.rounds.length}</>
-          ) : (
-            <>· Round {round} / {detail?.session.plannedQuestions}</>
-          )}
-        </span>
-        {loop && (
-          <Link
-            to={`/interview/loop/${loop.id}`}
-            className="text-sm font-normal text-blue underline"
-            data-testid="loop-link"
-          >
-            view loop
-          </Link>
-        )}
-      </h1>
-      <PluginSlot slot="interview.toolbar" params={{ sessionId: id }} />
+    <Workspace
+      scroll={false}
+      toolbar={
+        <ScreenToolbar
+          title={
+            <>
+              {detail?.session.mode === "practice" ? "Practice" : modeLabel}
+              {detail?.companyProfile && (
+                <span className="text-sm font-normal text-muted">
+                  {" "}· {detail.companyProfile.name} profile
+                </span>
+              )}
+              <span className="text-sm font-normal text-muted">
+                {loop && detail?.session.loopRound ? (
+                  <> · Loop round {detail.session.loopRound} / {loop.rounds.length}</>
+                ) : (
+                  <> · Round {round} / {detail?.session.plannedQuestions}</>
+                )}
+              </span>
+              {loop && (
+                <Link
+                  to={`/interview/loop/${loop.id}`}
+                  className="text-sm font-normal text-blue underline"
+                  data-testid="loop-link"
+                >
+                  {" "}view loop
+                </Link>
+              )}
+            </>
+          }
+          actions={
+            <>
+              {detail?.session.mode === "practice" && <Pill tone="blue">Practice</Pill>}
+              {detail && !done && <Pill tone="muted">Question {questionNo} of {detail.session.plannedQuestions}</Pill>}
+              {hasInspector && (
+                <Button
+                  size="small"
+                  variant="ghost"
+                  aria-label={inspectorOpen ? "Collapse inspector" : "Expand inspector"}
+                  onClick={() => setInspectorOpen((v) => !v)}
+                >
+                  {inspectorOpen ? "»" : "«"}
+                </Button>
+              )}
+            </>
+          }
+        />
+      }
+    >
       <ErrorNote error={error} />
+      <PluginSlot slot="interview.toolbar" params={{ sessionId: id }} />
 
-      {!done &&
-        (detail ? (
-          /* v1: a plugin mode may own an interview.sidebar panel (e.g. the
-             system-design dimension tracker) — auto column collapses to zero
-             width when the mode's plugin contributes nothing. */
-          <div className="grid gap-4 lg:grid-cols-[1fr_auto]">
-            <div>{questionCard}</div>
-            <div className="lg:w-60">
-              <PluginModeSlot
-                slot="interview.sidebar"
-                modeId={detail.session.roundType}
-                params={{
-                  modeId: detail.session.roundType,
-                  state: detail.session.modeState ?? {},
-                  focus:
-                    focusDimension ??
-                    (detail.session.modeState?.focusDimension as string | null) ??
-                    null,
-                }}
-              />
-            </div>
+      {!done && detail && (
+        <div className="mt-3 flex min-h-0 flex-1 gap-3">
+          <div className="flex min-h-0 min-w-0 flex-1 flex-col">
+            {evaluation ?? running}
           </div>
-        ) : (
-          questionCard
-        ))}
+          {!result && inspector}
+        </div>
+      )}
 
       {!done && !current && detail && (
-        <Card>
+        <Panel className="mt-3 flex-1">
           <p className="text-sm">All planned questions answered.</p>
           <div className="mt-3 flex items-center gap-3">
-            <Button onClick={finish} disabled={busy}>Finish Interview</Button>
+            <Button size="small" onClick={finish} disabled={busy}>Finish Interview</Button>
             {busy && stage && (
-              <span role="status" aria-live="polite" className="text-sm text-muted">
-                {stage}…
-              </span>
+              <span role="status" aria-live="polite" className="text-[13px] text-muted">{stage}…</span>
             )}
           </div>
-          {busy && <StreamDraft stage={stage} draft={draft} />}
-        </Card>
+          <StreamDraft stage={stage} draft={draft} />
+        </Panel>
       )}
 
       {debrief && (
-        <Card>
-          <CardTitle>Debrief</CardTitle>
+        <Panel className="mt-3 flex-1" title="Debrief" scroll>
           <p className="text-sm">{debrief.summary}</p>
-          <div className="mt-3 grid gap-4 sm:grid-cols-3">
+          <div className="mt-3 grid gap-3 sm:grid-cols-3">
             <div>
-              <h3 className="text-sm font-semibold text-green">Went well</h3>
-              <ul className="mt-1 list-disc pl-5 text-sm text-muted">
+              <h3 className="text-[13px] font-semibold text-green">Went well</h3>
+              <ul className="mt-1 list-disc pl-5 text-[13px] text-muted">
                 {debrief.wentWell.map((s, i) => <li key={i}>{s}</li>)}
               </ul>
             </div>
             <div>
-              <h3 className="text-sm font-semibold text-accent">To improve</h3>
-              <ul className="mt-1 list-disc pl-5 text-sm text-muted">
+              <h3 className="text-[13px] font-semibold text-accent">To improve</h3>
+              <ul className="mt-1 list-disc pl-5 text-[13px] text-muted">
                 {debrief.toImprove.map((s, i) => <li key={i}>{s}</li>)}
               </ul>
             </div>
             <div>
-              <h3 className="text-sm font-semibold text-navy">Next actions</h3>
-              <ul className="mt-1 list-disc pl-5 text-sm text-muted">
+              <h3 className="text-[13px] font-semibold text-navy">Next actions</h3>
+              <ul className="mt-1 list-disc pl-5 text-[13px] text-muted">
                 {debrief.nextActions.map((s, i) => <li key={i}>{s}</li>)}
               </ul>
             </div>
@@ -722,9 +1066,9 @@ export default function InterviewSession() {
               );
               if (nextRound?.sessionId) {
                 return (
-                  <div className="mt-4 flex items-center gap-3">
+                  <div className="mt-3">
                     <Link to={`/interview/${nextRound.sessionId}`}>
-                      <Button data-testid="next-round">
+                      <Button size="small" data-testid="next-round">
                         Continue to round {loop.rounds.indexOf(nextRound) + 1}:{" "}
                         {nextRound.label || nextRound.mode}
                       </Button>
@@ -734,7 +1078,7 @@ export default function InterviewSession() {
               }
               if (loop.status === "complete") {
                 return (
-                  <div className="mt-4">
+                  <div className="mt-3">
                     <Link to={`/interview/loop/${loop.id}`} className="text-blue underline">
                       View the loop debrief →
                     </Link>
@@ -743,9 +1087,24 @@ export default function InterviewSession() {
               }
               return null;
             })()}
-        </Card>
+        </Panel>
       )}
-      <PluginSlot slot="interview.sidebar" params={{ sessionId: id }} />
-    </div>
+
+      {done && detail && (
+        /* D1: the debrief must stay mode-scoped, or another mode's panel (e.g.
+           system-design inside a coding debrief) leaks in. */
+        <div className="mt-3 shrink-0">
+          <PluginModeSlot
+            slot="interview.sidebar"
+            modeId={detail.session.roundType}
+            params={{
+              sessionId: id,
+              modeId: detail.session.roundType,
+              state: detail.session.modeState ?? {},
+            }}
+          />
+        </div>
+      )}
+    </Workspace>
   );
 }

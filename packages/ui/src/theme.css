@@ -1,27 +1,107 @@
 /* v0.4: canonical Tailwind @theme for Interview OS.
- * Values must match src/tokens.ts — enforced by test/tokens.test.ts. */
+ * Values must match src/tokens.ts — enforced by test/tokens.test.ts.
+ *
+ * Colour is applied by meaning, not decoration:
+ *  - navy/graphite  → headings and strong text
+ *  - ink            → primary body text
+ *  - muted          → secondary/supporting text
+ *  - blue           → links, primary actions, focus, selection
+ *  - green          → positive result / confirmed connection
+ *  - accent (amber) → caution, limited evidence, attention
+ *  - danger (red)   → errors, serious negative feedback
+ *  - neutral        → unassessed / inert status
+ *
+ * The radius and elevation ramps follow the Octop design language: radius
+ * 5/8/10/12/18/9999 and a five-step shadow ramp. Interaction tints (hover /
+ * active / selected) are brand-tinted alphas so the whole UI re-tints when the
+ * brand palette changes without any component knowing about it.
+ */
 @theme {
-  --color-navy: #012970;
-  --color-blue: #1647a5;
-  --color-blue-hover: #092e75;
-  --color-accent: #b45309;
-  --color-green: #236342;
-  --color-green-tint: #e8f5ec;
-  --color-ink: #172033;
-  --color-muted: #4b556b;
-  --color-line: #d9e0ed;
-  --color-page: #f5f7fb;
+  /* surfaces */
+  --color-page: #f6f7f9;
   --color-surface: #ffffff;
-  --color-tint: #eef3fc;
-  --color-weak: #b45309;
-  --color-danger: #9f1239;
+  --color-inset: #f8fafc;
+  --color-tint: rgba(37, 99, 235, 0.08);
+  --color-hover: rgba(37, 99, 235, 0.05);
+
+  /* text */
+  --color-navy: #172033;
+  --color-ink: #344054;
+  --color-muted: #667085;
+
+  /* lines — `line` is the subtle divider used by panels/rows;
+     `control` is the stronger border used by form controls. */
+  --color-line: #e4e7ec;
+  --color-divider: #e4e7ec;
+  --color-control: #d0d5dd;
+
+  /* brand / accent */
+  --color-blue: #2563eb;
+  --color-blue-hover: #1d4ed8;
+  --color-blue-active: #1e40af;
+
+  /* semantic status pairs (text / background) */
+  --color-green: #166534;
+  --color-green-tint: #f0fdf4;
+  --color-accent: #92400e;
+  --color-accent-tint: #fffbeb;
+  --color-danger: #b42318;
+  --color-danger-tint: #fef3f2;
+  --color-neutral: #475467;
+  --color-neutral-tint: #f2f4f7;
 
   --font-display: var(--font-jakarta), ui-sans-serif, system-ui, sans-serif;
   --font-body: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
 
-  --radius-card: 1rem;
-  --radius-sm: 0.6rem;
+  /* Octop radius ramp */
+  --radius-xs: 5px;
+  --radius-sm: 8px;
+  --radius-md: 10px;
+  --radius-card: 12px;
+  --radius-lg: 18px;
+  --radius-pill: 9999px;
+
+  /* Octop five-step elevation ramp — brand-tinted shadows are reserved for
+     elevated/brand surfaces (overlays, the primary call-to-action). */
+  --shadow-xs: 0 1px 2px rgba(16, 24, 40, 0.05);
+  --shadow-sm: 0 1px 3px rgba(16, 24, 40, 0.08), 0 1px 2px rgba(16, 24, 40, 0.04);
+  --shadow-md: 0 4px 12px -2px rgba(16, 24, 40, 0.1);
+  --shadow-lg: 0 12px 28px -8px rgba(16, 24, 40, 0.16);
+  --shadow-xl: 0 24px 48px -12px rgba(16, 24, 40, 0.2);
+  --shadow-brand: 0 8px 24px -10px rgba(var(--brand-rgb), 0.35);
+
+  /* compact spacing scale — deliberately NOT named `--spacing-*`: that is
+     Tailwind's own spacing namespace, and `max-w-sm|md|lg|xl` resolve through
+     it, so `max-w-md` became `max-width: 8px` (one character per line). */
+  --space-xs: 0.25rem;
+  --space-sm: 0.375rem;
+  --space-md: 0.5rem;
+  --space-lg: 0.75rem;
+  --space-xl: 1rem;
+
+  /* fixed component sizes (desktop shell + panes) */
+  --size-header: 42px;
+  --size-sider-expanded: 184px;
+  --size-sider-collapsed: 48px;
+  --size-nav-item: 32px;
+  --size-toolbar: 40px;
+  --size-row: 32px;
+  --size-row-two-line: 48px;
+  --size-control: 32px;
+  --size-inspector: 240px;
 
   /* sidebar collapses to a top menu button below 900px */
   --breakpoint-menu: 900px;
+}
+
+/*
+ * The active brand as an `r, g, b` triple. Curated/custom palettes override it
+ * at runtime, which re-tints every `rgba(var(--brand-rgb), …)` consumer
+ * (hover/active/selected alphas, brand shadow, focus glow) at once.
+ */
+:root {
+  --brand-rgb: 37, 99, 235;
+  --tint-hover: rgba(var(--brand-rgb), 0.05);
+  --tint-active: rgba(var(--brand-rgb), 0.08);
+  --tint-selected: rgba(var(--brand-rgb), 0.06);
 }

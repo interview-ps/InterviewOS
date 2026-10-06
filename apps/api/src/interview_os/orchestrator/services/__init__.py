@@ -61,7 +61,7 @@ from .readiness import ReadinessService
 from .resume import ResumeService
 from .settings import OrchestratorSettings, QuestionSources, SettingsService
 from .story import StoryService
-from .target import TargetPlanResult, TargetService, TargetSummary
+from .target import TargetPlanResult, TargetService, TargetSummary, WorkspaceSources
 from .workspace import (
     SetupWorkspaceInput,
     SetupWorkspaceResult,
@@ -131,5 +131,6 @@ __all__ = [
     "UIFrameRunSelector",
     "UIFrameSelector",
     "WorkspaceService",
+    "WorkspaceSources",
     "validate_answer_fields",
 ]
