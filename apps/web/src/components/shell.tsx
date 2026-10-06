@@ -269,14 +269,10 @@ function useNavItems(collapsed: boolean): { primary: unknown[]; settings: unknow
         const href = `/plugins/${p.pluginId}${n.page === "/" ? "" : n.page}`;
         return {
           key: href,
-          label: (
-            <Link to={href}>
-              <span className="inline-flex items-center gap-2">
-                <PluginIcon icon={n.icon} />
-                {n.label}
-              </span>
-            </Link>
-          ),
+          // The icon must be `icon`, not a label child: the collapsed rail renders
+          // `icon` and hides the label, so a label-wrapped icon vanishes with it.
+          icon: <PluginIcon icon={n.icon} />,
+          label: <Link to={href}>{n.label}</Link>,
           title: n.label,
         };
       }),
