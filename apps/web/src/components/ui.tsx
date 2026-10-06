@@ -45,16 +45,10 @@ export {
   CopyText,
   DeltaList,
   DeltaText,
-  EvidenceTimeline,
   KeyValue,
-  KeyValueRows,
-  NextActionCard,
   PriorityList,
-  ReadinessHero,
-  ScopeNote,
   Section,
   SectionHeading,
-  StatusBuckets,
   StatusDot,
   displayLabel,
   gapReason,
@@ -64,7 +58,7 @@ export {
   readinessVerdict,
   trendOf,
 } from "@/ui";
-export type { Delta, EvidenceEntry, PriorityItem } from "@/ui";
+export type { Delta, PriorityItem } from "@/ui";
 
 /** Product charts (antd-free, shared with plugin frames). */
 export { ReadinessChart, Sparkline } from "@interview-os/ui";
