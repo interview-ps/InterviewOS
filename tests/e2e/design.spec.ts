@@ -73,4 +73,16 @@ test.describe("design evidence", () => {
     await expect(page.getByTestId("suggestions-card")).toBeVisible();
     await page.screenshot({ path: `${SHOTS}/resume-bullets-1366x768.png` });
   });
+
+  test("command palette (1366x768)", async ({ page }) => {
+    await page.setViewportSize({ width: 1366, height: 768 });
+    await page.goto("/", { waitUntil: "networkidle" });
+    await page.keyboard.press("Control+K");
+    await expect(page.getByTestId("command-palette")).toBeVisible();
+    await page.waitForTimeout(500);
+    await page.screenshot({ path: `${SHOTS}/palette-1366x768.png` });
+    await page.keyboard.press("Escape");
+    await expect(page.getByTestId("command-palette")).toBeHidden();
+    await page.screenshot({ path: `${SHOTS}/palette-closed-1366x768.png` });
+  });
 });
