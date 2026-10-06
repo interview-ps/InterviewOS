@@ -19,7 +19,7 @@ import {
   severityTone,
   trendOf,
 } from "@/components/ui";
-import { PluginSlot } from "@/components/plugin-ui";
+import { ExtensionSlot } from "@/components/plugin-ui";
 import { SetupForm } from "@/components/setup-form";
 import { useAppRefresh } from "@/lib/app-refresh";
 
@@ -219,25 +219,35 @@ export default function Dashboard() {
           <h2 className="mb-1 text-sm font-semibold text-navy">Overall readiness</h2>
           <StatStrip
             items={[
-              { label: "Estimated readiness", value: pct(readiness.overall) },
+              {
+                label: "Estimated readiness",
+                value: pct(readiness.overall),
+                suffix:
+                  overallTrend === "up"
+                    ? "↑"
+                    : overallTrend === "down"
+                      ? "↓"
+                      : overallTrend === "flat"
+                        ? "→"
+                        : undefined,
+              },
               { label: "Confidence", value: pct(readiness.overallConfidence) },
               {
                 label: "Coverage",
-                value: coverage ? `${coverage.covered}/${coverage.total}` : "—",
+                value: coverage ? `${coverage.covered}/${coverage.total}` : "Not assessed",
                 suffix: "required skills",
               },
               {
                 label: "Verdict",
                 value: readinessVerdict(readiness.overall, coverage?.rate ?? null),
-                suffix: overallTrend === "up" ? "↑" : overallTrend === "down" ? "↓" : "→",
+                action: (
+                  <Link to="/readiness" className="text-blue underline">
+                    See the evidence
+                  </Link>
+                ),
               },
             ]}
           />
-          <div className="mt-1 text-right">
-            <Link to="/readiness" className="text-xs text-blue underline">
-              See the evidence
-            </Link>
-          </div>
         </section>
 
         <div className="grid gap-3 lg:grid-cols-[minmax(0,1fr)_320px]">
@@ -264,7 +274,7 @@ export default function Dashboard() {
                 <p className="mt-1.5 flex flex-wrap items-center gap-x-4 gap-y-1 text-[13px]">
                   <span>
                     Current readiness:{" "}
-                    <strong>{nextReadiness === null ? "—" : pct(nextReadiness)}</strong>
+                    <strong>{nextReadiness === null ? "Not assessed" : pct(nextReadiness)}</strong>
                   </span>
                   <span>
                     Impact: <strong>{impact}</strong>
@@ -279,8 +289,6 @@ export default function Dashboard() {
                 </ul>
               )}
             </Panel>
-
-            <PluginSlot slot="dashboard.cards" />
 
             <Panel
               title="Recent progress"
@@ -307,6 +315,8 @@ export default function Dashboard() {
                 }))}
               />
             </Panel>
+
+            <ExtensionSlot slot="dashboard.cards" />
           </div>
 
           <div className="space-y-3">
@@ -331,7 +341,7 @@ export default function Dashboard() {
                       trailing={
                         <span className="flex shrink-0 items-center gap-2">
                           <span className="text-xs text-muted">
-                            {g.currentScore === null ? "—" : pct(g.currentScore)}
+                            {g.currentScore === null ? "not assessed" : pct(g.currentScore)}
                           </span>
                           {g.currentScore !== null && (
                             <Pill tone={severityTone(g.severity)}>{g.severity}</Pill>
@@ -349,13 +359,13 @@ export default function Dashboard() {
                 {openActions.length > 0 ? (
                   <>
                     <p>
-                      <strong>{openActions.length}</strong>{" "}
-                      {openActions.length === 1 ? "weakness needs" : "weaknesses need"} preparation
-                      first.
+                      <strong>{openActions.length}</strong> open preparation{" "}
+                      {openActions.length === 1 ? "action" : "actions"} — start with the highest
+                      priority.
                     </p>
                     <Link to="/prepare">
                       <Button variant="secondary" size="small">
-                        Practice first
+                        Open preparation plan
                       </Button>
                     </Link>
                   </>
@@ -366,14 +376,14 @@ export default function Dashboard() {
                       {improvedCount === 1 ? "skill" : "skills"} in your last interview.
                     </p>
                     <Link to="/interview">
-                      <Button size="small">Start mock interview</Button>
+                      <Button variant="secondary" size="small">Start mock interview</Button>
                     </Link>
                   </>
                 ) : (
                   <>
                     <p className="text-muted">Run a mock interview to find out where you stand.</p>
                     <Link to="/interview">
-                      <Button size="small">Start mock interview</Button>
+                      <Button variant="secondary" size="small">Start mock interview</Button>
                     </Link>
                   </>
                 )}
@@ -400,14 +410,14 @@ export default function Dashboard() {
                   label: "Weakness retest",
                   value:
                     metrics.weaknessRetestRate.rate === null
-                      ? "—"
+                      ? "No data"
                       : `${Math.round(metrics.weaknessRetestRate.rate * 100)}%`,
                 },
                 {
                   label: "Improvement after prep",
                   value:
                     metrics.improvementAfterPrep === null
-                      ? "—"
+                      ? "No data"
                       : `${metrics.improvementAfterPrep >= 0 ? "+" : ""}${Math.round(
                           metrics.improvementAfterPrep * 100,
                         )}%`,
@@ -416,14 +426,14 @@ export default function Dashboard() {
                   label: "Prep completion",
                   value:
                     metrics.prepCompletionRate.rate === null
-                      ? "—"
+                      ? "No data"
                       : `${Math.round(metrics.prepCompletionRate.rate * 100)}%`,
                 },
                 {
                   label: "Readiness coverage",
                   value:
                     metrics.readinessCoverage.rate === null
-                      ? "—"
+                      ? "No data"
                       : `${Math.round(metrics.readinessCoverage.rate * 100)}%`,
                 },
               ]}
@@ -431,7 +441,7 @@ export default function Dashboard() {
           </Panel>
         )}
 
-        <PluginSlot slot="dashboard.sidebar" />
+        <ExtensionSlot slot="dashboard.sidebar" />
       </div>
     </Workspace>
   );

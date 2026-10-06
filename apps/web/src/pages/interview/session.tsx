@@ -21,6 +21,7 @@ import {
   ErrorNote,
   Panel,
   Pill,
+  RichText,
   ScreenToolbar,
   SkeletonCard,
   SplitPane,
@@ -306,6 +307,7 @@ export default function InterviewSession() {
 
   const modeId = detail?.session.roundType ?? "";
   const hasInspector = useModeSlotHasContent("interview.sidebar", modeId);
+  const hasQuestionPanel = useModeSlotHasContent("interview.question", modeId);
 
   const tick = () => {
     setElapsed(0);
@@ -427,12 +429,20 @@ export default function InterviewSession() {
           </span>
         )}
       </div>
+      {submitDisabled && !busy && (
+        <p className="mt-1 text-xs text-muted">
+          {fieldsMode
+            ? "Complete the required fields to submit."
+            : "Add your approach to submit — code is optional and reviewed, not executed."}
+        </p>
+      )}
     </>
   );
 
   const questionMeta = current && (
     <div className="flex flex-wrap items-center gap-2">
-      <Pill tone="blue">{current.topic}</Pill>
+      {/* When a mode panel already names the problem, don't repeat it as a pill. */}
+      {!hasQuestionPanel && <Pill tone="blue">{current.topic}</Pill>}
       <Pill tone="muted">difficulty {current.difficulty}</Pill>
       {current.followUpOf && (
         <Pill tone="amber">
@@ -474,9 +484,11 @@ export default function InterviewSession() {
     </div>
   );
 
-  const renderAnswerTextarea = (grow: boolean) => (
+  const renderAnswerTextarea = (grow: boolean, label?: string) => (
     <label className={`flex flex-col text-sm ${grow ? "min-h-0 flex-1" : ""}`}>
-      <span className="sr-only">Your answer</span>
+      <span className={label ? "mb-1 text-[13px] font-medium" : "sr-only"}>
+        {label ?? "Your answer"}
+      </span>
       <textarea
         value={answer}
         onChange={(e) => setAnswer(e.target.value)}
@@ -533,7 +545,9 @@ export default function InterviewSession() {
         <Panel className="flex-1" footer={submitFooter} bodyClassName="space-y-3">
           {questionMeta}
           <WhyThisQuestion q={current} />
-          <p className="text-[15px] font-medium leading-relaxed">{current.text}</p>
+          <p className="text-[15px] font-medium leading-relaxed">
+            <RichText text={current.text} />
+          </p>
           {modeQuestionPanel}
           <AnswerFieldsEditor
             fields={answerFields}
@@ -558,13 +572,15 @@ export default function InterviewSession() {
             <Panel className="h-full" bodyClassName="space-y-2">
               {questionMeta}
               <WhyThisQuestion q={current} />
-              <p className="text-[15px] font-medium leading-relaxed">{current.text}</p>
+              <p className="text-[15px] font-medium leading-relaxed">
+            <RichText text={current.text} />
+          </p>
               {modeQuestionPanel}
             </Panel>
           }
           right={
             <Panel className="h-full" footer={submitFooter} bodyClassName="flex min-h-0 flex-col gap-2">
-              {renderAnswerTextarea(false)}
+              {renderAnswerTextarea(false, "Approach")}
               {codeEditor}
             </Panel>
           }
@@ -576,7 +592,9 @@ export default function InterviewSession() {
           <div className="shrink-0 space-y-2">
             {questionMeta}
             <WhyThisQuestion q={current} />
-            <p className="text-[15px] font-medium leading-relaxed">{current.text}</p>
+            <p className="text-[15px] font-medium leading-relaxed">
+            <RichText text={current.text} />
+          </p>
             {modeQuestionPanel}
           </div>
           <div className="shrink-0">{voiceControl}</div>
@@ -614,10 +632,10 @@ export default function InterviewSession() {
       </div>
       <div className="min-h-0 flex-1 space-y-3 overflow-auto p-3" aria-live="polite">
         {evalTab === "feedback" && (
-          <>
+          <div className="max-w-prose space-y-3">
             {result.voiceFeedback && <DeliveryHints feedback={result.voiceFeedback} />}
             <p className="rounded-[var(--radius-sm)] bg-page p-2.5 text-sm">
-              {result.evaluation.summary}
+              <RichText text={result.evaluation.summary} />
             </p>
             {result.evaluation.weaknesses.length > 0 && (
               <div>
@@ -627,7 +645,8 @@ export default function InterviewSession() {
                     <li key={i} className="flex items-start gap-2">
                       <Pill tone={severityTone(w.severity)}>{w.severity}</Pill>
                       <span>
-                        <span className="font-medium text-ink">{skillLabel(w.skill)}</span> — {w.evidence}
+                        <span className="font-medium text-ink">{skillLabel(w.skill)}</span> —{" "}
+                        <RichText text={w.evidence} />
                       </span>
                     </li>
                   ))}
@@ -638,7 +657,11 @@ export default function InterviewSession() {
               <div>
                 <h3 className="text-[13px] font-semibold text-green">What went well</h3>
                 <ul className="mt-1 list-disc space-y-0.5 pl-5 text-sm text-muted">
-                  {result.evaluation.strengths.map((s, i) => <li key={i}>{s.evidence}</li>)}
+                  {result.evaluation.strengths.map((s, i) => (
+                    <li key={i}>
+                      <RichText text={s.evidence} />
+                    </li>
+                  ))}
                 </ul>
               </div>
             )}
@@ -670,7 +693,9 @@ export default function InterviewSession() {
             {result.evaluation.betterApproach && (
               <div>
                 <h3 className="text-[13px] font-semibold text-navy">Better reasoning approach</h3>
-                <p className="mt-1 text-sm text-muted">{result.evaluation.betterApproach}</p>
+                <p className="mt-1 text-sm text-muted">
+                  <RichText text={result.evaluation.betterApproach} />
+                </p>
               </div>
             )}
             {result.pluginReviews && result.pluginReviews.length > 0 && (
@@ -712,7 +737,7 @@ export default function InterviewSession() {
                 </ul>
               </div>
             )}
-          </>
+          </div>
         )}
 
         {evalTab === "rubric" && (
@@ -755,7 +780,11 @@ export default function InterviewSession() {
         <StreamDraft stage={stage} draft={draft} />
         {result.newActions.length > 0 && (
           <span className="text-xs text-muted">
-            {result.newActions.length} new prep action{result.newActions.length > 1 ? "s" : ""}
+            {result.newActions.length}{" "}
+            {result.newActions.length === 1 ? "action" : "actions"} added to your plan ·{" "}
+            <Link to="/prepare" className="text-blue underline">
+              View plan
+            </Link>
           </span>
         )}
         <div className="ml-auto flex items-center gap-3">

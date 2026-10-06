@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
-import { Steps } from "antd";
+import { Steps, Upload } from "antd";
 import { api, streamPost, type SetupResult } from "@/lib/api";
 import { Button, CardTitle, ErrorNote, toast } from "@/components/ui";
 
@@ -12,13 +12,35 @@ export interface FileMeta {
   warnings: string[];
 }
 
-export function FileNote({ meta }: { meta: FileMeta | undefined }) {
+export interface SetupValues {
+  resumeText: string;
+  jobDescription: string;
+  company: string;
+  role: string;
+  level: string;
+  companyNotes: string;
+}
+
+export function FileNote({
+  meta,
+  onClear,
+}: {
+  meta: FileMeta | undefined;
+  onClear?: () => void;
+}) {
   if (!meta) return null;
   return (
-    <p className="mt-1 text-xs text-muted" aria-live="polite">
-      {meta.name} — {meta.chars.toLocaleString()} characters
+    <p className="mt-1 flex flex-wrap items-center gap-2 text-xs text-muted" aria-live="polite">
+      <span>
+        {meta.name} — {meta.chars.toLocaleString()} characters
+      </span>
+      {onClear && (
+        <button type="button" onClick={onClear} className="text-blue underline">
+          Remove
+        </button>
+      )}
       {meta.warnings.map((w, i) => (
-        <span key={i} className="block text-accent">
+        <span key={i} className="block w-full text-accent">
           ⚠ {w}
         </span>
       ))}
@@ -94,20 +116,34 @@ export function SetupForm({
   showSteps = false,
   title,
   onDone,
+  initialValues,
 }: {
   mode: "workspace" | "target";
   showSteps?: boolean;
   title?: ReactNode;
   onDone?: (result?: SetupResult) => void;
+  /** Persisted values to prefill (Target → Sources). */
+  initialValues?: Partial<SetupValues>;
 }) {
-  const [form, setForm] = useState({
-    resumeText: "",
-    jobDescription: "",
-    company: "",
-    role: "",
-    level: mode === "workspace" ? "senior" : "mid",
-    companyNotes: "",
-  });
+  const [form, setForm] = useState<SetupValues>(() => ({
+    resumeText: initialValues?.resumeText ?? "",
+    jobDescription: initialValues?.jobDescription ?? "",
+    company: initialValues?.company ?? "",
+    role: initialValues?.role ?? "",
+    level: initialValues?.level ?? (mode === "workspace" ? "senior" : "mid"),
+    companyNotes: initialValues?.companyNotes ?? "",
+  }));
+  // Captured once so edits can be labelled as unsaved relative to what's stored.
+  const baseline = useRef(
+    JSON.stringify({
+      resumeText: initialValues?.resumeText ?? "",
+      jobDescription: initialValues?.jobDescription ?? "",
+      company: initialValues?.company ?? "",
+      role: initialValues?.role ?? "",
+      level: initialValues?.level ?? (mode === "workspace" ? "senior" : "mid"),
+      companyNotes: initialValues?.companyNotes ?? "",
+    }),
+  );
   const [meta, setMeta] = useState<{ resumeText?: FileMeta; jobDescription?: FileMeta }>({});
   const [examples, setExamples] = useState<string[]>([]);
   const [busy, setBusy] = useState(false);
@@ -159,6 +195,9 @@ export function SetupForm({
     !!form.company &&
     !!form.role &&
     (mode === "target" || !!form.resumeText);
+
+  /** Whether the form differs from the persisted values it was prefilled with. */
+  const dirty = JSON.stringify(form) !== baseline.current;
 
   const submit = () => {
     setBusy(true);
@@ -249,14 +288,30 @@ export function SetupForm({
               rows={10}
               className="w-full rounded-[var(--radius-sm)] border border-line bg-surface p-3 font-mono text-xs"
             />
-            <input
-              type="file"
-              accept={ACCEPT}
-              aria-label="Upload resume file"
-              className="mt-1 text-xs text-muted"
-              onChange={(e) => loadResumeFile(e.target.files?.[0])}
+            <div className="mt-1 flex flex-wrap items-center gap-2">
+              <Upload
+                accept={ACCEPT}
+                maxCount={1}
+                showUploadList={false}
+                disabled={busy}
+                beforeUpload={(file) => {
+                  loadResumeFile(file as File);
+                  return false;
+                }}
+              >
+                <Button variant="secondary" size="small">
+                  Upload file
+                </Button>
+              </Upload>
+              <span className="text-xs text-muted">or paste above</span>
+            </div>
+            <FileNote
+              meta={meta.resumeText}
+              onClear={() => {
+                setForm((f) => ({ ...f, resumeText: "" }));
+                setMeta((p) => ({ ...p, resumeText: undefined }));
+              }}
             />
-            <FileNote meta={meta.resumeText} />
           </label>
           <label className="block text-sm">
             <span className="mb-1 block font-medium">Job description</span>
@@ -266,14 +321,30 @@ export function SetupForm({
               rows={10}
               className="w-full rounded-[var(--radius-sm)] border border-line bg-surface p-3 font-mono text-xs"
             />
-            <input
-              type="file"
-              accept={ACCEPT}
-              aria-label="Upload job description file"
-              className="mt-1 text-xs text-muted"
-              onChange={(e) => loadJdFile(e.target.files?.[0])}
+            <div className="mt-1 flex flex-wrap items-center gap-2">
+              <Upload
+                accept={ACCEPT}
+                maxCount={1}
+                showUploadList={false}
+                disabled={busy}
+                beforeUpload={(file) => {
+                  loadJdFile(file as File);
+                  return false;
+                }}
+              >
+                <Button variant="secondary" size="small">
+                  Upload file
+                </Button>
+              </Upload>
+              <span className="text-xs text-muted">or paste above</span>
+            </div>
+            <FileNote
+              meta={meta.jobDescription}
+              onClear={() => {
+                setForm((f) => ({ ...f, jobDescription: "" }));
+                setMeta((p) => ({ ...p, jobDescription: undefined }));
+              }}
             />
-            <FileNote meta={meta.jobDescription} />
           </label>
         </div>
       )}
@@ -287,14 +358,30 @@ export function SetupForm({
             rows={6}
             className="w-full rounded-[var(--radius-sm)] border border-line bg-surface p-3 font-mono text-xs"
           />
-          <input
-            type="file"
-            accept={ACCEPT}
-            aria-label="Upload job description file"
-            className="mt-1 text-xs text-muted"
-            onChange={(e) => loadJdFile(e.target.files?.[0])}
+          <div className="mt-1 flex flex-wrap items-center gap-2">
+            <Upload
+              accept={ACCEPT}
+              maxCount={1}
+              showUploadList={false}
+              disabled={busy}
+              beforeUpload={(file) => {
+                loadJdFile(file as File);
+                return false;
+              }}
+            >
+              <Button variant="secondary" size="small">
+                Upload file
+              </Button>
+            </Upload>
+            <span className="text-xs text-muted">or paste above</span>
+          </div>
+          <FileNote
+            meta={meta.jobDescription}
+            onClear={() => {
+              setForm((f) => ({ ...f, jobDescription: "" }));
+              setMeta((p) => ({ ...p, jobDescription: undefined }));
+            }}
           />
-          <FileNote meta={meta.jobDescription} />
         </label>
       )}
 
@@ -352,12 +439,24 @@ export function SetupForm({
 
       <div className="mt-4 rounded-[var(--radius-sm)] border border-line bg-page p-3">
         <p className="text-sm font-medium text-navy">
-          {mode === "target" ? "Ready to add this target" : "Ready to analyze"}
+          {!canSubmit
+            ? "Add the missing fields to continue"
+            : dirty
+              ? mode === "target"
+                ? "Ready to add this target"
+                : "Ready to analyze"
+              : "Sources match your last analysis"}
         </p>
         <p className="mt-0.5 text-xs text-muted">
-          {mode === "target"
-            ? "Interview OS compares your resume with this role and updates your preparation plan."
-            : "Interview OS will compare your experience with the role and create your preparation plan."}
+          {!canSubmit
+            ? mode === "target"
+              ? "A job description, company and role are required."
+              : "A resume and job description are required."
+            : dirty
+              ? mode === "target"
+                ? "Interview OS compares your saved resume with this role and updates your preparation plan."
+                : "Running Analyze replaces your saved resume, job description and preparation plan."
+              : "Edit a field to analyze again; your plan stays as it is until you do."}
         </p>
         <div className="mt-3 flex flex-wrap items-center gap-3">
           {mode === "workspace" && examples.length > 0 && (
@@ -396,13 +495,6 @@ export function SetupForm({
             </span>
           )}
         </div>
-        {!canSubmit && !busy && (
-          <p className="mt-1 text-xs text-muted">
-            {mode === "target"
-              ? "Add a job description, company and role to continue."
-              : "Add a resume and job description to continue."}
-          </p>
-        )}
       </div>
       {busy && <StageList stages={stages} running={busy} />}
     </div>

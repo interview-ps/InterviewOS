@@ -84,7 +84,7 @@ export function Card({
     <section
       id={id}
       data-testid={testId}
-      className={`rounded-[var(--radius-card)] border border-line bg-surface p-4 shadow-sm ${className}`}
+      className={`rounded-[var(--radius-card)] border border-line bg-surface p-3 ${className}`}
     >
       {children}
     </section>
@@ -92,7 +92,7 @@ export function Card({
 }
 
 export function CardTitle({ children }: { children: ReactNode }) {
-  return <h2 className="mb-3 text-lg font-semibold text-navy">{children}</h2>;
+  return <h2 className="mb-2 text-sm font-semibold text-navy">{children}</h2>;
 }
 
 export function Bar({ value, tone = "blue" }: { value: number; tone?: "blue" | "green" | "amber" | "muted" }) {
@@ -197,7 +197,7 @@ export function Button({
       data-testid={testId}
       onClick={onClick}
       disabled={disabled}
-      className={`rounded-[0.6rem] px-4 py-2 text-sm font-medium transition-colors disabled:cursor-not-allowed ${styles}`}
+      className={`rounded-md px-3 py-1.5 text-[13px] font-medium transition-colors disabled:cursor-not-allowed ${styles}`}
     >
       {children}
     </button>
@@ -220,10 +220,10 @@ export function Stat({
   const arrow = trend === "up" ? "↑" : trend === "down" ? "↓" : trend === "flat" ? "→" : null;
   return (
     <div>
-      <p className="text-xs font-medium uppercase tracking-wide text-muted">{label}</p>
-      <p className={`mt-1 text-2xl font-bold ${tone === "muted" ? "text-muted" : "text-navy"}`}>
+      <p className="text-xs font-medium text-muted">{label}</p>
+      <p className={`mt-0.5 text-lg font-semibold ${tone === "muted" ? "text-muted" : "text-navy"}`}>
         {value}
-        {arrow && <span className="ml-1 text-base" aria-label={`trend ${trend}`}>{arrow}</span>}
+        {arrow && <span className="ml-1 text-sm" aria-label={`trend ${trend}`}>{arrow}</span>}
       </p>
     </div>
   );
@@ -364,14 +364,17 @@ export function ScreenToolbar({
   return (
     <div className={`shrink-0 border-b border-line ${className}`}>
       <div className="flex min-h-10 flex-wrap items-center gap-x-3 gap-y-1 py-1.5">
-        <div className="flex min-w-0 items-baseline gap-2">
-          <h1 className="truncate text-xl font-bold text-navy">{title}</h1>
-          {subtitle && (
-            <span className="truncate text-[13px] text-muted">{subtitle}</span>
-          )}
-        </div>
+        {/* The title must never collapse because a description shares its row. */}
+        <h1 className="shrink-0 whitespace-nowrap text-xl font-bold text-navy">{title}</h1>
+        {subtitle && (
+          <span className="order-1 min-w-0 basis-full truncate text-[13px] text-muted sm:order-none sm:basis-auto sm:flex-1">
+            {subtitle}
+          </span>
+        )}
         {actions && (
-          <div className="ml-auto flex shrink-0 items-center gap-2">{actions}</div>
+          <div className="order-2 flex basis-full shrink-0 items-center gap-2 sm:order-none sm:ml-auto sm:basis-auto">
+            {actions}
+          </div>
         )}
       </div>
       {tabs && <div className="flex items-center gap-1">{tabs}</div>}
@@ -400,7 +403,7 @@ export function Workspace({
     <div className={`flex min-h-0 flex-1 flex-col ${className}`}>
       {toolbar}
       <div
-        className={`min-h-0 flex-1 pt-3 ${scroll ? "overflow-auto" : "flex flex-col"} ${bodyClassName}`}
+        className={`interview-workspace-body min-h-0 flex-1 pt-3 ${scroll ? "overflow-auto" : "flex flex-col"} ${bodyClassName}`}
       >
         {children}
       </div>
@@ -501,7 +504,7 @@ export function SettingRow({
 }) {
   return (
     <div
-      className={`flex flex-wrap items-start justify-between gap-x-4 gap-y-2 border-b border-line py-2.5 last:border-b-0 ${className}`}
+      className={`flex flex-col gap-2 border-b border-line py-2.5 last:border-b-0 sm:flex-row sm:flex-wrap sm:items-start sm:justify-between sm:gap-x-4 sm:gap-y-2 ${className}`}
     >
       <div className="min-w-0 flex-1">
         <div className="text-[13px] font-medium text-ink">{label}</div>
@@ -509,7 +512,9 @@ export function SettingRow({
           <div className="mt-0.5 max-w-prose text-xs text-muted">{description}</div>
         )}
       </div>
-      <div className="flex shrink-0 items-center gap-2">{control}</div>
+      <div className="flex w-full shrink-0 items-center gap-2 sm:w-auto sm:justify-end">
+        {control}
+      </div>
     </div>
   );
 }
@@ -572,15 +577,20 @@ export function StatStrip({
   items,
   className = "",
 }: {
-  items: { label: ReactNode; value: ReactNode; suffix?: ReactNode }[];
+  items: {
+    label: ReactNode;
+    value: ReactNode;
+    suffix?: ReactNode;
+    action?: ReactNode;
+  }[];
   className?: string;
 }) {
   return (
     <div
-      className={`flex flex-wrap items-stretch divide-x divide-line overflow-hidden rounded-[var(--radius-card)] border border-line bg-surface ${className}`}
+      className={`grid grid-cols-2 gap-px overflow-hidden rounded-[var(--radius-card)] border border-line bg-line sm:flex sm:flex-wrap sm:items-stretch sm:gap-0 sm:divide-x sm:divide-line ${className}`}
     >
       {items.map((item, i) => (
-        <div key={i} className="min-w-0 flex-1 px-3 py-2">
+        <div key={i} className="min-w-0 flex-1 bg-surface px-3 py-2">
           <div className="text-[11px] font-medium uppercase tracking-wide text-muted">
             {item.label}
           </div>
@@ -588,8 +598,71 @@ export function StatStrip({
             {item.value}
             {item.suffix && <span className="text-xs text-muted">{item.suffix}</span>}
           </div>
+          {item.action && <div className="mt-1 text-xs">{item.action}</div>}
         </div>
       ))}
     </div>
+  );
+}
+
+/**
+ * Collapsible host container for extension (plugin) regions. Keeps plugin UI
+ * compact, secondary, and out of the primary workspace until opened, with a
+ * consistent heading/padding language across every slot.
+ */
+export function ExtensionRegion({
+  title,
+  hint,
+  description,
+  count,
+  defaultOpen = false,
+  className = "",
+  "data-testid": testId,
+  children,
+}: {
+  title: ReactNode;
+  hint?: ReactNode;
+  description?: ReactNode;
+  count?: number;
+  defaultOpen?: boolean;
+  className?: string;
+  "data-testid"?: string;
+  children: ReactNode;
+}) {
+  const [open, setOpen] = useState(defaultOpen);
+  return (
+    <section
+      className={`extension-region overflow-hidden rounded-[var(--radius-card)] border border-line bg-surface ${className}`}
+      data-testid={testId}
+    >
+      <button
+        type="button"
+        aria-expanded={open}
+        onClick={() => setOpen((v) => !v)}
+        className="flex w-full cursor-pointer items-center gap-2 px-3 py-2 text-left text-[13px] font-semibold text-navy"
+      >
+        <span
+          aria-hidden
+          className={`extension-caret text-muted ${open ? "is-open" : ""}`}
+        >
+          ▸
+        </span>
+        <span className="min-w-0 truncate">{title}</span>
+        {count !== undefined && (
+          <span className="text-xs font-normal text-muted">({count})</span>
+        )}
+        {hint && (
+          <span className="ml-auto shrink-0 text-xs font-normal text-muted">{hint}</span>
+        )}
+      </button>
+      {open && (
+        <>
+          {description && (
+            <p className="px-3 pb-1 text-xs text-muted">{description}</p>
+          )}
+          <div className="border-t border-line p-3">{children}</div>
+        </>
+      )}
+    </section>
   );
 }

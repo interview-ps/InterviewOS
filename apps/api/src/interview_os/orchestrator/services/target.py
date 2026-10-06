@@ -35,6 +35,7 @@ __all__ = [
     "TargetPlanResult",
     "TargetService",
     "TargetSummary",
+    "WorkspaceSources",
 ]
 
 
@@ -48,6 +49,19 @@ class TargetSummary(CamelModel):
     company_profile: CompanyNotesProfile | None = None
     company_profile_id: str
     boosted_skill_ids: list[SkillId]
+
+
+class WorkspaceSources(CamelModel):
+    """Persisted resume + active target sources, for prefilling the setup form."""
+
+    resume_text: str
+    job_description: str
+    company: str
+    role: str
+    level: str
+    company_notes: str | None = None
+    has_candidate: bool
+    has_target: bool
 
 
 class TargetPlanResult(CamelModel):
@@ -104,6 +118,27 @@ class TargetService:
                 )
             )
         return targets
+
+    async def get_sources(self) -> WorkspaceSources:
+        """Read the persisted resume + active target so the UI can prefill them."""
+        candidate = self._ctx.store.get_active_candidate()
+        target = self._ctx.store.get_active_target()
+        notes: str | None = None
+        if target is not None:
+            try:
+                notes = TargetRole.model_validate(target.data).company_notes
+            except ValidationError:
+                notes = None
+        return WorkspaceSources(
+            resume_text="" if candidate is None else candidate.resume_text,
+            job_description="" if target is None else target.job_description,
+            company="" if target is None else target.company,
+            role="" if target is None else target.role,
+            level="" if target is None else target.level,
+            company_notes=notes,
+            has_candidate=candidate is not None and candidate.id not in ("", "none"),
+            has_target=target is not None,
+        )
 
     async def add_target(
         self, input: TargetInput, opts: ProgressOptions | None = None

@@ -91,6 +91,7 @@ from .services import (
     UIFrameRunSelector,
     UIFrameSelector,
     WorkspaceService,
+    WorkspaceSources,
 )
 from .services.history import HistoryFilters
 from .services.mcp import McpServerPatch
@@ -410,6 +411,9 @@ class InterviewOrchestrator:
 
     async def list_targets(self):  # type: ignore[no-untyped-def]
         return await self._targets.list_targets()
+
+    async def get_workspace_sources(self) -> WorkspaceSources:
+        return await self._targets.get_sources()
 
     async def add_target(
         self, input: TargetInput, opts: ProgressOptions | None = None

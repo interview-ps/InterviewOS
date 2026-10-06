@@ -155,7 +155,27 @@ def readiness_card(readiness: dict[str, Any]) -> dict[str, Any]:
     mean = (
         sum(float(dim.get("score") or 0) for dim in dims) / len(dims) if dims else None
     )
-    tone = "muted" if mean is None else "green" if mean >= 0.6 else "blue" if mean >= 0.4 else "amber"
+    action = {
+        "type": "button",
+        "label": "Start PostgreSQL Deep Dive",
+        "variant": "secondary",
+        "action": {"type": "startInterview", "modeId": "pg-deep-dive"},
+    }
+    if mean is None:
+        # No evidence: say so in words instead of an oversized em-dash score.
+        return {
+            "type": "card",
+            "title": "PostgreSQL readiness",
+            "subtitle": "Not assessed yet",
+            "children": [
+                {
+                    "type": "text",
+                    "text": "No SQL skills assessed yet — run a PostgreSQL interview to get a baseline.",
+                },
+                action,
+            ],
+        }
+    tone = "green" if mean >= 0.6 else "blue" if mean >= 0.4 else "amber"
     return {
         "type": "card",
         "title": "PostgreSQL readiness",
@@ -163,16 +183,11 @@ def readiness_card(readiness: dict[str, Any]) -> dict[str, Any]:
         "children": [
             {
                 "type": "stat",
-                "label": "PostgreSQL readiness",
-                "value": "—" if mean is None else f"{round(mean * 100)}%",
+                "label": "Average score",
+                "value": f"{round(mean * 100)}%",
                 "tone": tone,
             },
-            {
-                "type": "button",
-                "label": "Start PostgreSQL Deep Dive",
-                "variant": "primary",
-                "action": {"type": "startInterview", "modeId": "pg-deep-dive"},
-            },
+            action,
         ],
     }
 

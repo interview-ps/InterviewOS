@@ -48,8 +48,31 @@ h1, h2, h3, h4, .font-display {
   flex: 0 0 auto;
   display: flex;
   align-items: center;
+  min-width: 0;
   border-bottom: 1px solid var(--interview-border);
   background: var(--interview-surface);
+}
+
+/* Two explicit rows on narrow screens: identity + overflow, then the target. */
+header.interview-header--mobile {
+  height: auto;
+  flex-direction: column;
+  align-items: stretch;
+  padding-top: env(safe-area-inset-top);
+}
+
+.interview-header__main {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: 6px;
+  min-height: 40px;
+  padding: 0 8px;
+}
+
+.interview-header__target {
+  min-width: 0;
+  padding: 0 8px 6px;
 }
 
 .interview-body {
@@ -93,12 +116,27 @@ h1, h2, h3, h4, .font-display {
 @media (max-width: 991px) {
   .interview-split {
     grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: auto;
+  }
+  /* Pages that disable their own scroll still need to scroll once stacked. */
+  .interview-workspace-body {
+    overflow-y: auto;
+  }
+  .interview-content {
+    padding-bottom: calc(
+      var(--interview-bottom-nav-height) + env(safe-area-inset-bottom) + 12px
+    );
+  }
+  :root {
+    /* identity row + target row + safe area */
+    --interview-header-height: 92px;
   }
 }
 
 /* Focused/anchored targets must clear the app bar. Tracks Layout.headerHeight (42). */
 :root {
   --interview-header-height: 42px;
+  --interview-bottom-nav-height: 56px;
 }
 
 .interview-content [id] {
@@ -117,15 +155,25 @@ h1, h2, h3, h4, .font-display {
   bottom: 0;
   z-index: 20;
   display: flex;
+  min-height: var(--interview-bottom-nav-height);
+  padding-bottom: env(safe-area-inset-bottom);
   border-top: 1px solid var(--interview-border);
   background: var(--interview-surface);
 }
 
 .interview-bottom-nav__item {
   flex: 1 1 0;
-  padding: 10px 4px;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  min-height: 44px;
+  padding: 6px 4px;
   text-align: center;
-  font-size: 12px;
+  font-size: 11px;
+  line-height: 1.2;
   text-decoration: none;
   color: var(--interview-text-secondary);
 }
@@ -135,14 +183,21 @@ h1, h2, h3, h4, .font-display {
   font-weight: 600;
 }
 
-@media (max-width: 991px) {
+@media (max-width: 640px) {
   .interview-content {
-    padding-bottom: 72px;
+    padding: 0 12px;
+    padding-bottom: calc(
+      var(--interview-bottom-nav-height) + env(safe-area-inset-bottom) + 12px
+    );
   }
 }
 
-@media (max-width: 640px) {
-  .interview-content {
-    padding: 0 12px 12px;
-  }
+/* One disclosure affordance for extension regions. */
+.extension-caret {
+  display: inline-block;
+  transition: transform 0.15s ease;
+}
+
+.extension-caret.is-open {
+  transform: rotate(90deg);
 }

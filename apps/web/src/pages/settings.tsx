@@ -1,7 +1,7 @@
 import { useEffect, useState, type ReactNode } from "react";
 import { useLocation } from "react-router";
 import { VOICE_DISCLAIMER } from "@interview-os/frontend-types";
-import { Menu } from "antd";
+import { Menu, Radio, Select } from "antd";
 import {
   api,
   type AppSettings,
@@ -13,7 +13,6 @@ import {
   type RuntimeStatus,
 } from "@/lib/api";
 import { runtimeLabel } from "@/lib/runtime";
-import { CheckCircleFilled } from "@ant-design/icons";
 import {
   Button,
   CollapseList,
@@ -27,8 +26,9 @@ import {
   toast,
   Workspace,
 } from "@/components/ui";
-import { PluginSlot } from "@/components/plugin-ui";
+import { ExtensionSlot } from "@/components/plugin-ui";
 import { PluginSettingsForm } from "@/components/plugin-settings-form";
+import { useDesktop } from "@/lib/responsive";
 
 const EFFORTS = ["low", "medium", "high"] as const;
 
@@ -205,6 +205,7 @@ function GroupHeading({ children }: { children: ReactNode }) {
 
 export default function Settings() {
   const location = useLocation();
+  const desktop = useDesktop();
   const [status, setStatus] = useState<RuntimeStatus | null>(null);
   const [models, setModels] = useState<RuntimeModel[]>([]);
   const [settings, setSettings] = useState<AppSettings | null>(null);
@@ -333,13 +334,13 @@ export default function Settings() {
           subtitle="AI runtime, preferences, integrations and your data."
           actions={
             <>
-              {dirty && <span className="text-xs text-accent">Unsaved changes</span>}
+              {dirty && <span className="text-xs text-accent">Unsaved settings</span>}
               <Button size="small" onClick={save} disabled={saving || !dirty}>
                 {saving ? "Saving…" : "Save"}
               </Button>
               {!dirty && saved && (
                 <span className="text-xs text-muted" aria-live="polite">
-                  Saved.
+                  Settings saved.
                 </span>
               )}
             </>
@@ -349,25 +350,35 @@ export default function Settings() {
     >
       <ErrorNote error={error} />
 
-      <div className="mt-3 flex min-h-0 flex-1 gap-4">
-        <nav className="w-44 shrink-0 overflow-auto" aria-label="Settings categories">
-          <Menu
-            mode="inline"
-            selectedKeys={[section]}
-            onClick={(e) => setSection(e.key as CategoryKey)}
-            items={CATEGORIES.map((c) => ({ key: c.key, label: c.label }))}
-            style={{ borderInlineEnd: "none" }}
+      <div className="mt-3 flex min-h-0 flex-1 flex-col gap-3 lg:flex-row lg:gap-4">
+        {desktop ? (
+          <nav className="w-44 shrink-0 overflow-auto" aria-label="Settings categories">
+            <Menu
+              mode="inline"
+              selectedKeys={[section]}
+              onClick={(e) => setSection(e.key as CategoryKey)}
+              items={CATEGORIES.map((c) => ({ key: c.key, label: c.label }))}
+              style={{ borderInlineEnd: "none" }}
+            />
+          </nav>
+        ) : (
+          <Select
+            aria-label="Settings category"
+            value={section}
+            onChange={(v) => setSection(v as CategoryKey)}
+            style={{ width: "100%" }}
+            options={CATEGORIES.map((c) => ({ value: c.key, label: c.label }))}
           />
-        </nav>
+        )}
 
-        <div className="min-w-0 flex-1 overflow-auto pb-2">
+        <div className="min-w-0 max-w-3xl flex-1 overflow-auto pb-2">
           {section === "ai" && (
             <div className="space-y-5">
               <section>
                 <GroupHeading>AI runtime</GroupHeading>
                 <SettingRow
                   label={`Runtime — ${status ? runtimeLabel(status.mode) : "…"}`}
-                  description="Switching applies immediately and persists across restarts. The INTERVIEW_OS_RUNTIME env var overrides the saved choice."
+                  description="Switching applies immediately and persists across restarts. Runtime overrides are under Advanced diagnostics."
                   control={
                     <>
                       <Pill tone={status?.available ? "green" : "amber"}>
@@ -380,60 +391,68 @@ export default function Settings() {
                   }
                 />
                 {avail && avail.providers.length > 0 && (
-                  <ul className="mt-1 rounded-[var(--radius-card)] border border-line bg-surface">
-                    {avail.providers.map((p) => {
-                      const active = p.runtime === avail.active;
-                      return (
-                        <li key={p.runtime}>
-                          <DataRow
-                            selected={active}
-                            onClick={active || switching !== null ? undefined : () => switchRuntime(p.runtime)}
-                            leading={
-                              active ? (
-                                <CheckCircleFilled className="text-green" aria-hidden />
-                              ) : (
-                                <span className="inline-block h-3.5 w-3.5" aria-hidden />
-                              )
-                            }
-                            title={
-                              <>
-                                {runtimeLabel(p.runtime)}
-                                {p.trustedLocal && (
-                                  <span className="ml-2 text-xs text-muted">trusted local</span>
-                                )}
-                              </>
-                            }
-                            meta={
-                              <>
-                                {p.version}
-                                {switching === p.runtime ? " · switching…" : ""}
-                              </>
-                            }
-                            trailing={
-                              <Pill
-                                tone={active ? (p.available ? "green" : "amber") : p.available ? "green" : "muted"}
-                              >
-                                {active
-                                  ? p.available
-                                    ? "connected"
-                                    : "not available"
-                                  : p.available
-                                    ? "ready"
-                                    : p.status}
-                              </Pill>
-                            }
-                          />
-                        </li>
-                      );
-                    })}
-                  </ul>
+                  <>
+                    <ul className="mt-1 rounded-[var(--radius-card)] border border-line bg-surface">
+                      {avail.providers.map((p) => {
+                        const active = p.runtime === avail.active;
+                        return (
+                          <li key={p.runtime}>
+                            <DataRow
+                              selected={active}
+                              leading={
+                                <Radio
+                                  name="runtime-provider"
+                                  checked={active}
+                                  disabled={switching !== null}
+                                  aria-label={`Use ${runtimeLabel(p.runtime)}`}
+                                  onChange={() => {
+                                    if (!active) switchRuntime(p.runtime);
+                                  }}
+                                />
+                              }
+                              title={
+                                <>
+                                  {runtimeLabel(p.runtime)}
+                                  {p.trustedLocal && (
+                                    <span className="ml-2 text-xs text-muted">trusted local</span>
+                                  )}
+                                </>
+                              }
+                              meta={
+                                <>
+                                  {p.version}
+                                  {switching === p.runtime ? " · switching…" : ""}
+                                </>
+                              }
+                              trailing={
+                                <Pill tone={active ? (p.available ? "green" : "amber") : "muted"}>
+                                  {active
+                                    ? p.available
+                                      ? "in use · connected"
+                                      : "in use · unavailable"
+                                    : p.available
+                                      ? "ready to use"
+                                      : p.status}
+                                </Pill>
+                              }
+                            />
+                          </li>
+                        );
+                      })}
+                    </ul>
+                    <p className="mt-1 text-xs text-muted">
+                      <strong>In use</strong> is the selected provider. <strong>Connected</strong>{" "}
+                      means it is reachable now; <strong>ready to use</strong> means it is installed
+                      and can be selected.
+                    </p>
+                  </>
                 )}
               </section>
 
               <section>
                 <GroupHeading>Model &amp; execution</GroupHeading>
                 <p className="mb-1 text-xs text-muted">
-                  Applied on the next AI call — no restart needed.
+                  Applies after Save to new AI calls — no restart needed.
                 </p>
                 {draft ? (
                   <>
@@ -445,7 +464,7 @@ export default function Settings() {
                           aria-label="Model"
                           value={draft.model ?? ""}
                           onChange={(e) => setDraft((d) => d && { ...d, model: e.target.value || null })}
-                          className="min-w-56 rounded-[var(--radius-sm)] border border-line bg-surface px-2 py-1 text-[13px]"
+                          className="w-full rounded-[var(--radius-sm)] border border-line bg-surface px-2 py-1 text-[13px] sm:w-auto sm:min-w-56"
                         >
                           <option value="">Provider default</option>
                           {models.map((m) => (
@@ -478,7 +497,7 @@ export default function Settings() {
                                 },
                             )
                           }
-                          className="min-w-40 rounded-[var(--radius-sm)] border border-line bg-surface px-2 py-1 text-[13px]"
+                          className="w-full rounded-[var(--radius-sm)] border border-line bg-surface px-2 py-1 text-[13px] sm:w-auto sm:min-w-40"
                         >
                           <option value="">Model default</option>
                           {effortOptions.map((ef) => (
@@ -542,6 +561,11 @@ export default function Settings() {
                               Runs with an allowlisted environment; approval requests are declined
                               automatically.
                             </dd>
+                            <dt className="text-muted">Override</dt>
+                            <dd className="text-muted">
+                              If the <code>INTERVIEW_OS_RUNTIME</code> environment variable is set it
+                              overrides the saved choice, including this switch.
+                            </dd>
                           </dl>
                         ),
                       },
@@ -566,7 +590,7 @@ export default function Settings() {
                       onChange={(e) =>
                         setDraft((d) => d && { ...d, taskMode: e.target.value as AppSettings["taskMode"] })
                       }
-                      className="min-w-64 rounded-[var(--radius-sm)] border border-line bg-surface px-2 py-1 text-[13px]"
+                      className="w-full rounded-[var(--radius-sm)] border border-line bg-surface px-2 py-1 text-[13px] sm:w-auto sm:min-w-64"
                     >
                       <option value="app-server">app-server (warm process, streams text)</option>
                       <option value="exec">exec (spawns `codex exec` per task)</option>
@@ -907,11 +931,11 @@ export default function Settings() {
                 <SettingRow
                   label="No extensions enabled"
                   description="Enable extensions under Extensions to configure them here."
-                  control={<span className="text-xs text-muted">—</span>}
+                  control={<span className="text-xs text-muted">none enabled</span>}
                 />
               )}
               <div className="mt-3">
-                <PluginSlot slot="settings.sections" />
+                <ExtensionSlot slot="settings.sections" />
               </div>
             </section>
           )}

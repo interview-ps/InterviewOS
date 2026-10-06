@@ -53,6 +53,12 @@ async def state_route(state: StateDep) -> object:
     return json_response(await state.orchestrator.get_state())
 
 
+@router.get("/workspace/sources")
+async def workspace_sources(state: StateDep) -> object:
+    """Persisted resume + active target sources — used to prefill the setup form."""
+    return json_response(await state.orchestrator.get_workspace_sources())
+
+
 @router.post("/test/reset")
 async def test_reset(state: StateDep) -> object:
     if os.environ.get("INTERVIEW_OS_TEST_MODE") != "1":

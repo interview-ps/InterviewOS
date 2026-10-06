@@ -94,4 +94,62 @@ test.describe("design evidence", () => {
       await page.screenshot({ path: `${SHOTS}/narrow-${screen.slug}-390x844.png` });
     }
   });
+
+  test("narrow mobile (320x720)", async ({ page }) => {
+    await page.setViewportSize({ width: 320, height: 720 });
+    for (const screen of SCREENS) {
+      await page.goto(screen.path, { waitUntil: "networkidle" });
+      await page.waitForTimeout(150);
+      await page.screenshot({ path: `${SHOTS}/narrow-${screen.slug}-320x720.png` });
+    }
+  });
+
+  test("tablet (834x1112)", async ({ page }) => {
+    await page.setViewportSize({ width: 834, height: 1112 });
+    for (const screen of SCREENS) {
+      await page.goto(screen.path, { waitUntil: "networkidle" });
+      await page.waitForTimeout(150);
+      await page.screenshot({ path: `${SHOTS}/tablet-${screen.slug}-834x1112.png` });
+    }
+  });
+
+  test("mobile interactions (390x844)", async ({ page }) => {
+    await page.setViewportSize({ width: 390, height: 844 });
+
+    // Preparation: the task queue opens in a drawer.
+    await page.goto("/prepare", { waitUntil: "networkidle" });
+    const queue = page.getByTestId("open-task-queue");
+    if (await queue.isVisible().catch(() => false)) {
+      await queue.click();
+      await expect(page.getByRole("dialog")).toBeVisible();
+      await page.waitForTimeout(150);
+      await page.screenshot({ path: `${SHOTS}/narrow-prepare-tasks-390x844.png` });
+      await page.keyboard.press("Escape");
+    }
+
+    // Readiness: selecting a skill opens the detail drawer.
+    await page.goto("/readiness", { waitUntil: "networkidle" });
+    await page.getByTestId("skill-row").first().click();
+    await expect(page.getByRole("dialog")).toBeVisible();
+    await page.waitForTimeout(150);
+    await page.screenshot({ path: `${SHOTS}/narrow-readiness-detail-390x844.png` });
+    await page.keyboard.press("Escape");
+
+    // Settings: category selector opens the dropdown.
+    await page.goto("/settings", { waitUntil: "networkidle" });
+    await page.getByLabel("Settings category").click();
+    await page.waitForTimeout(150);
+    await page.screenshot({ path: `${SHOTS}/narrow-settings-category-390x844.png` });
+    await page.keyboard.press("Escape");
+
+    // Resume: the bullet list opens in a drawer.
+    await page.goto("/resume", { waitUntil: "networkidle" });
+    await page.getByTestId("run-review").click();
+    await expect(page.getByTestId("ats-score")).toBeVisible({ timeout: 30_000 });
+    await page.getByRole("button", { name: "Bullet suggestions" }).click();
+    await page.getByTestId("open-bullets").click();
+    await expect(page.getByRole("dialog")).toBeVisible();
+    await page.waitForTimeout(150);
+    await page.screenshot({ path: `${SHOTS}/narrow-resume-bullets-390x844.png` });
+  });
 });

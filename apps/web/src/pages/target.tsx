@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Link } from "react-router";
-import { Table } from "antd";
+import { Table, type TableColumnsType } from "antd";
 import {
   api,
   type AppState,
@@ -8,6 +8,7 @@ import {
   type Gap,
   type SetupResult,
   type TargetListItem,
+  type WorkspaceSources,
 } from "@/lib/api";
 import {
   Button,
@@ -18,10 +19,11 @@ import {
   PriorityList,
   ScreenToolbar,
   skillLabel,
+  Spinner,
   Workspace,
 } from "@/components/ui";
 import { SetupForm } from "@/components/setup-form";
-import { PluginSlot } from "@/components/plugin-ui";
+import { ExtensionSlot } from "@/components/plugin-ui";
 import { useAppRefresh } from "@/lib/app-refresh";
 
 type TabKey = "overview" | "sources" | "requirements";
@@ -125,6 +127,7 @@ export default function TargetRole() {
   const [targets, setTargets] = useState<TargetListItem[]>([]);
   const [profiles, setProfiles] = useState<CompanyProfileInfo[]>([]);
   const [state, setState] = useState<AppState | null>(null);
+  const [sources, setSources] = useState<WorkspaceSources | null>(null);
   const [result, setResult] = useState<SetupResult | null>(null);
   const [showAdd, setShowAdd] = useState(false);
   const [error, setError] = useState<unknown>(null);
@@ -143,11 +146,16 @@ export default function TargetRole() {
     api.state().then(setState).catch(() => {});
   }, []);
 
+  const loadSources = useCallback(() => {
+    api.workspaceSources().then(setSources).catch(() => setSources(null));
+  }, []);
+
   useEffect(() => {
     api.companies().then(setProfiles).catch(() => setProfiles([]));
     loadTargets();
     loadState();
-  }, [loadTargets, loadState]);
+    loadSources();
+  }, [loadTargets, loadState, loadSources]);
 
   const activeTarget = targets.find((t) => t.active);
 
@@ -168,7 +176,10 @@ export default function TargetRole() {
     [requirements, preferredSkills],
   );
 
-  const columns = [
+  const scoreOf = (r: (typeof allRequirements)[number]) =>
+    gapBySkill.get(r.skillId)?.currentScore ?? dimensions[r.skillId]?.score ?? null;
+
+  const columns: TableColumnsType<(typeof allRequirements)[number]> = [
     {
       title: "Skill",
       dataIndex: "label",
@@ -180,14 +191,24 @@ export default function TargetRole() {
       title: "Type",
       dataIndex: "kind",
       width: 96,
+      responsive: ["md"],
+      filters: [
+        { text: "Required", value: "required" },
+        { text: "Preferred", value: "preferred" },
+      ],
+      onFilter: (value, r: (typeof allRequirements)[number]) => r.kind === value,
       render: (kind: string) => (
         <Pill tone={kind === "required" ? "blue" : "muted"}>{kind}</Pill>
       ),
     },
     {
-      title: "Importance",
+      title: "Role importance",
       dataIndex: "importance",
-      width: 110,
+      width: 130,
+      sorter: (
+        a: (typeof allRequirements)[number],
+        b: (typeof allRequirements)[number],
+      ) => a.importance - b.importance,
       render: (importance: number) => (
         <span className="text-xs text-muted">{Math.round(importance * 100)}%</span>
       ),
@@ -195,12 +216,20 @@ export default function TargetRole() {
     {
       title: "Evidence & readiness",
       key: "readiness",
+      sorter: (
+        a: (typeof allRequirements)[number],
+        b: (typeof allRequirements)[number],
+      ) => (scoreOf(a) ?? -1) - (scoreOf(b) ?? -1),
       render: (_: unknown, r: (typeof allRequirements)[number]) => {
         const g = gapBySkill.get(r.skillId);
         const dim = dimensions[r.skillId];
-        const score = g?.currentScore ?? dim?.score ?? null;
+        const score = scoreOf(r);
         if (score === null || score === undefined) {
-          return <span className="text-xs text-muted">no evidence yet — not assessed</span>;
+          return (
+            <span className="text-xs text-muted">
+              {r.evidence ? "resume only — not assessed" : "no evidence yet — not assessed"}
+            </span>
+          );
         }
         const weak = g ? g.gap > 0 : false;
         return (
@@ -209,18 +238,28 @@ export default function TargetRole() {
             <span className="ml-1 text-muted">
               {weak ? "below target" : "meets target"}
             </span>
+            {dim?.evidenceIds?.length ? (
+              <span className="ml-1 text-muted">· {dim.evidenceIds.length} evidence</span>
+            ) : null}
           </span>
         );
       },
     },
     {
-      title: "Prep priority",
+      title: "Preparation priority",
       key: "priority",
-      width: 120,
+      width: 150,
+      responsive: ["md"],
       render: (_: unknown, r: (typeof allRequirements)[number]) => {
         const g = gapBySkill.get(r.skillId);
-        if (!g) return <span className="text-xs text-muted">—</span>;
-        return <Pill tone={g.severity === "high" ? "amber" : g.severity === "medium" ? "blue" : "muted"}>{g.severity}</Pill>;
+        if (!g) return <span className="text-xs text-muted">not assessed</span>;
+        return (
+          <Pill
+            tone={g.severity === "high" ? "amber" : g.severity === "medium" ? "blue" : "muted"}
+          >
+            {g.severity}
+          </Pill>
+        );
       },
     },
   ];
@@ -335,7 +374,7 @@ export default function TargetRole() {
             </Panel>
           )}
 
-          <PluginSlot slot="target.tabs" />
+          <ExtensionSlot slot="target.tabs" />
         </div>
       )}
 
@@ -344,18 +383,29 @@ export default function TargetRole() {
           <Panel>
             {hasCandidate ? (
               <>
-                <SetupForm
-                  mode="workspace"
-                  title="Resume & job description"
-                  onDone={(r) => {
-                    if (r) {
-                      setResult(r);
-                      setTab("overview");
-                    }
-                    loadTargets();
-                    loadState();
-                  }}
-                />
+                <p className="mb-2 text-xs text-muted">
+                  These are your saved sources. Editing them and running Analyze replaces your
+                  current analysis and preparation plan.
+                </p>
+                {sources ? (
+                  <SetupForm
+                    key="saved-sources"
+                    mode="workspace"
+                    title="Resume & job description"
+                    initialValues={{ ...sources, companyNotes: sources.companyNotes ?? "" }}
+                    onDone={(r) => {
+                      if (r) {
+                        setResult(r);
+                        setTab("overview");
+                      }
+                      loadTargets();
+                      loadState();
+                      loadSources();
+                    }}
+                  />
+                ) : (
+                  <Spinner label="Loading saved sources…" />
+                )}
                 <div className="mt-3 border-t border-line pt-2">
                   <button
                     type="button"
@@ -416,36 +466,53 @@ export default function TargetRole() {
               />
             </div>
           ) : (
-            <Table
-              size="small"
-              rowKey="skillId"
-              columns={columns}
-              dataSource={allRequirements}
-              pagination={false}
-              expandable={{
-                expandedRowRender: (r: (typeof allRequirements)[number]) => {
-                  const g = gapBySkill.get(r.skillId);
-                  return (
-                    <div className="space-y-1 text-xs text-muted">
-                      {r.evidence ? (
-                        <p>
-                          <span className="font-medium text-ink">Evidence:</span> “{r.evidence}”
+            <>
+              <p className="border-b border-line px-3 py-2 text-xs text-muted">
+                <strong>Role importance</strong> is how much the role weights this skill — not your
+                performance. <strong>Readiness</strong> comes from your evidence (resume claims and
+                interview answers); <strong>Preparation priority</strong> is derived from importance ×
+                gap and can differ from the readiness label.
+              </p>
+              <Table
+                size="small"
+                rowKey="skillId"
+                columns={columns}
+                dataSource={allRequirements}
+                pagination={false}
+                scroll={{ x: "max-content" }}
+                expandable={{
+                  expandRowByClick: true,
+                  expandedRowRender: (r: (typeof allRequirements)[number]) => {
+                    const g = gapBySkill.get(r.skillId);
+                    return (
+                      <div className="space-y-1 text-xs text-muted">
+                        <p className="font-medium text-ink">
+                          {r.label || skillLabel(r.skillId)}
                         </p>
-                      ) : (
-                        <p>No resume evidence for this skill.</p>
-                      )}
-                      {g && (
-                        <p>
-                          <span className="font-medium text-ink">Gap:</span> {g.reason} (current{" "}
-                          {g.currentScore === null ? "—" : `${Math.round(g.currentScore * 100)}%`},
-                          target {Math.round(g.targetScore * 100)}%)
-                        </p>
-                      )}
-                    </div>
-                  );
-                },
-              }}
-            />
+                        {r.evidence ? (
+                          <p>
+                            <span className="font-medium text-ink">Resume evidence:</span> “
+                            {r.evidence}”
+                          </p>
+                        ) : (
+                          <p>No resume evidence for this skill.</p>
+                        )}
+                        {g && (
+                          <p>
+                            <span className="font-medium text-ink">Readiness gap:</span> {g.reason}{" "}
+                            (current{" "}
+                            {g.currentScore === null
+                              ? "not assessed"
+                              : `${Math.round(g.currentScore * 100)}%`}
+                            , target {Math.round(g.targetScore * 100)}%)
+                          </p>
+                        )}
+                      </div>
+                    );
+                  },
+                }}
+              />
+            </>
           )}
         </Panel>
       )}

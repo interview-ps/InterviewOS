@@ -1,4 +1,5 @@
-import { useCallback, useEffect, useState } from "react";
+import { Fragment, useCallback, useEffect, useState } from "react";
+import { Drawer } from "antd";
 import {
   api,
   ApiError,
@@ -20,7 +21,8 @@ import {
   skillLabel,
   toast,
 } from "@/components/ui";
-import { PluginSlot } from "@/components/plugin-ui";
+import { ExtensionSlot } from "@/components/plugin-ui";
+import { useDesktop } from "@/lib/responsive";
 
 const STATUS_ICON = { pass: "✓", warn: "!", fail: "✗" } as const;
 const STATUS_CLS = {
@@ -67,6 +69,50 @@ function Highlighted({ text }: { text: string }) {
   );
 }
 
+/**
+ * Word-level diff of a rewrite: words in the improved bullet that don't appear
+ * in the original are highlighted; `[placeholders]` stay amber.
+ */
+function DiffText({ original, improved }: { original: string; improved: string }) {
+  const originalWords = new Set(
+    original
+      .toLowerCase()
+      .replace(/[^a-z0-9\s]/g, " ")
+      .split(/\s+/)
+      .filter(Boolean),
+  );
+  const parts = improved.split(/(\[[^\]]+\])/g);
+  return (
+    <>
+      {parts.map((part, pi) => {
+        if (part.startsWith("[") && part.endsWith("]")) {
+          return (
+            <mark key={pi} className="rounded bg-[#fdf3e7] px-0.5 text-accent">
+              {part}
+            </mark>
+          );
+        }
+        return (
+          <Fragment key={pi}>
+            {part.split(/(\s+)/).map((word, wi) => {
+              if (/^\s+$/.test(word) || word === "") return <span key={wi}>{word}</span>;
+              const key = word.toLowerCase().replace(/[^a-z0-9]/g, "");
+              const isNew = key.length > 0 && !originalWords.has(key);
+              return isNew ? (
+                <mark key={wi} className="rounded bg-green-tint px-0.5 text-green">
+                  {word}
+                </mark>
+              ) : (
+                <span key={wi}>{word}</span>
+              );
+            })}
+          </Fragment>
+        );
+      })}
+    </>
+  );
+}
+
 export default function Resume() {
   const [review, setReview] = useState<ResumeReview | null>(null);
   const [hasResume, setHasResume] = useState<boolean | null>(null);
@@ -76,6 +122,8 @@ export default function Resume() {
   const [copied, setCopied] = useState<number | null>(null);
   const [tab, setTab] = useState<TabKey>("overview");
   const [selected, setSelected] = useState(0);
+  const [listOpen, setListOpen] = useState(false);
+  const desktop = useDesktop();
 
   useEffect(() => {
     api
@@ -137,7 +185,7 @@ export default function Resume() {
             key: c.id,
             title: c.label,
             why: c.detail,
-            cta: "Fix resume",
+            cta: "See this check ↓",
             href: "#ats-check",
           })),
         ...(ats.keywordCoverage.missing.length > 0
@@ -149,7 +197,7 @@ export default function Resume() {
                   .map((k) => k.label)
                   .slice(0, 3)
                   .join(", ")} aren't represented in your resume.`,
-                cta: "Review missing skills",
+                cta: "See missing skills ↓",
                 href: "#keywords",
               },
             ]
@@ -160,13 +208,94 @@ export default function Resume() {
             key: c.id,
             title: c.label,
             why: c.detail,
-            cta: "Review",
+            cta: "See this check ↓",
             href: "#ats-check",
           })),
       ].slice(0, 3)
     : [];
 
   const suggestion = review?.suggestions[selected];
+  const suggestions = review?.suggestions ?? [];
+
+  const bulletList = (
+    <div className="min-h-0 flex-1 overflow-auto rounded-[var(--radius-card)] border border-line bg-surface">
+      {suggestions.length === 0 ? (
+        <p className="p-3 text-sm text-muted">No weak bullets found — nice.</p>
+      ) : (
+        <ul>
+          {suggestions.map((s, i) => (
+            <li key={i}>
+              <button
+                type="button"
+                onClick={() => {
+                  setSelected(i);
+                  setListOpen(false);
+                }}
+                aria-current={selected === i ? "true" : undefined}
+                className={`w-full border-b border-line px-2.5 py-1.5 text-left text-[13px] last:border-b-0 ${
+                  selected === i ? "bg-tint" : "hover:bg-tint"
+                }`}
+              >
+                <span className="block">{s.original}</span>
+              </button>
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
+  );
+
+  const comparisonPanel = (
+    <Panel
+      className={desktop ? "flex-1" : "min-h-0 flex-1"}
+      title={suggestion ? "Comparison" : "Select a bullet"}
+    >
+      {/* `suggestions-card` content lives in the list; the comparison
+          keeps the full text of the selected bullet only. */}
+      {suggestion && (
+        <div
+          data-testid="suggestions-card-detail"
+          className="max-w-prose space-y-3"
+        >
+          <div>
+            <div className="mb-1 text-xs font-semibold text-muted">Original</div>
+            <p className="text-sm text-muted">{suggestion.original}</p>
+          </div>
+          <div>
+            <div className="mb-1 flex flex-wrap items-center gap-2">
+              <span className="text-xs font-semibold text-green">Suggested</span>
+              <Button
+                variant="secondary"
+                size="small"
+                onClick={() => copy(selected, suggestion.improved)}
+                data-testid="copy-suggestion"
+              >
+                {copied === selected ? "Copied to clipboard" : "Copy suggestion"}
+              </Button>
+            </div>
+            <p className="text-sm text-ink">
+              <DiffText original={suggestion.original} improved={suggestion.improved} />
+            </p>
+          </div>
+          {suggestion.dropped && (
+            <p className="rounded-[var(--radius-sm)] bg-[#fdeef2] px-2 py-1 text-xs text-danger">
+              Dropped to avoid inventing a fact: {suggestion.dropped}
+            </p>
+          )}
+          <div className="flex flex-wrap items-center gap-2">
+            {suggestion.skillIds.map((id) => (
+              <Pill key={id} tone="blue">
+                {skillLabel(id)}
+              </Pill>
+            ))}
+            {suggestion.rationale && (
+              <span className="text-xs text-muted">{suggestion.rationale}</span>
+            )}
+          </div>
+        </div>
+      )}
+    </Panel>
+  );
 
   return (
     <Workspace
@@ -210,9 +339,13 @@ export default function Resume() {
                 </Button>
                 {busy && <Spinner label={`${stage ?? "starting"}…`} />}
                 {review && (
-                  <span className="text-xs text-muted">
-                    Last reviewed {new Date(review.createdAt).toLocaleString()}
-                  </span>
+                  <time
+                    className="text-xs text-muted"
+                    dateTime={review.createdAt}
+                    title={new Date(review.createdAt).toLocaleString()}
+                  >
+                    Reviewed {new Date(review.createdAt).toLocaleDateString()}
+                  </time>
                 )}
               </>
             ) : undefined
@@ -278,6 +411,10 @@ export default function Resume() {
                     tone={review.ats.score >= 70 ? "green" : review.ats.score >= 45 ? "blue" : "amber"}
                   />
                 </div>
+                <p className="mt-1 text-xs text-muted">
+                  ATS-style checks only — they improve screening odds but do not guarantee hiring
+                  outcomes.
+                </p>
               </div>
             </div>
             <div id="ats-check" className="mt-3">
@@ -344,85 +481,52 @@ export default function Resume() {
 
       {review && tab === "bullets" && (
         <div data-testid="suggestions-card" className="mt-3 flex min-h-0 flex-1 flex-col">
-        <SplitPane
-          leftWidth={340}
-          className="flex-1"
-          left={
+          {desktop ? (
+            <SplitPane
+              leftWidth={340}
+              className="flex-1"
+              left={
+                <>
+                  <div className="shrink-0 px-1 pb-1.5 text-xs font-semibold text-muted">
+                    {suggestions.length} bullets
+                  </div>
+                  {bulletList}
+                </>
+              }
+              right={comparisonPanel}
+            />
+          ) : (
             <>
-              <div className="shrink-0 px-1 pb-1.5 text-xs font-semibold uppercase tracking-wide text-muted">
-                {review.suggestions.length} bullets
-              </div>
-              <div className="min-h-0 flex-1 overflow-auto rounded-[var(--radius-card)] border border-line bg-surface">
-                {review.suggestions.length === 0 ? (
-                  <p className="p-3 text-sm text-muted">No weak bullets found — nice.</p>
-                ) : (
-                  <ul>
-                    {review.suggestions.map((s, i) => (
-                      <li key={i}>
-                        <button
-                          type="button"
-                          onClick={() => setSelected(i)}
-                          aria-current={selected === i ? "true" : undefined}
-                          className={`w-full border-b border-line px-2.5 py-1.5 text-left text-[13px] last:border-b-0 ${
-                            selected === i ? "bg-tint" : "hover:bg-tint"
-                          }`}
-                        >
-                          <span className="block">{s.original}</span>
-                        </button>
-                      </li>
-                    ))}
-                  </ul>
+              <div className="mb-2 flex shrink-0 items-center gap-2">
+                <Button
+                  variant="secondary"
+                  size="small"
+                  data-testid="open-bullets"
+                  onClick={() => setListOpen(true)}
+                >
+                  Bullets · {suggestions.length}
+                </Button>
+                {suggestion && (
+                  <span className="min-w-0 truncate text-xs text-muted">
+                    {suggestion.original}
+                  </span>
                 )}
               </div>
+              {comparisonPanel}
             </>
-          }
-          right={
-            <Panel className="flex-1" title={suggestion ? "Comparison" : "Select a bullet"}>
-              {/* `suggestions-card` content lives in the list; the comparison
-                  keeps the full text of the selected bullet only. */}
-              {suggestion && (
-                <div data-testid="suggestions-card-detail" className="space-y-3">
-                  <div>
-                    <div className="mb-1 text-xs font-semibold uppercase tracking-wide text-muted">
-                      Original
-                    </div>
-                    <p className="text-sm text-muted">{suggestion.original}</p>
-                  </div>
-                  <div>
-                    <div className="mb-1 flex items-center gap-2">
-                      <span className="text-xs font-semibold uppercase tracking-wide text-green">
-                        Suggested
-                      </span>
-                      <Button
-                        variant="ghost"
-                        size="small"
-                        onClick={() => copy(selected, suggestion.improved)}
-                      >
-                        {copied === selected ? "Copied!" : "Copy"}
-                      </Button>
-                    </div>
-                    <p className="text-sm text-ink">
-                      <Highlighted text={suggestion.improved} />
-                    </p>
-                  </div>
-                  {suggestion.dropped && (
-                    <p className="rounded-[var(--radius-sm)] bg-[#fdeef2] px-2 py-1 text-xs text-danger">
-                      Dropped to avoid inventing a fact: {suggestion.dropped}
-                    </p>
-                  )}
-                  <div className="flex flex-wrap items-center gap-2">
-                    {suggestion.skillIds.map((id) => (
-                      <Pill key={id} tone="blue">{skillLabel(id)}</Pill>
-                    ))}
-                    {suggestion.rationale && (
-                      <span className="text-xs text-muted">{suggestion.rationale}</span>
-                    )}
-                  </div>
-                </div>
-              )}
-            </Panel>
-          }
-        />
+          )}
+          <Drawer
+            open={!desktop && listOpen}
+            onClose={() => setListOpen(false)}
+            placement="bottom"
+            size="70%"
+            title={`Bullets · ${suggestions.length}`}
+            styles={{
+              body: { padding: 0, display: "flex", flexDirection: "column" },
+            }}
+          >
+            <div className="min-h-0 flex-1 overflow-auto">{bulletList}</div>
+          </Drawer>
         </div>
       )}
 
@@ -495,7 +599,7 @@ export default function Resume() {
       )}
 
       <div className="mt-3 shrink-0">
-        <PluginSlot slot="resume.tabs" />
+        <ExtensionSlot slot="resume.tabs" />
       </div>
     </Workspace>
   );

@@ -5,7 +5,6 @@ import {
   Button,
   Drawer,
   Dropdown,
-  Grid,
   Layout,
   Menu,
   Select,
@@ -23,6 +22,7 @@ import {
   MenuUnfoldOutlined,
   MoonOutlined,
   MoreOutlined,
+  SearchOutlined,
   SettingOutlined,
   SunOutlined,
   VideoCameraOutlined,
@@ -40,6 +40,7 @@ import { StatusDot } from "@/ui";
 import { displayLabel } from "@/components/ui";
 import { PageTitleProvider, usePageTitle } from "@/lib/page-title";
 import { commandKeyLabel } from "@/lib/platform";
+import { useDesktop } from "@/lib/responsive";
 
 type NavEntry = { href: string; label: string; icon?: ReactNode };
 
@@ -134,7 +135,13 @@ function RuntimeIndicator({ status }: { status: RuntimeStatus | null }) {
   );
 }
 
-function TargetSwitcher({ onSwitched }: { onSwitched: () => void }) {
+function TargetSwitcher({
+  onSwitched,
+  block = false,
+}: {
+  onSwitched: () => void;
+  block?: boolean;
+}) {
   const [targets, setTargets] = useState<TargetListItem[]>([]);
   const [switching, setSwitching] = useState(false);
 
@@ -157,7 +164,7 @@ function TargetSwitcher({ onSwitched }: { onSwitched: () => void }) {
             : "Active target role"
         }
         size="small"
-        style={{ maxWidth: 260, minWidth: 140 }}
+        style={block ? { width: "100%" } : { maxWidth: 260, minWidth: 140 }}
         popupMatchSelectWidth={false}
         value={active?.id}
         loading={switching}
@@ -354,11 +361,141 @@ function Breadcrumbs() {
   return <Breadcrumb items={items} style={{ margin: "8px 0 4px" }} />;
 }
 
-/** Small-screen primary navigation — the four journey goals, plus More. */
+/** Product identity. The secondary branding is desktop-only. */
+function Brand({ compact = false }: { compact?: boolean }) {
+  return (
+    <Link to="/" className="flex min-w-0 shrink items-center gap-2 no-underline">
+      <img
+        src="/interview-ps-logo.png"
+        alt="interview.ps logo"
+        width={22}
+        height={22}
+        className="shrink-0"
+      />
+      <Typography.Text strong style={{ fontSize: 14 }} className="min-w-0 truncate">
+        Interview OS
+        {!compact && (
+          <Typography.Text type="secondary" style={{ fontWeight: 400, fontSize: 12 }}>
+            {" "}· by interview.ps
+          </Typography.Text>
+        )}
+      </Typography.Text>
+    </Link>
+  );
+}
+
+/**
+ * Narrow-screen overflow: the utilities that don't fit the mobile bar live
+ * here (appearance, runtime, palette, navigation).
+ */
+function HeaderOverflowMenu({
+  status,
+  onOpenPalette,
+  onOpenNav,
+}: {
+  status: RuntimeStatus | null;
+  onOpenPalette: () => void;
+  onOpenNav: () => void;
+}) {
+  const { preference, setPreference } = useTheme();
+  let runtimeTone: Tone = "muted";
+  let runtimeText = "Checking runtime…";
+  if (status) {
+    const name = runtimeLabel(status.mode);
+    if (status.mode === "mock") {
+      runtimeTone = "blue";
+      runtimeText = "Mock Runtime";
+    } else if (status.available) {
+      runtimeTone = "green";
+      runtimeText = `${name} connected`;
+    } else {
+      runtimeTone = "amber";
+      runtimeText = `${name} unavailable`;
+    }
+  }
+  const appearanceIcon =
+    preference === "light" ? (
+      <SunOutlined />
+    ) : preference === "dark" ? (
+      <MoonOutlined />
+    ) : (
+      <DesktopOutlined />
+    );
+  return (
+    <Dropdown
+      trigger={["click"]}
+      placement="bottomRight"
+      menu={{
+        items: [
+          {
+            key: "palette",
+            icon: <SearchOutlined />,
+            label: `Command palette (${commandKeyLabel()})`,
+            onClick: onOpenPalette,
+          },
+          {
+            key: "appearance",
+            icon: appearanceIcon,
+            label: "Appearance",
+            children: [
+              { key: "light", icon: <SunOutlined />, label: "Light" },
+              { key: "dark", icon: <MoonOutlined />, label: "Dark" },
+              { key: "system", icon: <DesktopOutlined />, label: "System" },
+            ],
+          },
+          {
+            key: "nav",
+            icon: <MoreOutlined />,
+            label: "All destinations",
+            onClick: onOpenNav,
+          },
+          { type: "divider", key: "divider" },
+          {
+            key: "runtime",
+            label: (
+              <span className="inline-flex items-center gap-2">
+                <StatusDot tone={runtimeTone} />
+                {runtimeText}
+              </span>
+            ),
+            disabled: true,
+          },
+          {
+            key: "diagnostics",
+            icon: <SettingOutlined />,
+            label: <Link to="/settings#diagnostics">Runtime diagnostics</Link>,
+          },
+        ],
+        onClick: ({ key }) => {
+          if (key === "light" || key === "dark" || key === "system") {
+            setPreference(key);
+          }
+        },
+      }}
+    >
+      <Button
+        type="text"
+        aria-label="More actions and settings"
+        data-testid="header-overflow"
+        icon={<MoreOutlined />}
+      />
+    </Dropdown>
+  );
+}
+
+/* Persistent small-screen destinations (interview is core, not behind More). */
+const BOTTOM_NAV: NavEntry[] = [
+  { href: "/", label: "Home", icon: <HomeOutlined /> },
+  { href: "/prepare", label: "Prepare", icon: <BulbOutlined /> },
+  { href: "/interview", label: "Interview", icon: <VideoCameraOutlined /> },
+  { href: "/readiness", label: "Readiness", icon: <AimOutlined /> },
+];
+
+/** Small-screen primary navigation — the core journey, plus More. */
 function BottomNav({ pathname, onMore }: { pathname: string; onMore: () => void }) {
   return (
     <nav aria-label="Primary" className="interview-bottom-nav">
-      {NAV_JOURNEY.slice(0, 4).map((item) => {
+      {BOTTOM_NAV.map((item) => {
         const active =
           item.href === "/" ? pathname === "/" : pathname.startsWith(item.href);
         return (
@@ -368,7 +505,10 @@ function BottomNav({ pathname, onMore }: { pathname: string; onMore: () => void 
             aria-current={active ? "page" : undefined}
             className={`interview-bottom-nav__item${active ? " is-active" : ""}`}
           >
-            {item.label}
+            <span aria-hidden className="text-base leading-none">
+              {item.icon}
+            </span>
+            <span>{item.label}</span>
           </Link>
         );
       })}
@@ -378,7 +518,10 @@ function BottomNav({ pathname, onMore }: { pathname: string; onMore: () => void 
         className="interview-bottom-nav__item"
         aria-label="More destinations"
       >
-        <MoreOutlined aria-hidden /> More
+        <span aria-hidden className="text-base leading-none">
+          <MoreOutlined />
+        </span>
+        <span>More</span>
       </button>
     </nav>
   );
@@ -386,8 +529,7 @@ function BottomNav({ pathname, onMore }: { pathname: string; onMore: () => void 
 
 export function Shell({ children }: { children: ReactNode }) {
   const location = useLocation();
-  const screens = Grid.useBreakpoint();
-  const desktop = screens.lg ?? true;
+  const desktop = useDesktop();
   const [status, setStatus] = useState<RuntimeStatus | null>(null);
   const [paletteOpen, setPaletteOpen] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
@@ -460,48 +602,61 @@ export function Shell({ children }: { children: ReactNode }) {
   return (
     <AppRefreshContext.Provider value={refresh}>
       <Layout className="interview-shell">
-        <Layout.Header className="interview-header">
-          <Button
-            type="text"
-            aria-label="Open navigation menu"
-            aria-expanded={menuOpen}
-            data-testid="menu-button"
-            icon={<MenuOutlined />}
-            onClick={() => setMenuOpen(true)}
-            style={{ display: desktop ? "none" : "inline-flex" }}
-          />
-          <Button
-            type="text"
-            aria-label={collapsed ? "Expand navigation" : "Collapse navigation"}
-            aria-pressed={collapsed}
-            data-testid="nav-toggle"
-            icon={collapsed ? <MenuUnfoldOutlined /> : <MenuFoldOutlined />}
-            onClick={toggleCollapsed}
-            style={{ display: desktop ? "inline-flex" : "none" }}
-          />
-          <Link to="/" className="flex items-center gap-2 no-underline">
-            <img src="/interview-ps-logo.png" alt="interview.ps logo" width={22} height={22} />
-            <Typography.Text strong style={{ fontSize: 14 }} className="whitespace-nowrap">
-              Interview OS{" "}
-              <Typography.Text type="secondary" style={{ fontWeight: 400, fontSize: 12 }}>
-                · by interview.ps
-              </Typography.Text>
-            </Typography.Text>
-          </Link>
-          <div className="ml-auto flex min-w-0 items-center gap-2">
-            <TargetSwitcher onSwitched={refresh} />
-            <Button
-              size="small"
-              aria-label={`Open command palette (${commandKeyLabel()})`}
-              data-testid="palette-button"
-              onClick={() => setPaletteOpen(true)}
-              style={{ display: desktop ? "inline-flex" : "none" }}
-            >
-              {commandKeyLabel()}
-            </Button>
-            <AppearanceMenu />
-            <RuntimeIndicator status={status} />
-          </div>
+        <Layout.Header
+          className={`interview-header${desktop ? "" : " interview-header--mobile"}`}
+        >
+          {desktop ? (
+            <>
+              <Button
+                type="text"
+                aria-label={collapsed ? "Expand navigation" : "Collapse navigation"}
+                aria-pressed={collapsed}
+                data-testid="nav-toggle"
+                icon={collapsed ? <MenuUnfoldOutlined /> : <MenuFoldOutlined />}
+                onClick={toggleCollapsed}
+                className="shrink-0"
+              />
+              <Brand />
+              <div className="ml-auto flex min-w-0 items-center gap-2">
+                <TargetSwitcher onSwitched={refresh} />
+                <Button
+                  size="small"
+                  aria-label={`Open command palette (${commandKeyLabel()})`}
+                  data-testid="palette-button"
+                  onClick={() => setPaletteOpen(true)}
+                >
+                  {commandKeyLabel()}
+                </Button>
+                <AppearanceMenu />
+                <RuntimeIndicator status={status} />
+              </div>
+            </>
+          ) : (
+            <>
+              <div className="interview-header__main">
+                <Button
+                  type="text"
+                  aria-label="Open navigation menu"
+                  aria-expanded={menuOpen}
+                  data-testid="menu-button"
+                  icon={<MenuOutlined />}
+                  onClick={() => setMenuOpen(true)}
+                  className="shrink-0"
+                />
+                <Brand compact />
+                <div className="ml-auto flex shrink-0 items-center gap-1">
+                  <HeaderOverflowMenu
+                    status={status}
+                    onOpenPalette={() => setPaletteOpen(true)}
+                    onOpenNav={() => setMenuOpen(true)}
+                  />
+                </div>
+              </div>
+              <div className="interview-header__target">
+                <TargetSwitcher onSwitched={refresh} block />
+              </div>
+            </>
+          )}
         </Layout.Header>
         <Layout className="interview-body">
           {desktop && (

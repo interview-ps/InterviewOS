@@ -1,6 +1,6 @@
 import { Component, useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { useNavigate } from "react-router";
-import { DeclarativeRenderer, FRAME_MIN_HEIGHT } from "@interview-os/ui";
+import { DeclarativeRenderer, ExtensionRegion, FRAME_MIN_HEIGHT } from "@interview-os/ui";
 import type { UINode } from "@interview-os/frontend-types";
 import {
   api,
@@ -165,7 +165,7 @@ function DeclarativeContribution({
       <div>
         <DeclarativeRenderer node={tree} onAction={onAction} />
         {attribution && (
-          <p className="mt-2 text-[0.7rem] text-muted">from plugin {plugin.pluginName}</p>
+          <p className="mt-2 text-xs text-muted">from plugin {plugin.pluginName}</p>
         )}
       </div>
     </ContributionBoundary>
@@ -225,10 +225,10 @@ export function PluginFrame({
           referrerPolicy="no-referrer"
           loading="lazy"
           style={{ height }}
-          className="w-full rounded-[0.6rem] border border-line bg-page"
+          className="w-full rounded-[var(--radius-card)] border border-line bg-surface"
         />
         {attribution && (
-          <p className="mt-2 text-[0.7rem] text-muted">from plugin {plugin.pluginName}</p>
+          <p className="mt-2 text-xs text-muted">from plugin {plugin.pluginName}</p>
         )}
       </div>
     </ContributionBoundary>
@@ -299,6 +299,42 @@ export function PluginSlot({
         />
       ))}
     </>
+  );
+}
+
+/**
+ * A plugin slot wrapped in the shared compact, collapsed extension region.
+ * Renders nothing when no enabled plugin contributes to the slot, so an empty
+ * "Extensions" box never appears.
+ */
+export function ExtensionSlot({
+  slot,
+  title = "Extensions",
+  hint = "plugins",
+  params,
+  defaultOpen = false,
+  description,
+}: {
+  slot: string;
+  title?: string;
+  hint?: string;
+  params?: Record<string, unknown>;
+  defaultOpen?: boolean;
+  description?: string;
+}) {
+  const contributions = useUIContributions();
+  const has = contributions.some((p) => (p.slots[slot] ?? []).length > 0);
+  if (!has) return null;
+  return (
+    <ExtensionRegion
+      title={title}
+      hint={hint}
+      defaultOpen={defaultOpen}
+      description={description}
+      data-testid={`extension-${slot}`}
+    >
+      <PluginSlot slot={slot} params={params} />
+    </ExtensionRegion>
   );
 }
 

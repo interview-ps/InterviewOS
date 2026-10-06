@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState, type ReactNode } from "react";
 import { Link, useNavigate } from "react-router";
+import { Drawer } from "antd";
 import {
   api,
   type PluginSuggestionGroup,
@@ -12,6 +13,7 @@ import {
   displayLabel,
   EmptyState,
   ErrorNote,
+  ExtensionRegion,
   Panel,
   Pill,
   ScreenToolbar,
@@ -20,7 +22,8 @@ import {
   toast,
   Workspace,
 } from "@/components/ui";
-import { PluginSlot } from "@/components/plugin-ui";
+import { PluginSlot, useUIContributions } from "@/components/plugin-ui";
+import { useDesktop } from "@/lib/responsive";
 import { PrepareTabs } from "./tabs";
 
 const ACTION_STATUS: Record<string, string> = {
@@ -29,6 +32,14 @@ const ACTION_STATUS: Record<string, string> = {
   done: "done",
   superseded: "superseded",
 };
+
+/** Backend reasons are API-facing; the queue shows one plain sentence. */
+function conciseReason(reason?: string): string | null {
+  if (!reason) return null;
+  const first = reason.split(/[;.]/)[0]?.trim();
+  if (!first) return null;
+  return first.charAt(0).toUpperCase() + first.slice(1);
+}
 
 const isHttps = (u: unknown): u is string =>
   typeof u === "string" && u.startsWith("https://");
@@ -104,34 +115,65 @@ function Resources({
   );
 }
 
-/** Compact Learn → Practice → Verify indicator. */
+/** Compact Learn → Practice → Verify indicator (explanatory, not interactive). */
 function StageIndicator({ status }: { status: string }) {
   const steps = ["Learn", "Practice", "Verify"];
   const active = status === "open" ? 0 : status === "done" ? 3 : 1;
   return (
-    <ol className="flex flex-wrap items-center gap-1.5 text-xs text-muted">
-      {steps.map((s, i) => (
-        <li key={s} className="flex items-center gap-1.5">
-          <span
-            className={`flex h-5 w-5 items-center justify-center rounded-full border text-[0.65rem] ${
-              i < active
-                ? "border-green bg-green-tint text-green"
-                : i === active
-                  ? "border-blue text-blue"
-                  : "border-line"
-            }`}
-          >
-            {i + 1}
-          </span>
-          <span className={i === active ? "text-ink" : ""}>{s}</span>
-          {i < steps.length - 1 && (
-            <span aria-hidden className="mx-0.5">
-              →
+    <div className="flex flex-wrap items-center gap-2">
+      <span className="text-xs font-medium text-muted">Progress</span>
+      <ol
+        aria-label="Task progress"
+        className="flex flex-wrap items-center gap-1.5 text-xs text-muted"
+      >
+        {steps.map((s, i) => (
+          <li key={s} className="flex items-center gap-1.5">
+            <span
+              className={`flex h-5 w-5 items-center justify-center rounded-full border text-[0.65rem] ${
+                i < active
+                  ? "border-green bg-green-tint text-green"
+                  : i === active
+                    ? "border-blue text-blue"
+                    : "border-line"
+              }`}
+            >
+              {i + 1}
             </span>
-          )}
-        </li>
-      ))}
-    </ol>
+            <span className={i === active ? "text-ink" : ""}>{s}</span>
+            {i < steps.length - 1 && (
+              <span aria-hidden className="mx-0.5">
+                →
+              </span>
+            )}
+          </li>
+        ))}
+      </ol>
+    </div>
+  );
+}
+
+/** General plugin suggestions — kept out of the task's core body, collapsed. */
+function TaskExtensions({
+  suggestions,
+  skillId,
+}: {
+  suggestions?: ReactNode;
+  skillId: string;
+}) {
+  const contributions = useUIContributions();
+  const hasSlot = contributions.some(
+    (p) => (p.slots["prepare.activities"] ?? []).length > 0,
+  );
+  if (!suggestions && !hasSlot) return null;
+  return (
+    <ExtensionRegion
+      title="Suggestions from extensions"
+      hint="plugins"
+      description="General practices and plugin-recommended exercises — not part of this task's checklist."
+    >
+      {suggestions}
+      {hasSlot && <PluginSlot slot="prepare.activities" params={{ skillId }} />}
+    </ExtensionRegion>
   );
 }
 
@@ -228,6 +270,10 @@ function ActionDetail({
       )}
 
       <StageIndicator status={a.status} />
+      <p className="text-xs text-muted">
+        Start preparation marks this task in progress and unlocks practice. Mark done records
+        your self-check — verified readiness comes from interviews and practice answers.
+      </p>
 
       <fieldset className="space-y-1">
         <legend className="sr-only">Success criteria for {a.action}</legend>
@@ -287,8 +333,7 @@ function ActionDetail({
         </div>
       )}
 
-      {suggestions}
-      <PluginSlot slot="prepare.activities" />
+      <TaskExtensions suggestions={suggestions} skillId={a.skillId} />
     </Panel>
   );
 }
@@ -299,6 +344,8 @@ export default function PrepPlan() {
   const [busy, setBusy] = useState<string | null>(null);
   const [canFetchResources, setCanFetchResources] = useState(false);
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [queueOpen, setQueueOpen] = useState(false);
+  const desktop = useDesktop();
 
   const load = useCallback(() => {
     api.preparation().then((p) => setActions(p.actions)).catch((e) => setError(e));
@@ -381,6 +428,61 @@ export default function PrepPlan() {
     .filter((a) => a.status === "done" || a.status === "superseded")
     .sort((a, b) => b.createdAt.localeCompare(a.createdAt));
 
+  const queueList = (
+    <div className="min-h-0 flex-1 overflow-auto rounded-[var(--radius-card)] border border-line bg-surface">
+      {open.map((a) => (
+        <DataRow
+          key={a.id}
+          selected={a.id === selectedAction?.id}
+          onClick={() => {
+            setSelectedId(a.id);
+            setQueueOpen(false);
+          }}
+          leading={
+            <Pill tone={a.priority === 1 ? "amber" : "muted"}>#{a.priority}</Pill>
+          }
+          title={displayLabel(a.skillId)}
+          meta={
+            <>
+              {ACTION_STATUS[a.status]}
+              {conciseReason(a.reason) ? ` · ${conciseReason(a.reason)}` : ""}
+            </>
+          }
+        />
+      ))}
+    </div>
+  );
+
+  const queuePanel = (
+    <>
+      <div className="flex shrink-0 items-center justify-between px-1 pb-1.5">
+        <span className="text-xs font-semibold text-muted">Task queue</span>
+        <span className="text-xs text-muted">{open.length}</span>
+      </div>
+      {queueList}
+    </>
+  );
+
+  const detailNode = selectedAction ? (
+    <ActionDetail
+      key={selectedAction.id}
+      action={selectedAction}
+      history={history}
+      busy={busy === selectedAction.id}
+      canFetchResources={canFetchResources}
+      onChanged={load}
+      suggestions={
+        <PluginSuggestions
+          groups={suggestGroups}
+          added={suggestAdded}
+          busy={suggestBusy}
+          onAccept={acceptSuggestion}
+        />
+      }
+      run={run}
+    />
+  ) : null;
+
   return (
     <Workspace
       scroll={false}
@@ -423,66 +525,49 @@ export default function PrepPlan() {
             }
           />
         </Panel>
-      ) : (
-        open.length > 0 && (
-          <SplitPane
-            leftWidth={280}
-            className="mt-3 flex-1"
-            left={
-              <>
-                <div className="flex shrink-0 items-center justify-between px-1 pb-1.5">
-                  <span className="text-xs font-semibold uppercase tracking-wide text-muted">
-                    Task queue
+      ) : open.length > 0 ? (
+        <>
+          {desktop ? (
+            <SplitPane
+              leftWidth={280}
+              className="mt-3 flex-1"
+              left={queuePanel}
+              right={detailNode}
+            />
+          ) : (
+            <div className="mt-3 flex flex-col gap-2">
+              <div className="flex shrink-0 items-center gap-2">
+                <Button
+                  variant="secondary"
+                  size="small"
+                  data-testid="open-task-queue"
+                  onClick={() => setQueueOpen(true)}
+                >
+                  Tasks · {open.length}
+                </Button>
+                {selectedAction && (
+                  <span className="min-w-0 truncate text-xs text-muted">
+                    {displayLabel(selectedAction.skillId)}
                   </span>
-                  <span className="text-xs text-muted">{open.length}</span>
-                </div>
-                <div className="min-h-0 flex-1 overflow-auto rounded-[var(--radius-card)] border border-line bg-surface">
-                  {open.map((a) => (
-                    <DataRow
-                      key={a.id}
-                      selected={a.id === selectedAction?.id}
-                      onClick={() => setSelectedId(a.id)}
-                      leading={
-                        <Pill tone={a.priority === 1 ? "amber" : "muted"}>
-                          #{a.priority}
-                        </Pill>
-                      }
-                      title={displayLabel(a.skillId)}
-                      meta={
-                        <>
-                          {ACTION_STATUS[a.status]}
-                          {a.reason ? ` · ${a.reason}` : ""}
-                        </>
-                      }
-                    />
-                  ))}
-                </div>
-              </>
-            }
-            right={
-              selectedAction && (
-                <ActionDetail
-                  key={selectedAction.id}
-                  action={selectedAction}
-                  history={history}
-                  busy={busy === selectedAction.id}
-                  canFetchResources={canFetchResources}
-                  onChanged={load}
-                  suggestions={
-                    <PluginSuggestions
-                      groups={suggestGroups}
-                      added={suggestAdded}
-                      busy={suggestBusy}
-                      onAccept={acceptSuggestion}
-                    />
-                  }
-                  run={run}
-                />
-              )
-            }
-          />
-        )
-      )}
+                )}
+              </div>
+              {detailNode}
+            </div>
+          )}
+          <Drawer
+            open={!desktop && queueOpen}
+            onClose={() => setQueueOpen(false)}
+            placement="bottom"
+            size="70%"
+            title={`Tasks · ${open.length}`}
+            styles={{
+              body: { padding: 0, display: "flex", flexDirection: "column" },
+            }}
+          >
+            <div className="min-h-0 flex-1 overflow-auto">{queueList}</div>
+          </Drawer>
+        </>
+      ) : null}
     </Workspace>
   );
 }

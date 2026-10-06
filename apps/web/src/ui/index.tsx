@@ -97,7 +97,7 @@ export function PageHeader({
 }) {
   return (
     <div className="interview-page-header flex flex-wrap items-end justify-between gap-3">
-      <div>
+      <div className="min-w-0 flex-1">
         <Typography.Title level={3} style={{ margin: 0 }}>
           {title}
         </Typography.Title>
@@ -105,7 +105,11 @@ export function PageHeader({
           <Typography.Text type="secondary">{subtitle}</Typography.Text>
         )}
       </div>
-      {actions && <div className="flex items-center gap-2">{actions}</div>}
+      {actions && (
+        <div className="flex basis-full items-center gap-2 sm:basis-auto">
+          {actions}
+        </div>
+      )}
     </div>
   );
 }
@@ -433,4 +437,5 @@ export {
   SettingRow,
   DataRow,
   StatStrip,
+  ExtensionRegion,
 } from "@interview-os/ui";

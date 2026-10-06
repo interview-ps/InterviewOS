@@ -5,10 +5,8 @@
         "ui": {
           "children": [
             {
-              "label": "PostgreSQL readiness",
-              "tone": "muted",
-              "type": "stat",
-              "value": "—"
+              "text": "No SQL skills assessed yet — run a PostgreSQL interview to get a baseline.",
+              "type": "text"
             },
             {
               "action": {
@@ -17,10 +15,10 @@
               },
               "label": "Start PostgreSQL Deep Dive",
               "type": "button",
-              "variant": "primary"
+              "variant": "secondary"
             }
           ],
-          "subtitle": "0 SQL skills assessed",
+          "subtitle": "Not assessed yet",
           "title": "PostgreSQL readiness",
           "type": "card"
         }

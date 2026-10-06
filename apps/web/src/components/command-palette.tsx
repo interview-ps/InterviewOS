@@ -221,6 +221,26 @@ export function CommandPalette({
     [commands, query],
   );
 
+  // Group by category (preserving first-seen order) so the category isn't
+  // repeated on every row. `ordered` is the flat list keyboard nav indexes.
+  const groups = useMemo(() => {
+    const out: { label: string; items: Command[] }[] = [];
+    const index = new Map<string, number>();
+    for (const c of filtered) {
+      const label = c.hint ?? "More";
+      let i = index.get(label);
+      if (i === undefined) {
+        i = out.length;
+        index.set(label, i);
+        out.push({ label, items: [] });
+      }
+      out[i]!.items.push(c);
+    }
+    return out;
+  }, [filtered]);
+
+  const ordered = useMemo(() => groups.flatMap((g) => g.items), [groups]);
+
   const execute = useCallback(
     (cmd: Command | undefined) => {
       if (!cmd || busy) return;
@@ -240,19 +260,19 @@ export function CommandPalette({
   const onKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === "ArrowDown") {
       e.preventDefault();
-      setActive((i) => Math.min(i + 1, filtered.length - 1));
+      setActive((i) => Math.min(i + 1, ordered.length - 1));
     } else if (e.key === "ArrowUp") {
       e.preventDefault();
       setActive((i) => Math.max(i - 1, 0));
     } else if (e.key === "Enter") {
       e.preventDefault();
-      execute(filtered[active]);
+      execute(ordered[active]);
     }
   };
 
   const activeDesc =
-    filtered.length > 0
-      ? `cmd-${filtered[Math.min(active, filtered.length - 1)]?.id}`
+    ordered.length > 0
+      ? `cmd-${ordered[Math.min(active, ordered.length - 1)]?.id}`
       : undefined;
 
   return (
@@ -262,7 +282,7 @@ export function CommandPalette({
       footer={null}
       closable={false}
       destroyOnHidden
-      width={640}
+      width="min(640px, calc(100vw - 24px))"
       style={{ top: 96 }}
       styles={{ body: { padding: 0 } }}
       focusable={{ focusTriggerAfterClose: true }}
@@ -301,41 +321,62 @@ export function CommandPalette({
           id={LISTBOX_ID}
           role="listbox"
           aria-label="Commands"
-          className="max-h-80 overflow-y-auto pb-2"
+          className="max-h-80 overflow-y-auto pb-1"
         >
           {busy && (
             <div className="px-4 py-3 text-sm text-muted" role="status">
               Working…
             </div>
           )}
-          {!busy && filtered.length === 0 && (
+          {!busy && ordered.length === 0 && (
             <div className="px-4 py-3 text-sm text-muted">
               No commands match “{query}”. Try “practice”, “system design”, or a
               target name — or press Escape to close.
             </div>
           )}
           {!busy &&
-            filtered.map((cmd, i) => (
-              <div
-                key={cmd.id}
-                id={`cmd-${cmd.id}`}
-                role="option"
-                aria-selected={i === active}
-                onMouseEnter={() => setActive(i)}
-                onMouseDown={(e) => {
-                  e.preventDefault();
-                  execute(cmd);
-                }}
-                className={`mx-1 flex cursor-pointer items-center justify-between gap-3 rounded-[0.5rem] px-3 py-2 text-sm ${
-                  i === active ? "bg-tint text-navy" : "text-ink"
-                }`}
-              >
-                <span>{cmd.title}</span>
-                {cmd.hint && (
-                  <span className="shrink-0 text-xs text-muted">{cmd.hint}</span>
-                )}
+            groups.map((g) => (
+              <div key={g.label}>
+                <div className="px-4 pb-1 pt-2 text-[11px] font-semibold uppercase tracking-wide text-muted">
+                  {g.label}
+                </div>
+                {g.items.map((cmd) => {
+                  const i = ordered.indexOf(cmd);
+                  return (
+                    <div
+                      key={cmd.id}
+                      id={`cmd-${cmd.id}`}
+                      role="option"
+                      aria-selected={i === active}
+                      onMouseEnter={() => setActive(i)}
+                      onMouseDown={(e) => {
+                        e.preventDefault();
+                        execute(cmd);
+                      }}
+                      className={`mx-1 flex cursor-pointer items-center gap-3 rounded-[0.5rem] px-3 py-2 text-sm ring-1 ring-inset ${
+                        i === active
+                          ? "bg-tint font-medium text-navy ring-blue"
+                          : "text-ink ring-transparent hover:bg-tint"
+                      }`}
+                    >
+                      <span className="min-w-0 truncate">{cmd.title}</span>
+                    </div>
+                  );
+                })}
               </div>
             ))}
+        </div>
+        <div className="flex flex-wrap items-center gap-x-4 gap-y-1 border-t border-line px-4 py-1.5 text-[11px] text-muted">
+          <span>
+            <kbd className="rounded border border-line px-1">↑</kbd>{" "}
+            <kbd className="rounded border border-line px-1">↓</kbd> navigate
+          </span>
+          <span>
+            <kbd className="rounded border border-line px-1">Enter</kbd> run
+          </span>
+          <span>
+            <kbd className="rounded border border-line px-1">Esc</kbd> close
+          </span>
         </div>
       </div>
     </Modal>

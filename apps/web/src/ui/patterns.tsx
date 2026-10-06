@@ -1,4 +1,4 @@
-import { useState, type ReactNode } from "react";
+import { Fragment, useState, type ReactNode } from "react";
 import { App, Collapse, Typography } from "antd";
 import type { UITone as Tone } from "@interview-os/frontend-types";
 
@@ -15,6 +15,52 @@ const TONE_COLOR: Record<Tone, string> = {
   blue: "var(--interview-brand)",
   muted: "var(--interview-text-muted)",
 };
+
+/**
+ * Safe inline rich text: renders `code` spans and **bold** without any HTML
+ * injection. Used for plugin/AI text (coding statements, evaluations) that
+ * otherwise shows literal backticks.
+ */
+export function RichText({
+  text,
+  className = "",
+}: {
+  text: string | null | undefined;
+  className?: string;
+}) {
+  const value = text ?? "";
+  const lines = value.split("\n");
+  return (
+    <span className={className}>
+      {lines.map((line, i) => (
+        <Fragment key={i}>
+          {i > 0 && <br />}
+          {renderInline(line)}
+        </Fragment>
+      ))}
+    </span>
+  );
+}
+
+function renderInline(line: string): ReactNode {
+  const parts = line.split(/(`[^`]+`|\*\*[^*]+\*\*)/g);
+  return parts.map((part, i) => {
+    if (part.length > 1 && part.startsWith("`") && part.endsWith("`")) {
+      return (
+        <code
+          key={i}
+          className="rounded bg-page px-1 py-0.5 font-mono text-[0.85em]"
+        >
+          {part.slice(1, -1)}
+        </code>
+      );
+    }
+    if (part.length > 3 && part.startsWith("**") && part.endsWith("**")) {
+      return <strong key={i}>{part.slice(2, -2)}</strong>;
+    }
+    return <Fragment key={i}>{part}</Fragment>;
+  });
+}
 
 /** Readiness-style 0–1 value → "64%" (or "—" when unknown). */
 export function pct(value: number | null | undefined): string {
