@@ -294,6 +294,7 @@ export function SetupForm({
                 maxCount={1}
                 showUploadList={false}
                 disabled={busy}
+                aria-label="Upload resume file"
                 beforeUpload={(file) => {
                   loadResumeFile(file as File);
                   return false;
@@ -327,6 +328,7 @@ export function SetupForm({
                 maxCount={1}
                 showUploadList={false}
                 disabled={busy}
+                aria-label="Upload job description"
                 beforeUpload={(file) => {
                   loadJdFile(file as File);
                   return false;
