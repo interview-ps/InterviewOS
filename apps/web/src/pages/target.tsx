@@ -24,7 +24,7 @@ import {
 } from "@/components/ui";
 import { SetupForm } from "@/components/setup-form";
 import { ExtensionSlot } from "@/components/plugin-ui";
-import { useAppRefresh } from "@/lib/app-refresh";
+import { useAppRefresh, useAppRefreshEffect } from "@/lib/app-refresh";
 
 type TabKey = "overview" | "sources" | "requirements";
 
@@ -156,6 +156,11 @@ export default function TargetRole() {
     loadState();
     loadSources();
   }, [loadTargets, loadState, loadSources]);
+  useAppRefreshEffect(() => {
+    loadTargets();
+    loadState();
+    loadSources();
+  });
 
   const activeTarget = targets.find((t) => t.active);
 

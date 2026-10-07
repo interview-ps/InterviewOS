@@ -25,6 +25,7 @@ import {
 import { PluginSlot, useUIContributions } from "@/components/plugin-ui";
 import { useDesktop } from "@/lib/responsive";
 import { PrepareTabs } from "./tabs";
+import { useAppRefreshEffect } from "@/lib/app-refresh";
 
 const ACTION_STATUS: Record<string, string> = {
   open: "open",
@@ -361,6 +362,7 @@ export default function PrepPlan() {
       .catch(() => {});
   }, []);
   useEffect(load, [load]);
+  useAppRefreshEffect(load);
 
   // Plugin suggestions live above the keyed detail pane so an accepted
   // suggestion ("Added") survives switching the selected task.

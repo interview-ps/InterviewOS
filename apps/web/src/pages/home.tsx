@@ -20,7 +20,7 @@ import {
 } from "@/components/ui";
 import { ExtensionSlot } from "@/components/plugin-ui";
 import { SetupForm } from "@/components/setup-form";
-import { useAppRefresh } from "@/lib/app-refresh";
+import { useAppRefresh, useAppRefreshEffect } from "@/lib/app-refresh";
 
 type SkillDelta = {
   skillId: string;
@@ -45,6 +45,7 @@ export default function Dashboard() {
     api.metrics().then(setMetrics).catch(() => {});
   }, []);
   useEffect(load, [load]);
+  useAppRefreshEffect(load);
 
   // Readiness change since the last finished interview — the "what changed" answer.
   useEffect(() => {

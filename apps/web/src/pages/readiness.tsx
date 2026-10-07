@@ -28,6 +28,7 @@ import {
 } from "@/components/ui";
 import { ExtensionSlot } from "@/components/plugin-ui";
 import { useDesktop } from "@/lib/responsive";
+import { useAppRefreshEffect } from "@/lib/app-refresh";
 
 type ReadinessGraph = Awaited<ReturnType<typeof api.readiness>>;
 type FilterMode = "all" | "assessed" | "weak" | "unassessed";
@@ -167,7 +168,7 @@ export default function Readiness() {
   const [detailOpen, setDetailOpen] = useState(false);
   const desktop = useDesktop();
 
-  useEffect(() => {
+  const load = useCallback(() => {
     api.readiness().then(setGraph).catch((e) => setError(e));
     api.metrics().then(setMetrics).catch(() => {});
     api
@@ -179,6 +180,8 @@ export default function Readiness() {
       )
       .catch(() => {});
   }, []);
+  useEffect(load, [load]);
+  useAppRefreshEffect(load);
 
   const dimensions = graph?.dimensions ?? null;
 

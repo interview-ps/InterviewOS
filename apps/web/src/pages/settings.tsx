@@ -30,6 +30,7 @@ import { ExtensionSlot } from "@/components/plugin-ui";
 import { PluginSettingsForm } from "@/components/plugin-settings-form";
 import { AppearanceSettings } from "@/components/appearance-settings";
 import { useDesktop } from "@/lib/responsive";
+import { useAppRefreshEffect } from "@/lib/app-refresh";
 
 const EFFORTS = ["low", "medium", "high"] as const;
 
@@ -245,6 +246,7 @@ export default function Settings() {
     api.plugins().then((r) => setPlugins(r.plugins)).catch(() => {});
     api.mcpServers().then(setMcp).catch(() => setMcp({ servers: [], loadError: null }));
   }, []);
+  useAppRefreshEffect(load);
 
   // Deep links (#diagnostics, #data, #mcp) select the matching category.
   useEffect(() => {

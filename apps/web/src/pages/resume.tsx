@@ -23,6 +23,7 @@ import {
 } from "@/components/ui";
 import { ExtensionSlot } from "@/components/plugin-ui";
 import { useDesktop } from "@/lib/responsive";
+import { useAppRefreshEffect } from "@/lib/app-refresh";
 
 const STATUS_ICON = { pass: "✓", warn: "!", fail: "✗" } as const;
 const STATUS_CLS = {
@@ -125,7 +126,7 @@ export default function Resume() {
   const [listOpen, setListOpen] = useState(false);
   const desktop = useDesktop();
 
-  useEffect(() => {
+  const load = useCallback(() => {
     api
       .state()
       .then(() => setHasResume(true))
@@ -138,6 +139,8 @@ export default function Resume() {
       .then((r) => setReview(r))
       .catch(() => setReview(null));
   }, []);
+  useEffect(load, [load]);
+  useAppRefreshEffect(load);
 
   const runReview = useCallback(() => {
     setBusy(true);

@@ -16,6 +16,7 @@ import {
   Workspace,
   displayLabel,
 } from "@/components/ui";
+import { useAppRefreshEffect } from "@/lib/app-refresh";
 
 const NOT_REPORTED = "not reported";
 
@@ -155,6 +156,7 @@ export default function Usage() {
   useEffect(() => {
     load();
   }, [load]);
+  useAppRefreshEffect(load);
 
   useEffect(() => {
     api

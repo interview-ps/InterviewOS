@@ -1,5 +1,5 @@
 import { Link, useLocation } from "react-router";
-import { useCallback, useEffect, useMemo, useState, type ReactNode } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import {
   Breadcrumb,
   Button,
@@ -580,11 +580,25 @@ export function Shell({ children }: { children: ReactNode }) {
   const [collapsed, setCollapsed] = useState<boolean>(
     () => typeof localStorage !== "undefined" && localStorage.getItem(COLLAPSE_KEY) === "1",
   );
-  const [refreshKey, setRefreshKey] = useState(0);
   const [appVersion, setAppVersion] = useState<string | null>(null);
   const { primary: navPrimary, settings: navSettings } = useNavItems(collapsed);
 
-  const refresh = useCallback(() => setRefreshKey((k) => k + 1), []);
+  // Pages subscribe to refresh and refetch themselves — no remount (which would
+  // discard local UI state).
+  const listenersRef = useRef(new Set<() => void>());
+  const refresh = useCallback(() => {
+    listenersRef.current.forEach((listener) => listener());
+  }, []);
+  const subscribeRefresh = useCallback((listener: () => void) => {
+    listenersRef.current.add(listener);
+    return () => {
+      listenersRef.current.delete(listener);
+    };
+  }, []);
+  const appRefresh = useMemo(
+    () => ({ refresh, subscribe: subscribeRefresh }),
+    [refresh, subscribeRefresh],
+  );
 
   const toggleCollapsed = useCallback(() => {
     setCollapsed((v) => {
@@ -657,7 +671,7 @@ export function Shell({ children }: { children: ReactNode }) {
   }, [location.pathname]);
 
   return (
-    <AppRefreshContext.Provider value={refresh}>
+    <AppRefreshContext.Provider value={appRefresh}>
       <Layout className="interview-shell">
         <Layout.Header
           className={`interview-header${desktop ? "" : " interview-header--mobile"}`}
@@ -747,7 +761,7 @@ export function Shell({ children }: { children: ReactNode }) {
               </div>
             </Layout.Sider>
           )}
-          <Layout.Content className="interview-content" key={refreshKey}>
+          <Layout.Content className="interview-content">
             <PageTitleProvider>
               <Breadcrumbs />
               <div className="interview-screen">{children}</div>

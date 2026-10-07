@@ -1,5 +1,5 @@
 import { Link, useNavigate } from "react-router";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import {
   api,
   streamPost,
@@ -29,6 +29,7 @@ import {
 } from "@/components/ui";
 import { useUIContributions } from "@/components/plugin-ui";
 import { defaultModeId, defaultRoundModes } from "@/lib/modes";
+import { useAppRefreshEffect } from "@/lib/app-refresh";
 
 interface LoopRoundDraft {
   mode: RoundType;
@@ -70,8 +71,10 @@ export default function Interview() {
   const modeLabel = (id: string) =>
     modes.find((m) => m.id === id)?.label ?? id.replace(/[-_]+/g, " ");
 
-  const loadContexts = () =>
-    api.mcpContexts().then(setContexts).catch(() => setContexts([]));
+  const loadContexts = useCallback(
+    () => api.mcpContexts().then(setContexts).catch(() => setContexts([])),
+    [],
+  );
 
   // v1: keep the selected round type valid — prefer the historical default
   // ("technical") when its plugin is enabled, else the first available mode.
@@ -82,7 +85,7 @@ export default function Interview() {
     );
   }, [modes]);
 
-  useEffect(() => {
+  const load = useCallback(() => {
     api.modes().then((r) => setModes(r.modes)).catch(() => {});
     api.listInterviews().then(setSessions).catch((e) => setError(e));
     api.loops().then(setLoops).catch(() => setLoops([]));
@@ -107,7 +110,9 @@ export default function Interview() {
       })
       .catch(() => {});
     api.interviewPacks().then(setPacks).catch(() => {});
-  }, []);
+  }, [loadContexts]);
+  useEffect(load, [load]);
+  useAppRefreshEffect(load);
 
   const openLoopBuilder = async () => {
     setLoopOpen(true);
