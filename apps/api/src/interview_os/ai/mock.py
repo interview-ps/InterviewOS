@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import asyncio
 import inspect
+import zlib
 from collections.abc import AsyncIterator, Awaitable, Callable
 from dataclasses import dataclass
 
@@ -140,8 +141,6 @@ class MockRuntime:
             task_id=task.task_id,
             model=task.model,
             attempt=task.attempt,
-            prompt_text=f"{task.instructions}{js_dumps(task.input)}",
-            raw=raw,
             duration_ms=now_ms() - started,
         )
         return AgentResult.success(
@@ -226,8 +225,6 @@ class MockRuntime:
             task_id=msg.task_id,
             model=msg.model,
             attempt=msg.attempt,
-            prompt_text=msg.text,
-            raw=text,
             duration_ms=now_ms() - started,
         )
         if handled:
@@ -248,17 +245,22 @@ class MockRuntime:
         task_id: str | None,
         model: str | None,
         attempt: int | None,
-        prompt_text: str,
-        raw: str,
         duration_ms: int,
     ) -> None:
-        """Deterministic fake usage so the whole flow works under the mock."""
+        """Deterministic fake usage so the whole flow works under the mock.
+
+        Counts derive from the task id, *not* from the prompt/output text: that
+        text is platform-dependent (the example files are CRLF on a Windows
+        checkout) and these figures feed a contract fixture, which must compare
+        equal on every platform.
+        """
 
         sink = self._usage_sink
         if sink is None:
             return
-        input_tokens = max(0, (len(prompt_text) + 3) // 4)
-        output_tokens = max(0, len(raw) // 4)
+        seed = zlib.crc32((task_id or "task").encode("utf-8"))
+        input_tokens = 120 + seed % 900
+        output_tokens = 60 + (seed // 7) % 500
         thought_tokens = input_tokens // 4
         cached_read = input_tokens // 8
         cached_write = input_tokens // 16

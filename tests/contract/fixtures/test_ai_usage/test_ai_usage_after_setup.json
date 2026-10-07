@@ -15,16 +15,16 @@
         ],
         "cost": [
           {
-            "amount": 0.00475,
+            "amount": 0.002698,
             "currency": "USD"
           }
         ],
         "filters": {},
-        "inputTokens": 2809,
+        "inputTokens": 1385,
         "latestContextSize": 200000,
-        "outputTokens": 1240,
+        "outputTokens": 968,
         "recentCount": 3,
-        "totalTokens": 4750,
+        "totalTokens": 2698,
         "turns": 3
       },
       "status": 200
