@@ -409,7 +409,11 @@ modes:
   evaluation; it is persisted and handed back to `mode.reduce` as
   `evaluation.modeSignals`. The legacy top-level `designUpdates` still parses —
   system-design-mode reads `modeSignals.designUpdates` first and falls back to
-  it — but new modes should use `modeSignals`.
+  it — but new modes should use `modeSignals`. The persisted/wire shape stays an
+  open record, but the AI-facing schema is closed to the signal keys the
+  built-in modes use (a provider's strict structured-output schema cannot
+  express a free-form object), so a new per-mode signal must be added to
+  `ModeSignalsAi` in the answer-evaluator skill.
 
 ## Settings and storage
 
