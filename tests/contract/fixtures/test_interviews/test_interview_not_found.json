@@ -1,5 +1,14 @@
 {
   "snapshots": {
+    "abandon": {
+      "body": {
+        "error": {
+          "code": "NOT_FOUND",
+          "message": "no session int_00000000-0000-0000-0000-000000000000"
+        }
+      },
+      "status": 404
+    },
     "answer": {
       "body": {
         "error": {

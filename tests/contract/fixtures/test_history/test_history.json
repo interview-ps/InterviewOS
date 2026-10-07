@@ -248,6 +248,7 @@
           }
         ],
         "session": {
+          "abandoned": false,
           "actionId": null,
           "candidateId": "<cand#1>",
           "completedAt": null,
@@ -530,6 +531,7 @@
             }
           ],
           "session": {
+            "abandoned": false,
             "actionId": null,
             "candidateId": "<cand#1>",
             "completedAt": null,

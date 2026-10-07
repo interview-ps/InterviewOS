@@ -71,6 +71,7 @@ class InterviewTargetRef(CamelModel):
 
 
 class InterviewListItem(SessionRow):
+    mode_label: str
     target: InterviewTargetRef | None = None
     questions: int = 0
     debrief: Any = Field(default=None, json_schema_extra={"emit_null": True})
@@ -408,6 +409,7 @@ class HistoryService:
             entries.append(
                 InterviewListItem(
                     **session.model_dump(),
+                    mode_label=get_mode(session.round_type).label,
                     target=(
                         InterviewTargetRef(id=target.id, role=target.role, company=target.company)
                         if target is not None

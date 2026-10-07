@@ -75,7 +75,7 @@ BASELINE_DDL: tuple[str, ...] = (
   loop_id TEXT, loop_round INTEGER,
   context_id TEXT, focus_skills TEXT NOT NULL DEFAULT '[]',
   created_at TEXT NOT NULL, completed_at TEXT
-, plugin_mode_id TEXT)
+, plugin_mode_id TEXT, abandoned INTEGER NOT NULL DEFAULT 0)
 """,
     """CREATE TABLE interview_loops (
   id TEXT PRIMARY KEY, target_id TEXT,
@@ -286,6 +286,7 @@ class InterviewSession(Base):
     created_at: Mapped[str] = mapped_column(Text, nullable=False)
     completed_at: Mapped[str | None] = mapped_column(Text)
     plugin_mode_id: Mapped[str | None] = mapped_column(Text)
+    abandoned: Mapped[int] = mapped_column(Integer, nullable=False, server_default=sql_text("0"))
 
 
 class InterviewLoop(Base):

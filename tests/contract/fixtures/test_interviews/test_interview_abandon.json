@@ -1,0 +1,28 @@
+{
+  "snapshots": {
+    "abandon": {
+      "body": {
+        "abandoned": true,
+        "actionId": null,
+        "candidateId": "<cand#1>",
+        "completedAt": "<ts>",
+        "contextId": null,
+        "createdAt": "<ts>",
+        "currentRound": 1,
+        "focusSkillId": null,
+        "focusSkills": [],
+        "id": "<int#1>",
+        "loopId": null,
+        "loopRound": null,
+        "mode": "interview",
+        "modeState": {},
+        "plannedQuestions": 2,
+        "pluginModeId": null,
+        "roundType": "mixed",
+        "status": "complete",
+        "targetId": "<target#1>"
+      },
+      "status": 200
+    }
+  }
+}

@@ -297,6 +297,7 @@
           }
         ],
         "session": {
+          "abandoned": false,
           "actionId": null,
           "answerFields": [],
           "answerFormat": "text",
@@ -325,6 +326,7 @@
     "list": {
       "body": [
         {
+          "abandoned": false,
           "actionId": null,
           "candidateId": "<cand#1>",
           "completedAt": null,
@@ -354,6 +356,7 @@
           "loopId": null,
           "loopRound": null,
           "mode": "interview",
+          "modeLabel": "Mixed",
           "modeState": {},
           "plannedQuestions": 2,
           "pluginModeId": null,
@@ -436,6 +439,7 @@
           "topic": "Cache invalidation strategies"
         },
         "session": {
+          "abandoned": false,
           "actionId": null,
           "candidateId": "<cand#1>",
           "completedAt": null,
@@ -535,6 +539,7 @@
           "topic": "Cache consistency"
         },
         "session": {
+          "abandoned": false,
           "actionId": null,
           "candidateId": "<cand#1>",
           "completedAt": null,
