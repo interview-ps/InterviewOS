@@ -23,3 +23,17 @@ def test_settings_validation(client: ContractClient, snapshot: Snapshot) -> None
     snap = snapshot.check_response("bad-effort", resp)
     assert snap["status"] == 400
     assert snap["body"]["error"]["code"] == "VALIDATION"
+
+
+def test_settings_ai_budget(client: ContractClient, snapshot: Snapshot) -> None:
+    snap = snapshot.check_response("budget-set", client.put("/api/settings", json={"aiBudgetMonthly": 25}))
+    assert snap["status"] == 200
+    assert snap["body"]["aiBudgetMonthly"] == 25
+
+    resp = client.put("/api/settings", json={"aiBudgetMonthly": -1})
+    snap = snapshot.check_response("budget-invalid", resp)
+    assert snap["status"] == 400
+    assert snap["body"]["error"]["code"] == "VALIDATION"
+
+    snap = snapshot.check_response("budget-clear", client.put("/api/settings", json={"aiBudgetMonthly": None}))
+    assert snap["body"].get("aiBudgetMonthly") is None

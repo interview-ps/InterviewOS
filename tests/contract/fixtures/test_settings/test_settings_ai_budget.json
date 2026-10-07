@@ -1,0 +1,50 @@
+{
+  "snapshots": {
+    "budget-clear": {
+      "body": {
+        "model": null,
+        "questionSources": {
+          "companyPacks": true,
+          "plugins": [],
+          "rolePacks": true,
+          "userBank": true
+        },
+        "reasoningEffort": null,
+        "taskMode": "app-server",
+        "voice": {
+          "enabled": false,
+          "speakQuestions": true
+        }
+      },
+      "status": 200
+    },
+    "budget-invalid": {
+      "body": {
+        "error": {
+          "code": "VALIDATION",
+          "message": "aiBudgetMonthly must be >= 0"
+        }
+      },
+      "status": 400
+    },
+    "budget-set": {
+      "body": {
+        "aiBudgetMonthly": 25.0,
+        "model": null,
+        "questionSources": {
+          "companyPacks": true,
+          "plugins": [],
+          "rolePacks": true,
+          "userBank": true
+        },
+        "reasoningEffort": null,
+        "taskMode": "app-server",
+        "voice": {
+          "enabled": false,
+          "speakQuestions": true
+        }
+      },
+      "status": 200
+    }
+  }
+}

@@ -1,0 +1,33 @@
+{
+  "snapshots": {
+    "after-setup": {
+      "body": {
+        "byModelKeys": [
+          "unknown"
+        ],
+        "byRuntimeKeys": [
+          "mock"
+        ],
+        "bySkillKeys": [
+          "jd-analyzer",
+          "prep-planner",
+          "resume-analyzer"
+        ],
+        "cost": [
+          {
+            "amount": 0.00475,
+            "currency": "USD"
+          }
+        ],
+        "filters": {},
+        "inputTokens": 2809,
+        "latestContextSize": 200000,
+        "outputTokens": 1240,
+        "recentCount": 3,
+        "totalTokens": 4750,
+        "turns": 3
+      },
+      "status": 200
+    }
+  }
+}

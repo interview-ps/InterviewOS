@@ -12,6 +12,7 @@ import LoopPage from "@/pages/interview/loop";
 import Readiness from "@/pages/readiness";
 import Resume from "@/pages/resume";
 import History from "@/pages/history";
+import Usage from "@/pages/usage";
 import Packs from "@/pages/packs";
 import Skills from "@/pages/skills";
 import Settings from "@/pages/settings";
@@ -54,6 +55,7 @@ export function App() {
         <Route path="readiness" element={<Readiness />} />
         <Route path="resume" element={<Resume />} />
         <Route path="history" element={<History />} />
+        <Route path="usage" element={<Usage />} />
         <Route path="packs" element={<Packs />} />
         <Route path="skills" element={<Skills />} />
         <Route path="settings" element={<Settings />} />

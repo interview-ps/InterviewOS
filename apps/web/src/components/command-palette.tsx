@@ -100,6 +100,12 @@ export function CommandPalette({
         run: () => navigate("/history?weakOnly=1"),
       },
       {
+        id: "usage",
+        title: "AI usage",
+        hint: "Navigation",
+        run: () => navigate("/usage"),
+      },
+      {
         id: "resume-open",
         title: "Open resume coach",
         hint: "Resume",

@@ -1,4 +1,6 @@
 [
+  {"method": "GET", "path": "/api/ai-usage"},
+  {"method": "DELETE", "path": "/api/ai-usage"},
   {"method": "GET", "path": "/api/companies"},
   {"method": "POST", "path": "/api/documents/extract"},
   {"method": "GET", "path": "/api/examples"},

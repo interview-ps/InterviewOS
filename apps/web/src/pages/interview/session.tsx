@@ -4,6 +4,7 @@ import { VOICE_DISCLAIMER } from "@interview-os/frontend-types";
 import {
   api,
   streamPost,
+  type AIUsageSummary,
   type Debrief,
   type InterviewLoop,
   type SessionDetail,
@@ -300,6 +301,7 @@ export default function InterviewSession() {
   const [evalTab, setEvalTab] = useState<EvalTab>("feedback");
   const [evalEvidence, setEvalEvidence] = useState<EvalEvidence[]>([]);
   const [inspectorOpen, setInspectorOpen] = useState(true);
+  const [usage, setUsage] = useState<AIUsageSummary | null>(null);
   const timer = useRef<ReturnType<typeof setInterval> | null>(null);
   const voice = useVoiceCapture(
     useCallback(
@@ -337,6 +339,15 @@ export default function InterviewSession() {
   }, [load]);
 
   useSpeakQuestion(speakOn && voice.supported, current?.text ?? null);
+
+  // This session's AI cost + context fill (refreshed after each turn).
+  const loadUsage = useCallback(() => {
+    api.aiUsage({ session: id }).then(setUsage).catch(() => setUsage(null));
+  }, [id]);
+
+  useEffect(() => {
+    loadUsage();
+  }, [loadUsage, detail, result]);
 
   // The answer result carries readiness deltas, not the evidence itself — load
   // the newly recorded evidence for the affected skills when the tab opens.
@@ -464,6 +475,21 @@ export default function InterviewSession() {
   }
 
   const done = debrief !== null;
+  const usageCost = (usage?.totals.cost ?? [])
+    .map((entry) => `${entry.amount.toFixed(4)} ${entry.currency}`)
+    .join(" · ");
+  const contextUsed = usage?.latestContext?.used ?? null;
+  const contextSize = usage?.latestContext?.size ?? null;
+  const contextRatio = contextUsed !== null && contextSize ? contextUsed / contextSize : 0;
+  const usageStrip =
+    usage && usage.totals.turns > 0 ? (
+      <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted">
+        <span>AI cost this session: {usageCost || "—"}</span>
+        {contextRatio > 0.8 && (
+          <Pill tone="amber">Context window {Math.round(contextRatio * 100)}% full</Pill>
+        )}
+      </div>
+    ) : null;
   const round = detail ? Math.min(detail.session.currentRound, detail.session.plannedQuestions) : 0;
   const modeLabel = detail?.session.modeLabel ?? detail?.session.roundType.replace("_", " ");
   const focusDimension =
@@ -1013,6 +1039,7 @@ export default function InterviewSession() {
     >
       <ErrorNote error={error} />
       <PluginSlot slot="interview.toolbar" params={{ sessionId: id }} />
+      {usageStrip}
 
       {!done && detail && (
         <div className="mt-3 flex min-h-0 flex-1 gap-3">
