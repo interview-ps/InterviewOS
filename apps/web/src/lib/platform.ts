@@ -16,3 +16,8 @@ export function isMac(): boolean {
 export function commandKeyLabel(): string {
   return isMac() ? "⌘K" : "Ctrl+K";
 }
+
+/** "⌘↵" on Apple platforms, "Ctrl+↵" elsewhere. */
+export function commandEnterLabel(): string {
+  return isMac() ? "⌘↵" : "Ctrl+↵";
+}

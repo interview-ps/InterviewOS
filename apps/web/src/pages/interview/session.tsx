@@ -1,11 +1,13 @@
 import { Link, useNavigate, useParams } from "react-router";
-import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { VOICE_DISCLAIMER } from "@interview-os/frontend-types";
 import {
   api,
   streamPost,
   type AIUsageSummary,
+  type AnswerRow,
   type Debrief,
+  type Evaluation,
   type InterviewLoop,
   type SessionDetail,
   type SessionQuestion,
@@ -31,8 +33,11 @@ import {
   displayLabel,
   severityTone,
   skillLabel,
+  type Tone,
 } from "@/components/ui";
 import { useSetPageTitle } from "@/lib/page-title";
+import { commandEnterLabel } from "@/lib/platform";
+import { useAppRefreshEffect } from "@/lib/app-refresh";
 import {
   PluginModeSlot,
   PluginSlot,
@@ -43,6 +48,54 @@ const CODE_LANGUAGES = [
   "python", "javascript", "typescript", "java", "go", "cpp", "csharp",
   "ruby", "rust", "kotlin", "swift", "sql", "other",
 ];
+
+/** An in-progress answer persisted locally so a reload doesn't lose it. */
+type AnswerDraft = {
+  answer: string;
+  code: string;
+  language?: string;
+  fields?: Record<string, string | number>;
+};
+
+const DRAFT_KEY_PREFIX = "interview-os:draft:";
+
+function draftStorageKey(sessionId: string, questionId: string): string {
+  return `${DRAFT_KEY_PREFIX}${sessionId}:${questionId}`;
+}
+
+function readDraft(key: string): AnswerDraft | null {
+  try {
+    const raw = localStorage.getItem(key);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw) as Partial<AnswerDraft>;
+    if (!parsed || typeof parsed !== "object") return null;
+    return {
+      answer: typeof parsed.answer === "string" ? parsed.answer : "",
+      code: typeof parsed.code === "string" ? parsed.code : "",
+      language: typeof parsed.language === "string" ? parsed.language : undefined,
+      fields:
+        parsed.fields && typeof parsed.fields === "object" ? parsed.fields : undefined,
+    };
+  } catch {
+    return null;
+  }
+}
+
+function writeDraft(key: string, draft: AnswerDraft): void {
+  try {
+    localStorage.setItem(key, JSON.stringify(draft));
+  } catch {
+    /* storage unavailable — the draft stays in memory only */
+  }
+}
+
+function removeDraft(key: string): void {
+  try {
+    localStorage.removeItem(key);
+  } catch {
+    /* storage unavailable */
+  }
+}
 
 type EvalTab = "feedback" | "rubric" | "answer" | "evidence";
 type EvalEvidence = Awaited<ReturnType<typeof api.skillDetail>>["evidence"][number];
@@ -171,15 +224,109 @@ function InterviewerQuestion({ text }: { text: string }) {
   );
 }
 
-/** A compact headline metric for the evaluation hero. */
-function HeroMetric({ label, children }: { label: string; children: ReactNode }) {
+/** One answered question in the transcript — the main question plus its follow-ups. */
+interface Turn {
+  question: SessionQuestion;
+  answer: AnswerRow | null;
+  evaluation: Evaluation | null;
+}
+
+interface MainTurn extends Turn {
+  followUps: Turn[];
+}
+
+/** Headline for an evaluation — mean rubric when present, else mean skill score. */
+function evaluationScore(evaluation: Evaluation): number | null {
+  const values = evaluation.rubric.length
+    ? evaluation.rubric.map((r) => r.score)
+    : evaluation.scores.map((s) => s.score);
+  return values.length ? values.reduce((a, b) => a + b, 0) / values.length : null;
+}
+
+/** Score → tone by meaning: green once strong, blue developing, amber weak. */
+function scoreTone(score: number | null): Tone {
+  if (score === null) return "muted";
+  if (score >= 0.75) return "green";
+  if (score >= 0.5) return "blue";
+  return "amber";
+}
+
+/** The candidate's submitted answer as a chat bubble. */
+function AnswerBubble({ text, code }: { text: string; code?: string | null }) {
+  if (!text.trim() && !code) return null;
   return (
-    <div className="bg-surface px-3 py-1.5">
-      <div className="text-[11px] font-medium uppercase tracking-wide text-muted">{label}</div>
-      <div className="text-[17px] font-semibold leading-tight tabular-nums text-navy">
-        {children}
+    <div className="flex justify-end">
+      <div className="max-w-[85%] rounded-[var(--radius-sm)] border border-divider bg-page px-3.5 py-3">
+        {text.trim() && <p className="whitespace-pre-wrap text-sm">{text}</p>}
+        {code && (
+          <pre className="mt-2 overflow-x-auto rounded-[var(--radius-sm)] bg-[var(--color-inset)] p-2.5 font-mono text-xs">
+            <code>{code}</code>
+          </pre>
+        )}
       </div>
     </div>
+  );
+}
+
+/** A past answer's evaluation, collapsed to its headline score and summary. */
+function EvaluationSummary({ evaluation }: { evaluation: Evaluation }) {
+  const score = evaluationScore(evaluation);
+  return (
+    <details
+      data-testid="eval-summary"
+      className="rounded-[var(--radius-sm)] border border-divider bg-surface"
+    >
+      <summary className="flex cursor-pointer flex-wrap items-center gap-2 px-3 py-2 text-[13px]">
+        <Pill tone={scoreTone(score)}>
+          {score === null ? "Evaluated" : `${Math.round(score * 100)}%`}
+        </Pill>
+        <span className="min-w-0 flex-1 truncate text-muted">{evaluation.summary}</span>
+        <span className="shrink-0 text-xs text-muted">details</span>
+      </summary>
+      <div className="space-y-2.5 border-t border-divider px-3 py-2.5">
+        {evaluation.summary && (
+          <p className="text-[13px]">
+            <RichText text={evaluation.summary} />
+          </p>
+        )}
+        {evaluation.weaknesses.length > 0 && (
+          <div>
+            <h3 className="text-[13px] font-semibold text-accent">What was missing</h3>
+            <ul className="mt-1 space-y-1 text-[13px] text-muted">
+              {evaluation.weaknesses.map((w, i) => (
+                <li key={i} className="flex items-start gap-2">
+                  <Pill tone={severityTone(w.severity)}>{w.severity}</Pill>
+                  <span>
+                    <span className="font-medium text-ink">{skillLabel(w.skill)}</span> —{" "}
+                    <RichText text={w.evidence} />
+                  </span>
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
+        {evaluation.strengths.length > 0 && (
+          <div>
+            <h3 className="text-[13px] font-semibold text-green">What went well</h3>
+            <ul className="mt-1 list-disc space-y-0.5 ps-5 text-[13px] text-muted">
+              {evaluation.strengths.map((s, i) => (
+                <li key={i}>
+                  <RichText text={s.evidence} />
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
+        {evaluation.rubric.length > 0 && (
+          <details className="text-xs text-muted">
+            <summary className="cursor-pointer">Rubric</summary>
+            <div className="mt-1.5">
+              <RubricBars rubric={evaluation.rubric} />
+            </div>
+          </details>
+        )}
+      </div>
+    </details>
   );
 }
 
@@ -303,6 +450,9 @@ export default function InterviewSession() {
   const [inspectorOpen, setInspectorOpen] = useState(true);
   const [usage, setUsage] = useState<AIUsageSummary | null>(null);
   const timer = useRef<ReturnType<typeof setInterval> | null>(null);
+  const transcriptRef = useRef<HTMLDivElement | null>(null);
+  const restoredDraftRef = useRef<string | null>(null);
+  const draftKey = current ? draftStorageKey(id, current.id) : null;
   const voice = useVoiceCapture(
     useCallback(
       (t: string) => setAnswer((a) => (a.trim() ? `${a.trimEnd()} ${t.trim()}` : t.trim())),
@@ -324,6 +474,13 @@ export default function InterviewSession() {
       null;
     setCurrent(pending);
     return { d, pending };
+  }, [id]);
+
+  /** Re-read the session without touching the active question — grows the transcript. */
+  const refreshDetail = useCallback(async () => {
+    const d = await api.interview(id);
+    setDetail(d);
+    if (d.debrief) setDebrief(d.debrief);
   }, [id]);
 
   useEffect(() => {
@@ -373,6 +530,42 @@ export default function InterviewSession() {
     };
   }, [evalTab, result]);
 
+  // The transcript: every answered question (mains with their follow-ups), the
+  // submitted answer, and its evaluation. Answers and evaluations are persisted
+  // one-to-one in order, so pair them by index (evaluations carry no question id).
+  const transcript = useMemo<MainTurn[]>(() => {
+    if (!detail) return [];
+    const answerByQuestion = new Map(detail.answers.map((a) => [a.questionId, a]));
+    const evaluationByAnswer = new Map<string, Evaluation>();
+    detail.answers
+      .filter((a) => a.status === "evaluated")
+      .forEach((answer, i) => {
+        const evaluation = detail.evaluations[i];
+        if (evaluation) evaluationByAnswer.set(answer.id, evaluation);
+      });
+    const turnFor = (q: SessionQuestion): Turn => {
+      const answer = answerByQuestion.get(q.id) ?? null;
+      return {
+        question: q,
+        answer,
+        evaluation: answer ? evaluationByAnswer.get(answer.id) ?? null : null,
+      };
+    };
+    return detail.questions
+      .filter((q) => !q.followUpOf)
+      .map((main) => ({
+        ...turnFor(main),
+        followUps: detail.questions.filter((f) => f.followUpOf === main.id).map(turnFor),
+      }))
+      .filter((t) => t.answer !== null || t.followUps.some((f) => f.answer !== null));
+  }, [detail]);
+
+  // Keep the newest turn (and its evaluation) in view as the transcript grows.
+  useEffect(() => {
+    const el = transcriptRef.current;
+    if (el) el.scrollTop = el.scrollHeight;
+  }, [transcript.length, result, current?.id]);
+
   const modeId = detail?.session.roundType ?? "";
   const hasInspector = useModeSlotHasContent("interview.sidebar", modeId);
   const hasQuestionPanel = useModeSlotHasContent("interview.question", modeId);
@@ -396,6 +589,7 @@ export default function InterviewSession() {
   const missingRequired = answerFields.some(
     (f) => f.required && !(f.key in fieldValues && fieldValues[f.key] !== ""),
   );
+  const submitDisabled = busy || (fieldsMode ? missingRequired : !answer.trim());
 
   const submit = () => {
     setBusy(true);
@@ -410,7 +604,12 @@ export default function InterviewSession() {
         ? { answer, ...(code.trim() ? { code, language } : {}), ...(voiceMetrics ? { voice: voiceMetrics } : {}) }
         : { answer, ...(voiceMetrics ? { voice: voiceMetrics } : {}) };
     streamPost<SubmitAnswerResult>(`/api/interviews/${id}/answer`, body, progress)
-      .then((r) => { setResult(r); setEvalTab("feedback"); setDraft(null); })
+      .then((r) => {
+        setResult(r);
+        setEvalTab("feedback");
+        setDraft(null);
+        if (draftKey) removeDraft(draftKey);
+      })
       .catch((e) => setError(e))
       .finally(() => { setBusy(false); untick(); });
   };
@@ -427,8 +626,12 @@ export default function InterviewSession() {
         setCode("");
         setResult(null);
         setDraft(null);
-        if (r.question) setCurrent(r.question);
-        else await load();
+        if (r.question) {
+          setCurrent(r.question);
+          await refreshDetail().catch(() => {});
+        } else {
+          await load();
+        }
       })
       .catch(async (e) => {
         setError(e);
@@ -465,6 +668,72 @@ export default function InterviewSession() {
       .finally(() => setBusy(false));
   };
 
+  const done = debrief !== null;
+  const answering = !done && result === null && current !== null;
+
+  // Ctrl/Cmd+Enter submits from anywhere on the page (the hint sits by the button).
+  const submitRef = useRef<() => void>(submit);
+  useEffect(() => {
+    submitRef.current = submit;
+  });
+  useEffect(() => {
+    if (!answering) return;
+    const onKey = (event: KeyboardEvent) => {
+      if ((event.metaKey || event.ctrlKey) && event.key === "Enter") {
+        event.preventDefault();
+        if (!submitDisabled) submitRef.current();
+      }
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [answering, submitDisabled]);
+
+  // Restore a saved draft when the active question changes.
+  useEffect(() => {
+    if (!draftKey || restoredDraftRef.current === draftKey) return;
+    restoredDraftRef.current = draftKey;
+    const saved = readDraft(draftKey);
+    if (!saved) return;
+    setAnswer(saved.answer);
+    setCode(saved.code);
+    if (saved.language) setLanguage(saved.language);
+    if (saved.fields) setFieldValues(saved.fields);
+  }, [draftKey]);
+
+  // Debounced autosave (500 ms). Nothing is persisted once the answer is submitted.
+  useEffect(() => {
+    if (!draftKey || result) return;
+    const hasContent =
+      answer.trim().length > 0 ||
+      code.trim().length > 0 ||
+      Object.keys(fieldValues).length > 0;
+    const debounce = setTimeout(() => {
+      if (hasContent) writeDraft(draftKey, { answer, code, language, fields: fieldValues });
+      else removeDraft(draftKey);
+    }, 500);
+    return () => clearTimeout(debounce);
+  }, [draftKey, result, answer, code, language, fieldValues]);
+
+  // Warn before leaving with an unsubmitted draft (contents are never logged).
+  const hasDraftContent =
+    answer.trim().length > 0 ||
+    code.trim().length > 0 ||
+    Object.keys(fieldValues).length > 0;
+  useEffect(() => {
+    if (result || !hasDraftContent) return;
+    const onBeforeUnload = (event: BeforeUnloadEvent) => {
+      event.preventDefault();
+      event.returnValue = "";
+    };
+    window.addEventListener("beforeunload", onBeforeUnload);
+    return () => window.removeEventListener("beforeunload", onBeforeUnload);
+  }, [result, hasDraftContent]);
+
+  // Refetch the session when the shell broadcasts a refresh (e.g. target switch).
+  useAppRefreshEffect(() => {
+    void refreshDetail().catch(() => {});
+  });
+
   if (!detail && !error) {
     return (
       <Workspace toolbar={<ScreenToolbar title="Interview" />} bodyClassName="space-y-3">
@@ -474,7 +743,6 @@ export default function InterviewSession() {
     );
   }
 
-  const done = debrief !== null;
   const usageCost = (usage?.totals.cost ?? [])
     .map((entry) => `${entry.amount.toFixed(4)} ${entry.currency}`)
     .join(" · ");
@@ -482,23 +750,17 @@ export default function InterviewSession() {
   const contextSize = usage?.latestContext?.size ?? null;
   const contextRatio = contextUsed !== null && contextSize ? contextUsed / contextSize : 0;
   const usageStrip =
-    usage && usage.totals.turns > 0 ? (
+    usage && usage.totals.turns > 0 && contextRatio > 0.8 ? (
       <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted">
         <span>AI cost this session: {usageCost || "—"}</span>
-        {contextRatio > 0.8 && (
-          <Pill tone="amber">Context window {Math.round(contextRatio * 100)}% full</Pill>
-        )}
+        <Pill tone="amber">Context window {Math.round(contextRatio * 100)}% full</Pill>
       </div>
     ) : null;
   const round = detail ? Math.min(detail.session.currentRound, detail.session.plannedQuestions) : 0;
   const modeLabel = detail?.session.modeLabel ?? detail?.session.roundType.replace("_", " ");
   const focusDimension =
     typeof current?.extra?.focusDimension === "string" ? current.extra.focusDimension : null;
-  const questionNo = detail
-    ? Math.min(detail.answers.length + 1, detail.session.plannedQuestions)
-    : 0;
 
-  const submitDisabled = busy || (fieldsMode ? missingRequired : !answer.trim());
   const submitFooter = (
     <>
       <StreamDraft stage={stage} draft={draft} />
@@ -506,6 +768,9 @@ export default function InterviewSession() {
         <Button size="small" onClick={submit} loading={busy} disabled={submitDisabled}>
           Submit Answer
         </Button>
+        <span className="text-xs text-muted" data-testid="submit-hint">
+          {commandEnterLabel()} submits
+        </span>
         {busy && (
           <span role="status" aria-live="polite" className="text-[13px] text-muted">
             {stage ? `${stage}…` : "Evaluating…"} {elapsed}s
@@ -699,45 +964,45 @@ export default function InterviewSession() {
       ).length
     : 0;
 
-  const evaluation = result && (
-    <div className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-[var(--radius-card)] border border-line bg-surface">
-      <header className="shrink-0 border-b border-line bg-[var(--color-inset)] px-3 py-2.5">
-        <div className="flex flex-wrap items-center gap-2">
+  const evaluationPanel = result && (
+    <div className="overflow-hidden rounded-[var(--radius-card)] border border-line bg-surface">
+      <header className="border-b border-line bg-[var(--color-inset)] px-3 py-2.5">
+        <div className="flex flex-wrap items-center gap-x-2.5 gap-y-1">
           <span className="inline-flex h-5 items-center rounded-[var(--radius-xs)] bg-[var(--color-tint)] px-1.5 text-[11px] font-semibold uppercase tracking-wide text-[var(--color-blue-hover)]">
             Evaluation
           </span>
-          <h2
-            className="min-w-0 flex-1 truncate text-[15px] font-semibold text-navy"
-            title={current?.text ?? "Answer evaluation"}
-          >
-            {current?.text ?? "Answer evaluation"}
-          </h2>
-        </div>
-        <div className="mt-2 grid grid-cols-2 gap-px overflow-hidden rounded-[var(--radius-sm)] border border-line bg-divider sm:grid-cols-4">
-          <HeroMetric label="Answer score">
+          <span className="text-[22px] font-semibold leading-tight tabular-nums text-navy">
             {answerScore === null ? "—" : `${Math.round(answerScore * 100)}%`}
-          </HeroMetric>
-          <HeroMetric label="Confidence">
-            {answerConfidence === null ? (
-              "—"
-            ) : (
-              <span className="inline-flex items-baseline gap-1">
-                {Math.round(answerConfidence * 100)}%
-                {answerConfidence < 0.4 && (
-                  <span className="text-[11px] font-normal text-[var(--color-accent)]">low</span>
-                )}
-              </span>
-            )}
-          </HeroMetric>
-          <HeroMetric label="Rubric">
-            {rubricAvg === null ? "—" : `${Math.round(rubricAvg * 100)}%`}
-          </HeroMetric>
-          <HeroMetric label="Readiness moved">
-            {readinessMoved}/{result.skillImpact.length}
-          </HeroMetric>
+          </span>
+          <span className="text-xs text-muted">answer score</span>
+          <details className="ms-auto text-xs text-muted">
+            <summary className="cursor-pointer select-none">details</summary>
+            <dl className="mt-1 grid grid-cols-2 gap-x-4 gap-y-0.5 sm:grid-cols-3">
+              <div className="flex justify-between gap-2">
+                <dt>confidence</dt>
+                <dd className="font-mono text-ink">
+                  {answerConfidence === null
+                    ? "—"
+                    : `${Math.round(answerConfidence * 100)}%`}
+                </dd>
+              </div>
+              <div className="flex justify-between gap-2">
+                <dt>rubric</dt>
+                <dd className="font-mono text-ink">
+                  {rubricAvg === null ? "—" : `${Math.round(rubricAvg * 100)}%`}
+                </dd>
+              </div>
+              <div className="flex justify-between gap-2">
+                <dt>readiness moved</dt>
+                <dd className="font-mono text-ink">
+                  {readinessMoved}/{result.skillImpact.length}
+                </dd>
+              </div>
+            </dl>
+          </details>
         </div>
       </header>
-      <div className="flex shrink-0 items-center gap-1 border-b border-line px-2">
+      <div className="flex items-center gap-1 border-b border-line px-2">
         {(
           [
             ["feedback", "Feedback"],
@@ -761,7 +1026,7 @@ export default function InterviewSession() {
           </button>
         ))}
       </div>
-      <div className="min-h-0 flex-1 space-y-3 overflow-auto p-3" aria-live="polite">
+      <div className="space-y-3 p-3" aria-live="polite">
         {evalTab === "feedback" && (
           <div className="max-w-prose space-y-3">
             {result.voiceFeedback && <DeliveryHints feedback={result.voiceFeedback} />}
@@ -921,29 +1186,45 @@ export default function InterviewSession() {
           </div>
         )}
       </div>
-      <footer className="flex shrink-0 items-center gap-3 border-t border-line px-3 py-2">
-        <StreamDraft stage={stage} draft={draft} />
-        {result.newActions.length > 0 && (
-          <span className="text-xs text-muted">
-            {result.newActions.length}{" "}
-            {result.newActions.length === 1 ? "action" : "actions"} added to your plan ·{" "}
-            <Link to="/prepare" className="text-blue underline">
-              View plan
-            </Link>
-          </span>
-        )}
-        <div className="ml-auto flex items-center gap-3">
-          {result.nextAvailable === "question" ? (
-            <Button size="small" onClick={next} disabled={busy}>Next Question</Button>
-          ) : (
-            <Button size="small" onClick={finish} disabled={busy}>Finish Interview</Button>
-          )}
-          {busy && stage && (
-            <span role="status" aria-live="polite" className="text-[13px] text-muted">{stage}…</span>
-          )}
-        </div>
-      </footer>
     </div>
+  );
+
+  const resultFooter = result && (
+    <Panel bodyClassName="flex flex-wrap items-center gap-3">
+      <StreamDraft stage={stage} draft={draft} />
+      {result.newActions.length > 0 && (
+        <span className="text-xs text-muted">
+          {result.newActions.length}{" "}
+          {result.newActions.length === 1 ? "action" : "actions"} added to your plan ·{" "}
+          <Link to="/prepare" className="text-blue underline">
+            View plan
+          </Link>
+        </span>
+      )}
+      <div className="ms-auto flex items-center gap-3">
+        {result.nextAvailable === "question" ? (
+          <Button size="small" onClick={next} disabled={busy}>Next Question</Button>
+        ) : (
+          <Button size="small" onClick={finish} disabled={busy}>Finish Interview</Button>
+        )}
+        {busy && stage && (
+          <span role="status" aria-live="polite" className="text-[13px] text-muted">{stage}…</span>
+        )}
+      </div>
+    </Panel>
+  );
+
+  const allAnsweredPanel = (
+    <Panel>
+      <p className="text-sm">All planned questions answered.</p>
+      <div className="mt-3 flex items-center gap-3">
+        <Button size="small" onClick={finish} disabled={busy}>Finish Interview</Button>
+        {busy && stage && (
+          <span role="status" aria-live="polite" className="text-[13px] text-muted">{stage}…</span>
+        )}
+      </div>
+      <StreamDraft stage={stage} draft={draft} />
+    </Panel>
   );
 
   const inspector = hasInspector && detail && (
@@ -987,6 +1268,18 @@ export default function InterviewSession() {
     </div>
   );
 
+  // The composer (current question + editor, or the post-answer controls) stays
+  // pinned at the bottom; the transcript scrolls above it.
+  const showTranscript = transcript.length > 0 || (result !== null && current !== null);
+  const composerClass = answering
+    ? showTranscript
+      ? "mt-3 flex h-[55%] min-h-0 shrink-0 flex-col"
+      : "mt-3 flex min-h-0 flex-1 flex-col"
+    : "mt-3 flex shrink-0 flex-col";
+  const currentAnswerText = fieldsMode
+    ? answerFields.map((f) => `${f.label}: ${fieldValues[f.key] ?? "—"}`).join("\n")
+    : answer;
+
   return (
     <Workspace
       scroll={false}
@@ -1019,20 +1312,16 @@ export default function InterviewSession() {
             </>
           }
           actions={
-            <>
-              {detail?.session.mode === "practice" && <Pill tone="blue">Practice</Pill>}
-              {detail && !done && <Pill tone="muted">Question {questionNo} of {detail.session.plannedQuestions}</Pill>}
-              {hasInspector && (
-                <Button
-                  size="small"
-                  variant="ghost"
-                  aria-label={inspectorOpen ? "Collapse inspector" : "Expand inspector"}
-                  onClick={() => setInspectorOpen((v) => !v)}
-                >
-                  {inspectorOpen ? "»" : "«"}
-                </Button>
-              )}
-            </>
+            hasInspector ? (
+              <Button
+                size="small"
+                variant="ghost"
+                aria-label={inspectorOpen ? "Collapse inspector" : "Expand inspector"}
+                onClick={() => setInspectorOpen((v) => !v)}
+              >
+                {inspectorOpen ? "»" : "«"}
+              </Button>
+            ) : undefined
           }
         />
       }
@@ -1044,23 +1333,52 @@ export default function InterviewSession() {
       {!done && detail && (
         <div className="mt-3 flex min-h-0 flex-1 gap-3">
           <div className="flex min-h-0 min-w-0 flex-1 flex-col">
-            {evaluation ?? running}
+            {showTranscript && (
+              <div
+                ref={transcriptRef}
+                data-testid="transcript"
+                className="min-h-0 flex-1 space-y-3 overflow-auto pe-1"
+                aria-live="polite"
+              >
+                {transcript.map((turn) => (
+                  <div key={turn.question.id} className="space-y-2">
+                    <InterviewerQuestion text={turn.question.text} />
+                    {turn.answer && (
+                      <AnswerBubble text={turn.answer.text} code={turn.answer.code} />
+                    )}
+                    {turn.evaluation && <EvaluationSummary evaluation={turn.evaluation} />}
+                    {turn.followUps.some((f) => f.answer) && (
+                      <div className="space-y-2 border-s-2 border-divider ps-3">
+                        {turn.followUps
+                          .filter((f) => f.answer)
+                          .map((f) => (
+                            <div key={f.question.id} className="space-y-2">
+                              <InterviewerQuestion text={f.question.text} />
+                              {f.answer && (
+                                <AnswerBubble text={f.answer.text} code={f.answer.code} />
+                              )}
+                              {f.evaluation && <EvaluationSummary evaluation={f.evaluation} />}
+                            </div>
+                          ))}
+                      </div>
+                    )}
+                  </div>
+                ))}
+                {result && current && (
+                  <div className="space-y-2" data-testid="current-turn">
+                    <InterviewerQuestion text={current.text} />
+                    <AnswerBubble text={currentAnswerText} code={code || null} />
+                    {evaluationPanel}
+                  </div>
+                )}
+              </div>
+            )}
+            <div className={composerClass}>
+              {result ? resultFooter : current ? running : allAnsweredPanel}
+            </div>
           </div>
           {!result && inspector}
         </div>
-      )}
-
-      {!done && !current && detail && (
-        <Panel className="mt-3 flex-1">
-          <p className="text-sm">All planned questions answered.</p>
-          <div className="mt-3 flex items-center gap-3">
-            <Button size="small" onClick={finish} disabled={busy}>Finish Interview</Button>
-            {busy && stage && (
-              <span role="status" aria-live="polite" className="text-[13px] text-muted">{stage}…</span>
-            )}
-          </div>
-          <StreamDraft stage={stage} draft={draft} />
-        </Panel>
       )}
 
       {debrief && (
