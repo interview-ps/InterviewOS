@@ -31,6 +31,7 @@ OPENAPI_PATH = API_DIR / "openapi.json"
 
 _MODEL_GROUPS: dict[str, ModuleType] = {
     "shared": core.models.shared,
+    "ai_usage": core.models.ai_usage,
     "candidate": core.models.candidate,
     "target": core.models.target,
     "assessment": core.models.assessment,

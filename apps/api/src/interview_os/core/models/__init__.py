@@ -1,5 +1,14 @@
 """Pydantic v2 models, one module per core area (port of `packages/core/src`)."""
 
+from .ai_usage import (
+    AIUsageBreakdown,
+    AIUsageContext,
+    AIUsageCost,
+    AIUsageFilters,
+    AIUsageRecord,
+    AIUsageSummary,
+    AIUsageTotals,
+)
 from .assessment import (
     AnswerEvaluation,
     AssessedItem,
@@ -237,6 +246,13 @@ from .state import InterviewOSState
 from .target import CompanyNotesProfile, Level, Requirement, RequirementKind, TargetRole
 
 __all__ = [
+    "AIUsageBreakdown",
+    "AIUsageContext",
+    "AIUsageCost",
+    "AIUsageFilters",
+    "AIUsageRecord",
+    "AIUsageSummary",
+    "AIUsageTotals",
     "ANSWER_FIELD_TYPES",
     "APP_ROUTE_ALLOWLIST",
     "COMPANY_DISCLAIMER",

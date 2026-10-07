@@ -1,0 +1,1034 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "group": "ai_usage",
+  "models": {
+    "AIUsageBreakdown": {
+      "$defs": {
+        "AIUsageCost": {
+          "description": "A monetary amount in a single ISO-4217 currency (never summed across).",
+          "properties": {
+            "amount": {
+              "title": "Amount",
+              "type": "number"
+            },
+            "currency": {
+              "title": "Currency",
+              "type": "string"
+            }
+          },
+          "required": [
+            "currency",
+            "amount"
+          ],
+          "title": "AIUsageCost",
+          "type": "object"
+        }
+      },
+      "description": "Totals for one group (a runtime kind, or a skill/task id).",
+      "properties": {
+        "cost": {
+          "items": {
+            "$ref": "#/$defs/AIUsageCost"
+          },
+          "title": "Cost",
+          "type": "array"
+        },
+        "inputTokens": {
+          "title": "Inputtokens",
+          "type": "integer"
+        },
+        "key": {
+          "title": "Key",
+          "type": "string"
+        },
+        "label": {
+          "title": "Label",
+          "type": "string"
+        },
+        "outputTokens": {
+          "title": "Outputtokens",
+          "type": "integer"
+        },
+        "totalTokens": {
+          "title": "Totaltokens",
+          "type": "integer"
+        },
+        "turns": {
+          "title": "Turns",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "key",
+        "label",
+        "inputTokens",
+        "outputTokens",
+        "totalTokens",
+        "turns",
+        "cost"
+      ],
+      "title": "AIUsageBreakdown",
+      "type": "object"
+    },
+    "AIUsageContext": {
+      "description": "The latest session context-window reading (for the usage bar).",
+      "properties": {
+        "createdAt": {
+          "title": "Createdat",
+          "type": "string"
+        },
+        "providerSessionId": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Providersessionid"
+        },
+        "runtimeKind": {
+          "title": "Runtimekind",
+          "type": "string"
+        },
+        "size": {
+          "title": "Size",
+          "type": "integer"
+        },
+        "used": {
+          "title": "Used",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "runtimeKind",
+        "providerSessionId",
+        "used",
+        "size",
+        "createdAt"
+      ],
+      "title": "AIUsageContext",
+      "type": "object"
+    },
+    "AIUsageCost": {
+      "description": "A monetary amount in a single ISO-4217 currency (never summed across).",
+      "properties": {
+        "amount": {
+          "title": "Amount",
+          "type": "number"
+        },
+        "currency": {
+          "title": "Currency",
+          "type": "string"
+        }
+      },
+      "required": [
+        "currency",
+        "amount"
+      ],
+      "title": "AIUsageCost",
+      "type": "object"
+    },
+    "AIUsageFilters": {
+      "properties": {
+        "from": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "From"
+        },
+        "runtime": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Runtime"
+        },
+        "session": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Session"
+        },
+        "to": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "To"
+        }
+      },
+      "title": "AIUsageFilters",
+      "type": "object"
+    },
+    "AIUsageRecord": {
+      "description": "One prompt turn's AI usage — numbers and ids only, never prompt text.",
+      "properties": {
+        "attempt": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Attempt"
+        },
+        "cachedReadTokens": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Cachedreadtokens"
+        },
+        "cachedWriteTokens": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Cachedwritetokens"
+        },
+        "contextSize": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Contextsize"
+        },
+        "contextUsed": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Contextused"
+        },
+        "costAmount": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Costamount"
+        },
+        "costCurrency": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Costcurrency"
+        },
+        "createdAt": {
+          "title": "Createdat",
+          "type": "string"
+        },
+        "durationMs": {
+          "title": "Durationms",
+          "type": "integer"
+        },
+        "errorCode": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Errorcode"
+        },
+        "id": {
+          "title": "Id",
+          "type": "string"
+        },
+        "inputTokens": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Inputtokens"
+        },
+        "interviewSessionId": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Interviewsessionid"
+        },
+        "model": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Model"
+        },
+        "ok": {
+          "anyOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Ok"
+        },
+        "outputTokens": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Outputtokens"
+        },
+        "providerSessionId": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Providersessionid"
+        },
+        "runtimeKind": {
+          "title": "Runtimekind",
+          "type": "string"
+        },
+        "stopReason": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Stopreason"
+        },
+        "taskId": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Taskid"
+        },
+        "thoughtTokens": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Thoughttokens"
+        },
+        "totalTokens": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Totaltokens"
+        }
+      },
+      "required": [
+        "id",
+        "runtimeKind",
+        "providerSessionId",
+        "interviewSessionId",
+        "taskId",
+        "model",
+        "attempt",
+        "ok",
+        "errorCode",
+        "inputTokens",
+        "outputTokens",
+        "thoughtTokens",
+        "cachedReadTokens",
+        "cachedWriteTokens",
+        "totalTokens",
+        "contextUsed",
+        "contextSize",
+        "costAmount",
+        "costCurrency",
+        "stopReason",
+        "durationMs",
+        "createdAt"
+      ],
+      "title": "AIUsageRecord",
+      "type": "object"
+    },
+    "AIUsageSummary": {
+      "$defs": {
+        "AIUsageBreakdown": {
+          "description": "Totals for one group (a runtime kind, or a skill/task id).",
+          "properties": {
+            "cost": {
+              "items": {
+                "$ref": "#/$defs/AIUsageCost"
+              },
+              "title": "Cost",
+              "type": "array"
+            },
+            "inputTokens": {
+              "title": "Inputtokens",
+              "type": "integer"
+            },
+            "key": {
+              "title": "Key",
+              "type": "string"
+            },
+            "label": {
+              "title": "Label",
+              "type": "string"
+            },
+            "outputTokens": {
+              "title": "Outputtokens",
+              "type": "integer"
+            },
+            "totalTokens": {
+              "title": "Totaltokens",
+              "type": "integer"
+            },
+            "turns": {
+              "title": "Turns",
+              "type": "integer"
+            }
+          },
+          "required": [
+            "key",
+            "label",
+            "inputTokens",
+            "outputTokens",
+            "totalTokens",
+            "turns",
+            "cost"
+          ],
+          "title": "AIUsageBreakdown",
+          "type": "object"
+        },
+        "AIUsageContext": {
+          "description": "The latest session context-window reading (for the usage bar).",
+          "properties": {
+            "createdAt": {
+              "title": "Createdat",
+              "type": "string"
+            },
+            "providerSessionId": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Providersessionid"
+            },
+            "runtimeKind": {
+              "title": "Runtimekind",
+              "type": "string"
+            },
+            "size": {
+              "title": "Size",
+              "type": "integer"
+            },
+            "used": {
+              "title": "Used",
+              "type": "integer"
+            }
+          },
+          "required": [
+            "runtimeKind",
+            "providerSessionId",
+            "used",
+            "size",
+            "createdAt"
+          ],
+          "title": "AIUsageContext",
+          "type": "object"
+        },
+        "AIUsageCost": {
+          "description": "A monetary amount in a single ISO-4217 currency (never summed across).",
+          "properties": {
+            "amount": {
+              "title": "Amount",
+              "type": "number"
+            },
+            "currency": {
+              "title": "Currency",
+              "type": "string"
+            }
+          },
+          "required": [
+            "currency",
+            "amount"
+          ],
+          "title": "AIUsageCost",
+          "type": "object"
+        },
+        "AIUsageFilters": {
+          "properties": {
+            "from": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "title": "From"
+            },
+            "runtime": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "title": "Runtime"
+            },
+            "session": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "title": "Session"
+            },
+            "to": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "title": "To"
+            }
+          },
+          "title": "AIUsageFilters",
+          "type": "object"
+        },
+        "AIUsageRecord": {
+          "description": "One prompt turn's AI usage — numbers and ids only, never prompt text.",
+          "properties": {
+            "attempt": {
+              "anyOf": [
+                {
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Attempt"
+            },
+            "cachedReadTokens": {
+              "anyOf": [
+                {
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Cachedreadtokens"
+            },
+            "cachedWriteTokens": {
+              "anyOf": [
+                {
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Cachedwritetokens"
+            },
+            "contextSize": {
+              "anyOf": [
+                {
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Contextsize"
+            },
+            "contextUsed": {
+              "anyOf": [
+                {
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Contextused"
+            },
+            "costAmount": {
+              "anyOf": [
+                {
+                  "type": "number"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Costamount"
+            },
+            "costCurrency": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Costcurrency"
+            },
+            "createdAt": {
+              "title": "Createdat",
+              "type": "string"
+            },
+            "durationMs": {
+              "title": "Durationms",
+              "type": "integer"
+            },
+            "errorCode": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Errorcode"
+            },
+            "id": {
+              "title": "Id",
+              "type": "string"
+            },
+            "inputTokens": {
+              "anyOf": [
+                {
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Inputtokens"
+            },
+            "interviewSessionId": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Interviewsessionid"
+            },
+            "model": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Model"
+            },
+            "ok": {
+              "anyOf": [
+                {
+                  "type": "boolean"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Ok"
+            },
+            "outputTokens": {
+              "anyOf": [
+                {
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Outputtokens"
+            },
+            "providerSessionId": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Providersessionid"
+            },
+            "runtimeKind": {
+              "title": "Runtimekind",
+              "type": "string"
+            },
+            "stopReason": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Stopreason"
+            },
+            "taskId": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Taskid"
+            },
+            "thoughtTokens": {
+              "anyOf": [
+                {
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Thoughttokens"
+            },
+            "totalTokens": {
+              "anyOf": [
+                {
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Totaltokens"
+            }
+          },
+          "required": [
+            "id",
+            "runtimeKind",
+            "providerSessionId",
+            "interviewSessionId",
+            "taskId",
+            "model",
+            "attempt",
+            "ok",
+            "errorCode",
+            "inputTokens",
+            "outputTokens",
+            "thoughtTokens",
+            "cachedReadTokens",
+            "cachedWriteTokens",
+            "totalTokens",
+            "contextUsed",
+            "contextSize",
+            "costAmount",
+            "costCurrency",
+            "stopReason",
+            "durationMs",
+            "createdAt"
+          ],
+          "title": "AIUsageRecord",
+          "type": "object"
+        },
+        "AIUsageTotals": {
+          "properties": {
+            "cachedReadTokens": {
+              "title": "Cachedreadtokens",
+              "type": "integer"
+            },
+            "cachedWriteTokens": {
+              "title": "Cachedwritetokens",
+              "type": "integer"
+            },
+            "cost": {
+              "items": {
+                "$ref": "#/$defs/AIUsageCost"
+              },
+              "title": "Cost",
+              "type": "array"
+            },
+            "inputTokens": {
+              "title": "Inputtokens",
+              "type": "integer"
+            },
+            "outputTokens": {
+              "title": "Outputtokens",
+              "type": "integer"
+            },
+            "thoughtTokens": {
+              "title": "Thoughttokens",
+              "type": "integer"
+            },
+            "tokensReported": {
+              "title": "Tokensreported",
+              "type": "boolean"
+            },
+            "totalTokens": {
+              "title": "Totaltokens",
+              "type": "integer"
+            },
+            "turns": {
+              "title": "Turns",
+              "type": "integer"
+            }
+          },
+          "required": [
+            "inputTokens",
+            "outputTokens",
+            "thoughtTokens",
+            "cachedReadTokens",
+            "cachedWriteTokens",
+            "totalTokens",
+            "turns",
+            "tokensReported",
+            "cost"
+          ],
+          "title": "AIUsageTotals",
+          "type": "object"
+        }
+      },
+      "description": "`GET /api/ai-usage` response.",
+      "properties": {
+        "byModel": {
+          "items": {
+            "$ref": "#/$defs/AIUsageBreakdown"
+          },
+          "title": "Bymodel",
+          "type": "array"
+        },
+        "byRuntime": {
+          "items": {
+            "$ref": "#/$defs/AIUsageBreakdown"
+          },
+          "title": "Byruntime",
+          "type": "array"
+        },
+        "bySkill": {
+          "items": {
+            "$ref": "#/$defs/AIUsageBreakdown"
+          },
+          "title": "Byskill",
+          "type": "array"
+        },
+        "filters": {
+          "$ref": "#/$defs/AIUsageFilters"
+        },
+        "latestContext": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/AIUsageContext"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "recent": {
+          "items": {
+            "$ref": "#/$defs/AIUsageRecord"
+          },
+          "title": "Recent",
+          "type": "array"
+        },
+        "totals": {
+          "$ref": "#/$defs/AIUsageTotals"
+        }
+      },
+      "required": [
+        "totals",
+        "byRuntime",
+        "bySkill",
+        "byModel",
+        "latestContext",
+        "recent",
+        "filters"
+      ],
+      "title": "AIUsageSummary",
+      "type": "object"
+    },
+    "AIUsageTotals": {
+      "$defs": {
+        "AIUsageCost": {
+          "description": "A monetary amount in a single ISO-4217 currency (never summed across).",
+          "properties": {
+            "amount": {
+              "title": "Amount",
+              "type": "number"
+            },
+            "currency": {
+              "title": "Currency",
+              "type": "string"
+            }
+          },
+          "required": [
+            "currency",
+            "amount"
+          ],
+          "title": "AIUsageCost",
+          "type": "object"
+        }
+      },
+      "properties": {
+        "cachedReadTokens": {
+          "title": "Cachedreadtokens",
+          "type": "integer"
+        },
+        "cachedWriteTokens": {
+          "title": "Cachedwritetokens",
+          "type": "integer"
+        },
+        "cost": {
+          "items": {
+            "$ref": "#/$defs/AIUsageCost"
+          },
+          "title": "Cost",
+          "type": "array"
+        },
+        "inputTokens": {
+          "title": "Inputtokens",
+          "type": "integer"
+        },
+        "outputTokens": {
+          "title": "Outputtokens",
+          "type": "integer"
+        },
+        "thoughtTokens": {
+          "title": "Thoughttokens",
+          "type": "integer"
+        },
+        "tokensReported": {
+          "title": "Tokensreported",
+          "type": "boolean"
+        },
+        "totalTokens": {
+          "title": "Totaltokens",
+          "type": "integer"
+        },
+        "turns": {
+          "title": "Turns",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "inputTokens",
+        "outputTokens",
+        "thoughtTokens",
+        "cachedReadTokens",
+        "cachedWriteTokens",
+        "totalTokens",
+        "turns",
+        "tokensReported",
+        "cost"
+      ],
+      "title": "AIUsageTotals",
+      "type": "object"
+    }
+  }
+}

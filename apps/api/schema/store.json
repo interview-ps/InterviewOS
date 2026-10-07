@@ -25,6 +25,7 @@
     "mcp_servers",
     "external_contexts",
     "plugin_settings",
-    "plugin_storage"
+    "plugin_storage",
+    "ai_usage"
   ]
 }

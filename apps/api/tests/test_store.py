@@ -16,6 +16,7 @@ from interview_os.core.models import (
     TargetRole,
 )
 from interview_os.store import (
+    AIUsageRow,
     AnswerPluginReview,
     AnswerVoice,
     ReadinessDeltaEntry,
@@ -26,6 +27,41 @@ from interview_os.store import (
 from interview_os.store.schema import TABLE_NAMES
 
 CREATED_AT = "2026-01-01T00:00:00.000Z"
+LATER = "2026-01-02T00:00:00.000Z"
+
+
+def _ai_usage(
+    id: str,
+    runtime_kind: str,
+    provider_session_id: str | None,
+    interview_session_id: str | None,
+    task_id: str | None,
+    created_at: str,
+) -> AIUsageRow:
+    return AIUsageRow(
+        id=id,
+        runtime_kind=runtime_kind,
+        provider_session_id=provider_session_id,
+        interview_session_id=interview_session_id,
+        task_id=task_id,
+        model="mock-model",
+        attempt=1,
+        ok=1,
+        error_code=None,
+        input_tokens=10,
+        output_tokens=4,
+        thought_tokens=2,
+        cached_read_tokens=1,
+        cached_write_tokens=0,
+        total_tokens=16,
+        context_used=16,
+        context_size=200000,
+        cost_amount=0.001,
+        cost_currency="USD",
+        stop_reason="end_turn",
+        duration_ms=5,
+        created_at=created_at,
+    )
 
 
 def _candidate() -> CandidateProfile:
@@ -81,6 +117,33 @@ def test_migrate_is_idempotent_and_creates_every_table(file_store: Store) -> Non
     existing = set(file_store._table_names())
     assert set(TABLE_NAMES) <= existing
     assert "alembic_version" in existing
+
+
+def test_ai_usage_round_trip_and_filters(file_store: Store) -> None:
+    file_store.insert_ai_usage(
+        _ai_usage("aiu_1", "mock", "t1", "s1", "resume-analyzer", CREATED_AT)
+    )
+    file_store.insert_ai_usage(_ai_usage("aiu_2", "devin", "t2", None, None, LATER))
+
+    rows = file_store.list_ai_usage()
+    assert [row.id for row in rows] == ["aiu_2", "aiu_1"]  # newest first
+    assert rows[0].cost_currency == "USD" and rows[0].task_id is None
+    assert rows[1].task_id == "resume-analyzer"
+    assert rows[1].interview_session_id == "s1"
+    assert [row.id for row in file_store.list_ai_usage(runtime="mock")] == ["aiu_1"]
+    assert [row.id for row in file_store.list_ai_usage(since=LATER)] == ["aiu_2"]
+    assert [row.id for row in file_store.list_ai_usage(until=CREATED_AT)] == ["aiu_1"]
+
+
+def test_ai_usage_is_append_only(file_store: Store) -> None:
+    file_store.insert_ai_usage(_ai_usage("aiu_1", "mock", "t1", None, None, CREATED_AT))
+    with pytest.raises(StoreDataError):
+        file_store.update_row("ai_usage", "aiu_1", {"runtime_kind": "x"})
+    with pytest.raises(StoreDataError):
+        file_store.delete_row("ai_usage", "aiu_1")
+    with pytest.raises(StoreDataError):
+        file_store.delete_rows_where("ai_usage", runtime_kind="mock")
+    assert len(file_store.list_ai_usage()) == 1
 
 
 def test_memory_store_has_every_table(memory_store: Store) -> None:

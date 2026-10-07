@@ -22,6 +22,7 @@ from interview_os.core import (
 )
 from interview_os.core.models import (
     UI_TREE_LIMITS,
+    AIUsageSummary,
     AnswerEvaluation,
     AtsResult,
     CamelModel,
@@ -995,6 +996,87 @@ HOOK_SAMPLES: dict[str, tuple[dict[str, Any], dict[str, Any]]] = {
     ),
 }
 
+AI_USAGE_SUMMARY: dict[str, Any] = {
+    "totals": {
+        "inputTokens": 120,
+        "outputTokens": 40,
+        "thoughtTokens": 10,
+        "cachedReadTokens": 5,
+        "cachedWriteTokens": 2,
+        "totalTokens": 170,
+        "turns": 2,
+        "tokensReported": True,
+        "cost": [{"currency": "USD", "amount": 0.0012}],
+    },
+    "byRuntime": [
+        {
+            "key": "mock",
+            "label": "mock",
+            "inputTokens": 120,
+            "outputTokens": 40,
+            "totalTokens": 170,
+            "turns": 2,
+            "cost": [{"currency": "USD", "amount": 0.0012}],
+        }
+    ],
+    "bySkill": [
+        {
+            "key": "resume-analyzer",
+            "label": "resume-analyzer",
+            "inputTokens": 120,
+            "outputTokens": 40,
+            "totalTokens": 170,
+            "turns": 2,
+            "cost": [],
+        }
+    ],
+    "byModel": [
+        {
+            "key": "mock-model",
+            "label": "mock-model",
+            "inputTokens": 120,
+            "outputTokens": 40,
+            "totalTokens": 170,
+            "turns": 2,
+            "cost": [{"currency": "USD", "amount": 0.0012}],
+        }
+    ],
+    "latestContext": {
+        "runtimeKind": "mock",
+        "providerSessionId": "mock-thread-1",
+        "used": 170,
+        "size": 200000,
+        "createdAt": "2026-01-01T00:00:00Z",
+    },
+    "recent": [
+        {
+            "id": "aiu_1",
+            "runtimeKind": "mock",
+            "providerSessionId": "mock-thread-1",
+            "interviewSessionId": None,
+            "taskId": "resume-analyzer",
+            "model": "mock-model",
+            "attempt": 1,
+            "ok": True,
+            "errorCode": None,
+            "inputTokens": 120,
+            "outputTokens": 40,
+            "thoughtTokens": 10,
+            "cachedReadTokens": 5,
+            "cachedWriteTokens": 2,
+            "totalTokens": 170,
+            "contextUsed": 170,
+            "contextSize": 200000,
+            "costAmount": 0.0012,
+            "costCurrency": "USD",
+            "stopReason": "end_turn",
+            "durationMs": 12,
+            "createdAt": "2026-01-01T00:00:00Z",
+        }
+    ],
+    "filters": {"from": None, "to": None, "runtime": None},
+}
+
 SAMPLES: dict[str, tuple[type[BaseModel], dict[str, Any]]] = {
     "InterviewOSState": (InterviewOSState, INTERVIEW_OS_STATE),
     "CandidateProfile": (CandidateProfile, CANDIDATE),
@@ -1024,6 +1106,7 @@ SAMPLES: dict[str, tuple[type[BaseModel], dict[str, Any]]] = {
         {"durationSec": 92.5, "longPauseCount": 3, "longestPauseSec": 9},
     ),
     "PrepResource": (PrepResource, PREP_RESOURCE),
+    "AIUsageSummary": (AIUsageSummary, AI_USAGE_SUMMARY),
 }
 
 BEHAVIOUR_SAMPLES: dict[str, tuple[type[BaseModel], dict[str, Any]]] = {
