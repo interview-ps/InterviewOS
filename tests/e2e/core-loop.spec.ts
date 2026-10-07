@@ -1,5 +1,5 @@
 import { expect, test } from "@playwright/test";
-import { minimalPdf, resetState } from "./helpers";
+import { API, freshWorkspace, minimalPdf, resetState } from "./helpers";
 
 const POOR_ANSWER =
   "I would put Redis in front of the database using cache-aside so reads are fast.";
@@ -97,15 +97,17 @@ test.describe("core loop", () => {
 
     // Documents: upload a generated PDF — the textarea is filled via extraction
     await page.goto("/target");
-    await page
-      .locator('input[aria-label="Upload resume file"]')
-      .setInputFiles({
-        name: "resume.pdf",
-        mimeType: "application/pdf",
-        buffer: minimalPdf("Jordan Reyes senior backend engineer"),
-      });
     const resumeLabel = page.locator("label", {
       has: page.locator('input[aria-label="Upload resume file"]'),
+    });
+    const [resumeChooser] = await Promise.all([
+      page.waitForEvent("filechooser"),
+      resumeLabel.getByRole("button", { name: "Upload file" }).click(),
+    ]);
+    await resumeChooser.setFiles({
+      name: "resume.pdf",
+      mimeType: "application/pdf",
+      buffer: minimalPdf("Jordan Reyes senior backend engineer"),
     });
     await expect(resumeLabel.locator("textarea")).toHaveValue(
       /Jordan Reyes senior backend engineer/,
@@ -119,5 +121,31 @@ test.describe("core loop", () => {
     await expect(page).toHaveURL(/\/prepare$/);
     await page.goto("/stories");
     await expect(page).toHaveURL(/\/prepare\/stories$/);
+  });
+
+  // Draft autosave: an in-progress answer survives a page reload.
+  test("in-progress answer is restored after a reload", async ({ page, request }) => {
+    await freshWorkspace(request);
+    const start = await request.post(`${API}/api/interviews`, {
+      data: { mode: "practice", focusSkillId: "sql.indexing", plannedQuestions: 1 },
+    });
+    expect(start.ok()).toBe(true);
+    const { session } = await start.json();
+
+    await page.goto(`/interview/${session.id}`);
+    const box = page.locator("textarea").first();
+    await expect(box).toBeVisible({ timeout: 30_000 });
+    await box.fill("A half-written answer that must survive a reload.");
+    // let the 500 ms-debounced autosave flush to localStorage
+    await page.waitForTimeout(800);
+
+    // the beforeunload guard would otherwise block the reload; accept it
+    page.on("dialog", (dialog) => void dialog.accept());
+    await page.reload();
+
+    await expect(page.locator("textarea").first()).toHaveValue(
+      "A half-written answer that must survive a reload.",
+      { timeout: 30_000 },
+    );
   });
 });

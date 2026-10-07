@@ -7,6 +7,7 @@ import {
 } from "@/lib/api";
 import { Button, Callout, Card, EmptyState, ErrorNote, Pill, ScreenToolbar, SkeletonCard, Spinner, skillLabel, Workspace } from "@/components/ui";
 import { PrepareTabs } from "./tabs";
+import { useAppRefreshEffect } from "@/lib/app-refresh";
 
 const STAR_FIELDS = ["situation", "task", "action", "result"] as const;
 type StarField = (typeof STAR_FIELDS)[number];
@@ -41,6 +42,7 @@ export default function Stories() {
   }, []);
 
   useEffect(() => load(), [load]);
+  useAppRefreshEffect(load);
 
   const generate = () => {
     setGenerating(true);

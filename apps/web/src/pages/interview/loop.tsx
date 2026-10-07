@@ -16,6 +16,7 @@ import {
   statusTone,
 } from "@/components/ui";
 import { useSetPageTitle } from "@/lib/page-title";
+import { useAppRefreshEffect } from "@/lib/app-refresh";
 
 function SkillDeltas({ deltas }: { deltas: LoopRound["skillDeltas"] }) {
   if (!deltas?.length) return null;
@@ -44,6 +45,7 @@ export default function LoopPage() {
     api.loop(id).then(setLoop).catch((e) => setError(e));
   }, [id]);
   useEffect(load, [load]);
+  useAppRefreshEffect(load);
 
   const abandon = async () => {
     setBusy(true);

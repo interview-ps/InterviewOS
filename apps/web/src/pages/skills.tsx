@@ -20,6 +20,7 @@ import {
 } from "@/components/ui";
 import { refreshUIContributions } from "@/components/plugin-ui";
 import { PluginSettingsForm } from "@/components/plugin-settings-form";
+import { useAppRefreshEffect } from "@/lib/app-refresh";
 
 type TabKey = "installed" | "advanced";
 
@@ -476,7 +477,7 @@ export default function Skills() {
     api.plugins().then((r) => setPlugins(r.plugins)).catch(setError);
   }, []);
   useEffect(load, [load]);
-
+  useAppRefreshEffect(load);
   const onPluginChanged = (id: string, updated: PluginView | null) =>
     setPlugins((ps) =>
       updated

@@ -6,6 +6,7 @@ import { api } from "@/lib/api";
 import { runUIAction } from "@/lib/plugin-actions";
 import { PluginFrame, useUIContributions } from "@/components/plugin-ui";
 import { Button, EmptyState, PageHeader, Skeleton } from "@/components/ui";
+import { useAppRefreshEffect } from "@/lib/app-refresh";
 
 /** v0.4: full plugin pages at /plugins/<id>/<path> (manifest-declared). */
 export default function PluginPage() {
@@ -41,6 +42,7 @@ export default function PluginPage() {
   useEffect(() => {
     load(undefined);
   }, [load]);
+  useAppRefreshEffect(() => load(undefined));
 
   if (!plugin || !page) {
     return (

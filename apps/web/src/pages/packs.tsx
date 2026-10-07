@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { useNavigate } from "react-router";
 import { defaultModeId, defaultRoundModes, useAvailableModes } from "@/lib/modes";
+import { useAppRefreshEffect } from "@/lib/app-refresh";
 import {
   api,
   type CompanyPackView,
@@ -960,6 +961,7 @@ export default function Packs() {
       .catch(() => {});
   }, []);
   useEffect(load, [load]);
+  useAppRefreshEffect(load);
 
   if (!packs && !error) {
     return (

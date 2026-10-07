@@ -17,6 +17,7 @@ import {
   displayLabel,
   humanize,
 } from "@/components/ui";
+import { useAppRefreshEffect } from "@/lib/app-refresh";
 
 const fmtScore = (n: number | null | undefined) =>
   n === null || n === undefined ? "—" : `${Math.round(n * 100)}%`;
@@ -159,6 +160,7 @@ export default function History() {
   useEffect(() => {
     load();
   }, [load]);
+  useAppRefreshEffect(load);
   useEffect(() => {
     api.listTargets().then(setTargets).catch(() => {});
     api.loops().then(setLoops).catch(() => {});
