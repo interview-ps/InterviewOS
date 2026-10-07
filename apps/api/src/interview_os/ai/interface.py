@@ -17,6 +17,8 @@ from .errors import RuntimeError
 
 __all__ = [
     "AIRuntime",
+    "AIUsageEvent",
+    "AIUsageSink",
     "MODEL_ID_REGEX",
     "REASONING_EFFORTS",
     "AgentEvent",
@@ -120,6 +122,8 @@ class AgentTask:
     effort: ReasoningEffort | None = None
     #: Codex-only: warm app-server turn (default) or `codex exec`.
     task_mode: TaskMode | None = None
+    #: Retry attempt (1-based) when the caller is retrying a structured task.
+    attempt: int | None = None
 
 
 @dataclass(frozen=True, slots=True)
@@ -162,6 +166,8 @@ class RuntimeMessage:
     output_schema: JSONSchema | None = None
     model: str | None = None
     effort: ReasoningEffort | None = None
+    #: Retry attempt (1-based) when the caller is retrying a structured task.
+    attempt: int | None = None
 
 
 @dataclass(frozen=True, slots=True)
@@ -175,6 +181,51 @@ class SessionInput:
 class RuntimeSession:
     id: str
     thread_id: str
+
+
+@dataclass(frozen=True, slots=True)
+class AIUsageEvent:
+    """One prompt turn's reported usage (numbers and ids only — never text).
+
+    Providers report what they can; every field except `runtime_kind` /
+    `duration_ms` is optional. `cost_amount` is a **per-turn delta** of the
+    provider's cumulative session cost (the runtime de-cumulates it), so
+    consumers may sum it. `*_tokens` are null for ACP providers today (the
+    End-Turn Token Usage RFD is still Draft); the mock fills them.
+    """
+
+    runtime_kind: str
+    provider_session_id: str | None = None
+    task_id: str | None = None
+    #: The model the turn ran with (provider-qualified), when known.
+    model: str | None = None
+    #: Retry attempt for this task (1-based), when the caller reports one.
+    attempt: int | None = None
+    #: Whether the turn succeeded; `error_code` is its failure code otherwise.
+    ok: bool | None = None
+    error_code: str | None = None
+    input_tokens: int | None = None
+    output_tokens: int | None = None
+    thought_tokens: int | None = None
+    cached_read_tokens: int | None = None
+    cached_write_tokens: int | None = None
+    total_tokens: int | None = None
+    context_used: int | None = None
+    context_size: int | None = None
+    cost_amount: float | None = None
+    cost_currency: str | None = None
+    stop_reason: str | None = None
+    duration_ms: int = 0
+
+
+class AIUsageSink(Protocol):
+    """Receives AI usage as it happens; the orchestrator persists it.
+
+    Defined here so no provider detail leaks out of `ai/`. Implementations must
+    never raise (usage capture is best-effort telemetry).
+    """
+
+    def record(self, event: AIUsageEvent) -> None: ...
 
 
 class AIRuntime(Protocol):

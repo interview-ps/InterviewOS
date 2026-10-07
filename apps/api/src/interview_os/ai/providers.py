@@ -16,17 +16,15 @@ from pathlib import Path
 from typing import Protocol
 
 from ..paths import REPO_ROOT
+from .acp import AcpAgentConfig, AcpRuntime, AcpRuntimeOptions, acp_health_check
 from .claude import ClaudeCodeRuntime, ClaudeRuntimeOptions
 from .claude.detect import claude_health_check
 from .codex import CodexRuntime, CodexRuntimeOptions
 from .codex.detect import codex_health_check
-from .devin import DevinRuntime, DevinRuntimeOptions
-from .devin.detect import devin_health_check
-from .interface import AIRuntime, RuntimeKind, RuntimeStatus
+from .detect import candidate_names
+from .interface import AIRuntime, AIUsageSink, ModelInfo, RuntimeKind, RuntimeStatus
 from .logger import Logger
 from .mock import MockRuntime, MockRuntimeOptions
-from .opencode import OpencodeRuntime, OpencodeRuntimeOptions
-from .opencode.detect import opencode_health_check
 from .process import env_number
 
 __all__ = [
@@ -51,6 +49,78 @@ RUNTIME_KINDS: tuple[RuntimeKind, ...] = ("codex", "mock", "claude", "opencode",
 
 DEFAULT_WORKSPACE_DIR = str((REPO_ROOT / "data" / "codex-workspace").resolve())
 
+#: opencode ships a native ACP server (`opencode acp`). Credentials live in the
+#: CLI's own auth store; no provider key is forwarded to the child.
+OPENCODE_ACP = AcpAgentConfig(
+    kind="opencode",
+    args=("acp",),
+    override_key="INTERVIEW_OS_OPENCODE_BIN",
+    candidate_names=tuple(
+        candidate_names("opencode", ("opencode.cmd", "opencode.exe", "opencode"))
+    ),
+    setup_message=(
+        "opencode not found. Install: npm i -g opencode-ai, then run `opencode auth login`."
+    ),
+    env_exact=frozenset(
+        {
+            "PATH",
+            "HOME",
+            "USER",
+            "LANG",
+            "LC_ALL",
+            "TMPDIR",
+            "XDG_DATA_HOME",
+            "XDG_CONFIG_HOME",
+            "XDG_CACHE_HOME",
+            "OPENCODE_CONFIG",
+        }
+    ),
+    env_prefixes=("XDG_", "OPENCODE_"),
+    display_name="opencode",
+)
+
+#: Devin ships a native ACP server (`devin acp`). Credentials live in `devin auth
+#: login`; only its config roots are forwarded.
+DEVIN_ACP = AcpAgentConfig(
+    kind="devin",
+    args=("acp",),
+    override_key="INTERVIEW_OS_DEVIN_BIN",
+    candidate_names=tuple(candidate_names("devin", ("devin.exe", "devin.cmd", "devin"))),
+    setup_message=(
+        "Devin CLI not found. Install it from https://devin.ai, then run `devin auth login`."
+    ),
+    env_exact=frozenset(
+        {
+            "PATH",
+            "HOME",
+            "USER",
+            "LANG",
+            "LC_ALL",
+            "TMPDIR",
+            "XDG_DATA_HOME",
+            "XDG_CONFIG_HOME",
+            "XDG_CACHE_HOME",
+            "APPDATA",
+            "LOCALAPPDATA",
+            "USERPROFILE",
+            "HOMEDRIVE",
+            "HOMEPATH",
+            "WINDSURF_API_KEY",
+        }
+    ),
+    env_prefixes=("XDG_", "DEVIN_"),
+    default_models=(
+        ModelInfo("adaptive", "Adaptive (auto)", [], None, is_default=True),
+        ModelInfo("swe", "SWE (latest)", [], None),
+        ModelInfo("opus", "Opus (latest)", [], None),
+        ModelInfo("sonnet", "Sonnet (latest)", [], None),
+        ModelInfo("gpt", "GPT (latest)", [], None),
+        ModelInfo("codex", "Codex (latest)", [], None),
+        ModelInfo("gemini", "Gemini (latest)", [], None),
+    ),
+    display_name="devin",
+)
+
 SLUG_RE = re.compile(r"^[a-z][a-z0-9-]{0,39}$")
 
 PROVIDER_MODULE_PREFIX = "interview_os_runtime_provider_"
@@ -60,7 +130,12 @@ class ProviderCreate(Protocol):
     """Build the provider's `AIRuntime` (called per switch + at startup)."""
 
     def __call__(
-        self, *, env: Mapping[str, str], workspace_dir: str, logger: Logger | None
+        self,
+        *,
+        env: Mapping[str, str],
+        workspace_dir: str,
+        logger: Logger | None,
+        usage_sink: AIUsageSink | None = None,
     ) -> AIRuntime | Awaitable[AIRuntime]: ...
 
 
@@ -142,28 +217,51 @@ async def instantiate_provider(
     env: Mapping[str, str],
     workspace_dir: str,
     logger: Logger | None = None,
+    usage_sink: AIUsageSink | None = None,
 ) -> AIRuntime:
     """Instantiate a provider in its own workspace dir (callers mkdir first)."""
 
     custom = _custom_providers.get(kind)
     if custom is not None:
-        created = custom.create(env=env, workspace_dir=workspace_dir, logger=logger)
+        created = custom.create(
+            env=env, workspace_dir=workspace_dir, logger=logger, usage_sink=usage_sink
+        )
         return await created if inspect.isawaitable(created) else created
     if kind == "mock":
-        return MockRuntime(MockRuntimeOptions(chunk_delay_ms=mock_delay_ms(env)))
+        return MockRuntime(
+            MockRuntimeOptions(chunk_delay_ms=mock_delay_ms(env), usage_sink=usage_sink)
+        )
     if kind == "claude":
         return ClaudeCodeRuntime(
-            ClaudeRuntimeOptions(env=env, workspace_dir=workspace_dir, logger=logger)
+            ClaudeRuntimeOptions(
+                env=env, workspace_dir=workspace_dir, logger=logger, usage_sink=usage_sink
+            )
         )
     if kind == "opencode":
-        return OpencodeRuntime(
-            OpencodeRuntimeOptions(env=env, workspace_dir=workspace_dir, logger=logger)
+        return AcpRuntime(
+            AcpRuntimeOptions(
+                config=OPENCODE_ACP,
+                env=env,
+                workspace_dir=workspace_dir,
+                logger=logger,
+                usage_sink=usage_sink,
+            )
         )
     if kind == "devin":
-        return DevinRuntime(
-            DevinRuntimeOptions(env=env, workspace_dir=workspace_dir, logger=logger)
+        return AcpRuntime(
+            AcpRuntimeOptions(
+                config=DEVIN_ACP,
+                env=env,
+                workspace_dir=workspace_dir,
+                logger=logger,
+                usage_sink=usage_sink,
+            )
         )
-    return CodexRuntime(CodexRuntimeOptions(env=env, workspace_dir=workspace_dir, logger=logger))
+    return CodexRuntime(
+        CodexRuntimeOptions(
+            env=env, workspace_dir=workspace_dir, logger=logger, usage_sink=usage_sink
+        )
+    )
 
 
 async def _mock_health(_env: Mapping[str, str], workspace_dir: str) -> RuntimeStatus:
@@ -176,12 +274,21 @@ async def _mock_health(_env: Mapping[str, str], workspace_dir: str) -> RuntimeSt
     )
 
 
+def _acp_health_checker(config: AcpAgentConfig) -> RuntimeHealthChecker:
+    """Probe an ACP agent: spawn it and run the `initialize` handshake."""
+
+    async def check(env: Mapping[str, str], workspace_dir: str) -> RuntimeStatus:
+        return await acp_health_check(config, env, workspace_dir)
+
+    return check
+
+
 #: Per-provider detection probes — cheap (PATH scan + `--version`).
 HEALTH_CHECKERS: dict[str, RuntimeHealthChecker] = {
     "codex": codex_health_check,
     "claude": claude_health_check,
-    "opencode": opencode_health_check,
-    "devin": devin_health_check,
+    "opencode": _acp_health_checker(OPENCODE_ACP),
+    "devin": _acp_health_checker(DEVIN_ACP),
     "mock": _mock_health,
 }
 
@@ -279,9 +386,16 @@ def load_runtime_providers(
     for entry in entries:
         kind = entry.get("kind") if isinstance(entry, dict) else None
         module = entry.get("module") if isinstance(entry, dict) else None
+        acp = entry.get("acp") if isinstance(entry, dict) else None
         try:
-            if not isinstance(kind, str) or not isinstance(module, str):
-                raise ValueError("entries must be { kind, module }")
+            if not isinstance(kind, str):
+                raise ValueError("entries must be { kind, module } or { kind, acp }")
+            if isinstance(acp, dict):
+                register_runtime_provider(_acp_provider_spec(kind, acp))
+                loaded.append(kind)
+                continue
+            if not isinstance(module, str):
+                raise ValueError("entries must be { kind, module } or { kind, acp }")
             module_path = Path(module)
             if not module_path.is_absolute():
                 module_path = config_dir / module_path
@@ -294,3 +408,60 @@ def load_runtime_providers(
             if logger is not None:
                 logger.warn("runtime.provider_load_failed", {"error": message})
     return LoadedProviders(loaded, errors)
+
+
+#: Environment keys a declaratively-configured ACP provider always receives.
+_ACP_BASE_ENV = frozenset({"PATH", "HOME", "USER", "LANG", "LC_ALL", "TMPDIR"})
+
+
+def _acp_provider_spec(kind: str, acp: dict[str, object]) -> RuntimeProviderSpec:
+    """Build a provider whose agent is declared inline (trusted local config).
+
+    `{ "kind": "x", "acp": { "command", "args"?, "env"?, "setupMessage"? } }`
+    — the command runs an ACP agent (argv array, never a shell string).
+    """
+
+    command = acp.get("command")
+    if not isinstance(command, str) or not command:
+        raise ValueError("acp.command must be a non-empty string")
+    args_value = acp.get("args", [])
+    if not isinstance(args_value, list) or not all(isinstance(a, str) for a in args_value):
+        raise ValueError("acp.args must be an array of strings")
+    env_value = acp.get("env", [])
+    if not isinstance(env_value, list) or not all(isinstance(k, str) for k in env_value):
+        raise ValueError("acp.env must be an array of strings")
+    setup = acp.get("setupMessage")
+    config = AcpAgentConfig(
+        kind=kind,
+        args=tuple(str(a) for a in args_value),
+        override_key="",
+        candidate_names=(),
+        setup_message=(
+            setup if isinstance(setup, str) else f'ACP agent for "{kind}" is unavailable.'
+        ),
+        env_exact=_ACP_BASE_ENV | frozenset(str(k) for k in env_value),
+        display_name=kind,
+        command=command,
+    )
+
+    def create(
+        *,
+        env: Mapping[str, str],
+        workspace_dir: str,
+        logger: Logger | None = None,
+        usage_sink: AIUsageSink | None = None,
+    ) -> AIRuntime:
+        return AcpRuntime(
+            AcpRuntimeOptions(
+                config=config,
+                env=env,
+                workspace_dir=workspace_dir,
+                logger=logger,
+                usage_sink=usage_sink,
+            )
+        )
+
+    async def health(env: Mapping[str, str], workspace_dir: str) -> RuntimeStatus:
+        return await acp_health_check(config, env, workspace_dir)
+
+    return RuntimeProviderSpec(kind=kind, create=create, health_check=health, label=f"{kind} (ACP)")

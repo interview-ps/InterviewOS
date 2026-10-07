@@ -3,14 +3,37 @@
 from __future__ import annotations
 
 import json
+from collections.abc import Mapping
 from dataclasses import dataclass
 from typing import Literal
 
 from ..interface import AgentEvent
 
-__all__ = ["CodexExecEventParser", "ParsedExecLine", "parse_exec_line"]
+__all__ = ["CodexExecEventParser", "ParsedExecLine", "parse_exec_line", "usage_tokens"]
 
 CodexExecEvent = dict[str, object]
+
+
+def usage_tokens(usage: object) -> dict[str, int | None]:
+    """Map a codex `turn.completed.usage` onto our token fields (missing → None)."""
+
+    if not isinstance(usage, Mapping):
+        return {}
+
+    def opt(*keys: str) -> int | None:
+        for key in keys:
+            value = usage.get(key)
+            if isinstance(value, int) and not isinstance(value, bool):
+                return value
+        return None
+
+    return {
+        "input": opt("input_tokens", "inputTokens"),
+        "output": opt("output_tokens", "outputTokens"),
+        "thought": opt("reasoning_output_tokens", "reasoningOutputTokens"),
+        "cached_read": opt("cached_input_tokens", "cachedInputTokens"),
+        "total": opt("total_tokens", "totalTokens"),
+    }
 
 
 @dataclass(frozen=True, slots=True)

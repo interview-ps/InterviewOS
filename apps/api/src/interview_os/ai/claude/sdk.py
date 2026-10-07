@@ -93,6 +93,10 @@ def _message_to_mapping(message: object) -> ClaudeSdkMessage:
             "structured_output": message.structured_output,
             "is_error": message.is_error,
             "result": message.result,
+            # Usage/cost for the AI usage page (absent on older SDKs).
+            "usage": getattr(message, "usage", None),
+            "total_cost_usd": getattr(message, "total_cost_usd", None),
+            "duration_ms": getattr(message, "duration_ms", None),
         }
     if isinstance(message, AssistantMessage):
         return {"type": "assistant", "content": message.content, "model": message.model}

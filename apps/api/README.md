@@ -4,7 +4,7 @@ FastAPI backend for Interview OS — the port target of `apps/server`
 (design: `docs/design/fastapi-backend-refactor.md`). **Status: phase 3** —
 core Pydantic models, the SQLAlchemy store over the existing SQLite file, the
 Alembic baseline, a health endpoint, and the AI runtime layer (`ai/`: Mock,
-Codex exec + app-server, Claude Agent SDK, opencode, Devin, `run_structured`).
+Codex exec + app-server, Claude Agent SDK, ACP (opencode, Devin), `run_structured`).
 Skills, orchestrator, routers, plugins and packs land in phases 4–7.
 
 ```
@@ -37,11 +37,13 @@ the only provider surface the rest of the backend sees (invariant #4);
   `codex`, with `INTERVIEW_OS_RUNTIME_FALLBACK=mock` as the only fallback.
 - Workspaces: `data/<kind>-workspace`, overridable with
   `INTERVIEW_OS_<KIND>_WORKSPACE`.
-- Custom providers come only from local `interview-os.runtimes.json`; each
-  entry names a Python module exporting a `RuntimeProviderSpec` as `PROVIDER`.
-- Untrusted prompts travel on stdin (codex exec/app-server, opencode) or in a
-  workspace temp file (Devin), never in argv; child environments are
-  allowlists (`codex/claude/opencode/devin/child_env.py`).
+- Custom providers come only from local `interview-os.runtimes.json`; an entry
+  names a Python module exporting a `RuntimeProviderSpec` as `PROVIDER`, or
+  declares an ACP agent inline (`{ "kind", "acp": { "command", "args" } }`).
+- Untrusted prompts travel in the ACP `session/prompt` over stdin
+  (opencode/Devin), on stdin (codex exec/app-server), or through the Claude
+  Agent SDK — never in argv; child environments are allowlists (per provider in
+  `ai/acp/config.py`, plus `codex/`/`claude/child_env.py`).
 - Tests run against `tests/fixtures/fake-codex.mjs` (shared with the
-  TypeScript suite) and `tests/fixtures/fake_provider_cli.mjs`; live provider
+  TypeScript suite) and `tests/fixtures/fake-acp-agent.mjs`; live provider
   smoke tests are opt-in via `INTERVIEW_OS_LIVE_*`.

@@ -69,7 +69,14 @@ class FakeRuntime:
         DISPOSED.append(self.kind)
 
 
-def factory(kind: str, *, env: Mapping[str, str], workspace_dir: str, logger: object) -> AIRuntime:
+def factory(
+    kind: str,
+    *,
+    env: Mapping[str, str],
+    workspace_dir: str,
+    logger: object,
+    usage_sink: object = None,
+) -> AIRuntime:
     CREATED.append(kind)
     return FakeRuntime(kind=kind, available=env.get("FAKE_UNAVAILABLE_KIND") != kind)
 

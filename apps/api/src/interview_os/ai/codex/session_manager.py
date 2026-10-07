@@ -21,6 +21,8 @@ from ..interface import (
     AgentEvent,
     AgentResult,
     AgentTask,
+    AIUsageEvent,
+    AIUsageSink,
     RuntimeEvent,
     RuntimeMessage,
     RuntimeSession,
@@ -28,6 +30,7 @@ from ..interface import (
     validate_model_and_effort,
 )
 from ..json_compat import js_dumps
+from .event_parser import usage_tokens
 from .process import CodexProcess
 from .protocol import CodexProtocol, as_mapping, nested_id
 
@@ -55,6 +58,8 @@ class ManagedSession:
 class CodexSessionManagerOptions:
     workspace_dir: str
     turn_timeout_ms: int
+    #: AI usage telemetry sink (best-effort; may be None).
+    usage_sink: AIUsageSink | None = None
 
 
 class EventQueue:
@@ -140,6 +145,46 @@ class CodexSessionManager:
         await self._protocol.thread_resume(session.thread_id)
         session.generation = self._proc.generation
 
+    def _emit_usage(
+        self,
+        *,
+        task_id: str | None,
+        model: str | None,
+        attempt: int | None,
+        ok: bool,
+        error_code: str | None,
+        usage: object,
+        duration_ms: int,
+    ) -> None:
+        """Record a finished codex turn's usage (best-effort; no-op without usage)."""
+
+        sink = self._opts.usage_sink
+        if sink is None:
+            return
+        tokens = usage_tokens(usage)
+        if not any(value is not None for value in tokens.values()):
+            return
+        try:
+            sink.record(
+                AIUsageEvent(
+                    runtime_kind="codex",
+                    task_id=task_id,
+                    model=model,
+                    attempt=attempt,
+                    ok=ok,
+                    error_code=error_code,
+                    input_tokens=tokens.get("input"),
+                    output_tokens=tokens.get("output"),
+                    thought_tokens=tokens.get("thought"),
+                    cached_read_tokens=tokens.get("cached_read"),
+                    total_tokens=tokens.get("total"),
+                    stop_reason="end_turn" if ok else None,
+                    duration_ms=duration_ms,
+                )
+            )
+        except Exception:  # telemetry must never break a turn
+            pass
+
     def send_message(self, session_id: str, msg: RuntimeMessage) -> AsyncIterator[RuntimeEvent]:
         return self._stream_turn(session_id, msg)
 
@@ -157,6 +202,17 @@ class CodexSessionManager:
         def fail(error: RuntimeError, raw: str | None = None) -> AgentResult:
             return AgentResult.failure(
                 error=error, duration_ms=now_ms() - started, events=events, raw=raw
+            )
+
+        def record_usage(*, ok: bool, error_code: str | None, usage: object) -> None:
+            self._emit_usage(
+                task_id=task.task_id,
+                model=task.model,
+                attempt=task.attempt,
+                ok=ok,
+                error_code=error_code,
+                usage=usage,
+                duration_ms=now_ms() - started,
             )
 
         invalid = validate_model_and_effort(task.model, task.effort)
@@ -207,8 +263,10 @@ class CodexSessionManager:
                     state.last_text = str(item["text"])
                     emit(RuntimeEvent(type="message", text=state.last_text))
             elif method == "turn/completed":
+                usage = params.get("usage") or turn.get("usage")
                 status = turn.get("status") or "completed"
                 if status != "completed":
+                    record_usage(ok=False, error_code="PROTOCOL", usage=usage)
                     finish(
                         fail(
                             RuntimeError(
@@ -221,6 +279,7 @@ class CodexSessionManager:
                     )
                     return
                 if state.last_text == "":
+                    record_usage(ok=False, error_code="MALFORMED_EVENT", usage=usage)
                     finish(
                         fail(
                             RuntimeError(
@@ -233,6 +292,7 @@ class CodexSessionManager:
                 try:
                     output = json.loads(state.last_text)
                 except ValueError:
+                    record_usage(ok=False, error_code="MALFORMED_OUTPUT", usage=usage)
                     finish(
                         fail(
                             RuntimeError(
@@ -243,6 +303,7 @@ class CodexSessionManager:
                         )
                     )
                     return
+                record_usage(ok=True, error_code=None, usage=usage)
                 emit(RuntimeEvent(type="completed", output=output, raw=state.last_text))
                 finish(
                     AgentResult.success(
@@ -374,6 +435,18 @@ class CodexSessionManager:
             yield RuntimeEvent(type="error", error=invalid)
             return
         yield RuntimeEvent(type="started")
+        started = now_ms()
+
+        def record_usage(*, ok: bool, error_code: str | None, usage: object) -> None:
+            self._emit_usage(
+                task_id=msg.task_id,
+                model=msg.model,
+                attempt=msg.attempt,
+                ok=ok,
+                error_code=error_code,
+                usage=usage,
+                duration_ms=now_ms() - started,
+            )
 
         queue = EventQueue()
         last_message_text = ""
@@ -410,6 +483,15 @@ class CodexSessionManager:
                     and msg.output_schema is not None
                     and last_message_text != ""
                     and not _try_json(last_message_text).ok
+                )
+                record_usage(
+                    ok=status == "completed" and not parse_failed,
+                    error_code=(
+                        None
+                        if status == "completed" and not parse_failed
+                        else ("MALFORMED_OUTPUT" if parse_failed else "PROTOCOL")
+                    ),
+                    usage=params.get("usage") or turn.get("usage"),
                 )
                 if status == "completed" and not parse_failed:
                     queue.push(
