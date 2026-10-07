@@ -57,7 +57,7 @@ packages/ui         shared design system (@interview-os/ui): tokens/theme.css, c
                     declarative UINode renderer, and the plugin-frame runtime bundle
 apps/api/src/interview_os/core   Pydantic models (single source of state shapes), taxonomy,
                     readiness, gaps, prioritize, state machine, serialization, logger, ids, errors
-apps/api/src/interview_os/ai     AIRuntime, MockRuntime, codex/, claude/, opencode/, devin/, middleware
+apps/api/src/interview_os/ai     AIRuntime, MockRuntime, acp/ (opencode, devin), codex/, claude/, middleware
 apps/api/src/interview_os/skills skill framework + SkillHost; the built-in skills and their
                     deterministic mocks (resume-analyzer, jd-analyzer, gap-analyzer,
                     company-profiler, prep-planner, star-coach, resume-coach, interviewer,
@@ -82,8 +82,9 @@ data/               SQLite db, runtime workspaces, installed plugins/packs, conf
 tests/contract      Python HTTP contract suite (spawns FastAPI by default)
 tests/e2e           Playwright on the mock runtime
 tests/golden        core parity fixtures (JSON), read by the apps/api tests
-tests/fixtures      fake-codex fixture, etc.
-docs/               design docs (fastapi-backend-refactor.md, python-plugin-system.md, notes/)
+tests/fixtures      fake-codex / fake-acp-agent fixtures, etc.
+docs/               design docs (fastapi-backend-refactor.md, python-plugin-system.md,
+                    acp-runtime.md, notes/)
 CLAUDE.md           Claude Code entrypoint (imports @AGENTS.md)
 .claude/ .opencode/ agent settings
 ```
@@ -100,15 +101,25 @@ CLAUDE.md           Claude Code entrypoint (imports @AGENTS.md)
   in `runtime_sessions` and resumed with `thread/resume`.
 - **Claude runtime**: `@anthropic-ai/claude-agent-sdk` via a lazy Python import, `outputFormat:
   json_schema`; one-shot (`run_task`); sessions are local one-shot wrappers (`data/claude-workspace`).
-- **opencode runtime**: one-shot `opencode run --format json` CLI, prompt+JSON Schema on **stdin**
-  (never argv); sessions are local one-shot wrappers (`data/opencode-workspace`).
-- **Devin runtime**: one-shot `devin -p --prompt-file <file>` CLI, prompt+JSON Schema in a
-  workspace temp file (never argv/stdin); sessions are local one-shot wrappers
-  (`data/devin-workspace`).
+- **opencode / Devin (ACP runtime)**: `ai/acp/` drives each provider as an ACP *agent*
+  subprocess (`opencode acp`, `devin acp`) — JSON-RPC 2.0 over the agent's stdio, one
+  long-lived process per runtime. Interview OS is the ACP *client*: it advertises no
+  fs/terminal capability, always rejects `session/request_permission`, and sends prompts only
+  in `session/prompt` content blocks on stdin (never argv/env). Interview sessions use
+  `session/new`/`session/load`; one-shot tasks use a throwaway session. See
+  `docs/design/acp-runtime.md`.
 - **MockRuntime**: deterministic; `INTERVIEW_OS_RUNTIME=mock`. Must support the whole flow.
 - **RuntimeManager**: `create_runtime` returns a switchable `AIRuntime`; Settings can probe
   (`GET /api/runtime/available`) and hot-swap (`PUT /api/runtime`) providers. The saved
   `runtimeKind` setting applies on restart only when `INTERVIEW_OS_RUNTIME` is unset.
+- **AI usage**: every runtime reports usage through an `AIUsageSink` (injected via
+  `RuntimeManager`) into the append-only `ai_usage` table — ACP (opencode/Devin) sends
+  context + cost via `session/update` `usage_update` and per-turn tokens on the
+  `session/prompt` result (End-Turn Token Usage RFD); Codex reads `turn.completed.usage`;
+  Claude reads the SDK result's `usage`/`total_cost_usd`. Surfaced at `GET /api/ai-usage`
+  (with `from`/`to`/`runtime`/`session` filters and a `DELETE` to clear) and the Usage page;
+  totals/breakdowns are summed in SQL (`GROUP BY`), with per-model breakdown and an optional
+  display-only monthly budget in Settings.
 - **Plugins**: in-process Octop model — a plugin is `plugin.yaml` + `main.py` (`setup(ctx)`
   registers tools/skills/middleware). `PluginManager` seeds/loads/enables; `PluginRegistry`
   holds the middleware chain; `PluginDispatcher` runs lifecycle hooks. The plugin service drives
