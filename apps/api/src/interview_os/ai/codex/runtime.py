@@ -13,6 +13,7 @@ from ..errors import RuntimeError
 from ..interface import (
     AgentResult,
     AgentTask,
+    AIUsageSink,
     ModelInfo,
     RuntimeEvent,
     RuntimeKind,
@@ -42,6 +43,8 @@ class CodexRuntimeOptions:
     logger: Logger | None = None
     #: Test-only escape hatch: additional env keys/prefixes forwarded to children.
     extra_child_env: Mapping[str, Sequence[str]] | None = None
+    #: AI usage telemetry sink (best-effort; may be None).
+    usage_sink: AIUsageSink | None = None
 
 
 class CodexRuntime:
@@ -79,6 +82,7 @@ class CodexRuntime:
                     env=self._opts.env,
                     default_timeout_ms=self._timeout_ms,
                     extra_child_env=self._opts.extra_child_env,
+                    usage_sink=self._opts.usage_sink,
                 )
             )
             return await adapter.run_task(task)
@@ -113,6 +117,7 @@ class CodexRuntime:
                 CodexSessionManagerOptions(
                     workspace_dir=self._opts.workspace_dir,
                     turn_timeout_ms=self._timeout_ms,
+                    usage_sink=self._opts.usage_sink,
                 ),
             )
         return self._sessions

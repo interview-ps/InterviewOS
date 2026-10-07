@@ -1,5 +1,6 @@
 """Orchestrator domain services (one module per service)."""
 
+from .ai_usage import AIUsageService
 from .debrief import DebriefService
 from .export import ExportService
 from .history import HistoryService
@@ -71,6 +72,7 @@ from .workspace import (
 
 __all__ = [
     "INTERVIEWER_SESSION_INSTRUCTIONS",
+    "AIUsageService",
     "AcceptPluginSuggestionResult",
     "AdvanceLoopResult",
     "AvailableMode",

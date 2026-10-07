@@ -15,6 +15,7 @@ import {
   AimOutlined,
   ApiOutlined,
   AppstoreOutlined,
+  BarChartOutlined,
   BgColorsOutlined,
   BlockOutlined,
   BulbOutlined,
@@ -72,6 +73,7 @@ const NAV_CUSTOMIZATIONS: NavEntry[] = [
   { href: "/skills", label: "Extensions", icon: <ApiOutlined /> },
 ];
 const NAV_WORKSPACE: NavEntry[] = [
+  { href: "/usage", label: "AI usage", icon: <BarChartOutlined /> },
   { href: "/settings", label: "Settings", icon: <SettingOutlined /> },
 ];
 
@@ -131,6 +133,11 @@ function RuntimeIndicator({ status }: { status: RuntimeStatus | null }) {
             key: "diagnostics",
             icon: <SettingOutlined />,
             label: <Link to="/settings#diagnostics">Runtime diagnostics</Link>,
+          },
+          {
+            key: "usage",
+            icon: <BarChartOutlined />,
+            label: <Link to="/usage">AI usage</Link>,
           },
         ],
       }}

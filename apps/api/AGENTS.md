@@ -9,7 +9,7 @@ api/            FastAPI routers, SSE, error mapping, body limits, static serving
 orchestrator/   InterviewOrchestrator facade + domain services (workflow only)
 skills/         skill framework, SkillHost, the built-in skills + deterministic mocks
 plugins/        in-process plugin host + the SkillHost adapter (inproc)
-ai/             AIRuntime, MockRuntime, codex/, claude/, opencode/, devin/, middleware
+ai/             AIRuntime, MockRuntime, acp/ (opencode, devin), codex/, claude/, middleware
 core/           Pydantic models (single source of state shapes), taxonomy, readiness,
                 gaps, prioritize, state machine, serialization, logger, ids, errors
 store/          SQLite persistence

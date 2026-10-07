@@ -56,6 +56,7 @@ from .schema import BASELINE_DDL, TABLE_NAMES, Base
 
 __all__ = [
     "APPEND_ONLY_TABLES",
+    "AIUsageRow",
     "AnswerPluginReview",
     "AnswerRow",
     "AnswerVoice",
@@ -81,7 +82,7 @@ __all__ = [
 _MEMORY = ":memory:"
 
 # Invariant #3: readiness snapshots are appended, never overwritten.
-APPEND_ONLY_TABLES = ("readiness_scores",)
+APPEND_ONLY_TABLES = ("readiness_scores", "ai_usage")
 
 
 class StoreDataError(Exception):
@@ -252,6 +253,33 @@ class RuntimeSessionRow(CamelModel):
     runtime_session_id: str
     thread_id: str
     status: str
+    created_at: str
+
+
+class AIUsageRow(CamelModel):
+    """One append-only `ai_usage` row (numbers and ids only)."""
+
+    id: str
+    runtime_kind: str
+    provider_session_id: str | None
+    interview_session_id: str | None
+    task_id: str | None
+    model: str | None
+    attempt: int | None
+    ok: int | None
+    error_code: str | None
+    input_tokens: int | None
+    output_tokens: int | None
+    thought_tokens: int | None
+    cached_read_tokens: int | None
+    cached_write_tokens: int | None
+    total_tokens: int | None
+    context_used: int | None
+    context_size: int | None
+    cost_amount: float | None
+    cost_currency: str | None
+    stop_reason: str | None
+    duration_ms: int
     created_at: str
 
 
@@ -457,6 +485,10 @@ class Store:
             from .migrations.runner import upgrade_to_head
 
             upgrade_to_head(self._path)
+            # A pre-existing database (created by an older build) is stamped at
+            # head instead of recreated, so tables added to `BASELINE_DDL` after
+            # its creation must be created here too (idempotent, additive).
+            self._create_missing_tables()
         self._ensure_columns()
 
     def _create_missing_tables(self) -> None:
@@ -600,6 +632,12 @@ class Store:
             "interview_sessions",
             "plugin_mode_id",
             "ALTER TABLE interview_sessions ADD COLUMN plugin_mode_id TEXT",
+        )
+        self._add_column("ai_usage", "model", "ALTER TABLE ai_usage ADD COLUMN model TEXT")
+        self._add_column("ai_usage", "attempt", "ALTER TABLE ai_usage ADD COLUMN attempt INTEGER")
+        self._add_column("ai_usage", "ok", "ALTER TABLE ai_usage ADD COLUMN ok INTEGER")
+        self._add_column(
+            "ai_usage", "error_code", "ALTER TABLE ai_usage ADD COLUMN error_code TEXT"
         )
         # backfill: existing actions belong to whichever target was active at upgrade time
         self._exec(
@@ -1339,6 +1377,14 @@ class Store:
     def update_runtime_session_status(self, id: str, status: str) -> None:
         self._update("runtime_sessions", {"id": id}, {"status": status})
 
+    def find_runtime_session_by_thread(self, thread_id: str) -> RuntimeSessionRow | None:
+        rows = self._query(
+            "SELECT * FROM runtime_sessions WHERE thread_id = :thread_id"
+            " ORDER BY created_at DESC",
+            {"thread_id": thread_id},
+        )
+        return None if not rows else _runtime_session(rows[0])
+
     def reset_all(self) -> None:
         """Test-mode only: wipe persisted state (excludes MCP/plugin config tables)."""
 
@@ -1360,6 +1406,7 @@ class Store:
             "settings",
             "resume_reviews",
             "usage_events",
+            "ai_usage",
             "interview_packs",
             "user_questions",
             "plugin_installs",
@@ -1564,6 +1611,203 @@ class Store:
             rows = self._query(
                 "SELECT count(*) AS n FROM usage_events WHERE event = :event", {"event": event}
             )
+        return int(rows[0]["n"])
+
+    # -------------------- AI usage telemetry (append-only; distinct from usage_events)
+
+    def insert_ai_usage(self, row: AIUsageRow) -> None:
+        self._insert(
+            "ai_usage",
+            {
+                "id": row.id,
+                "runtime_kind": row.runtime_kind,
+                "provider_session_id": row.provider_session_id,
+                "interview_session_id": row.interview_session_id,
+                "task_id": row.task_id,
+                "model": row.model,
+                "attempt": row.attempt,
+                "ok": row.ok,
+                "error_code": row.error_code,
+                "input_tokens": row.input_tokens,
+                "output_tokens": row.output_tokens,
+                "thought_tokens": row.thought_tokens,
+                "cached_read_tokens": row.cached_read_tokens,
+                "cached_write_tokens": row.cached_write_tokens,
+                "total_tokens": row.total_tokens,
+                "context_used": row.context_used,
+                "context_size": row.context_size,
+                "cost_amount": row.cost_amount,
+                "cost_currency": row.cost_currency,
+                "stop_reason": row.stop_reason,
+                "duration_ms": row.duration_ms,
+                "created_at": row.created_at,
+            },
+        )
+
+    #: Whitelisted breakdown columns (never interpolate user input into SQL).
+    _AI_USAGE_GROUPS: dict[str, str] = {
+        "runtime": "runtime_kind",
+        "skill": "task_id",
+        "model": "model",
+    }
+
+    def _ai_usage_clauses(
+        self,
+        *,
+        since: str | None,
+        until: str | None,
+        runtime: str | None,
+        session: str | None,
+    ) -> tuple[list[str], dict[str, Any]]:
+        clauses: list[str] = []
+        params: dict[str, Any] = {}
+        if since is not None:
+            clauses.append("created_at >= :since")
+            params["since"] = since
+        if until is not None:
+            clauses.append("created_at <= :until")
+            params["until"] = until
+        if runtime is not None:
+            clauses.append("runtime_kind = :runtime")
+            params["runtime"] = runtime
+        if session is not None:
+            clauses.append("interview_session_id = :session")
+            params["session"] = session
+        return clauses, params
+
+    @staticmethod
+    def _ai_usage_where(clauses: list[str]) -> str:
+        return f" WHERE {' AND '.join(clauses)}" if clauses else ""
+
+    def list_ai_usage(
+        self,
+        *,
+        since: str | None = None,
+        until: str | None = None,
+        runtime: str | None = None,
+        session: str | None = None,
+        limit: int | None = None,
+    ) -> list[AIUsageRow]:
+        clauses, params = self._ai_usage_clauses(
+            since=since, until=until, runtime=runtime, session=session
+        )
+        sql = f"SELECT * FROM ai_usage{self._ai_usage_where(clauses)} ORDER BY created_at DESC"
+        if limit is not None:
+            sql += " LIMIT :limit"
+            params["limit"] = int(limit)
+        return [_ai_usage(row) for row in self._query(sql, params)]
+
+    def ai_usage_totals(
+        self,
+        *,
+        since: str | None = None,
+        until: str | None = None,
+        runtime: str | None = None,
+        session: str | None = None,
+    ) -> dict[str, Any]:
+        clauses, params = self._ai_usage_clauses(
+            since=since, until=until, runtime=runtime, session=session
+        )
+        rows = self._query(
+            "SELECT COUNT(*) AS turns,"
+            " COALESCE(SUM(input_tokens), 0) AS input_tokens,"
+            " COALESCE(SUM(output_tokens), 0) AS output_tokens,"
+            " COALESCE(SUM(thought_tokens), 0) AS thought_tokens,"
+            " COALESCE(SUM(cached_read_tokens), 0) AS cached_read_tokens,"
+            " COALESCE(SUM(cached_write_tokens), 0) AS cached_write_tokens,"
+            " COALESCE(SUM(total_tokens), 0) AS total_tokens,"
+            " SUM(CASE WHEN input_tokens IS NOT NULL OR output_tokens IS NOT NULL"
+            " OR thought_tokens IS NOT NULL OR cached_read_tokens IS NOT NULL"
+            " OR cached_write_tokens IS NOT NULL OR total_tokens IS NOT NULL"
+            " THEN 1 ELSE 0 END) AS tokens_reported"
+            f" FROM ai_usage{self._ai_usage_where(clauses)}",
+            params,
+        )
+        return {} if not rows else dict(rows[0])
+
+    def ai_usage_costs(
+        self,
+        *,
+        since: str | None = None,
+        until: str | None = None,
+        runtime: str | None = None,
+        session: str | None = None,
+        group: str | None = None,
+    ) -> list[dict[str, Any]]:
+        clauses, params = self._ai_usage_clauses(
+            since=since, until=until, runtime=runtime, session=session
+        )
+        clauses += ["cost_amount IS NOT NULL", "cost_currency IS NOT NULL"]
+        if group is not None:
+            column = self._AI_USAGE_GROUPS[group]
+            select = f"{column} AS group_key, "
+            group_by = f" GROUP BY {column}, cost_currency"
+            order = " ORDER BY group_key, currency"
+        else:
+            select = ""
+            group_by = " GROUP BY cost_currency"
+            order = " ORDER BY currency"
+        rows = self._query(
+            f"SELECT {select}cost_currency AS currency, SUM(cost_amount) AS amount"
+            f" FROM ai_usage{self._ai_usage_where(clauses)}{group_by}{order}",
+            params,
+        )
+        return [dict(row) for row in rows]
+
+    def ai_usage_groups(
+        self,
+        group: str,
+        *,
+        since: str | None = None,
+        until: str | None = None,
+        runtime: str | None = None,
+        session: str | None = None,
+    ) -> list[dict[str, Any]]:
+        column = self._AI_USAGE_GROUPS[group]
+        clauses, params = self._ai_usage_clauses(
+            since=since, until=until, runtime=runtime, session=session
+        )
+        rows = self._query(
+            f"SELECT {column} AS group_key, COUNT(*) AS turns,"
+            " COALESCE(SUM(input_tokens), 0) AS input_tokens,"
+            " COALESCE(SUM(output_tokens), 0) AS output_tokens,"
+            " COALESCE(SUM(total_tokens), 0) AS total_tokens"
+            f" FROM ai_usage{self._ai_usage_where(clauses)}"
+            f" GROUP BY {column} ORDER BY turns DESC, group_key",
+            params,
+        )
+        return [dict(row) for row in rows]
+
+    def ai_usage_latest_context(
+        self,
+        *,
+        since: str | None = None,
+        until: str | None = None,
+        runtime: str | None = None,
+        session: str | None = None,
+    ) -> dict[str, Any] | None:
+        clauses, params = self._ai_usage_clauses(
+            since=since, until=until, runtime=runtime, session=session
+        )
+        clauses += ["context_used IS NOT NULL", "context_size IS NOT NULL"]
+        rows = self._query(
+            "SELECT runtime_kind, provider_session_id, context_used AS used,"
+            " context_size AS size, created_at"
+            f" FROM ai_usage{self._ai_usage_where(clauses)}"
+            " ORDER BY (interview_session_id IS NULL) ASC, created_at DESC LIMIT 1",
+            params,
+        )
+        return None if not rows else dict(rows[0])
+
+    def clear_ai_usage(self) -> int:
+        """Delete every AI usage row — an explicit user action; returns the count.
+
+        Deliberately bypasses the append-only guard (`delete_row`): clearing is a
+        user-initiated reset, not a rewrite of recorded history.
+        """
+
+        rows = self._query("SELECT COUNT(*) AS n FROM ai_usage")
+        self._write(delete(Base.metadata.tables["ai_usage"]))
         return int(rows[0]["n"])
 
     # ------------------------------------------- MCP server state (v0.4)
@@ -2178,6 +2422,33 @@ def _runtime_session(row: Mapping[str, Any]) -> RuntimeSessionRow:
         runtime_session_id=row["runtime_session_id"],
         thread_id=row["thread_id"],
         status=row["status"],
+        created_at=row["created_at"],
+    )
+
+
+def _ai_usage(row: Mapping[str, Any]) -> AIUsageRow:
+    return AIUsageRow(
+        id=row["id"],
+        runtime_kind=row["runtime_kind"],
+        provider_session_id=row["provider_session_id"],
+        interview_session_id=row["interview_session_id"],
+        task_id=row["task_id"],
+        model=row["model"],
+        attempt=row["attempt"],
+        ok=row["ok"],
+        error_code=row["error_code"],
+        input_tokens=row["input_tokens"],
+        output_tokens=row["output_tokens"],
+        thought_tokens=row["thought_tokens"],
+        cached_read_tokens=row["cached_read_tokens"],
+        cached_write_tokens=row["cached_write_tokens"],
+        total_tokens=row["total_tokens"],
+        context_used=row["context_used"],
+        context_size=row["context_size"],
+        cost_amount=row["cost_amount"],
+        cost_currency=row["cost_currency"],
+        stop_reason=row["stop_reason"],
+        duration_ms=row["duration_ms"],
         created_at=row["created_at"],
     )
 

@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import asyncio
 import inspect
+import zlib
 from collections.abc import AsyncIterator, Awaitable, Callable
 from dataclasses import dataclass
 
@@ -19,6 +20,8 @@ from .interface import (
     AgentEvent,
     AgentResult,
     AgentTask,
+    AIUsageEvent,
+    AIUsageSink,
     ModelInfo,
     RuntimeEvent,
     RuntimeKind,
@@ -50,6 +53,8 @@ CHUNK = 40
 class MockRuntimeOptions:
     #: Delay between streamed delta chunks (`INTERVIEW_OS_MOCK_DELAY_MS`).
     chunk_delay_ms: int = 0
+    #: AI usage telemetry sink (deterministic fake usage drives the Usage page).
+    usage_sink: AIUsageSink | None = None
 
 
 @dataclass
@@ -76,6 +81,7 @@ class MockRuntime:
         self._fallback: MockTaskFallback | None = None
         self._threads: dict[str, _MockThread] = {}
         self._delay_ms = opts.chunk_delay_ms if opts is not None else 0
+        self._usage_sink = opts.usage_sink if opts is not None else None
         self._thread_seq = 0
 
     def register(self, task_id: str, handler: MockTaskHandler) -> None:
@@ -130,6 +136,13 @@ class MockRuntime:
         if task.on_event is not None:
             task.on_event(message)
             task.on_event(completed)
+        self._emit_usage(
+            provider_session_id=None,
+            task_id=task.task_id,
+            model=task.model,
+            attempt=task.attempt,
+            duration_ms=now_ms() - started,
+        )
         return AgentResult.success(
             output=output, raw=raw, duration_ms=now_ms() - started, events=events
         )
@@ -162,6 +175,7 @@ class MockRuntime:
     async def send_message(  # noqa: C901 - mirrors the TS control flow
         self, session_id: str, msg: RuntimeMessage
     ) -> AsyncIterator[RuntimeEvent]:
+        started = now_ms()
         thread = self._threads.get(session_id)
         if thread is None:
             yield RuntimeEvent(
@@ -206,6 +220,13 @@ class MockRuntime:
                 await asyncio.sleep(self._delay_ms / 1000)
             yield RuntimeEvent(type="delta", text=chunk)
         yield RuntimeEvent(type="message", text=text)
+        self._emit_usage(
+            provider_session_id=thread.session.thread_id,
+            task_id=msg.task_id,
+            model=msg.model,
+            attempt=msg.attempt,
+            duration_ms=now_ms() - started,
+        )
         if handled:
             yield RuntimeEvent(type="completed", output=output, raw=text)
         else:
@@ -216,6 +237,59 @@ class MockRuntime:
 
     async def dispose(self) -> None:
         self._threads.clear()
+
+    def _emit_usage(
+        self,
+        *,
+        provider_session_id: str | None,
+        task_id: str | None,
+        model: str | None,
+        attempt: int | None,
+        duration_ms: int,
+    ) -> None:
+        """Deterministic fake usage so the whole flow works under the mock.
+
+        Counts derive from the task id, *not* from the prompt/output text: that
+        text is platform-dependent (the example files are CRLF on a Windows
+        checkout) and these figures feed a contract fixture, which must compare
+        equal on every platform.
+        """
+
+        sink = self._usage_sink
+        if sink is None:
+            return
+        seed = zlib.crc32((task_id or "task").encode("utf-8"))
+        input_tokens = 120 + seed % 900
+        output_tokens = 60 + (seed // 7) % 500
+        thought_tokens = input_tokens // 4
+        cached_read = input_tokens // 8
+        cached_write = input_tokens // 16
+        total = input_tokens + output_tokens + thought_tokens
+        try:
+            sink.record(
+                AIUsageEvent(
+                    runtime_kind="mock",
+                    provider_session_id=provider_session_id,
+                    task_id=task_id or None,
+                    model=model,
+                    attempt=attempt,
+                    ok=True,
+                    input_tokens=input_tokens,
+                    output_tokens=output_tokens,
+                    thought_tokens=thought_tokens,
+                    cached_read_tokens=cached_read,
+                    cached_write_tokens=cached_write,
+                    total_tokens=total,
+                    context_used=total,
+                    context_size=200_000,
+                    cost_amount=round(total * 1e-6, 6),
+                    cost_currency="USD",
+                    stop_reason="end_turn",
+                    duration_ms=duration_ms,
+                )
+            )
+        except Exception:  # telemetry must never break the mock
+            pass
 
 
 def _no_handler(task_id: str) -> RuntimeError:

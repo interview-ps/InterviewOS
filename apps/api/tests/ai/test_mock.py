@@ -4,12 +4,22 @@ from __future__ import annotations
 
 from interview_os.ai import (
     AgentTask,
+    AIUsageEvent,
+    AIUsageSink,
     MockRuntime,
     MockRuntimeOptions,
     RuntimeEvent,
     RuntimeMessage,
     SessionInput,
 )
+
+
+def _sink(events: list[AIUsageEvent]) -> AIUsageSink:
+    class _Recorder:
+        def record(self, event: AIUsageEvent) -> None:
+            events.append(event)
+
+    return _Recorder()
 
 
 def task(task_id: str, input: object = None) -> AgentTask:
@@ -160,3 +170,41 @@ async def test_dispose_drops_sessions() -> None:
     async for event in runtime.send_message(session.id, RuntimeMessage(text="x")):
         events.append(event)
     assert events[0]["type"] == "error"
+
+
+async def test_emits_deterministic_usage_to_the_sink() -> None:
+    usage: list[AIUsageEvent] = []
+    runtime = MockRuntime(MockRuntimeOptions(usage_sink=_sink(usage)))
+    runtime.register("echo", lambda value, _task: {"answer": 42})
+    result = await runtime.run_task(task("echo", {"x": 1}))
+    assert result.ok is True
+    assert len(usage) == 1
+    event = usage[0]
+    assert event.runtime_kind == "mock"
+    assert event.task_id == "echo"
+    assert event.input_tokens is not None and event.input_tokens > 0
+    assert event.output_tokens is not None and event.output_tokens > 0
+    assert event.thought_tokens is not None
+    assert event.total_tokens == event.input_tokens + event.output_tokens + event.thought_tokens
+    assert event.context_size == 200000 and event.context_used == event.total_tokens
+    assert event.cost_currency == "USD" and event.cost_amount is not None
+    assert event.stop_reason == "end_turn"
+
+
+async def test_session_turn_reports_usage_with_the_thread_id() -> None:
+    usage: list[AIUsageEvent] = []
+    runtime = MockRuntime(MockRuntimeOptions(usage_sink=_sink(usage)))
+    runtime.register("chat", lambda value, _task: {"reply": "ok"})
+    session = await runtime.create_session(SessionInput())
+    async for _event in runtime.send_message(session.id, RuntimeMessage(text="hi", task_id="chat")):
+        pass
+    assert len(usage) == 1
+    assert usage[0].provider_session_id == session.thread_id
+    assert usage[0].task_id == "chat"
+
+
+async def test_no_sink_means_no_usage_side_effect() -> None:
+    runtime = MockRuntime()
+    runtime.register("echo", lambda value, _task: {"n": 1})
+    result = await runtime.run_task(task("echo"))
+    assert result.ok is True

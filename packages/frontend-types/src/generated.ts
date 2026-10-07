@@ -2,6 +2,20 @@
 
 /* eslint-disable */
 
+export interface AIUsageCost { amount: number; currency: string }
+
+export interface AIUsageBreakdown { cost: AIUsageCost[]; inputTokens: number; key: string; label: string; outputTokens: number; totalTokens: number; turns: number }
+
+export type AIUsageContext = { createdAt: string; providerSessionId: string | null; runtimeKind: string; size: number; used: number };
+
+export type AIUsageFilters = { from?: string | null; runtime?: string | null; session?: string | null; to?: string | null };
+
+export type AIUsageRecord = { attempt: number | null; cachedReadTokens: number | null; cachedWriteTokens: number | null; contextSize: number | null; contextUsed: number | null; costAmount: number | null; costCurrency: string | null; createdAt: string; durationMs: number; errorCode: string | null; id: string; inputTokens: number | null; interviewSessionId: string | null; model: string | null; ok: boolean | null; outputTokens: number | null; providerSessionId: string | null; runtimeKind: string; stopReason: string | null; taskId: string | null; thoughtTokens: number | null; totalTokens: number | null };
+
+export interface AIUsageTotals { cachedReadTokens: number; cachedWriteTokens: number; cost: AIUsageCost[]; inputTokens: number; outputTokens: number; thoughtTokens: number; tokensReported: boolean; totalTokens: number; turns: number }
+
+export type AIUsageSummary = { byModel: AIUsageBreakdown[]; byRuntime: AIUsageBreakdown[]; bySkill: AIUsageBreakdown[]; filters: AIUsageFilters; latestContext: AIUsageContext | null; recent: AIUsageRecord[]; totals: AIUsageTotals };
+
 export interface DesignUpdate { dimension: string; notes: string; status: DesignUpdateStatus }
 
 export type DesignUpdateStatus = "not_covered" | "partial" | "covered";

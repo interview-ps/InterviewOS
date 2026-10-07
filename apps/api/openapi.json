@@ -820,6 +820,41 @@
   },
   "openapi": "3.1.0",
   "paths": {
+    "/api/ai-usage": {
+      "delete": {
+        "description": "Clear every AI usage row — an explicit user action.",
+        "operationId": "clear_ai_usage_api_ai_usage_delete",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "title": "Response Clear Ai Usage Api Ai Usage Delete"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Clear Ai Usage"
+      },
+      "get": {
+        "operationId": "get_ai_usage_api_ai_usage_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "title": "Response Get Ai Usage Api Ai Usage Get"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Get Ai Usage"
+      }
+    },
     "/api/analysis/gaps": {
       "post": {
         "operationId": "analysis_gaps_api_analysis_gaps_post",
@@ -3633,6 +3668,25 @@
           }
         },
         "summary": "Setup"
+      }
+    },
+    "/api/workspace/sources": {
+      "get": {
+        "description": "Persisted resume + active target sources — used to prefill the setup form.",
+        "operationId": "workspace_sources_api_workspace_sources_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "title": "Response Workspace Sources Api Workspace Sources Get"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Workspace Sources"
       }
     }
   }

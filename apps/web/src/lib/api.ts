@@ -1,4 +1,6 @@
 import type {
+  AIUsageFilters,
+  AIUsageSummary,
   CandidateProfile,
   CompanyNotesProfile,
   CompanyProfile,
@@ -18,7 +20,17 @@ import type {
 } from "@interview-os/frontend-types";
 
 export type AppState = InterviewOSState;
-export type { CandidateProfile, Gap, PrepAction, Question, SkillReadiness, Evidence, TargetRole };
+export type {
+  AIUsageFilters,
+  AIUsageSummary,
+  CandidateProfile,
+  Gap,
+  PrepAction,
+  Question,
+  SkillReadiness,
+  Evidence,
+  TargetRole,
+};
 
 /** Prep action as returned by the API (v0.4 adds learning resources). */
 export type PrepActionView = PrepAction & { resources: PrepResource[] };
@@ -841,6 +853,8 @@ export interface AppSettings {
     enabled: boolean;
     speakQuestions: boolean;
   };
+  /** Optional monthly AI-spend budget shown on the AI usage page (display-only). */
+  aiBudgetMonthly?: number | null;
 }
 
 // --- v0.4 MCP ----------------------------------------------------------------
@@ -1056,6 +1070,21 @@ export const api = {
       body: JSON.stringify({ event }),
     }),
   metrics: () => request<Metrics>("/api/metrics"),
+  /** AI provider usage telemetry (context/cost) — distinct from `/api/metrics`. */
+  aiUsage: (
+    filters: { from?: string; to?: string; runtime?: string; session?: string } = {},
+  ) => {
+    const params = new URLSearchParams();
+    if (filters.from) params.set("from", filters.from);
+    if (filters.to) params.set("to", filters.to);
+    if (filters.runtime) params.set("runtime", filters.runtime);
+    if (filters.session) params.set("session", filters.session);
+    const qs = params.toString();
+    return request<AIUsageSummary>(`/api/ai-usage${qs ? `?${qs}` : ""}`);
+  },
+  /** Clear every AI usage row (explicit user action). */
+  clearAiUsage: () =>
+    request<{ ok: boolean; cleared: number }>("/api/ai-usage", { method: "DELETE" }),
   debrief: (sessionId: string) => request<Debrief>(`/api/interviews/${sessionId}/debrief`),
   stories: () => request<StarStory[]>("/api/stories"),
   updateStory: (id: string, patch: Partial<Omit<StarStory, "id" | "candidateId" | "source" | "updatedAt">>) =>

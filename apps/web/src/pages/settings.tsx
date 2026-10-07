@@ -520,6 +520,37 @@ export default function Settings() {
                 )}
               </section>
 
+              <section>
+                <GroupHeading>AI spending</GroupHeading>
+                <p className="mb-1 text-xs text-muted">
+                  Optional monthly budget shown on the AI usage page. Display-only — it never
+                  blocks a request.
+                </p>
+                <SettingRow
+                  label="Monthly budget (USD)"
+                  description="Leave empty for no budget."
+                  control={
+                    <input
+                      type="number"
+                      min={0}
+                      step="0.01"
+                      aria-label="Monthly AI budget in USD"
+                      value={draft?.aiBudgetMonthly ?? ""}
+                      disabled={!draft}
+                      onChange={(e) =>
+                        setDraft((d) =>
+                          d && {
+                            ...d,
+                            aiBudgetMonthly: e.target.value === "" ? null : Number(e.target.value),
+                          },
+                        )
+                      }
+                      className="w-full rounded-[var(--radius-sm)] border border-line bg-surface px-2 py-1 text-[13px] sm:w-auto sm:min-w-40"
+                    />
+                  }
+                />
+              </section>
+
               {status && (
                 <section id="diagnostics">
                   <CollapseList

@@ -52,6 +52,8 @@ class OrchestratorSettings(CamelModel):
     task_mode: TaskMode
     question_sources: QuestionSources
     voice: VoiceSettings
+    #: Optional monthly AI-spend budget (display-only; `None` = unset).
+    ai_budget_monthly: float | None = None
 
 
 def _json(value: CamelModel) -> str:
@@ -64,6 +66,16 @@ def _mapping(value: object) -> dict[str, object]:
 
 def _str_or_none(value: object) -> str | None:
     return value if isinstance(value, str) else None
+
+
+def _budget(raw: str | None) -> float | None:
+    if raw is None:
+        return None
+    try:
+        value = float(raw)
+    except ValueError:
+        return None
+    return value if value >= 0 else None
 
 
 class SettingsService:
@@ -96,6 +108,7 @@ class SettingsService:
             task_mode=TaskMode(options.task_mode or "app-server"),
             question_sources=question_sources,
             voice=voice,
+            ai_budget_monthly=_budget(self._ctx.store.get_setting("aiBudgetMonthly")),
         )
 
     async def _resolve_model_or_default(self, saved: str | None) -> str | None:
@@ -168,5 +181,16 @@ class SettingsService:
             except ValidationError as err:
                 raise AppError("VALIDATION", "invalid voice setting") from err
             self._ctx.store.set_setting("voice", _json(parsed_voice))
+
+        if "aiBudgetMonthly" in patch:
+            raw = patch["aiBudgetMonthly"]
+            if raw is None:
+                self._ctx.store.set_setting("aiBudgetMonthly", None)
+            else:
+                if isinstance(raw, bool) or not isinstance(raw, (int, float)):
+                    raise AppError("VALIDATION", "aiBudgetMonthly must be a number or null")
+                if raw < 0:
+                    raise AppError("VALIDATION", "aiBudgetMonthly must be >= 0")
+                self._ctx.store.set_setting("aiBudgetMonthly", str(float(raw)))
 
         return await self.get_settings()

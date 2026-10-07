@@ -19,6 +19,7 @@ from .interface import (
     AgentResult,
     AgentTask,
     AIRuntime,
+    AIUsageSink,
     ModelInfo,
     RuntimeEvent,
     RuntimeKind,
@@ -56,6 +57,7 @@ class RuntimeFactory(Protocol):
         env: Mapping[str, str],
         workspace_dir: str,
         logger: Logger,
+        usage_sink: AIUsageSink | None = None,
     ) -> AIRuntime | Awaitable[AIRuntime]: ...
 
 
@@ -75,6 +77,8 @@ class RuntimeManagerOptions:
     factory: RuntimeFactory | None = None
     #: Test seam: override per-provider detection probes.
     health_checkers: Mapping[str, RuntimeHealthChecker] | None = None
+    #: AI usage telemetry sink forwarded to every provider it instantiates.
+    usage_sink: AIUsageSink | None = None
 
 
 async def _resolve(value: object | Awaitable[object]) -> object:
@@ -87,13 +91,19 @@ async def _instantiate(opts: RuntimeManagerOptions, kind: RuntimeKind) -> AIRunt
     logger = opts.logger if opts.logger is not None else NullLogger()
     workspace_dir = workspace_dir_for(kind, opts.env, opts.workspace_dir)
     if opts.factory is not None:
-        created = opts.factory(kind, env=opts.env, workspace_dir=workspace_dir, logger=logger)
+        created = opts.factory(
+            kind,
+            env=opts.env,
+            workspace_dir=workspace_dir,
+            logger=logger,
+            usage_sink=opts.usage_sink,
+        )
         if inspect.isawaitable(created):
             created = await created
         return created
     await ensure_dir(workspace_dir)
     return await instantiate_provider(
-        kind, env=opts.env, workspace_dir=workspace_dir, logger=logger
+        kind, env=opts.env, workspace_dir=workspace_dir, logger=logger, usage_sink=opts.usage_sink
     )
 
 

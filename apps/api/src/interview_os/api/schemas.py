@@ -49,6 +49,7 @@ class SettingsSchema(CamelModel):
     task_mode: Literal["app-server", "exec"] | None = None
     question_sources: dict[str, object] | None = None
     voice: dict[str, object] | None = None
+    ai_budget_monthly: float | None = None
 
 
 class RuntimeSwitchSchema(CamelModel):

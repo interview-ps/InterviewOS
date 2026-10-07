@@ -16,11 +16,11 @@ from pathlib import Path
 from ...core.models import new_id
 from ..clock import now_ms
 from ..errors import RuntimeError, RuntimeErrorCode
-from ..interface import AgentResult, AgentTask
+from ..interface import AgentResult, AgentTask, AIUsageEvent, AIUsageSink
 from ..json_compat import js_dumps
 from ..process import exit_status, spawn_command
 from .child_env import build_child_env
-from .event_parser import CodexExecEventParser
+from .event_parser import CodexExecEventParser, usage_tokens
 
 __all__ = ["DEFAULT_TASK_TIMEOUT_MS", "CodexExecAdapter", "CodexExecOptions"]
 
@@ -38,6 +38,8 @@ class CodexExecOptions:
     default_timeout_ms: int | None = None
     #: Test-only escape hatch: additional env keys/prefixes forwarded to the child.
     extra_child_env: Mapping[str, Sequence[str]] | None = None
+    #: AI usage telemetry sink (best-effort; may be None).
+    usage_sink: AIUsageSink | None = None
 
 
 def compose_prompt(task: AgentTask) -> str:
@@ -104,7 +106,35 @@ class CodexExecAdapter:
         tmp_dir.mkdir(parents=True, exist_ok=True)
         schema_file.write_text(js_dumps(task.output_schema), encoding="utf-8")
 
+        def emit_usage(*, ok: bool, error_code: str | None, duration_ms: int) -> None:
+            # Record only when codex actually reported usage (a spawn failure has none).
+            sink = self._opts.usage_sink
+            if sink is None or parser.usage is None:
+                return
+            tokens = usage_tokens(parser.usage)
+            try:
+                sink.record(
+                    AIUsageEvent(
+                        runtime_kind="codex",
+                        task_id=task.task_id,
+                        model=task.model,
+                        attempt=task.attempt,
+                        ok=ok,
+                        error_code=error_code,
+                        input_tokens=tokens.get("input"),
+                        output_tokens=tokens.get("output"),
+                        thought_tokens=tokens.get("thought"),
+                        cached_read_tokens=tokens.get("cached_read"),
+                        total_tokens=tokens.get("total"),
+                        stop_reason="end_turn" if ok else None,
+                        duration_ms=duration_ms,
+                    )
+                )
+            except Exception:  # telemetry must never break a task
+                pass
+
         def failure(code: RuntimeErrorCode, message: str, *, raw: str | None = None) -> AgentResult:
+            emit_usage(ok=False, error_code=code, duration_ms=now_ms() - started)
             return self._finish(
                 tmp_dir,
                 AgentResult.failure(
@@ -178,6 +208,7 @@ class CodexExecAdapter:
                     f"agent_message was not valid JSON: {err}",
                     raw=last_message,
                 )
+            emit_usage(ok=True, error_code=None, duration_ms=duration_ms)
             return self._finish(
                 tmp_dir,
                 AgentResult.success(

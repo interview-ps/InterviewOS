@@ -21,10 +21,12 @@ from dataclasses import dataclass
 from datetime import UTC, datetime
 from typing import Any
 
-from ..ai.interface import AIRuntime
+from ..ai.interface import AIRuntime, AIUsageEvent
 from ..ai.logger import Logger
 from ..ai.mock import MockRuntime
 from ..core.models import (
+    AIUsageFilters,
+    AIUsageSummary,
     AppError,
     CamelModel,
     CandidateProfile,
@@ -49,6 +51,7 @@ from .projection import OrchestratorQuestion, PrepActionRowLike
 from .services import (
     AcceptPluginSuggestionResult,
     AdvanceLoopResult,
+    AIUsageService,
     AvailableMode,
     CompleteActionResult,
     DebriefService,
@@ -249,6 +252,7 @@ class InterviewOrchestrator:
         self._history = HistoryService(
             self._workflow, graph_for_active=self._readiness.graph_for_active
         )
+        self._ai_usage = AIUsageService(self._workflow)
         self._interview = InterviewService(
             self._workflow,
             self._readiness,
@@ -719,6 +723,19 @@ class InterviewOrchestrator:
 
     async def get_metrics(self) -> Any:
         return await self._history.get_metrics()
+
+    # --------------------------------------------------------------- AI usage
+
+    def record_ai_usage(self, event: AIUsageEvent) -> None:
+        """Sink callback: persist one AI-provider usage event (best-effort)."""
+
+        self._ai_usage.record(event)
+
+    async def get_ai_usage(self, filters: AIUsageFilters) -> AIUsageSummary:
+        return self._ai_usage.get_summary(filters)
+
+    async def clear_ai_usage(self) -> int:
+        return self._ai_usage.clear()
 
     # -------------------------------------------------------------- preparation
 

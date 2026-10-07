@@ -1,0 +1,11 @@
+{
+  "snapshots": {
+    "clear": {
+      "body": {
+        "cleared": 3,
+        "ok": true
+      },
+      "status": 200
+    }
+  }
+}

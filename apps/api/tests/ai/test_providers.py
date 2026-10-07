@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import json
-from collections.abc import Mapping
+from collections.abc import Mapping, Sequence
 from pathlib import Path
 
 import pytest
@@ -11,12 +11,11 @@ import pytest
 from interview_os.ai import (
     DEFAULT_WORKSPACE_DIR,
     RUNTIME_KINDS,
+    AcpRuntime,
     ClaudeCodeRuntime,
     CodexRuntime,
-    DevinRuntime,
     Logger,
     MockRuntime,
-    OpencodeRuntime,
     RuntimeProviderSpec,
     RuntimeStatus,
     all_runtime_kinds,
@@ -35,7 +34,7 @@ PROVIDER_MODULE = """
 from interview_os.ai import MockRuntime, RuntimeProviderSpec, RuntimeStatus
 
 
-def create(*, env, workspace_dir, logger=None):
+def create(*, env, workspace_dir, logger=None, usage_sink=None):
     return MockRuntime()
 
 
@@ -59,9 +58,20 @@ PROVIDER = RuntimeProviderSpec(
 
 
 def make_mock(
-    *, env: Mapping[str, str], workspace_dir: str, logger: Logger | None = None
+    *,
+    env: Mapping[str, str],
+    workspace_dir: str,
+    logger: Logger | None = None,
+    usage_sink: object = None,
 ) -> MockRuntime:
     return MockRuntime()
+
+
+class _Sink:
+    """Records nothing; used to prove the sink is forwarded to the provider."""
+
+    def record(self, event: object) -> None:
+        pass
 
 
 async def ready_status(env: Mapping[str, str], workspace_dir: str) -> RuntimeStatus:
@@ -77,7 +87,7 @@ def registry(monkeypatch: pytest.MonkeyPatch) -> dict[str, RuntimeProviderSpec]:
     return fresh
 
 
-def write_config(directory: Path, entries: list[dict[str, str]]) -> Path:
+def write_config(directory: Path, entries: Sequence[Mapping[str, object]]) -> Path:
     path = directory / "interview-os.runtimes.json"
     path.write_text(json.dumps({"providers": entries}), encoding="utf-8")
     return path
@@ -140,10 +150,13 @@ async def test_instantiate_provider_builds_every_builtin(tmp_path: Path) -> None
         await instantiate_provider("claude", env=env, workspace_dir=workspace), ClaudeCodeRuntime
     )
     assert isinstance(
-        await instantiate_provider("opencode", env=env, workspace_dir=workspace), OpencodeRuntime
+        await instantiate_provider("opencode", env=env, workspace_dir=workspace), AcpRuntime
     )
     assert isinstance(
-        await instantiate_provider("devin", env=env, workspace_dir=workspace), DevinRuntime
+        await instantiate_provider("devin", env=env, workspace_dir=workspace), AcpRuntime
+    )
+    assert (await instantiate_provider("opencode", env=env, workspace_dir=workspace)).kind == (
+        "opencode"
     )
 
 
@@ -242,3 +255,59 @@ def test_load_runtime_providers_reports_malformed_config(tmp_path: Path) -> None
     wrong_shape.write_text(json.dumps({"providers": {}}), encoding="utf-8")
     shape_result = load_runtime_providers(wrong_shape)
     assert "expected an array" in shape_result.errors[0]
+
+
+def test_load_runtime_providers_accepts_a_declarative_acp_agent(
+    registry: dict[str, RuntimeProviderSpec], tmp_path: Path
+) -> None:
+    config = write_config(
+        tmp_path,
+        [
+            {
+                "kind": "my-acp",
+                "acp": {"command": "/opt/bin/agent", "args": ["acp"], "env": ["MYAGENT_TOKEN"]},
+            }
+        ],
+    )
+    result = load_runtime_providers(config)
+    assert result.loaded == ["my-acp"]
+    assert result.errors == []
+    assert "my-acp" in all_runtime_kinds()
+
+
+async def test_declarative_acp_provider_builds_an_acp_runtime(
+    registry: dict[str, RuntimeProviderSpec], tmp_path: Path
+) -> None:
+    config = write_config(tmp_path, [{"kind": "my-acp", "acp": {"command": "/no/such/agent"}}])
+    load_runtime_providers(config)
+    runtime = await instantiate_provider("my-acp", env={}, workspace_dir=str(tmp_path))
+    assert isinstance(runtime, AcpRuntime)
+    assert runtime.kind == "my-acp"
+    status = await health_checker_for("my-acp")({}, str(tmp_path))
+    assert status.trusted_local is True
+    assert status.runtime == "my-acp"
+    # a fixed command that cannot be spawned degrades, never raises
+    assert status.available is False
+
+
+async def test_declarative_acp_provider_forwards_the_usage_sink(
+    registry: dict[str, RuntimeProviderSpec], tmp_path: Path
+) -> None:
+    config = write_config(tmp_path, [{"kind": "my-acp", "acp": {"command": "/no/such/agent"}}])
+    load_runtime_providers(config)
+    sink = _Sink()
+    runtime = await instantiate_provider(
+        "my-acp", env={}, workspace_dir=str(tmp_path), usage_sink=sink
+    )
+    assert isinstance(runtime, AcpRuntime)
+    assert runtime._opts.usage_sink is sink
+
+
+def test_load_runtime_providers_reports_bad_acp_entries(
+    registry: dict[str, RuntimeProviderSpec], tmp_path: Path
+) -> None:
+    config = write_config(tmp_path, [{"kind": "my-acp", "acp": {"args": ["acp"]}}])
+    result = load_runtime_providers(config)
+    assert result.loaded == []
+    assert len(result.errors) == 1
+    assert "acp.command" in result.errors[0]

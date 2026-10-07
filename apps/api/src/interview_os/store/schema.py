@@ -21,6 +21,7 @@ from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
 __all__ = [
     "BASELINE_DDL",
     "Base",
+    "AIUsage",
     "AnswerEvaluation",
     "CandidateAnswer",
     "CandidateProfile",
@@ -211,6 +212,17 @@ BASELINE_DDL: tuple[str, ...] = (
     """CREATE TABLE plugin_storage (
   plugin_id TEXT NOT NULL, key TEXT NOT NULL, value TEXT NOT NULL,
   PRIMARY KEY (plugin_id, key)
+)
+""",
+    """CREATE TABLE ai_usage (
+  id TEXT PRIMARY KEY, runtime_kind TEXT NOT NULL,
+  provider_session_id TEXT, interview_session_id TEXT, task_id TEXT,
+  model TEXT, attempt INTEGER, ok INTEGER, error_code TEXT,
+  input_tokens INTEGER, output_tokens INTEGER, thought_tokens INTEGER,
+  cached_read_tokens INTEGER, cached_write_tokens INTEGER, total_tokens INTEGER,
+  context_used INTEGER, context_size INTEGER,
+  cost_amount REAL, cost_currency TEXT,
+  stop_reason TEXT, duration_ms INTEGER NOT NULL, created_at TEXT NOT NULL
 )
 """,
 )
@@ -555,6 +567,35 @@ class UsageEvent(Base):
     created_at: Mapped[str] = mapped_column(Text, nullable=False)
 
 
+class AIUsage(Base):
+    """Append-only AI provider usage telemetry (context/cost per prompt turn)."""
+
+    __tablename__ = "ai_usage"
+
+    id: Mapped[str] = mapped_column(Text, primary_key=True)
+    runtime_kind: Mapped[str] = mapped_column(Text, nullable=False)
+    provider_session_id: Mapped[str | None] = mapped_column(Text)
+    interview_session_id: Mapped[str | None] = mapped_column(Text)
+    task_id: Mapped[str | None] = mapped_column(Text)
+    model: Mapped[str | None] = mapped_column(Text)
+    attempt: Mapped[int | None] = mapped_column(Integer)
+    ok: Mapped[int | None] = mapped_column(Integer)
+    error_code: Mapped[str | None] = mapped_column(Text)
+    input_tokens: Mapped[int | None] = mapped_column(Integer)
+    output_tokens: Mapped[int | None] = mapped_column(Integer)
+    thought_tokens: Mapped[int | None] = mapped_column(Integer)
+    cached_read_tokens: Mapped[int | None] = mapped_column(Integer)
+    cached_write_tokens: Mapped[int | None] = mapped_column(Integer)
+    total_tokens: Mapped[int | None] = mapped_column(Integer)
+    context_used: Mapped[int | None] = mapped_column(Integer)
+    context_size: Mapped[int | None] = mapped_column(Integer)
+    cost_amount: Mapped[float | None] = mapped_column(REAL)
+    cost_currency: Mapped[str | None] = mapped_column(Text)
+    stop_reason: Mapped[str | None] = mapped_column(Text)
+    duration_ms: Mapped[int] = mapped_column(Integer, nullable=False)
+    created_at: Mapped[str] = mapped_column(Text, nullable=False)
+
+
 # Every table the baseline creates, in creation order (checked against
 # `BASELINE_DDL` and the SQLAlchemy metadata by `tests/test_schema_parity.py`).
 TABLE_NAMES: tuple[str, ...] = (
@@ -582,4 +623,5 @@ TABLE_NAMES: tuple[str, ...] = (
     "external_contexts",
     "plugin_settings",
     "plugin_storage",
+    "ai_usage",
 )

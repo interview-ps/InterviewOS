@@ -1,0 +1,26 @@
+{
+  "snapshots": {
+    "empty": {
+      "body": {
+        "byModel": [],
+        "byRuntime": [],
+        "bySkill": [],
+        "filters": {},
+        "latestContext": null,
+        "recent": [],
+        "totals": {
+          "cachedReadTokens": 0,
+          "cachedWriteTokens": 0,
+          "cost": [],
+          "inputTokens": 0,
+          "outputTokens": 0,
+          "thoughtTokens": 0,
+          "tokensReported": false,
+          "totalTokens": 0,
+          "turns": 0
+        }
+      },
+      "status": 200
+    }
+  }
+}

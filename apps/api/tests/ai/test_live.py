@@ -17,23 +17,21 @@ from pathlib import Path
 import pytest
 
 from interview_os.ai import (
+    AcpRuntime,
+    AcpRuntimeOptions,
     AgentResult,
     AgentTask,
     ClaudeCodeRuntime,
     ClaudeRuntimeOptions,
     CodexRuntime,
     CodexRuntimeOptions,
-    DevinRuntime,
-    DevinRuntimeOptions,
-    OpencodeRuntime,
-    OpencodeRuntimeOptions,
     RuntimeEvent,
     RuntimeMessage,
     SessionInput,
+    find_acp_executable,
     find_claude_executable,
-    find_devin_executable,
-    find_opencode_executable,
 )
+from interview_os.ai.providers import DEVIN_ACP, OPENCODE_ACP
 
 LIVE_CODEX = os.environ.get("INTERVIEW_OS_LIVE_CODEX") == "1"
 LIVE_CLAUDE = os.environ.get("INTERVIEW_OS_LIVE_CLAUDE") == "1"
@@ -129,10 +127,14 @@ async def test_live_claude_detects_and_completes_a_structured_task() -> None:
 
 @pytest.mark.skipif(not LIVE_OPENCODE, reason="set INTERVIEW_OS_LIVE_OPENCODE=1 to run")
 async def test_live_opencode_detects_and_lists_models() -> None:
-    bin_path = await find_opencode_executable(LIVE_ENV)
+    bin_path = await find_acp_executable(OPENCODE_ACP, LIVE_ENV)
     assert bin_path, "opencode CLI not found"
-    runtime = OpencodeRuntime(OpencodeRuntimeOptions(env=LIVE_ENV, workspace_dir=str(Path.cwd())))
+    runtime = AcpRuntime(
+        AcpRuntimeOptions(config=OPENCODE_ACP, env=LIVE_ENV, workspace_dir=str(Path.cwd()))
+    )
     try:
+        status = await runtime.health_check()
+        assert status.available, status.message
         assert isinstance(await runtime.list_models(), list)
     finally:
         await runtime.dispose()
@@ -140,10 +142,14 @@ async def test_live_opencode_detects_and_lists_models() -> None:
 
 @pytest.mark.skipif(not LIVE_DEVIN, reason="set INTERVIEW_OS_LIVE_DEVIN=1 to run")
 async def test_live_devin_detects_lists_models_and_runs_a_task() -> None:
-    bin_path = await find_devin_executable(LIVE_ENV)
+    bin_path = await find_acp_executable(DEVIN_ACP, LIVE_ENV)
     assert bin_path, "devin CLI not found"
-    runtime = DevinRuntime(DevinRuntimeOptions(env=LIVE_ENV, workspace_dir=str(Path.cwd())))
+    runtime = AcpRuntime(
+        AcpRuntimeOptions(config=DEVIN_ACP, env=LIVE_ENV, workspace_dir=str(Path.cwd()))
+    )
     try:
+        status = await runtime.health_check()
+        assert status.available, status.message
         assert isinstance(await runtime.list_models(), list)
         result = await runtime.run_task(
             AgentTask(

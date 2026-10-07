@@ -2,6 +2,7 @@
 
 from .schema import BASELINE_DDL, TABLE_NAMES, Base
 from .store import (
+    AIUsageRow,
     AnswerPluginReview,
     AnswerRow,
     AnswerVoice,
@@ -27,6 +28,7 @@ from .store import (
 __all__ = [
     "BASELINE_DDL",
     "TABLE_NAMES",
+    "AIUsageRow",
     "AnswerPluginReview",
     "AnswerRow",
     "AnswerVoice",

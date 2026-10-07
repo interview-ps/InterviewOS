@@ -179,7 +179,9 @@ async def run_structured[M: BaseModel](runtime: AIRuntime, task: StructuredTask[
     for attempt in range(1, MAX_ATTEMPTS + 1):
         on_delta = _delta_callback(task)
         try:
-            output, _raw = await _run_once(runtime, task, instructions, output_schema, on_delta)
+            output, _raw = await _run_once(
+                runtime, task, instructions, output_schema, on_delta, attempt
+            )
             try:
                 parsed = task.schema.model_validate(output)
             except ValidationError as err:
@@ -250,6 +252,7 @@ async def _run_once[M: BaseModel](
     instructions: str,
     output_schema: JSONSchema,
     on_delta: Callable[[str], None] | None,
+    attempt: int,
 ) -> tuple[object, str]:
     session_id = task.session.runtime_session_id if task.session is not None else None
     if session_id:
@@ -262,6 +265,7 @@ async def _run_once[M: BaseModel](
             output_schema=output_schema,
             model=task.model,
             effort=task.effort,
+            attempt=attempt,
         )
         async for event in runtime.send_message(session_id, message):
             event_type = event["type"]
@@ -316,6 +320,7 @@ async def _run_once[M: BaseModel](
             effort=task.effort,
             task_mode=task.task_mode,
             on_event=on_event,
+            attempt=attempt,
         )
     )
     if task.logger is not None:

@@ -19,6 +19,8 @@ from ..interface import (
     AgentEvent,
     AgentResult,
     AgentTask,
+    AIUsageEvent,
+    AIUsageSink,
     ModelInfo,
     RuntimeEvent,
     RuntimeKind,
@@ -60,6 +62,37 @@ class ClaudeRuntimeOptions:
     sdk: ClaudeSdk | None = None
     #: Test-only escape hatch: additional env keys/prefixes forwarded to children.
     extra_child_env: Mapping[str, list[str]] | None = None
+    #: AI usage telemetry sink (best-effort; may be None).
+    usage_sink: AIUsageSink | None = None
+
+
+def _claude_tokens(usage: object) -> dict[str, int | None]:
+    """Map the Claude SDK's `usage` onto our token fields (missing → None)."""
+
+    if not isinstance(usage, Mapping):
+        return {}
+
+    def opt(*keys: str) -> int | None:
+        for key in keys:
+            value = usage.get(key)
+            if isinstance(value, int) and not isinstance(value, bool):
+                return value
+        return None
+
+    input_tokens = opt("input_tokens", "inputTokens")
+    output_tokens = opt("output_tokens", "outputTokens")
+    total = (
+        (input_tokens or 0) + (output_tokens or 0)
+        if input_tokens is not None or output_tokens is not None
+        else None
+    )
+    return {
+        "input": input_tokens,
+        "output": output_tokens,
+        "cached_read": opt("cache_read_input_tokens", "cacheReadInputTokens"),
+        "cached_write": opt("cache_creation_input_tokens", "cacheCreationInputTokens"),
+        "total": total,
+    }
 
 
 def result_text(message: ClaudeSdkMessage) -> str:
@@ -164,13 +197,26 @@ class ClaudeCodeRuntime:
                                 "detail": text[:300],
                             },
                         )
+                        self._emit_usage(
+                            task,
+                            usage=message.get("usage"),
+                            cost=message.get("total_cost_usd"),
+                            ok=False,
+                            error_code="CRASHED",
+                            duration_ms=now_ms() - started,
+                        )
                         return AgentResult.failure(
                             error=error,
                             duration_ms=now_ms() - started,
                             events=events,
                             raw=text,
                         )
-                    result = {"structured": message.get("structured_output"), "text": text}
+                    result = {
+                        "structured": message.get("structured_output"),
+                        "text": text,
+                        "usage": message.get("usage"),
+                        "cost": message.get("total_cost_usd"),
+                    }
         except TimeoutError:
             return AgentResult.failure(
                 error=RuntimeError("TIMEOUT", f"claude task timed out after {timeout_ms}ms"),
@@ -208,6 +254,14 @@ class ClaudeCodeRuntime:
         events.append(completed)
         if task.on_event is not None:
             task.on_event(completed)
+        self._emit_usage(
+            task,
+            usage=result.get("usage"),
+            cost=result.get("cost"),
+            ok=True,
+            error_code=None,
+            duration_ms=now_ms() - started,
+        )
         return AgentResult.success(
             output=structured, raw=raw, duration_ms=now_ms() - started, events=events
         )
@@ -297,6 +351,52 @@ class ClaudeCodeRuntime:
     def _warn(self, event: str, fields: Mapping[str, object]) -> None:
         if self._opts.logger is not None:
             self._opts.logger.warn(event, fields)
+
+    def _emit_usage(
+        self,
+        task: AgentTask,
+        *,
+        usage: object,
+        cost: object,
+        ok: bool,
+        error_code: str | None,
+        duration_ms: int,
+    ) -> None:
+        """Record a claude task's usage/cost (best-effort; no-op without data)."""
+
+        sink = self._opts.usage_sink
+        if sink is None:
+            return
+        tokens = _claude_tokens(usage)
+        amount = (
+            float(cost)
+            if isinstance(cost, (int, float)) and not isinstance(cost, bool)
+            else None
+        )
+        if amount is None and not any(value is not None for value in tokens.values()):
+            return
+        try:
+            sink.record(
+                AIUsageEvent(
+                    runtime_kind="claude",
+                    task_id=task.task_id,
+                    model=task.model,
+                    attempt=task.attempt,
+                    ok=ok,
+                    error_code=error_code,
+                    input_tokens=tokens.get("input"),
+                    output_tokens=tokens.get("output"),
+                    cached_read_tokens=tokens.get("cached_read"),
+                    cached_write_tokens=tokens.get("cached_write"),
+                    total_tokens=tokens.get("total"),
+                    cost_amount=amount,
+                    cost_currency="USD" if amount is not None else None,
+                    stop_reason="end_turn" if ok else None,
+                    duration_ms=duration_ms,
+                )
+            )
+        except Exception:  # telemetry must never break a task
+            pass
 
 
 def _model_info(model: ClaudeSdkModelInfo, index: int) -> ModelInfo:

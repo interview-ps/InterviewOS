@@ -8,13 +8,14 @@ resources on shutdown.
 from __future__ import annotations
 
 import os
-from collections.abc import AsyncIterator
+from collections.abc import AsyncIterator, Callable
 from contextlib import asynccontextmanager
 from typing import Any
 
 from fastapi import FastAPI
 
 from .ai import MockRuntime, RuntimeManagerOptions, create_runtime
+from .ai.interface import AIUsageEvent
 from .ai.logger import NullLogger
 from .ai.manager import RuntimeManager
 from .api.deps import AppState
@@ -44,6 +45,24 @@ __all__ = ["app", "create_app"]
 API_PREFIX = "/api"
 
 
+class _AIUsageRecorder:
+    """Forwards runtime AI-usage events to the orchestrator once it exists.
+
+    The runtime is built before the orchestrator, so the sink target is bound
+    afterwards (the same pattern as the plugin-mode mock resolver).
+    """
+
+    def __init__(self) -> None:
+        self._sink: Callable[[AIUsageEvent], None] | None = None
+
+    def bind(self, sink: Callable[[AIUsageEvent], None]) -> None:
+        self._sink = sink
+
+    def record(self, event: AIUsageEvent) -> None:
+        if self._sink is not None:
+            self._sink(event)
+
+
 def _mcp_state_for(store: Any) -> Any:
     async def state_for(server_id: str) -> McpServerState:
         row = store.get_mcp_server(server_id)
@@ -62,6 +81,7 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     logger = NullLogger()
     store = open_store(DEFAULT_DB_PATH)
 
+    usage_recorder = _AIUsageRecorder()
     resolver: dict[str, Any] = {"fn": lambda task_id, value: None}
 
     def on_switch(rt: object) -> None:
@@ -75,6 +95,7 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
             logger=logger,
             preferred_kind=store.get_setting("runtimeKind"),
             on_switch=on_switch,
+            usage_sink=usage_recorder,
         )
     )
     mcp = McpManager(DEFAULT_MCP_CONFIG_PATH, logger, _mcp_state_for(store))
@@ -93,6 +114,7 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
         )
     )
     resolver["fn"] = orchestrator.plugin_mode_mock_fallback
+    usage_recorder.bind(orchestrator.record_ai_usage)
 
     # §9.6: discover bundled + installed plugins before serving (plugin loader
     # lands with phase 7; guarded so the backend boots without it).
