@@ -669,7 +669,8 @@ export default function InterviewSession() {
   };
 
   const done = debrief !== null;
-  const answering = !done && result === null && current !== null;
+  const discarded = detail?.session.abandoned ?? false;
+  const answering = !done && !discarded && result === null && current !== null;
 
   // Ctrl/Cmd+Enter submits from anywhere on the page (the hint sits by the button).
   const submitRef = useRef<() => void>(submit);
@@ -1312,15 +1313,30 @@ export default function InterviewSession() {
             </>
           }
           actions={
-            hasInspector ? (
-              <Button
-                size="small"
-                variant="ghost"
-                aria-label={inspectorOpen ? "Collapse inspector" : "Expand inspector"}
-                onClick={() => setInspectorOpen((v) => !v)}
-              >
-                {inspectorOpen ? "»" : "«"}
-              </Button>
+            (!done && !discarded) || hasInspector ? (
+              <div className="flex items-center gap-2">
+                {!done && !discarded && (
+                  <Button
+                    size="small"
+                    variant="secondary"
+                    onClick={finish}
+                    disabled={busy}
+                    data-testid="end-interview"
+                  >
+                    End interview
+                  </Button>
+                )}
+                {hasInspector && (
+                  <Button
+                    size="small"
+                    variant="ghost"
+                    aria-label={inspectorOpen ? "Collapse inspector" : "Expand inspector"}
+                    onClick={() => setInspectorOpen((v) => !v)}
+                  >
+                    {inspectorOpen ? "»" : "«"}
+                  </Button>
+                )}
+              </div>
             ) : undefined
           }
         />
@@ -1330,7 +1346,7 @@ export default function InterviewSession() {
       <PluginSlot slot="interview.toolbar" params={{ sessionId: id }} />
       {usageStrip}
 
-      {!done && detail && (
+      {!done && !discarded && detail && (
         <div className="mt-3 flex min-h-0 flex-1 gap-3">
           <div className="flex min-h-0 min-w-0 flex-1 flex-col">
             {showTranscript && (
@@ -1379,6 +1395,15 @@ export default function InterviewSession() {
           </div>
           {!result && inspector}
         </div>
+      )}
+
+      {discarded && !debrief && (
+        <Panel className="mt-3 shrink-0" title="Session discarded">
+          <p className="text-sm text-muted">
+            This session was discarded before it finished. Your answered questions still
+            count toward readiness.
+          </p>
+        </Panel>
       )}
 
       {debrief && (

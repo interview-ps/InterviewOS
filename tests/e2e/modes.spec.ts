@@ -88,4 +88,39 @@ test.describe("interview modes", () => {
     await expect(page.getByTestId("rubric")).toBeVisible();
     await page.screenshot({ path: "test-results/modes-5-hm.png", fullPage: true });
   });
+
+  test("unfinished sessions: Continue hero, display casing, and discard", async ({ page }) => {
+    await startMode(page, "HR");
+    await page.goto("/interview");
+    // Casing: the label comes from the mode ("HR"), not displayLabel("hr") → "Hr".
+    await expect(page.getByText("HR interview")).toBeVisible({ timeout: 30_000 });
+    await expect(page.getByRole("link", { name: "Resume interview" })).toBeVisible();
+
+    // A second unfinished session collapses under "Other unfinished sessions (1)".
+    await startMode(page, "Coding");
+    await page.goto("/interview");
+    await expect(page.getByText("Continue your interview")).toBeVisible({ timeout: 30_000 });
+    await page.getByTestId("other-unfinished").click();
+    const row = page.getByTestId("unfinished-session").first();
+    await expect(row).toContainText("HR interview");
+    await row.getByRole("button", { name: "Discard" }).click();
+    await page.getByRole("button", { name: "Yes, discard" }).click();
+
+    // Discarded sessions leave the unfinished list and land under Past interviews.
+    await expect(page.getByTestId("unfinished-session")).toHaveCount(0);
+    await expect(page.getByText("Discarded")).toBeVisible({ timeout: 30_000 });
+  });
+
+  test("End interview finishes early and generates the debrief", async ({ page }) => {
+    await startMode(page, "Behavioral");
+    await page
+      .getByPlaceholder("Type your answer…")
+      .fill("When I was at Acme our team had an outage and I led the fix.");
+    await page.getByRole("button", { name: "Submit Answer" }).click();
+    await expect(page.getByRole("button", { name: "Next Question" })).toBeVisible({
+      timeout: 60_000,
+    });
+    await page.getByTestId("end-interview").click();
+    await expect(page.getByText("Went well")).toBeVisible({ timeout: 60_000 });
+  });
 });
