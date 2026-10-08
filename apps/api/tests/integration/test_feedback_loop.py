@@ -250,3 +250,28 @@ async def test_multi_question_session_retests_weakness(app: App) -> None:
     )
     assert retest is not None, [q.skill_id for q in s2_questions if q is not None]
     await orch.complete_interview(s2)
+
+
+async def test_next_is_idempotent_while_a_question_is_pending(app: App) -> None:
+    """A retried POST /next must not re-ask from `question`.
+
+    A dropped stream (or a double click) that makes the client retry `/next`
+    while a question is already pending used to raise
+    `invalid interview transition: state "question" has no event "ask"`. The
+    retry now returns the pending question without creating another one.
+    """
+
+    orch, store = app.orchestrator, app.store
+    await orch.setup_workspace(SetupWorkspaceInput.model_validate(load_example("backend-engineer")))
+
+    start = await orch.start_interview({"planned_questions": 4})
+    session_id = _session(start).id
+    assert start.question is not None
+
+    retry = await orch.next_question(session_id)
+
+    assert retry.question is not None
+    assert retry.question.id == start.question.id
+    assert retry.question.text == start.question.text
+    assert len(store.list_questions(session_id)) == 1
+

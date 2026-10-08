@@ -483,6 +483,23 @@ class InterviewService:
 
         # §9.1: follow-ups don't count toward plannedQuestions — count mains only
         main_count = sum(1 for question in questions if not question.follow_up_of)
+        # A question that is already pending (a retried/duplicate POST /next —
+        # e.g. the client re-sent after its stream dropped) is returned as-is:
+        # `question` has no `ask` event, so asking again is not a valid move.
+        if status == InterviewStatus.QUESTION:
+            pending = next(
+                (
+                    question
+                    for question in reversed(questions)
+                    if store.get_evaluated_answer_for_question(question.id) is None
+                ),
+                None,
+            )
+            if pending is not None:
+                return NextQuestionResult(
+                    session=store.get_session(session_id),
+                    question=row_to_question(pending.model_dump()),
+                )
         if status == InterviewStatus.READY:
             self._ctx.transition_session(
                 session_id, InterviewStatus.QUESTION, InterviewEvent.ASK
