@@ -27,6 +27,8 @@ __all__ = [
     "InterviewerFollowUp",
     "InterviewerInput",
     "InterviewerOutput",
+    "InterviewerProblem",
+    "InterviewerProblemExample",
     "InterviewerSeedQuestion",
     "ExternalContext",
     "interviewer",
@@ -85,6 +87,28 @@ class InterviewerConcept(CamelModel):
     keywords: list[str] = Field(default_factory=list)
 
 
+class InterviewerProblemExample(CamelModel):
+    input: str = ""
+    output: str = ""
+    explanation: str = ""
+
+
+class InterviewerProblem(CamelModel):
+    """The mode artifact a coding round attaches to its question.
+
+    Kept an open `dict` on the persisted question's `extra`, but a provider's
+    strict structured-output schema cannot contain a free-form object (every
+    object needs `properties`/`additionalProperties: false`), so the AI-facing
+    shape is closed to the fields the bundled coding mode emits. A new problem
+    field means adding it here.
+    """
+
+    title: str = ""
+    statement: str = ""
+    constraints: list[str] = Field(default_factory=list)
+    examples: list[InterviewerProblemExample] = Field(default_factory=list)
+
+
 class InterviewerOutput(CamelModel):
     question: str
     topic: str
@@ -93,7 +117,7 @@ class InterviewerOutput(CamelModel):
     expected_concepts: list[InterviewerConcept] = Field(default_factory=list)
     difficulty: QuestionDifficulty
     #: §9.1 plugin modes: a mode artifact (coding problem object, design brief).
-    problem: dict[str, object] | str | None = None
+    problem: InterviewerProblem | str | None = None
     #: §9.1 system_design: dimension probed this turn.
     focus_dimension: str | None = None
 
@@ -102,7 +126,12 @@ class InterviewerOutput(CamelModel):
         if self.problem is not None:
             import json
 
-            if len(json.dumps(self.problem)) > _PROBLEM_CAP:
+            problem = (
+                self.problem.model_dump(mode="json", by_alias=True)
+                if isinstance(self.problem, InterviewerProblem)
+                else self.problem
+            )
+            if len(json.dumps(problem)) > _PROBLEM_CAP:
                 raise ValueError("problem exceeds the 20KB cap")
         return self
 
