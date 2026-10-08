@@ -10,6 +10,7 @@ from ...core.assessment import normalize_evaluation
 from ...core.models import (
     AnswerEvaluation,
     CamelModel,
+    DesignUpdate,
     EvaluationDimensions,
     EvaluationStrength,
     EvaluationWeakness,
@@ -36,6 +37,7 @@ __all__ = [
     "AnswerEvaluationAi",
     "AnswerEvaluator",
     "AnswerEvaluatorInput",
+    "ModeSignalsAi",
     "answer_evaluator",
     "rubric_schema_for",
 ]
@@ -91,6 +93,19 @@ class _AiScore(CamelModel):
     confidence: float = Field(ge=0, le=1)
 
 
+class ModeSignalsAi(CamelModel):
+    """v1.1 mode signals as the model must emit them.
+
+    `AnswerEvaluation.mode_signals` stays an open record on the wire, but a
+    provider's strict structured-output schema cannot contain a free-form
+    object (every object needs `properties`/`additionalProperties: false`), so
+    the AI-facing shape is closed to the signal keys the built-in modes use.
+    A new per-mode signal means adding it here.
+    """
+
+    design_updates: list[DesignUpdate] | None = None
+
+
 class AnswerEvaluationAi(CamelModel):
     """AI output keeps skill ids loose; they are normalized post-hoc."""
 
@@ -104,8 +119,8 @@ class AnswerEvaluationAi(CamelModel):
     follow_up_topics: list[str]
     star: StarAssessment | None = None
     rubric: list[RubricScore] = Field(default_factory=list)
-    design_updates: list[Any] | None = None
-    mode_signals: dict[str, Any] | None = None
+    design_updates: list[DesignUpdate] | None = None
+    mode_signals: ModeSignalsAi | None = None
 
 
 def rubric_schema_for(mode: str) -> type[AnswerEvaluationAi]:
@@ -219,6 +234,15 @@ class AnswerEvaluator(InterviewSkill[AnswerEvaluatorInput, AnswerEvaluation]):
                     SkillScore(skill=skill_id, score=score.score, confidence=score.confidence)
                 )
 
+        # The model emits a closed `ModeSignalsAi`; the persisted evaluation keeps
+        # an open record (see docs/plugins.md §modeSignals).
+        mode_signals = (
+            output.mode_signals.model_dump(mode="json", by_alias=True, exclude_none=True)
+            or None
+            if output.mode_signals is not None
+            else None
+        )
+
         # merge duplicate per-skill entries (mock can emit one per concept)
         return normalize_evaluation(
             AnswerEvaluation(
@@ -233,7 +257,7 @@ class AnswerEvaluator(InterviewSkill[AnswerEvaluatorInput, AnswerEvaluation]):
                 star=output.star,
                 rubric=output.rubric,
                 design_updates=output.design_updates,
-                mode_signals=output.mode_signals,
+                mode_signals=mode_signals,
             )
         )
 

@@ -161,6 +161,7 @@ class SessionRow(CamelModel):
     created_at: str
     completed_at: str | None
     plugin_mode_id: str | None
+    abandoned: bool
 
 
 class QuestionRow(CamelModel):
@@ -632,6 +633,11 @@ class Store:
             "interview_sessions",
             "plugin_mode_id",
             "ALTER TABLE interview_sessions ADD COLUMN plugin_mode_id TEXT",
+        )
+        self._add_column(
+            "interview_sessions",
+            "abandoned",
+            "ALTER TABLE interview_sessions ADD COLUMN abandoned INTEGER NOT NULL DEFAULT 0",
         )
         self._add_column("ai_usage", "model", "ALTER TABLE ai_usage ADD COLUMN model TEXT")
         self._add_column("ai_usage", "attempt", "ALTER TABLE ai_usage ADD COLUMN attempt INTEGER")
@@ -2331,6 +2337,7 @@ def _session(row: Mapping[str, Any]) -> SessionRow:
         created_at=row["created_at"],
         completed_at=row["completed_at"],
         plugin_mode_id=row["plugin_mode_id"],
+        abandoned=bool(row["abandoned"]),
     )
 
 

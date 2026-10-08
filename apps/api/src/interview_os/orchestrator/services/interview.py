@@ -427,6 +427,40 @@ class InterviewService:
         )
         return await self.next_question_internal(session_id, opts)
 
+    async def abandon_interview(self, session_id: str) -> SessionRow:
+        """Discard an in-progress session: close it without writing a debrief.
+
+        Evidence already recorded is left untouched (append-only); only the
+        session row is patched, so a discarded session drops out of the
+        unfinished list while its answers keep counting toward readiness.
+        """
+
+        store = self._ctx.store
+        session = store.get_session(session_id)
+        if session is None:
+            raise AppError("NOT_FOUND", f"no session {session_id}")
+        status = InterviewStatus(session.status)
+        if status in (InterviewStatus.COMPLETE, InterviewStatus.DEBRIEF):
+            return session
+        if status == InterviewStatus.READY:
+            # No question has been asked yet — cannot jump straight to COMPLETE.
+            self._ctx.transition_session(
+                session_id, InterviewStatus.QUESTION, InterviewEvent.ASK
+            )
+            status = InterviewStatus.QUESTION
+        if status in (InterviewStatus.QUESTION, InterviewStatus.FOLLOW_UP):
+            self._ctx.transition_session(
+                session_id, InterviewStatus.COMPLETE, InterviewEvent.COMPLETE
+            )
+        store.update_session(session_id, {"abandoned": 1, "completed_at": self._ctx.iso()})
+        self._ctx.logger.info(
+            "state.mutated", {"entity": "interview", "id": session_id, "abandoned": True}
+        )
+        updated = store.get_session(session_id)
+        if updated is None:  # pragma: no cover - row just written
+            raise AppError("NOT_FOUND", f"no session {session_id}")
+        return updated
+
     async def next_question_internal(
         self, session_id: str, opts: ProgressOptions | None = None
     ) -> NextQuestionResult:
@@ -449,6 +483,23 @@ class InterviewService:
 
         # §9.1: follow-ups don't count toward plannedQuestions — count mains only
         main_count = sum(1 for question in questions if not question.follow_up_of)
+        # A question that is already pending (a retried/duplicate POST /next —
+        # e.g. the client re-sent after its stream dropped) is returned as-is:
+        # `question` has no `ask` event, so asking again is not a valid move.
+        if status == InterviewStatus.QUESTION:
+            pending = next(
+                (
+                    question
+                    for question in reversed(questions)
+                    if store.get_evaluated_answer_for_question(question.id) is None
+                ),
+                None,
+            )
+            if pending is not None:
+                return NextQuestionResult(
+                    session=store.get_session(session_id),
+                    question=row_to_question(pending.model_dump()),
+                )
         if status == InterviewStatus.READY:
             self._ctx.transition_session(
                 session_id, InterviewStatus.QUESTION, InterviewEvent.ASK

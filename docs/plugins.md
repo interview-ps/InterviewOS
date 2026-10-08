@@ -409,7 +409,18 @@ modes:
   evaluation; it is persisted and handed back to `mode.reduce` as
   `evaluation.modeSignals`. The legacy top-level `designUpdates` still parses —
   system-design-mode reads `modeSignals.designUpdates` first and falls back to
-  it — but new modes should use `modeSignals`.
+  it — but new modes should use `modeSignals`. The persisted/wire shape stays an
+  open record, but the AI-facing schema is closed to the signal keys the
+  built-in modes use (a provider's strict structured-output schema cannot
+  express a free-form object), so a new per-mode signal must be added to
+  `ModeSignalsAi` in the answer-evaluator skill.
+- **`problem`** (§9.1): the interviewer's mode artifact — a coding problem or a
+  design brief — lands on the question's `extra` as an open `record | string |
+  null`. The AI-facing schema is closed to the shape the bundled coding mode
+  emits (`{title, statement, constraints[], examples[{input, output,
+  explanation}]}`) or a plain string, because a provider's strict
+  structured-output schema cannot express a free-form object; a new problem
+  field must be added to `InterviewerProblem` in the interviewer skill.
 
 ## Settings and storage
 

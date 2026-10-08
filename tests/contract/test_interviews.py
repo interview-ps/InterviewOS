@@ -77,6 +77,7 @@ def test_interview_not_found(client: ContractClient, snapshot: Snapshot) -> None
             client.post("/api/interviews/{id}/answer", id=BOGUS, json={"answer": "hi"}),
         ),
         ("complete", client.post("/api/interviews/{id}/complete", id=BOGUS)),
+        ("abandon", client.post("/api/interviews/{id}/abandon", id=BOGUS)),
         ("debrief", client.get("/api/interviews/{id}/debrief", id=BOGUS)),
     ]:
         snap = snapshot.check_response(label, resp)
@@ -120,3 +121,33 @@ def test_answer_after_complete(client: ContractClient, snapshot: Snapshot) -> No
     snap = snapshot.check_response("late-answer", resp)
     # completed/debriefed sessions reject further answers
     assert snap["status"] in (400, 404, 409)
+
+
+def test_interview_abandon(client: ContractClient, snapshot: Snapshot) -> None:
+    setup_workspace(client)
+    session_id = client.post("/api/interviews", json={"plannedQuestions": 2}).json()[
+        "session"
+    ]["id"]
+    # answer once so the session has evidence + an evaluation worth keeping
+    client.post(
+        "/api/interviews/{id}/answer",
+        id=session_id,
+        json={
+            "answer": "I would put Redis in front of the database using "
+            "cache-aside so reads are fast."
+        },
+    )
+
+    resp = client.post("/api/interviews/{id}/abandon", id=session_id)
+    snap = snapshot.check_response("abandon", resp)
+    assert snap["status"] == 200
+    assert resp.json()["status"] == "complete"
+    assert resp.json()["abandoned"] is True
+
+    # it stays reviewable in the list, flagged as discarded
+    listing = client.get("/api/interviews").json()
+    row = next(s for s in listing if s["id"] == session_id)
+    assert row["abandoned"] is True
+
+    # discarding closes the session without writing a debrief
+    assert client.get("/api/interviews/{id}/debrief", id=session_id).status_code == 404

@@ -22,6 +22,7 @@
   {"method": "POST", "path": "/api/interviews/{id}/answer"},
   {"method": "POST", "path": "/api/interviews/{id}/next"},
   {"method": "POST", "path": "/api/interviews/{id}/complete"},
+  {"method": "POST", "path": "/api/interviews/{id}/abandon"},
   {"method": "GET", "path": "/api/interviews/{id}/debrief"},
   {"method": "POST", "path": "/api/loops"},
   {"method": "GET", "path": "/api/loops"},

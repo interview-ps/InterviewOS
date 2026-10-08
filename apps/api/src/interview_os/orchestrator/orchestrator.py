@@ -585,6 +585,10 @@ class InterviewOrchestrator:
             )
         return result
 
+    async def abandon_interview(self, session_id: str) -> SessionRow:
+        async with self._hold("interview", "loop"):
+            return await self._interview.abandon_interview(session_id)
+
     def _session_score_summary(self, session_id: str) -> dict[str, dict[str, float]]:
         acc: dict[str, dict[str, float]] = {}
         for row in self._store.list_evaluations(session_id):

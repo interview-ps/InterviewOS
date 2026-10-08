@@ -1494,6 +1494,45 @@
         "summary": "Get Interview"
       }
     },
+    "/api/interviews/{id}/abandon": {
+      "post": {
+        "operationId": "abandon_interview_api_interviews__id__abandon_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "title": "Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "title": "Response Abandon Interview Api Interviews  Id  Abandon Post"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Abandon Interview"
+      }
+    },
     "/api/interviews/{id}/answer": {
       "post": {
         "operationId": "submit_answer_api_interviews__id__answer_post",

@@ -1,5 +1,6 @@
 import { Link, useNavigate } from "react-router";
 import { useCallback, useEffect, useState } from "react";
+import { Popconfirm } from "antd";
 import {
   api,
   streamPost,
@@ -19,7 +20,6 @@ import {
   Button,
   Card,
   CardTitle,
-  displayLabel,
   EmptyState,
   ErrorNote,
   PageHeader,
@@ -245,8 +245,18 @@ export default function Interview() {
       .finally(() => setStarting(false));
   };
 
-  const live = sessions?.filter((s) => s.status !== "debrief" && s.status !== "complete") ?? [];
+  // Standalone in-progress sessions only — loop rounds live in the Loops card,
+  // and a discarded session is closed (it shows under Past interviews instead).
+  const live =
+    sessions?.filter(
+      (s) =>
+        s.status !== "debrief" &&
+        s.status !== "complete" &&
+        !s.abandoned &&
+        !s.loopId,
+    ) ?? [];
   const past = sessions?.filter((s) => s.status === "debrief" || s.status === "complete") ?? [];
+  const [hero, ...otherLive] = live;
   const hasAdvanced =
     pluginModes.length > 0 || contexts.length > 0 || mcpServers.length > 0 || packs.length > 0;
 
@@ -257,40 +267,81 @@ export default function Interview() {
         subtitle="Focused practice, a single mock round, or a full multi-round loop — every answer feeds your readiness."
       />
 
-      {live.length > 0 && (
+      {hero && (
         <Card>
           <SectionHeading
-            title={live.length > 1 ? "Interviews in progress" : "Continue your interview"}
+            title="Continue your interview"
             description="Pick up where you left off — finish this before starting another."
           />
-          <ul className="space-y-3">
-            {live.map((s) => (
-              <li
-                key={s.id}
-                className="flex flex-wrap items-center justify-between gap-3"
-              >
-                <div className="text-sm">
-                  <div className="font-medium text-ink">
-                    {s.mode === "practice"
-                      ? "Practice session"
-                      : `${s.modeLabel ?? displayLabel(s.roundType)} interview`}
-                  </div>
-                  <div className="text-muted">
-                    round {s.currentRound}/{s.plannedQuestions} · started{" "}
-                    {new Date(s.createdAt).toLocaleString()}
-                    {s.loopId ? ` · loop round ${s.loopRound}` : ""}
-                  </div>
-                </div>
-                <Link to={`/interview/${s.id}`}>
-                  <Button>Resume interview</Button>
-                </Link>
-              </li>
-            ))}
-          </ul>
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div className="text-sm">
+              <div className="font-medium text-ink">
+                {hero.mode === "practice"
+                  ? "Practice session"
+                  : `${hero.modeLabel ?? modeLabel(hero.roundType)} interview`}
+              </div>
+              <div className="text-muted">
+                round {hero.currentRound}/{hero.plannedQuestions} · started{" "}
+                {new Date(hero.createdAt).toLocaleString()}
+              </div>
+            </div>
+            <Link to={`/interview/${hero.id}`}>
+              <Button>Resume interview</Button>
+            </Link>
+          </div>
         </Card>
       )}
 
-      {live.length > 0 && <SectionHeading title="Or start another interview" />}
+      {hero && otherLive.length > 0 && (
+        <Card>
+          <details>
+            <summary
+              className="cursor-pointer text-sm font-medium text-navy"
+              data-testid="other-unfinished"
+            >
+              Other unfinished sessions ({otherLive.length})
+            </summary>
+            <ul className="mt-3 space-y-3">
+              {otherLive.map((s) => (
+                <li
+                  key={s.id}
+                  data-testid="unfinished-session"
+                  className="flex flex-wrap items-center justify-between gap-3"
+                >
+                  <div className="text-sm">
+                    <div className="font-medium text-ink">
+                      {s.mode === "practice"
+                        ? "Practice session"
+                        : `${s.modeLabel ?? modeLabel(s.roundType)} interview`}
+                    </div>
+                    <div className="text-muted">
+                      round {s.currentRound}/{s.plannedQuestions} · started{" "}
+                      {new Date(s.createdAt).toLocaleString()}
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Link to={`/interview/${s.id}`}>
+                      <Button variant="secondary">Resume</Button>
+                    </Link>
+                    <Popconfirm
+                      title="Discard this session?"
+                      description="Your answered questions still count toward readiness."
+                      okText="Yes, discard"
+                      cancelText="Keep"
+                      okButtonProps={{ danger: true }}
+                      onConfirm={() => api.abandonInterview(s.id).then(load).catch(setError)}
+                    >
+                      <Button variant="ghost">Discard</Button>
+                    </Popconfirm>
+                  </div>
+                </li>
+              ))}
+            </ul>
+          </details>
+        </Card>
+      )}
+
+      {hero && <SectionHeading title="Or start another interview" />}
 
       <Card>
         <SectionHeading
@@ -725,7 +776,8 @@ export default function Interview() {
                   {new Date(s.createdAt).toLocaleString()}
                 </Link>
                 <span className="flex items-center gap-2 text-muted">
-                  {s.mode === "practice" && <Pill tone="amber">Practice</Pill>}
+                  {s.abandoned && <Pill tone="muted">Discarded</Pill>}
+                  {!s.abandoned && s.mode === "practice" && <Pill tone="amber">Practice</Pill>}
                   {s.questions} questions
                 </span>
               </li>

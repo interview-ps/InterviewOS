@@ -173,6 +173,11 @@ async def complete_interview(id: str, request: Request, state: StateDep) -> obje
     )
 
 
+@router.post("/{id}/abandon")
+async def abandon_interview(id: str, state: StateDep) -> object:
+    return json_response(await state.orchestrator.abandon_interview(id))
+
+
 @router.get("/{id}/debrief")
 async def get_debrief(id: str, state: StateDep) -> object:
     interview = await state.orchestrator.get_interview(id)

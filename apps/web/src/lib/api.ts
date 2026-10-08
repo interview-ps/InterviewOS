@@ -91,6 +91,8 @@ export interface SessionRow {
   contextId: string | null;
   createdAt: string;
   completedAt: string | null;
+  /** Discarded sessions are closed without a debrief (evidence is kept). */
+  abandoned: boolean;
 }
 
 // --- v0.4 voice mode (delivery hints only; never part of evaluation) --------
@@ -1038,6 +1040,9 @@ export const api = {
       `/api/interviews/${sessionId}/complete`,
       { method: "POST" },
     ),
+  /** Discard an in-progress session without a debrief (evidence is retained). */
+  abandonInterview: (sessionId: string) =>
+    request<SessionRow>(`/api/interviews/${sessionId}/abandon`, { method: "POST" }),
   startLoop: (rounds?: { mode: RoundType; label?: string; plannedQuestions?: number }[]) =>
     request<StartLoopResult>("/api/loops", {
       method: "POST",

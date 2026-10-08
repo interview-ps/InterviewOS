@@ -461,3 +461,113 @@ async def test_resume_coach_bullets_and_tailor(host: SkillHost, runtime: MockRun
     assert covered.resume_evidence is not None
     gap = next(a for a in tailoring.alignment if a.requirement == "Kubernetes")
     assert gap.resume_evidence is None
+
+
+@pytest.mark.parametrize("mode", ["mixed", "system_design", "coding"])
+def test_answer_evaluator_schema_is_provider_strict(mode: str) -> None:
+    """OpenAI/Codex require `properties` on every object schema.
+
+    The AI-facing evaluator schema must be fully typed — no free-form records
+    (`modeSignals`) or untyped arrays (`designUpdates`). Regression for the
+    `answer-evaluator.*` Codex 400 ("...properties is required for object
+    schemas").
+    """
+
+    from interview_os.ai.structured import to_strict_json_schema
+    from interview_os.skills.evaluate.answer_evaluator import rubric_schema_for
+
+    schema = to_strict_json_schema(rubric_schema_for(mode))
+
+    def walk(node: object) -> None:
+        if not isinstance(node, dict):
+            return
+        if node.get("type") == "object":
+            assert "properties" in node, f"{mode}: object without properties"
+            assert node.get("additionalProperties") is False
+        if node.get("type") == "array":
+            assert node.get("items") != {}, f"{mode}: array with untyped items"
+        for child in node.values():
+            if isinstance(child, list):
+                for item in child:
+                    walk(item)
+            else:
+                walk(child)
+
+    walk(schema)
+
+
+def test_interviewer_schema_is_provider_strict() -> None:
+    """OpenAI/Codex require `properties` on every object schema.
+
+    The interviewer's `problem` artifact is an open record on the question's
+    `extra`, but the AI-facing schema must be typed. Regression for the
+    `interviewer.*` Codex 400 ("...properties is required for object
+    schemas").
+    """
+
+    from interview_os.ai.structured import to_strict_json_schema
+    from interview_os.skills.interview.interviewer import InterviewerOutput
+
+    schema = to_strict_json_schema(InterviewerOutput)
+
+    def walk(node: object) -> None:
+        if not isinstance(node, dict):
+            return
+        if node.get("type") == "object":
+            assert "properties" in node, "object without properties"
+            assert node.get("additionalProperties") is False
+        if node.get("type") == "array":
+            assert node.get("items") != {}, "array with untyped items"
+        for child in node.values():
+            if isinstance(child, list):
+                for item in child:
+                    walk(item)
+            else:
+                walk(child)
+
+    walk(schema)
+
+
+def test_interviewer_problem_round_trips_to_the_open_record() -> None:
+    """The typed AI artifact must serialise back to the coding-mode record."""
+
+    from interview_os.skills.interview.interviewer import (
+        InterviewerProblem,
+        InterviewerProblemExample,
+    )
+
+    problem = InterviewerProblem(
+        title="Top-K recent items",
+        statement="Return the k most recent distinct values.",
+        constraints=["1 ≤ k ≤ len(items)"],
+        examples=[InterviewerProblemExample(input="items=[1,2]", output="[2,1]")],
+    )
+    assert problem.model_dump(mode="json", by_alias=True) == {
+        "title": "Top-K recent items",
+        "statement": "Return the k most recent distinct values.",
+        "constraints": ["1 ≤ k ≤ len(items)"],
+        "examples": [{"input": "items=[1,2]", "output": "[2,1]", "explanation": ""}],
+    }
+
+
+def test_mode_signals_ai_round_trips_to_the_open_record() -> None:
+    """The typed AI shape must serialise back to the record `mode.reduce` reads."""
+
+    from interview_os.core.models import DesignUpdate, DesignUpdateStatus
+    from interview_os.skills.evaluate.answer_evaluator import ModeSignalsAi
+
+    signals = ModeSignalsAi(
+        design_updates=[
+            DesignUpdate(
+                dimension="apis",
+                status=DesignUpdateStatus.PARTIAL,
+                notes="surface sketched",
+            )
+        ]
+    )
+    assert signals.model_dump(mode="json", by_alias=True, exclude_none=True) == {
+        "designUpdates": [
+            {"dimension": "apis", "status": "partial", "notes": "surface sketched"}
+        ]
+    }
+    assert ModeSignalsAi().model_dump(mode="json", by_alias=True, exclude_none=True) == {}
