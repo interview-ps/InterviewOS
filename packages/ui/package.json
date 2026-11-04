@@ -50,7 +50,7 @@
   },
   "dependencies": {
     "@interview-os/frontend-types": "workspace:*",
-    "zod": "4.6.5"
+    "zod": "4.6.6"
   },
   "peerDependencies": {
     "react": "19.3.0",
